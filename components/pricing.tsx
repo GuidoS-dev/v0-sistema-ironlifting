@@ -35,9 +35,9 @@ const plans = [
     spots: 20,
     popular: false,
     features: [
-      "Programación semanal",
+      "Programación semanal personalizada",
       "Acceso a biblioteca de videos",
-      "Grupo de WhatsApp",
+      "Analisis quincenal por videos",
       "Actualizaciones mensuales",
     ],
   },
@@ -50,10 +50,8 @@ const plans = [
     popular: true,
     features: [
       "Todo lo del plan Básico",
-      "Programación personalizada",
       "Análisis de video semanal",
       "Llamada mensual 1-a-1",
-      "Ajustes de técnica en tiempo real",
     ],
   },
   {
