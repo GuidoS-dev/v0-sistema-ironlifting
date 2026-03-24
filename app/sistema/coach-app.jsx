@@ -9144,16 +9144,25 @@ function LoginScreen({ onAuth }) {
     setLogs(prev => [...prev.slice(-15), { ts, txt, type }]);
   };
 
-  const handleLogin = () => {
-    const mockSession = { access_token: "mock", user: { id: "mock-" + email, email } };
-    try { localStorage.setItem("mock_user", JSON.stringify({ email, nombre: email.split("@")[0], rol:"coach" })); } catch {}
-    onAuth(mockSession);
+  const handleLogin = async () => {
+    if (!email || !password) { setError("Completá email y contraseña"); return; }
+    setLoading(true); setError("");
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    onAuth(data.session);
   };
 
-  const handleRegister = () => {
-    const mockSession = { access_token: "mock", user: { id: "mock-" + email, email } };
-    try { localStorage.setItem("mock_user", JSON.stringify({ email, nombre, rol:"coach" })); } catch {}
-    onAuth(mockSession);
+  const handleRegister = async () => {
+    if (!email || !password) { setError("Completá email y contraseña"); return; }
+    setLoading(true); setError("");
+    const { data, error } = await sb.auth.signUp({
+      email, password,
+      options: { data: { nombre: nombre || email.split("@")[0], tipo: "coach" } }
+    });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    setMsg("Revisá tu email para confirmar tu cuenta.");
   };
 
   const handleForgot = async () => {
@@ -9698,23 +9707,29 @@ export default function App() {
 
     const init = async () => {
       try {
-        // Mock auth: check localStorage for saved user
-        const mockUser = localStorage.getItem("mock_user");
-        if (mockUser) {
-          const u = JSON.parse(mockUser);
-          const mockSession = { access_token:"mock", user:{ id:"mock-"+u.email, email:u.email } };
-          if (mounted) { setSession(mockSession); setProfile(u); }
+        const { data: { session } } = await sb.auth.getSession();
+        if (mounted) {
+          setSession(session);
+          if (session?.user?.id) await loadProfile(session.user.id);
+          else setAuthLoading(false);
         }
       } catch(e) {
         console.error("Auth init error:", e);
-      } finally {
         if (mounted) setAuthLoading(false);
       }
     };
 
     init();
 
-    return () => { mounted = false; };
+    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
+      if (mounted) {
+        setSession(session);
+        if (session?.user?.id) loadProfile(session.user.id);
+        else { setProfile(null); setAuthLoading(false); }
+      }
+    });
+
+    return () => { mounted = false; subscription?.unsubscribe(); };
   }, []);
 
   const loadProfile = async (userId) => {
@@ -9725,8 +9740,8 @@ export default function App() {
     setAuthLoading(false);
   };
 
-  const handleLogout = () => {
-    try { localStorage.removeItem("mock_user"); } catch {}
+  const handleLogout = async () => {
+    await sb.auth.signOut();
     setSession(null);
     setProfile(null);
   };
