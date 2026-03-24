@@ -163,6 +163,14 @@ const sb = {
         const data = await r.json();
         return r.ok ? {data,error:null} : {data:null,error:data};
       },
+      upsert: async (rows, { onConflict } = {}) => {
+        const h = await _headers();
+        h["Prefer"] = "return=representation,resolution=merge-duplicates";
+        const extra = onConflict ? `?on_conflict=${onConflict}` : '';
+        const r = await fetch(`${_url()}${extra}`, {method:"POST",headers:h,body:JSON.stringify(rows)});
+        const data = await r.json();
+        return r.ok ? {data,error:null} : {data:null,error:data};
+      },
       update: async (vals) => {
         const h = await _headers();
         h["Prefer"] = "return=representation";
@@ -179,19 +187,164 @@ const sb = {
         const r = await fetch(`${_url()}?${p}`, {method:"DELETE",headers:h});
         return r.ok ? {data:null,error:null} : {data:null,error:await r.json()};
       },
-      upsert: async (rows) => {
-        const h = await _headers();
-        h["Prefer"] = "resolution=merge-duplicates,return=representation";
-        const r = await fetch(_url(), {method:"POST",headers:h,body:JSON.stringify(rows)});
-        const data = await r.json();
-        return r.ok ? {data,error:null} : {data:null,error:data};
-      },
     };
     return builder;
   },
 };
 
 function getSupabase() { return sb; }
+
+// ─── DB SYNC HELPERS ─────────────────────────────────────────────────────────
+// Recolecta los overrides de celdas de un mesociclo desde localStorage
+function collectMesoOverrides(mesoId) {
+  const get = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
+  return {
+    repsEdit:   get(`liftplan_pt_${mesoId}_repsEdit`)   || {},
+    manualEdit: get(`liftplan_pt_${mesoId}_manualEdit`) || [],
+    cellEdit:   get(`liftplan_pt_${mesoId}_cellEdit`)   || {},
+    cellManual: get(`liftplan_pt_${mesoId}_cellManual`) || [],
+    nameEdit:   get(`liftplan_pt_${mesoId}_nameEdit`)   || {},
+    noteEdit:   get(`liftplan_pt_${mesoId}_noteEdit`)   || {},
+  };
+}
+
+// Restaura los overrides de un mesociclo en localStorage al cargar desde DB
+function restoreMesoOverrides(mesoId, overrides) {
+  if (!overrides) return;
+  const set = (k, v) => { try { if (v != null) localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  set(`liftplan_pt_${mesoId}_repsEdit`,   overrides.repsEdit);
+  set(`liftplan_pt_${mesoId}_manualEdit`, overrides.manualEdit);
+  set(`liftplan_pt_${mesoId}_cellEdit`,   overrides.cellEdit);
+  set(`liftplan_pt_${mesoId}_cellManual`, overrides.cellManual);
+  set(`liftplan_pt_${mesoId}_nameEdit`,   overrides.nameEdit);
+  set(`liftplan_pt_${mesoId}_noteEdit`,   overrides.noteEdit);
+}
+
+// Recolecta los overrides de porcentajes de un atleta desde localStorage
+function collectAtletaPctOverrides(atletaId) {
+  const get = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
+  return {
+    semOvr:   get(`liftplan_pct_${atletaId}_semOvr`)   || {},
+    semMan:   get(`liftplan_pct_${atletaId}_semMan`)    || [],
+    turnoOvr: get(`liftplan_pct_${atletaId}_turnoOvr`) || {},
+    turnoMan: get(`liftplan_pct_${atletaId}_turnoMan`) || [],
+  };
+}
+
+// Restaura los overrides de porcentajes de un atleta en localStorage
+function restoreAtletaPctOverrides(atletaId, overrides) {
+  if (!overrides) return;
+  const set = (k, v) => { try { if (v != null) localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  set(`liftplan_pct_${atletaId}_semOvr`,   overrides.semOvr);
+  set(`liftplan_pct_${atletaId}_semMan`,   overrides.semMan);
+  set(`liftplan_pct_${atletaId}_turnoOvr`, overrides.turnoOvr);
+  set(`liftplan_pct_${atletaId}_turnoMan`, overrides.turnoMan);
+}
+
+// ─── MAPEOS APP ↔ DB (usan el esquema real de las tablas existentes) ─────────
+function atletaToDb(a, coachId) {
+  return {
+    coach_id:         coachId,
+    app_id:           a.id,
+    nombre:           a.nombre           || '',
+    email:            a.email            || '',
+    telefono:         a.telefono         || '',
+    fecha_nacimiento: a.fecha_nacimiento || null,
+    notas:            a.notas            || '',
+    tipo:             a.tipo             || 'atleta',
+    pct_overrides:    collectAtletaPctOverrides(a.id),
+    updated_at:       new Date().toISOString(),
+  };
+}
+function atletaFromDb(r) {
+  return {
+    id:               r.app_id,
+    nombre:           r.nombre,
+    email:            r.email,
+    telefono:         r.telefono,
+    fecha_nacimiento: r.fecha_nacimiento,
+    notas:            r.notas,
+    tipo:             r.tipo,
+  };
+}
+function mesoToDb(m, coachId) {
+  return {
+    coach_id:       coachId,
+    app_id:         m.id,
+    app_atleta_id:  m.atleta_id      || null,
+    nombre:         m.nombre         || '',
+    fecha_inicio:   m.fecha_inicio   || new Date().toISOString().slice(0,10),
+    modo:           m.modo           || 'Preparatorio',
+    activo:         m.activo         ?? false,
+    irm_arranque:   m.irm_arranque   || null,
+    irm_envion:     m.irm_envion     || null,
+    volumen_total:  m.volumen_total  || 0,
+    descripcion:    m.descripcion    || '',
+    duracion_ciclo: m.duracion_ciclo || null,
+    duracion_mens:  m.duracion_mens  || null,
+    ultimo_inicio:  m.ultimo_inicio  || null,
+    semanas:        m.semanas        || [],
+    overrides:      collectMesoOverrides(m.id),
+    updated_at:     new Date().toISOString(),
+  };
+}
+function mesoFromDb(r) {
+  return {
+    id:             r.app_id,
+    atleta_id:      r.app_atleta_id,
+    nombre:         r.nombre,
+    fecha_inicio:   r.fecha_inicio,
+    modo:           r.modo,
+    activo:         r.activo,
+    irm_arranque:   r.irm_arranque,
+    irm_envion:     r.irm_envion,
+    volumen_total:  r.volumen_total,
+    descripcion:    r.descripcion,
+    duracion_ciclo: r.duracion_ciclo,
+    duracion_mens:  r.duracion_mens,
+    ultimo_inicio:  r.ultimo_inicio,
+    semanas:        r.semanas || [],
+  };
+}
+function plantillaToDb(p, coachId) {
+  return {
+    coach_id:        coachId,
+    app_id:          p.id,
+    nombre:          p.nombre          || '',
+    descripcion:     p.descripcion     || '',
+    tipo:            p.tipo            || 'meso',
+    periodo:         p.periodo         || 'general',
+    objetivo:        p.objetivo        || 'mixto',
+    nivel:           p.nivel           || 'intermedio',
+    modo:            p.modo            || 'Preparatorio',
+    volumen_total:   p.volumen_total   || null,
+    semanas:         p.semanas         || null,
+    duracion_semanas: p.duracion_semanas || null,
+    irm_arranque:    p.irm_arranque    || null,
+    irm_envion:      p.irm_envion      || null,
+    overrides:       p.overrides       || {},
+    updated_at:      new Date().toISOString(),
+  };
+}
+function plantillaFromDb(r) {
+  return {
+    id:               r.app_id,
+    nombre:           r.nombre,
+    descripcion:      r.descripcion,
+    tipo:             r.tipo,
+    periodo:          r.periodo,
+    objetivo:         r.objetivo,
+    nivel:            r.nivel,
+    modo:             r.modo,
+    volumen_total:    r.volumen_total,
+    semanas:          r.semanas,
+    duracion_semanas: r.duracion_semanas,
+    irm_arranque:     r.irm_arranque,
+    irm_envion:       r.irm_envion,
+    overrides:        r.overrides || {},
+    creado:           r.created_at?.slice(0,10),
+  };
+}
 
 // ─── DATA ─────────────────────��──────────────────────────────────────────────
 const EJERCICIOS = [{"id": 1, "nombre": "Fza atrás de nuca en sentadilla Arran.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 2, "nombre": "Caminata en sentadilla Arran.", "categoria": "Arranque", "pct_base": 50, "base": "arranque"}, {"id": 3, "nombre": "Saltos en sentadilla Arran.", "categoria": "Arranque", "pct_base": 50, "base": "arranque"}, {"id": 4, "nombre": "Empuje atrás toma Arran.", "categoria": "Arranque", "pct_base": 70, "base": "arranque"}, {"id": 5, "nombre": "Empuje atrás toma Arran con flexión.", "categoria": "Arranque", "pct_base": 90, "base": "arranque"}, {"id": 6, "nombre": "Metidas Arran.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 7, "nombre": "Arran de pecho.", "categoria": "Arranque", "pct_base": 30, "base": "arranque"}, {"id": 8, "nombre": "Arran de ingle.", "categoria": "Arranque", "pct_base": 90, "base": "arranque"}, {"id": 9, "nombre": "Arran colgado sobre muslo.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 10, "nombre": "Arran colgado sobre rodilla.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 11, "nombre": "Arran colgado bajo rodilla.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 12, "nombre": "Arran suspendido.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 13, "nombre": "Arran hiper.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 14, "nombre": "Arran de tacos.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 15, "nombre": "Arran clásico.", "categoria": "Arranque", "pct_base": 100, "base": "arranque"}, {"id": 16, "nombre": "Arran sin deslizamiento.", "categoria": "Arranque", "pct_base": 90, "base": "arranque"}, {"id": 17, "nombre": "Arran Fza abajo.", "categoria": "Arranque", "pct_base": 80, "base": "arranque"}, {"id": 18, "nombre": "Adaptación de Arran.", "categoria": "Arranque", "pct_base": 68, "base": "arranque"}, {"id": 19, "nombre": "Arran estrecho.", "categoria": "Arranque", "pct_base": 85, "base": "arranque"}, {"id": 20, "nombre": "Carg a Fza parado.", "categoria": "Envion", "pct_base": 68, "base": "arranque"}, {"id": 21, "nombre": "Carg de Fza abajo.", "categoria": "Envion", "pct_base": 85, "base": "arranque"}, {"id": 22, "nombre": "Carg de potencia.", "categoria": "Envion", "pct_base": 90, "base": "arranque"}, {"id": 23, "nombre": "Carg clásica.", "categoria": "Envion", "pct_base": 100, "base": "arranque"}, {"id": 24, "nombre": "Carg sin deslizamiento.", "categoria": "Envion", "pct_base": 90, "base": "arranque"}, {"id": 25, "nombre": "Carg hiper.", "categoria": "Envion", "pct_base": 100, "base": "arranque"}, {"id": 27, "nombre": "Carg colgada sobre muslos.", "categoria": "Envion", "pct_base": 100, "base": "arranque"}, {"id": 28, "nombre": "Carg colgada sobre rodillas.", "categoria": "Envion", "pct_base": 100, "base": "arranque"}, {"id": 29, "nombre": "Carg colgada bajo rodilla.", "categoria": "Envion", "pct_base": 100, "base": "arranque"}, {"id": 30, "nombre": "Carg suspendida.", "categoria": "Envion", "pct_base": 90, "base": "arranque"}, {"id": 31, "nombre": "Carg de tacos.", "categoria": "Envion", "pct_base": 100, "base": "arranque"}, {"id": 32, "nombre": "Fza militar.", "categoria": "Envion", "pct_base": 55, "base": "arranque"}, {"id": 33, "nombre": "Fza militar sentado.", "categoria": "Envion", "pct_base": 55, "base": "arranque"}, {"id": 34, "nombre": "Fza c/impulso.", "categoria": "Envion", "pct_base": 100, "base": "arranque"}, {"id": 35, "nombre": "Fza c/impulso c/F.", "categoria": "Envion", "pct_base": 90, "base": "envion"}, {"id": 36, "nombre": "Segundo tiempo de potencia.", "categoria": "Envion", "pct_base": 100, "base": "envion"}, {"id": 37, "nombre": "Segundo tiempo desde tijera.", "categoria": "Envion", "pct_base": 60, "base": "envion"}, {"id": 38, "nombre": "Segundo tiempo c/tijera.", "categoria": "Envion", "pct_base": 100, "base": "envion"}, {"id": 39, "nombre": "Fza c/imp atrás nuca.", "categoria": "Envion", "pct_base": 100, "base": "arranque"}, {"id": 40, "nombre": "Fza c/imp c/F atrás nuca.", "categoria": "Envion", "pct_base": 90, "base": "envion"}, {"id": 41, "nombre": "Seg tiem de pot atrás nuca.", "categoria": "Envion", "pct_base": 100, "base": "envion"}, {"id": 42, "nombre": "Seg tiem desde tijr atrás nuca.", "categoria": "Envion", "pct_base": 60, "base": "envion"}, {"id": 43, "nombre": "Seg tiem de tijr atrás nuca.", "categoria": "Envion", "pct_base": 100, "base": "envion"}, {"id": 44, "nombre": "Envión de Fza / sentadillas.", "categoria": "Envion", "pct_base": 70, "base": "envion"}, {"id": 45, "nombre": "Envión clásico.", "categoria": "Envion", "pct_base": 100, "base": "envion"}, {"id": 46, "nombre": "Medio segudo tiempo (saque).", "categoria": "Envion", "pct_base": 100, "base": "envion"}, {"id": 47, "nombre": "Adaptación de segundo tiempo.", "categoria": "Envion", "pct_base": 50, "base": "envion"}, {"id": 48, "nombre": "Adaptación de seg tiem inicial.", "categoria": "Envion", "pct_base": 80, "base": "envion"}, {"id": 49, "nombre": "Trn Arrq Fza hombro.", "categoria": "Tirones", "pct_base": 120, "base": "arranque"}, {"id": 50, "nombre": "Trn Arrq completo (rt glúteo punta).", "categoria": "Tirones", "pct_base": 105, "base": "arranque"}, {"id": 500, "nombre": "Trn Arrq de tacos Fza brazos.", "categoria": "Complementarios", "pct_base": 110, "base": "arranque"}, {"id": 51, "nombre": "Trn Arrq colg S M.", "categoria": "Tirones", "pct_base": 110, "base": "arranque"}, {"id": 52, "nombre": "Trn colg S R.", "categoria": "Tirones", "pct_base": 110, "base": "arranque"}, {"id": 520, "nombre": "Trn Arrq colg bajo RD.", "categoria": "Complementarios", "pct_base": 110, "base": "arranque"}, {"id": 53, "nombre": "Trn Arrq suspendido.", "categoria": "Tirones", "pct_base": 105, "base": "arranque"}, {"id": 54, "nombre": "Trn Arrq 4/paradas.", "categoria": "Tirones", "pct_base": 110, "base": "arranque"}, {"id": 55, "nombre": "Trn hiper.", "categoria": "Tirones", "pct_base": 110, "base": "arranque"}, {"id": 56, "nombre": "Trn Arrq hasta las rodillas.", "categoria": "Tirones", "pct_base": 120, "base": "arranque"}, {"id": 57, "nombre": "Paradillas.", "categoria": "Tirones", "pct_base": 120, "base": "arranque"}, {"id": 58, "nombre": "Trn envión Fza hombros.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 59, "nombre": "Trn envión completo (rt glúteo y puntas).", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 60, "nombre": "Trn envión de tacos.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 61, "nombre": "Trn envión colg S M.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 62, "nombre": "Trn envión colg S R.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 63, "nombre": "Trn envión colg bajo RD.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 64, "nombre": "Trn envión suspendido.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 65, "nombre": "Trn envión 4/paradas.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 66, "nombre": "Trn envión hasta rodillas.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 67, "nombre": "Paradillas.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 68, "nombre": "Trn envión hiper.", "categoria": "Tirones", "pct_base": 120, "base": "envion"}, {"id": 69, "nombre": "Sent atrás.", "categoria": "Piernas", "pct_base": 140, "base": "envion"}, {"id": 70, "nombre": "Sent adelante.", "categoria": "Piernas", "pct_base": 125, "base": "envion"}, {"id": 71, "nombre": "Sent atrás ritmo cediente.", "categoria": "Piernas", "pct_base": 100, "base": "envion"}, {"id": 72, "nombre": "Sent adelante ritmo cediente.", "categoria": "Piernas", "pct_base": 90, "base": "envion"}, {"id": 73, "nombre": "Sent en tijeras.", "categoria": "Piernas", "pct_base": 68, "base": "envion"}, {"id": 74, "nombre": "Sent de Arran.", "categoria": "Piernas", "pct_base": 100, "base": "arranque"}, {"id": 75, "nombre": "Sent de envión.", "categoria": "Piernas", "pct_base": 100, "base": "envion"}, {"id": 76, "nombre": "Sent a 1 pierna.", "categoria": "Piernas", "pct_base": 65, "base": "envion"}, {"id": 77, "nombre": "Sent c/mancuerna.", "categoria": "Piernas", "pct_base": null, "base": null}, {"id": 78, "nombre": "Subidas al banco.", "categoria": "Piernas", "pct_base": null, "base": null}, {"id": 79, "nombre": "Hombro atrás toma Arran.", "categoria": "Complementarios", "pct_base": 68, "base": "arranque"}, {"id": 80, "nombre": "Dominadas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 81, "nombre": "Dorsales atrás.", "categoria": "Complementarios", "pct_base": 80, "base": "arranque"}, {"id": 82, "nombre": "Dorsales adelante.", "categoria": "Complementarios", "pct_base": 80, "base": "arranque"}, {"id": 83, "nombre": "Remo toma Arran con aducción de escápulas.", "categoria": "Complementarios", "pct_base": 80, "base": "arranque"}, {"id": 84, "nombre": "Remo toma envión codos puntas y.", "categoria": "Complementarios", "pct_base": 80, "base": "arranque"}, {"id": 85, "nombre": "Remo toma media codos atrás c/adcc.", "categoria": "Complementarios", "pct_base": 80, "base": "arranque"}, {"id": 86, "nombre": "Pecho c/abducción de escápulas.", "categoria": "Complementarios", "pct_base": 80, "base": "arranque"}, {"id": 87, "nombre": "Bíceps.", "categoria": "Complementarios", "pct_base": 40, "base": "arranque"}, {"id": 88, "nombre": "Tríceps.", "categoria": "Complementarios", "pct_base": 40, "base": "arranque"}, {"id": 89, "nombre": "Fondos de tríceps.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 90, "nombre": "Tríceps paralelas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 91, "nombre": "Remo parado.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 92, "nombre": "Vuelos frontales/laterales/posteriores.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 93, "nombre": "Vuelos posteriores c/adcc escápulas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 94, "nombre": "Acondicionamiento escápular boca abajo.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 95, "nombre": "Combinado de brazos con mancuerna.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 96, "nombre": "Combinado de antebrazos + Fza militar.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 97, "nombre": "Hombro atrás + elevación de escápulas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 98, "nombre": "Abdominales piernas a 90 grados.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 99, "nombre": "Abdominales colg piernas estiradas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 100, "nombre": "Abdominales estáticos.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 101, "nombre": "Hprext.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 102, "nombre": "Hprext a 1 pierna.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 103, "nombre": "Hprext estáticas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 104, "nombre": "Hprext de piernas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 105, "nombre": "Espinales.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 106, "nombre": "Buenos días parado.", "categoria": "Complementarios", "pct_base": 70, "base": "arranque"}, {"id": 107, "nombre": "Buenos días sentado.", "categoria": "Complementarios", "pct_base": 60, "base": "arranque"}, {"id": 108, "nombre": "Buenos días parado piernas estiradas.", "categoria": "Complementarios", "pct_base": 60, "base": "arranque"}, {"id": 109, "nombre": "Buenos días c/barra.", "categoria": "Complementarios", "pct_base": 100, "base": "arranque"}, {"id": 110, "nombre": "Buenos días c/barra hiper.", "categoria": "Complementarios", "pct_base": 100, "base": "arranque"}, {"id": 111, "nombre": "Buenos días a 1 pierna.", "categoria": "Complementarios", "pct_base": 60, "base": "arranque"}, {"id": 112, "nombre": "Mantenimiento parado.", "categoria": "Complementarios", "pct_base": 130, "base": "envion"}, {"id": 113, "nombre": "Mantenimiento acostado.", "categoria": "Complementarios", "pct_base": 130, "base": "envion"}, {"id": 114, "nombre": "Combinado bolita/barra.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 115, "nombre": "Combinado Arran.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 116, "nombre": "Combinado envión.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 117, "nombre": "Combinado de tiempo.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 118, "nombre": "Combinado de estabilizadores.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 119, "nombre": "Subo bajo al banco.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 120, "nombre": "Caminata paso largo c/barra arriba.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 121, "nombre": "Saltos c/discos laterales.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 122, "nombre": "Saltos al plinton.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 123, "nombre": "Saltos en la goma.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 124, "nombre": "Saltos rana.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 125, "nombre": "Escaleras.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 126, "nombre": "Caminata patito.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 127, "nombre": "Caminata en sentadilla Arran atrás + adelante.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 128, "nombre": "Carrera perrito.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 129, "nombre": "Caminata del oso.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 130, "nombre": "Caminata cangrejo.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 131, "nombre": "Foca.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 132, "nombre": "Media lunas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 133, "nombre": "Verticales.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 134, "nombre": "Combinado saltos pie derecho.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 135, "nombre": "Lanzamientos disco atrás + adelante.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 136, "nombre": "Saltos seguidos con bayas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 137, "nombre": "Saltos varios.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 138, "nombre": "Saltos rana.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 139, "nombre": "Carrera 30 metros.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 140, "nombre": "Carrera media 800 metros.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 141, "nombre": "Lagartijas.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 142, "nombre": "Lanzamiento de pelota acostado.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 143, "nombre": "Combinado de tiempo.", "categoria": "Complementarios", "pct_base": null, "base": null}, {"id": 144, "nombre": "Juegos varios.", "categoria": "Complementarios", "pct_base": null, "base": null}];
@@ -6166,9 +6319,11 @@ function usePlantillas(coachId) {
   const [plantillas, setPlantillas] = useState(() => {
     try {
       const list = JSON.parse(localStorage.getItem('liftplan_plantillas') || '[]');
+      // Recuperar borradores más nuevos que el array guardado
       return list.map(p => {
         try {
           const draft = JSON.parse(localStorage.getItem(`liftplan_plt_draft_${p.id}`) || 'null');
+          // Usar el borrador si existe (siempre es más reciente)
           return draft || p;
         } catch { return p; }
       });
@@ -6176,53 +6331,57 @@ function usePlantillas(coachId) {
     catch { return []; }
   });
 
-  // Cargar desde Supabase al montar (si hay sesión)
+  // Cargar plantillas desde Supabase al montar
   useEffect(() => {
     if (!coachId) return;
-    (async () => {
-      try {
-        const { data } = await sb.from('plantillas').select('*').eq('coach_id', coachId).exec();
-        if (data?.length) {
-          const restored = data.map(row => ({ ...row.data, id: row.id }));
-          setPlantillas(restored);
-          try { localStorage.setItem('liftplan_plantillas', JSON.stringify(restored)); } catch {}
+    sb.from('plantillas').select('*').eq('coach_id', coachId).exec().then(({ data, error }) => {
+      if (error) return;
+      if (data) {
+        const appPlantillas = data.filter(r => r.app_id);
+        if (appPlantillas.length > 0) {
+          const loaded = appPlantillas.map(plantillaFromDb);
+          setPlantillas(loaded);
+          try { localStorage.setItem('liftplan_plantillas', JSON.stringify(loaded)); } catch {}
+        } else {
+          // DB vacía — migrar localStorage → DB
+          const local = (() => {
+            try { return JSON.parse(localStorage.getItem('liftplan_plantillas') || '[]'); } catch { return []; }
+          })();
+          if (local.length > 0) {
+            sb.from('plantillas').upsert(local.map(p => plantillaToDb(p, coachId)), { onConflict: 'app_id' }).catch(() => {});
+          }
         }
-      } catch(e) { console.warn('Supabase plantillas load failed:', e); }
-    })();
+      }
+    }).catch(() => {});
   }, [coachId]);
 
-  const _saveLs = (ps) => {
+  const _saveLocal = (ps) => {
     setPlantillas(ps);
-    try { localStorage.setItem('liftplan_plantillas', JSON.stringify(ps)); } catch {}
+    try { localStorage.setItem('liftplan_plantillas', JSON.stringify(ps)); } catch(e) { console.warn('localStorage save failed:', e); }
   };
-  const _upsertSb = async (p) => {
-    if (!coachId) return;
-    try {
-      await sb.from('plantillas').upsert([{ id: p.id, coach_id: coachId, nombre: p.nombre, tipo: p.tipo, creado: p.creado || null, data: p }]);
-    } catch(e) { console.warn('Supabase plantilla upsert failed:', e); }
-  };
-  const _deleteSb = async (id) => {
-    if (!coachId) return;
-    try { await sb.from('plantillas').eq('id', id).delete(); } catch(e) { console.warn('Supabase plantilla delete failed:', e); }
-  };
-
   const add = (p) => {
     const item = { id: mkId(), creado: new Date().toISOString().slice(0,10), ...p };
-    _saveLs([...plantillas, item]);
-    _upsertSb(item);
+    _saveLocal([...plantillas, item]);
+    if (coachId) {
+      sb.from('plantillas').upsert([plantillaToDb(item, coachId)], { onConflict: 'app_id' }).catch(() => {});
+    }
     return item;
   };
   const update = (p) => {
     const next = plantillas.map(x => x.id===p.id ? p : x);
     setPlantillas(next);
     try { localStorage.setItem(`liftplan_plt_draft_${p.id}`, JSON.stringify(p)); } catch {}
-    try { localStorage.setItem('liftplan_plantillas', JSON.stringify(next)); } catch {}
-    _upsertSb(p);
+    try { localStorage.setItem('liftplan_plantillas', JSON.stringify(next)); } catch(e) { console.warn('localStorage save failed:', e); }
+    if (coachId) {
+      sb.from('plantillas').upsert([plantillaToDb(p, coachId)], { onConflict: 'app_id' }).catch(() => {});
+    }
   };
   const remove = (id) => {
-    _saveLs(plantillas.filter(x => x.id !== id));
+    _saveLocal(plantillas.filter(x => x.id !== id));
     try { localStorage.removeItem(`liftplan_plt_draft_${id}`); } catch {}
-    _deleteSb(id);
+    if (coachId) {
+      sb.from('plantillas').eq('app_id', id).delete().catch(() => {});
+    }
   };
   return { plantillas, add, update, remove };
 }
@@ -8337,8 +8496,89 @@ const save = (key, val) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// PANEL DE REFERENCIA
+// PANEL DE REFERENCIA — vista lateral de solo lectura
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// PANEL DE REFERENCIA
+const _debugLogs = { list: [], listeners: [] };
+const _pushLog = (type, msg) => {
+  _debugLogs.list = [..._debugLogs.list.slice(-299), { type, msg, t: new Date().toLocaleTimeString() }];
+  _debugLogs.listeners.forEach(fn => { try { fn(_debugLogs.list); } catch {} });
+};
+
+function DebugConsole() {
+  const [logs, setLogs] = useState([]);
+  const [open, setOpen] = useState(true);
+  const [filter, setFilter] = useState("");
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    const fn = (list) => setLogs([...list]);
+    _debugLogs.listeners.push(fn);
+    const _log = console.log.bind(console);
+    const _warn = console.warn.bind(console);
+    const _err = console.error.bind(console);
+    const fmt = (a) => a.map(x => { try { return typeof x==="object"?JSON.stringify(x):String(x); } catch { return "?"; }}).join(" ");
+    console.log   = (...a) => { _log(...a);  _pushLog("log",  fmt(a)); };
+    console.warn  = (...a) => { _warn(...a); _pushLog("warn", fmt(a)); };
+    console.error = (...a) => { _err(...a);  _pushLog("error",fmt(a)); };
+    const onErr = (e) => _pushLog("error", `[ERROR] ${e.message} ${e.filename}:${e.lineno}`);
+    const onRej = (e) => _pushLog("error", `[PROMISE] ${String(e.reason)}`);
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onRej);
+    _pushLog("log", "🐞 Debug activo");
+    setLogs([..._debugLogs.list]);
+    return () => {
+      const i = _debugLogs.listeners.indexOf(fn);
+      if (i > -1) _debugLogs.listeners.splice(i, 1);
+      console.log = _log; console.warn = _warn; console.error = _err;
+      window.removeEventListener("error", onErr);
+      window.removeEventListener("unhandledrejection", onRej);
+    };
+  }, []);
+
+  useEffect(() => { if (open) bottomRef.current?.scrollIntoView(); }, [logs, open]);
+
+  const visible = filter ? logs.filter(l => l.msg.toLowerCase().includes(filter.toLowerCase())) : logs;
+  const errCount = logs.filter(l => l.type === "error").length;
+  const colors = { log:"#c9d1d9", warn:"#e8c547", error:"#e85047" };
+
+  return (
+    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:99999,
+      background:"#0d1117",borderTop:"2px solid #30363d",
+      fontFamily:"monospace",fontSize:11,
+      maxHeight:open?220:30,transition:"max-height .15s",
+      display:"flex",flexDirection:"column",userSelect:"text"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"3px 10px",
+        background:"#161b22",borderBottom:"1px solid #30363d",flexShrink:0,minHeight:30}}>
+        <span style={{color:"#e8c547",fontWeight:700}}>🐞 DEBUG</span>
+        {errCount>0 && <span style={{color:"#e85047",fontWeight:700,fontSize:10}}>{errCount} errores</span>}
+        <span style={{flex:1}}/>
+        <input placeholder="filtrar..." value={filter} onChange={e=>setFilter(e.target.value)}
+          style={{background:"#0d1117",border:"1px solid #30363d",borderRadius:4,color:"#c9d1d9",
+            padding:"1px 6px",fontSize:10,width:110,outline:"none",fontFamily:"inherit"}}/>
+        <button onClick={()=>{ _debugLogs.list=[]; _debugLogs.listeners.forEach(f=>f([])); setLogs([]); }}
+          style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:10,padding:"0 4px"}}>limpiar</button>
+        <button onClick={()=>setOpen(v=>!v)}
+          style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:12,padding:"0 4px"}}>
+          {open?"▼":"▲"}
+        </button>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"2px 0"}}>
+        {visible.length===0
+          ? <div style={{color:"#6b7280",padding:"4px 10px"}}>sin mensajes</div>
+          : visible.map((l,i)=>(
+            <div key={i} style={{padding:"1px 10px",color:colors[l.type]||"#c9d1d9",
+              borderBottom:"1px solid rgba(48,54,61,.5)",wordBreak:"break-all",lineHeight:1.5}}>
+              <span style={{color:"#484f58",marginRight:6}}>{l.t}</span>
+              {l.msg}
+            </div>
+          ))}
+        <div ref={bottomRef}/>
+      </div>
+    </div>
+  );
+}
 
 class PanelTabBoundary extends React.Component {
   constructor(p) { super(p); this.state = {err:null}; }
@@ -8933,7 +9173,7 @@ function LoginScreen({ onAuth }) {
       <div style={{width:"100%", maxWidth:400}}>
         {/* Logo */}
         <div style={{textAlign:"center", marginBottom:32}}>
-          <div style={{display:"flex",justifyContent:"center"}}><LogoHorizontal height={60}/></div>
+          <LogoHorizontal height={60}/>
           <div style={{fontFamily:"'Bebas Neue'",fontSize:13,color:"var(--muted)",
             letterSpacing:".15em",marginTop:8}}>
             SISTEMA DE GESTIÓN
@@ -9033,14 +9273,12 @@ function CoachApp({ session, profile, onLogout }) {
   const [liveMesoData, setLiveMesoData] = useState({});
   const onLiveMesoDataCb = useCallback((d) => setLiveMesoData(prev => ({...prev, [d.atletaId]: d})), []);
 
-  const coachId = session?.user?.id;
-  const _syncTimer = useRef({});
-
   const [atletas, setAtletasRaw] = useState(() => load('liftplan_atletas', [
     {id:"demo1",nombre:"Joana Palacios",email:"joana@halterofilia.com",telefono:"5493413666737",fecha_nacimiento:"1998-05-12",notas:"",tipo:"atleta"}
   ]));
   const [mesociclos, setMesociclosRaw] = useState(() => {
     const raw = load('liftplan_mesociclos', []);
+    // Strip any nulls left by old drag code
     return raw.map(m => m ? ({
       ...m,
       semanas: (m.semanas||[]).map(s => s ? ({
@@ -9054,92 +9292,148 @@ function CoachApp({ session, profile, onLogout }) {
   });
   const [atletasTabs,    setAtletasTabsRaw]    = useState(() => load('liftplan_atletas_tabs', []));
   const [plantillasTabs, setPlantillasTabsRaw] = useState(() => load('liftplan_plantillas_tabs', []));
+  const coachId = session?.user?.id || null;
   const { plantillas, add: addPlantillaRaw, update: updatePlantilla, remove: removePlantilla } = usePlantillas(coachId);
+
+  // ── Refs para sincronización con DB ────────────────────────────────────────
+  const prevAtletasRef    = useRef(null); // null = DB aún no inicializada
+  const prevMesociclosRef = useRef(null);
+  const atletasRef        = useRef(atletas);
+  const mesociclosRef     = useRef(mesociclos);
+  useEffect(() => { atletasRef.current    = atletas;    }, [atletas]);
+  useEffect(() => { mesociclosRef.current = mesociclos; }, [mesociclos]);
 
   // ── Carga inicial desde Supabase ───────────────────────────────────────────
   useEffect(() => {
     if (!coachId) return;
     (async () => {
       try {
-        const [{ data: ra }, { data: rm }] = await Promise.all([
-          sb.from('atletas').select('*').eq('coach_id', coachId).exec(),
-          sb.from('mesociclos').select('*').eq('coach_id', coachId).exec(),
-        ]);
-        if (ra?.length) {
-          setAtletasRaw(ra);
-          save('liftplan_atletas', ra);
+        // Atletas — filtra solo los que tienen app_id (creados por esta app)
+        const { data: dbAtletas, error: e1 } = await sb.from('atletas').select('*').eq('coach_id', coachId).exec();
+        if (!e1 && dbAtletas) {
+          const appAtletas = dbAtletas.filter(r => r.app_id);
+          if (appAtletas.length > 0) {
+            appAtletas.forEach(r => restoreAtletaPctOverrides(r.app_id, r.pct_overrides));
+            const loaded = appAtletas.map(atletaFromDb);
+            setAtletasRaw(loaded);
+            save('liftplan_atletas', loaded);
+            prevAtletasRef.current = loaded;
+          } else {
+            // DB vacía — migrar localStorage → DB
+            const local = load('liftplan_atletas', []);
+            if (local.length > 0) {
+              await sb.from('atletas').upsert(local.map(a => atletaToDb(a, coachId)), { onConflict: 'app_id' });
+            }
+            prevAtletasRef.current = atletasRef.current;
+          }
         }
-        if (rm?.length) {
-          const cleaned = rm.map(m => ({
-            ...m,
-            semanas: (m.semanas||[]).map(s => s ? ({
-              ...s,
-              turnos: (s.turnos||[]).map(t => t ? ({
-                ...t,
-                ejercicios: (t.ejercicios||[]).filter(Boolean)
-              }) : t)
-            }) : s)
-          }));
-          setMesociclosRaw(cleaned);
-          save('liftplan_mesociclos', cleaned);
+
+        // Mesociclos — filtra solo los que tienen app_id
+        const { data: dbMesos, error: e2 } = await sb.from('mesociclos').select('*').eq('coach_id', coachId).exec();
+        if (!e2 && dbMesos) {
+          const appMesos = dbMesos.filter(r => r.app_id);
+          if (appMesos.length > 0) {
+            appMesos.forEach(r => restoreMesoOverrides(r.app_id, r.overrides));
+            const loaded = appMesos.map(mesoFromDb);
+            const cleaned = loaded.map(m => m ? ({
+              ...m,
+              semanas: (m.semanas||[]).map(s => s ? ({
+                ...s,
+                turnos: (s.turnos||[]).map(t => t ? ({
+                  ...t,
+                  ejercicios: (t.ejercicios||[]).filter(Boolean)
+                }) : t)
+              }) : s)
+            }) : m);
+            setMesociclosRaw(cleaned);
+            save('liftplan_mesociclos', cleaned);
+            prevMesociclosRef.current = cleaned;
+          } else {
+            const local = load('liftplan_mesociclos', []);
+            if (local.length > 0) {
+              await sb.from('mesociclos').upsert(local.map(m => mesoToDb(m, coachId)), { onConflict: 'app_id' });
+            }
+            prevMesociclosRef.current = mesociclosRef.current;
+          }
         }
-      } catch(e) { console.warn('Supabase load failed:', e); }
+      } catch (e) {
+        console.warn('DB load failed, usando localStorage:', e);
+      } finally {
+        if (prevAtletasRef.current    === null) prevAtletasRef.current    = atletasRef.current;
+        if (prevMesociclosRef.current === null) prevMesociclosRef.current = mesociclosRef.current;
+      }
     })();
   }, [coachId]);
 
-  // ── Sincronización debounced: atletas → Supabase ───────────────────────────
+  // ── Sincronizar atletas con DB cuando cambian ──────────────────────────────
   useEffect(() => {
-    if (!coachId) return;
-    clearTimeout(_syncTimer.current.atletas);
-    _syncTimer.current.atletas = setTimeout(async () => {
-      try {
-        const rows = atletas.map(a => ({
-          id: a.id, coach_id: coachId,
-          nombre: a.nombre || null, email: a.email || null,
-          telefono: a.telefono || null,
-          fecha_nacimiento: a.fecha_nacimiento || null,
-          notas: a.notas || null, tipo: a.tipo || 'atleta',
-          genero: a.genero || null, ciclo: a.ciclo || null,
-        }));
-        if (rows.length) await sb.from('atletas').upsert(rows);
-        const { data: existing } = await sb.from('atletas').select('id').eq('coach_id', coachId).exec();
-        if (existing) {
-          const ids = new Set(atletas.map(a => a.id));
-          for (const { id } of existing.filter(a => !ids.has(a.id))) {
-            await sb.from('atletas').eq('id', id).delete();
-          }
-        }
-      } catch(e) { console.warn('Supabase atletas sync failed:', e); }
-    }, 1500);
-  }, [atletas, coachId]);
+    if (!coachId || prevAtletasRef.current === null) return;
+    const prev = prevAtletasRef.current;
+    const curr = atletas;
+    prevAtletasRef.current = curr;
 
-  // ── Sincronización debounced: mesociclos → Supabase ───────────────────────
+    const deletedIds = prev.filter(p => !curr.find(a => a.id === p.id)).map(p => p.id);
+    const toUpsert   = curr.filter(a => {
+      const old = prev.find(p => p.id === a.id);
+      return !old || JSON.stringify(old) !== JSON.stringify(a);
+    });
+    if (deletedIds.length === 0 && toUpsert.length === 0) return;
+
+    (async () => {
+      for (const id of deletedIds) {
+        await sb.from('atletas').eq('app_id', id).delete().catch(() => {});
+      }
+      if (toUpsert.length > 0) {
+        await sb.from('atletas').upsert(toUpsert.map(a => atletaToDb(a, coachId)), { onConflict: 'app_id' })
+          .catch(e => console.warn('DB sync atletas failed:', e));
+      }
+    })();
+  }, [atletas]);
+
+  // ── Sincronizar mesociclos con DB cuando cambian ───────────────────────────
+  useEffect(() => {
+    if (!coachId || prevMesociclosRef.current === null) return;
+    const prev = prevMesociclosRef.current;
+    const curr = mesociclos;
+    prevMesociclosRef.current = curr;
+
+    const deletedIds = prev.filter(p => !curr.find(m => m.id === p.id)).map(p => p.id);
+    const toUpsert   = curr.filter(m => {
+      const old = prev.find(p => p.id === m.id);
+      return !old || JSON.stringify(old) !== JSON.stringify(m);
+    });
+    if (deletedIds.length === 0 && toUpsert.length === 0) return;
+
+    (async () => {
+      for (const id of deletedIds) {
+        await sb.from('mesociclos').eq('app_id', id).delete().catch(() => {});
+      }
+      if (toUpsert.length > 0) {
+        await sb.from('mesociclos').upsert(toUpsert.map(m => mesoToDb(m, coachId)), { onConflict: 'app_id' })
+          .catch(e => console.warn('DB sync mesociclos failed:', e));
+      }
+    })();
+  }, [mesociclos]);
+
+  // ── Sincronizar overrides de celdas periódicamente (cada 60s) ─────────────
   useEffect(() => {
     if (!coachId) return;
-    clearTimeout(_syncTimer.current.mesociclos);
-    _syncTimer.current.mesociclos = setTimeout(async () => {
-      try {
-        const rows = mesociclos.map(m => ({
-          id: m.id, coach_id: coachId,
-          atleta_id: m.atleta_id || null,
-          nombre: m.nombre || null, descripcion: m.descripcion || null,
-          fecha_inicio: m.fecha_inicio || null, modo: m.modo || null,
-          volumen_total: m.volumen_total || null,
-          irm_arranque: m.irm_arranque != null ? String(m.irm_arranque) : null,
-          irm_envion: m.irm_envion != null ? String(m.irm_envion) : null,
-          semanas: m.semanas || [],
-        }));
-        if (rows.length) await sb.from('mesociclos').upsert(rows);
-        const { data: existing } = await sb.from('mesociclos').select('id').eq('coach_id', coachId).exec();
-        if (existing) {
-          const ids = new Set(mesociclos.map(m => m.id));
-          for (const { id } of existing.filter(m => !ids.has(m.id))) {
-            await sb.from('mesociclos').eq('id', id).delete();
-          }
-        }
-      } catch(e) { console.warn('Supabase mesociclos sync failed:', e); }
-    }, 1500);
-  }, [mesociclos, coachId]);
+    const syncOverrides = () => {
+      if (prevMesociclosRef.current === null) return;
+      const curr = mesociclosRef.current;
+      if (curr.length > 0) {
+        sb.from('mesociclos').upsert(curr.map(m => mesoToDb(m, coachId)), { onConflict: 'app_id' }).catch(() => {});
+      }
+      const currAtletas = atletasRef.current;
+      if (currAtletas.length > 0) {
+        sb.from('atletas').upsert(currAtletas.map(a => atletaToDb(a, coachId)), { onConflict: 'app_id' }).catch(() => {});
+      }
+    };
+    const interval = setInterval(syncOverrides, 60000);
+    const onHide = () => { if (document.visibilityState === 'hidden') syncOverrides(); };
+    document.addEventListener('visibilitychange', onHide);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onHide); };
+  }, [coachId]);
 
   // Wrappers que persisten automáticamente
   const setAtletas = (val) => {
@@ -9388,6 +9682,7 @@ function CoachApp({ session, profile, onLogout }) {
           )}
         </div>
       </div>
+      <DebugConsole/>
     </>
   );
 }
