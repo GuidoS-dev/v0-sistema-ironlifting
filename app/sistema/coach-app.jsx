@@ -179,6 +179,13 @@ const sb = {
         const r = await fetch(`${_url()}?${p}`, {method:"DELETE",headers:h});
         return r.ok ? {data:null,error:null} : {data:null,error:await r.json()};
       },
+      upsert: async (rows) => {
+        const h = await _headers();
+        h["Prefer"] = "resolution=merge-duplicates,return=representation";
+        const r = await fetch(_url(), {method:"POST",headers:h,body:JSON.stringify(rows)});
+        const data = await r.json();
+        return r.ok ? {data,error:null} : {data:null,error:data};
+      },
     };
     return builder;
   },
@@ -6155,37 +6162,67 @@ function useHistory(key, initial, maxLen=30) {
 }
 
 
-function usePlantillas() {
+function usePlantillas(coachId) {
   const [plantillas, setPlantillas] = useState(() => {
     try {
       const list = JSON.parse(localStorage.getItem('liftplan_plantillas') || '[]');
-      // Recuperar borradores más nuevos que el array guardado
       return list.map(p => {
         try {
           const draft = JSON.parse(localStorage.getItem(`liftplan_plt_draft_${p.id}`) || 'null');
-          // Usar el borrador si existe (siempre es más reciente)
           return draft || p;
         } catch { return p; }
       });
     }
     catch { return []; }
   });
-  const save = (ps) => {
+
+  // Cargar desde Supabase al montar (si hay sesión)
+  useEffect(() => {
+    if (!coachId) return;
+    (async () => {
+      try {
+        const { data } = await sb.from('plantillas').select('*').eq('coach_id', coachId).exec();
+        if (data?.length) {
+          const restored = data.map(row => ({ ...row.data, id: row.id }));
+          setPlantillas(restored);
+          try { localStorage.setItem('liftplan_plantillas', JSON.stringify(restored)); } catch {}
+        }
+      } catch(e) { console.warn('Supabase plantillas load failed:', e); }
+    })();
+  }, [coachId]);
+
+  const _saveLs = (ps) => {
     setPlantillas(ps);
-    try { localStorage.setItem('liftplan_plantillas', JSON.stringify(ps)); } catch(e) { console.warn('localStorage save failed:', e); }
+    try { localStorage.setItem('liftplan_plantillas', JSON.stringify(ps)); } catch {}
   };
-  const add    = (p)  => { const item = { id: mkId(), creado: new Date().toISOString().slice(0,10), ...p }; save([...plantillas, item]); return item; };
-  const update = (p)  => {
-    // Siempre actualiza React state aunque falle localStorage
+  const _upsertSb = async (p) => {
+    if (!coachId) return;
+    try {
+      await sb.from('plantillas').upsert([{ id: p.id, coach_id: coachId, nombre: p.nombre, tipo: p.tipo, creado: p.creado || null, data: p }]);
+    } catch(e) { console.warn('Supabase plantilla upsert failed:', e); }
+  };
+  const _deleteSb = async (id) => {
+    if (!coachId) return;
+    try { await sb.from('plantillas').eq('id', id).delete(); } catch(e) { console.warn('Supabase plantilla delete failed:', e); }
+  };
+
+  const add = (p) => {
+    const item = { id: mkId(), creado: new Date().toISOString().slice(0,10), ...p };
+    _saveLs([...plantillas, item]);
+    _upsertSb(item);
+    return item;
+  };
+  const update = (p) => {
     const next = plantillas.map(x => x.id===p.id ? p : x);
     setPlantillas(next);
-    // Guardar borrador por id (persiste aunque el array principal falle)
     try { localStorage.setItem(`liftplan_plt_draft_${p.id}`, JSON.stringify(p)); } catch {}
-    try { localStorage.setItem('liftplan_plantillas', JSON.stringify(next)); } catch(e) { console.warn('localStorage save failed:', e); }
+    try { localStorage.setItem('liftplan_plantillas', JSON.stringify(next)); } catch {}
+    _upsertSb(p);
   };
   const remove = (id) => {
-    save(plantillas.filter(x => x.id !== id));
+    _saveLs(plantillas.filter(x => x.id !== id));
     try { localStorage.removeItem(`liftplan_plt_draft_${id}`); } catch {}
+    _deleteSb(id);
   };
   return { plantillas, add, update, remove };
 }
@@ -8996,12 +9033,14 @@ function CoachApp({ session, profile, onLogout }) {
   const [liveMesoData, setLiveMesoData] = useState({});
   const onLiveMesoDataCb = useCallback((d) => setLiveMesoData(prev => ({...prev, [d.atletaId]: d})), []);
 
+  const coachId = session?.user?.id;
+  const _syncTimer = useRef({});
+
   const [atletas, setAtletasRaw] = useState(() => load('liftplan_atletas', [
     {id:"demo1",nombre:"Joana Palacios",email:"joana@halterofilia.com",telefono:"5493413666737",fecha_nacimiento:"1998-05-12",notas:"",tipo:"atleta"}
   ]));
   const [mesociclos, setMesociclosRaw] = useState(() => {
     const raw = load('liftplan_mesociclos', []);
-    // Strip any nulls left by old drag code
     return raw.map(m => m ? ({
       ...m,
       semanas: (m.semanas||[]).map(s => s ? ({
@@ -9015,7 +9054,92 @@ function CoachApp({ session, profile, onLogout }) {
   });
   const [atletasTabs,    setAtletasTabsRaw]    = useState(() => load('liftplan_atletas_tabs', []));
   const [plantillasTabs, setPlantillasTabsRaw] = useState(() => load('liftplan_plantillas_tabs', []));
-  const { plantillas, add: addPlantillaRaw, update: updatePlantilla, remove: removePlantilla } = usePlantillas();
+  const { plantillas, add: addPlantillaRaw, update: updatePlantilla, remove: removePlantilla } = usePlantillas(coachId);
+
+  // ── Carga inicial desde Supabase ───────────────────────────────────────────
+  useEffect(() => {
+    if (!coachId) return;
+    (async () => {
+      try {
+        const [{ data: ra }, { data: rm }] = await Promise.all([
+          sb.from('atletas').select('*').eq('coach_id', coachId).exec(),
+          sb.from('mesociclos').select('*').eq('coach_id', coachId).exec(),
+        ]);
+        if (ra?.length) {
+          setAtletasRaw(ra);
+          save('liftplan_atletas', ra);
+        }
+        if (rm?.length) {
+          const cleaned = rm.map(m => ({
+            ...m,
+            semanas: (m.semanas||[]).map(s => s ? ({
+              ...s,
+              turnos: (s.turnos||[]).map(t => t ? ({
+                ...t,
+                ejercicios: (t.ejercicios||[]).filter(Boolean)
+              }) : t)
+            }) : s)
+          }));
+          setMesociclosRaw(cleaned);
+          save('liftplan_mesociclos', cleaned);
+        }
+      } catch(e) { console.warn('Supabase load failed:', e); }
+    })();
+  }, [coachId]);
+
+  // ── Sincronización debounced: atletas → Supabase ───────────────────────────
+  useEffect(() => {
+    if (!coachId) return;
+    clearTimeout(_syncTimer.current.atletas);
+    _syncTimer.current.atletas = setTimeout(async () => {
+      try {
+        const rows = atletas.map(a => ({
+          id: a.id, coach_id: coachId,
+          nombre: a.nombre || null, email: a.email || null,
+          telefono: a.telefono || null,
+          fecha_nacimiento: a.fecha_nacimiento || null,
+          notas: a.notas || null, tipo: a.tipo || 'atleta',
+          genero: a.genero || null, ciclo: a.ciclo || null,
+        }));
+        if (rows.length) await sb.from('atletas').upsert(rows);
+        const { data: existing } = await sb.from('atletas').select('id').eq('coach_id', coachId).exec();
+        if (existing) {
+          const ids = new Set(atletas.map(a => a.id));
+          for (const { id } of existing.filter(a => !ids.has(a.id))) {
+            await sb.from('atletas').eq('id', id).delete();
+          }
+        }
+      } catch(e) { console.warn('Supabase atletas sync failed:', e); }
+    }, 1500);
+  }, [atletas, coachId]);
+
+  // ── Sincronización debounced: mesociclos → Supabase ───────────────────────
+  useEffect(() => {
+    if (!coachId) return;
+    clearTimeout(_syncTimer.current.mesociclos);
+    _syncTimer.current.mesociclos = setTimeout(async () => {
+      try {
+        const rows = mesociclos.map(m => ({
+          id: m.id, coach_id: coachId,
+          atleta_id: m.atleta_id || null,
+          nombre: m.nombre || null, descripcion: m.descripcion || null,
+          fecha_inicio: m.fecha_inicio || null, modo: m.modo || null,
+          volumen_total: m.volumen_total || null,
+          irm_arranque: m.irm_arranque != null ? String(m.irm_arranque) : null,
+          irm_envion: m.irm_envion != null ? String(m.irm_envion) : null,
+          semanas: m.semanas || [],
+        }));
+        if (rows.length) await sb.from('mesociclos').upsert(rows);
+        const { data: existing } = await sb.from('mesociclos').select('id').eq('coach_id', coachId).exec();
+        if (existing) {
+          const ids = new Set(mesociclos.map(m => m.id));
+          for (const { id } of existing.filter(m => !ids.has(m.id))) {
+            await sb.from('mesociclos').eq('id', id).delete();
+          }
+        }
+      } catch(e) { console.warn('Supabase mesociclos sync failed:', e); }
+    }, 1500);
+  }, [mesociclos, coachId]);
 
   // Wrappers que persisten automáticamente
   const setAtletas = (val) => {
