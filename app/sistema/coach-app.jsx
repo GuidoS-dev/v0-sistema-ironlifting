@@ -8300,89 +8300,8 @@ const save = (key, val) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// PANEL DE REFERENCIA — vista lateral de solo lectura
-// ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
 // PANEL DE REFERENCIA
-const _debugLogs = { list: [], listeners: [] };
-const _pushLog = (type, msg) => {
-  _debugLogs.list = [..._debugLogs.list.slice(-299), { type, msg, t: new Date().toLocaleTimeString() }];
-  _debugLogs.listeners.forEach(fn => { try { fn(_debugLogs.list); } catch {} });
-};
-
-function DebugConsole() {
-  const [logs, setLogs] = useState([]);
-  const [open, setOpen] = useState(true);
-  const [filter, setFilter] = useState("");
-  const bottomRef = useRef(null);
-
-  useEffect(() => {
-    const fn = (list) => setLogs([...list]);
-    _debugLogs.listeners.push(fn);
-    const _log = console.log.bind(console);
-    const _warn = console.warn.bind(console);
-    const _err = console.error.bind(console);
-    const fmt = (a) => a.map(x => { try { return typeof x==="object"?JSON.stringify(x):String(x); } catch { return "?"; }}).join(" ");
-    console.log   = (...a) => { _log(...a);  _pushLog("log",  fmt(a)); };
-    console.warn  = (...a) => { _warn(...a); _pushLog("warn", fmt(a)); };
-    console.error = (...a) => { _err(...a);  _pushLog("error",fmt(a)); };
-    const onErr = (e) => _pushLog("error", `[ERROR] ${e.message} ${e.filename}:${e.lineno}`);
-    const onRej = (e) => _pushLog("error", `[PROMISE] ${String(e.reason)}`);
-    window.addEventListener("error", onErr);
-    window.addEventListener("unhandledrejection", onRej);
-    _pushLog("log", "🐞 Debug activo");
-    setLogs([..._debugLogs.list]);
-    return () => {
-      const i = _debugLogs.listeners.indexOf(fn);
-      if (i > -1) _debugLogs.listeners.splice(i, 1);
-      console.log = _log; console.warn = _warn; console.error = _err;
-      window.removeEventListener("error", onErr);
-      window.removeEventListener("unhandledrejection", onRej);
-    };
-  }, []);
-
-  useEffect(() => { if (open) bottomRef.current?.scrollIntoView(); }, [logs, open]);
-
-  const visible = filter ? logs.filter(l => l.msg.toLowerCase().includes(filter.toLowerCase())) : logs;
-  const errCount = logs.filter(l => l.type === "error").length;
-  const colors = { log:"#c9d1d9", warn:"#e8c547", error:"#e85047" };
-
-  return (
-    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:99999,
-      background:"#0d1117",borderTop:"2px solid #30363d",
-      fontFamily:"monospace",fontSize:11,
-      maxHeight:open?220:30,transition:"max-height .15s",
-      display:"flex",flexDirection:"column",userSelect:"text"}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,padding:"3px 10px",
-        background:"#161b22",borderBottom:"1px solid #30363d",flexShrink:0,minHeight:30}}>
-        <span style={{color:"#e8c547",fontWeight:700}}>🐞 DEBUG</span>
-        {errCount>0 && <span style={{color:"#e85047",fontWeight:700,fontSize:10}}>{errCount} errores</span>}
-        <span style={{flex:1}}/>
-        <input placeholder="filtrar..." value={filter} onChange={e=>setFilter(e.target.value)}
-          style={{background:"#0d1117",border:"1px solid #30363d",borderRadius:4,color:"#c9d1d9",
-            padding:"1px 6px",fontSize:10,width:110,outline:"none",fontFamily:"inherit"}}/>
-        <button onClick={()=>{ _debugLogs.list=[]; _debugLogs.listeners.forEach(f=>f([])); setLogs([]); }}
-          style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:10,padding:"0 4px"}}>limpiar</button>
-        <button onClick={()=>setOpen(v=>!v)}
-          style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:12,padding:"0 4px"}}>
-          {open?"▼":"▲"}
-        </button>
-      </div>
-      <div style={{flex:1,overflowY:"auto",padding:"2px 0"}}>
-        {visible.length===0
-          ? <div style={{color:"#6b7280",padding:"4px 10px"}}>sin mensajes</div>
-          : visible.map((l,i)=>(
-            <div key={i} style={{padding:"1px 10px",color:colors[l.type]||"#c9d1d9",
-              borderBottom:"1px solid rgba(48,54,61,.5)",wordBreak:"break-all",lineHeight:1.5}}>
-              <span style={{color:"#484f58",marginRight:6}}>{l.t}</span>
-              {l.msg}
-            </div>
-          ))}
-        <div ref={bottomRef}/>
-      </div>
-    </div>
-  );
-}
+// ═══════════════════════════════════════════════════════════════
 
 class PanelTabBoundary extends React.Component {
   constructor(p) { super(p); this.state = {err:null}; }
@@ -9345,7 +9264,6 @@ function CoachApp({ session, profile, onLogout }) {
           )}
         </div>
       </div>
-      <DebugConsole/>
     </>
   );
 }
