@@ -163,10 +163,11 @@ const sb = {
         const data = await r.json();
         return r.ok ? {data,error:null} : {data:null,error:data};
       },
-      upsert: async (rows) => {
+      upsert: async (rows, { onConflict } = {}) => {
         const h = await _headers();
         h["Prefer"] = "return=representation,resolution=merge-duplicates";
-        const r = await fetch(_url(), {method:"POST",headers:h,body:JSON.stringify(rows)});
+        const extra = onConflict ? `?on_conflict=${onConflict}` : '';
+        const r = await fetch(`${_url()}${extra}`, {method:"POST",headers:h,body:JSON.stringify(rows)});
         const data = await r.json();
         return r.ok ? {data,error:null} : {data:null,error:data};
       },
@@ -238,6 +239,111 @@ function restoreAtletaPctOverrides(atletaId, overrides) {
   set(`liftplan_pct_${atletaId}_semMan`,   overrides.semMan);
   set(`liftplan_pct_${atletaId}_turnoOvr`, overrides.turnoOvr);
   set(`liftplan_pct_${atletaId}_turnoMan`, overrides.turnoMan);
+}
+
+// ─── MAPEOS APP ↔ DB (usan el esquema real de las tablas existentes) ─────────
+function atletaToDb(a, coachId) {
+  return {
+    coach_id:         coachId,
+    app_id:           a.id,
+    nombre:           a.nombre           || '',
+    email:            a.email            || '',
+    telefono:         a.telefono         || '',
+    fecha_nacimiento: a.fecha_nacimiento || null,
+    notas:            a.notas            || '',
+    tipo:             a.tipo             || 'atleta',
+    pct_overrides:    collectAtletaPctOverrides(a.id),
+    updated_at:       new Date().toISOString(),
+  };
+}
+function atletaFromDb(r) {
+  return {
+    id:               r.app_id,
+    nombre:           r.nombre,
+    email:            r.email,
+    telefono:         r.telefono,
+    fecha_nacimiento: r.fecha_nacimiento,
+    notas:            r.notas,
+    tipo:             r.tipo,
+  };
+}
+function mesoToDb(m, coachId) {
+  return {
+    coach_id:       coachId,
+    app_id:         m.id,
+    app_atleta_id:  m.atleta_id      || null,
+    nombre:         m.nombre         || '',
+    fecha_inicio:   m.fecha_inicio   || new Date().toISOString().slice(0,10),
+    modo:           m.modo           || 'Preparatorio',
+    activo:         m.activo         ?? false,
+    irm_arranque:   m.irm_arranque   || null,
+    irm_envion:     m.irm_envion     || null,
+    volumen_total:  m.volumen_total  || 0,
+    descripcion:    m.descripcion    || '',
+    duracion_ciclo: m.duracion_ciclo || null,
+    duracion_mens:  m.duracion_mens  || null,
+    ultimo_inicio:  m.ultimo_inicio  || null,
+    semanas:        m.semanas        || [],
+    overrides:      collectMesoOverrides(m.id),
+    updated_at:     new Date().toISOString(),
+  };
+}
+function mesoFromDb(r) {
+  return {
+    id:             r.app_id,
+    atleta_id:      r.app_atleta_id,
+    nombre:         r.nombre,
+    fecha_inicio:   r.fecha_inicio,
+    modo:           r.modo,
+    activo:         r.activo,
+    irm_arranque:   r.irm_arranque,
+    irm_envion:     r.irm_envion,
+    volumen_total:  r.volumen_total,
+    descripcion:    r.descripcion,
+    duracion_ciclo: r.duracion_ciclo,
+    duracion_mens:  r.duracion_mens,
+    ultimo_inicio:  r.ultimo_inicio,
+    semanas:        r.semanas || [],
+  };
+}
+function plantillaToDb(p, coachId) {
+  return {
+    coach_id:        coachId,
+    app_id:          p.id,
+    nombre:          p.nombre          || '',
+    descripcion:     p.descripcion     || '',
+    tipo:            p.tipo            || 'meso',
+    periodo:         p.periodo         || 'general',
+    objetivo:        p.objetivo        || 'mixto',
+    nivel:           p.nivel           || 'intermedio',
+    modo:            p.modo            || 'Preparatorio',
+    volumen_total:   p.volumen_total   || null,
+    semanas:         p.semanas         || null,
+    duracion_semanas: p.duracion_semanas || null,
+    irm_arranque:    p.irm_arranque    || null,
+    irm_envion:      p.irm_envion      || null,
+    overrides:       p.overrides       || {},
+    updated_at:      new Date().toISOString(),
+  };
+}
+function plantillaFromDb(r) {
+  return {
+    id:               r.app_id,
+    nombre:           r.nombre,
+    descripcion:      r.descripcion,
+    tipo:             r.tipo,
+    periodo:          r.periodo,
+    objetivo:         r.objetivo,
+    nivel:            r.nivel,
+    modo:             r.modo,
+    volumen_total:    r.volumen_total,
+    semanas:          r.semanas,
+    duracion_semanas: r.duracion_semanas,
+    irm_arranque:     r.irm_arranque,
+    irm_envion:       r.irm_envion,
+    overrides:        r.overrides || {},
+    creado:           r.created_at?.slice(0,10),
+  };
 }
 
 // ─── DATA ─────────────────────��──────────────────────────────────────────────
@@ -6230,19 +6336,20 @@ function usePlantillas(coachId) {
     if (!coachId) return;
     sb.from('plantillas').select('*').eq('coach_id', coachId).exec().then(({ data, error }) => {
       if (error) return;
-      if (data?.length > 0) {
-        const loaded = data.map(r => ({ ...r.data, id: r.id }));
-        setPlantillas(loaded);
-        try { localStorage.setItem('liftplan_plantillas', JSON.stringify(loaded)); } catch {}
-      } else if (data?.length === 0) {
-        // DB vacía — sincronizar localStorage → DB
-        const local = (() => {
-          try { return JSON.parse(localStorage.getItem('liftplan_plantillas') || '[]'); } catch { return []; }
-        })();
-        if (local.length > 0) {
-          sb.from('plantillas').upsert(
-            local.map(p => ({ id: p.id, coach_id: coachId, data: p, updated_at: new Date().toISOString() }))
-          ).catch(() => {});
+      if (data) {
+        const appPlantillas = data.filter(r => r.app_id);
+        if (appPlantillas.length > 0) {
+          const loaded = appPlantillas.map(plantillaFromDb);
+          setPlantillas(loaded);
+          try { localStorage.setItem('liftplan_plantillas', JSON.stringify(loaded)); } catch {}
+        } else {
+          // DB vacía — migrar localStorage → DB
+          const local = (() => {
+            try { return JSON.parse(localStorage.getItem('liftplan_plantillas') || '[]'); } catch { return []; }
+          })();
+          if (local.length > 0) {
+            sb.from('plantillas').upsert(local.map(p => plantillaToDb(p, coachId)), { onConflict: 'app_id' }).catch(() => {});
+          }
         }
       }
     }).catch(() => {});
@@ -6256,7 +6363,7 @@ function usePlantillas(coachId) {
     const item = { id: mkId(), creado: new Date().toISOString().slice(0,10), ...p };
     _saveLocal([...plantillas, item]);
     if (coachId) {
-      sb.from('plantillas').upsert([{ id: item.id, coach_id: coachId, data: item, updated_at: new Date().toISOString() }]).catch(() => {});
+      sb.from('plantillas').upsert([plantillaToDb(item, coachId)], { onConflict: 'app_id' }).catch(() => {});
     }
     return item;
   };
@@ -6266,14 +6373,14 @@ function usePlantillas(coachId) {
     try { localStorage.setItem(`liftplan_plt_draft_${p.id}`, JSON.stringify(p)); } catch {}
     try { localStorage.setItem('liftplan_plantillas', JSON.stringify(next)); } catch(e) { console.warn('localStorage save failed:', e); }
     if (coachId) {
-      sb.from('plantillas').upsert([{ id: p.id, coach_id: coachId, data: p, updated_at: new Date().toISOString() }]).catch(() => {});
+      sb.from('plantillas').upsert([plantillaToDb(p, coachId)], { onConflict: 'app_id' }).catch(() => {});
     }
   };
   const remove = (id) => {
     _saveLocal(plantillas.filter(x => x.id !== id));
     try { localStorage.removeItem(`liftplan_plt_draft_${id}`); } catch {}
     if (coachId) {
-      sb.from('plantillas').eq('id', id).delete().catch(() => {});
+      sb.from('plantillas').eq('app_id', id).delete().catch(() => {});
     }
   };
   return { plantillas, add, update, remove };
@@ -9201,12 +9308,13 @@ function CoachApp({ session, profile, onLogout }) {
     if (!coachId) return;
     (async () => {
       try {
-        // Atletas
+        // Atletas — filtra solo los que tienen app_id (creados por esta app)
         const { data: dbAtletas, error: e1 } = await sb.from('atletas').select('*').eq('coach_id', coachId).exec();
         if (!e1 && dbAtletas) {
-          if (dbAtletas.length > 0) {
-            const loaded = dbAtletas.map(r => ({ ...r.data, id: r.id }));
-            dbAtletas.forEach(r => restoreAtletaPctOverrides(r.id, r.pct_overrides));
+          const appAtletas = dbAtletas.filter(r => r.app_id);
+          if (appAtletas.length > 0) {
+            appAtletas.forEach(r => restoreAtletaPctOverrides(r.app_id, r.pct_overrides));
+            const loaded = appAtletas.map(atletaFromDb);
             setAtletasRaw(loaded);
             save('liftplan_atletas', loaded);
             prevAtletasRef.current = loaded;
@@ -9214,20 +9322,19 @@ function CoachApp({ session, profile, onLogout }) {
             // DB vacía — migrar localStorage → DB
             const local = load('liftplan_atletas', []);
             if (local.length > 0) {
-              await sb.from('atletas').upsert(
-                local.map(a => ({ id: a.id, coach_id: coachId, data: a, pct_overrides: collectAtletaPctOverrides(a.id), updated_at: new Date().toISOString() }))
-              );
+              await sb.from('atletas').upsert(local.map(a => atletaToDb(a, coachId)), { onConflict: 'app_id' });
             }
-            prevAtletasRef.current = local;
+            prevAtletasRef.current = atletasRef.current;
           }
         }
 
-        // Mesociclos
+        // Mesociclos — filtra solo los que tienen app_id
         const { data: dbMesos, error: e2 } = await sb.from('mesociclos').select('*').eq('coach_id', coachId).exec();
         if (!e2 && dbMesos) {
-          if (dbMesos.length > 0) {
-            dbMesos.forEach(r => restoreMesoOverrides(r.id, r.overrides));
-            const loaded = dbMesos.map(r => ({ ...r.data, id: r.id }));
+          const appMesos = dbMesos.filter(r => r.app_id);
+          if (appMesos.length > 0) {
+            appMesos.forEach(r => restoreMesoOverrides(r.app_id, r.overrides));
+            const loaded = appMesos.map(mesoFromDb);
             const cleaned = loaded.map(m => m ? ({
               ...m,
               semanas: (m.semanas||[]).map(s => s ? ({
@@ -9244,17 +9351,14 @@ function CoachApp({ session, profile, onLogout }) {
           } else {
             const local = load('liftplan_mesociclos', []);
             if (local.length > 0) {
-              await sb.from('mesociclos').upsert(
-                local.map(m => ({ id: m.id, coach_id: coachId, atleta_id: m.atleta_id || null, data: m, overrides: collectMesoOverrides(m.id), updated_at: new Date().toISOString() }))
-              );
+              await sb.from('mesociclos').upsert(local.map(m => mesoToDb(m, coachId)), { onConflict: 'app_id' });
             }
-            prevMesociclosRef.current = local;
+            prevMesociclosRef.current = mesociclosRef.current;
           }
         }
       } catch (e) {
         console.warn('DB load failed, usando localStorage:', e);
       } finally {
-        // Asegurar que los refs queden inicializados aunque falle la DB
         if (prevAtletasRef.current    === null) prevAtletasRef.current    = atletasRef.current;
         if (prevMesociclosRef.current === null) prevMesociclosRef.current = mesociclosRef.current;
       }
@@ -9277,12 +9381,11 @@ function CoachApp({ session, profile, onLogout }) {
 
     (async () => {
       for (const id of deletedIds) {
-        await sb.from('atletas').eq('id', id).delete().catch(() => {});
+        await sb.from('atletas').eq('app_id', id).delete().catch(() => {});
       }
       if (toUpsert.length > 0) {
-        await sb.from('atletas').upsert(
-          toUpsert.map(a => ({ id: a.id, coach_id: coachId, data: a, pct_overrides: collectAtletaPctOverrides(a.id), updated_at: new Date().toISOString() }))
-        ).catch(e => console.warn('DB sync atletas failed:', e));
+        await sb.from('atletas').upsert(toUpsert.map(a => atletaToDb(a, coachId)), { onConflict: 'app_id' })
+          .catch(e => console.warn('DB sync atletas failed:', e));
       }
     })();
   }, [atletas]);
@@ -9303,12 +9406,11 @@ function CoachApp({ session, profile, onLogout }) {
 
     (async () => {
       for (const id of deletedIds) {
-        await sb.from('mesociclos').eq('id', id).delete().catch(() => {});
+        await sb.from('mesociclos').eq('app_id', id).delete().catch(() => {});
       }
       if (toUpsert.length > 0) {
-        await sb.from('mesociclos').upsert(
-          toUpsert.map(m => ({ id: m.id, coach_id: coachId, atleta_id: m.atleta_id || null, data: m, overrides: collectMesoOverrides(m.id), updated_at: new Date().toISOString() }))
-        ).catch(e => console.warn('DB sync mesociclos failed:', e));
+        await sb.from('mesociclos').upsert(toUpsert.map(m => mesoToDb(m, coachId)), { onConflict: 'app_id' })
+          .catch(e => console.warn('DB sync mesociclos failed:', e));
       }
     })();
   }, [mesociclos]);
@@ -9319,15 +9421,12 @@ function CoachApp({ session, profile, onLogout }) {
     const syncOverrides = () => {
       if (prevMesociclosRef.current === null) return;
       const curr = mesociclosRef.current;
-      if (curr.length === 0) return;
-      sb.from('mesociclos').upsert(
-        curr.map(m => ({ id: m.id, coach_id: coachId, atleta_id: m.atleta_id || null, data: m, overrides: collectMesoOverrides(m.id), updated_at: new Date().toISOString() }))
-      ).catch(() => {});
+      if (curr.length > 0) {
+        sb.from('mesociclos').upsert(curr.map(m => mesoToDb(m, coachId)), { onConflict: 'app_id' }).catch(() => {});
+      }
       const currAtletas = atletasRef.current;
       if (currAtletas.length > 0) {
-        sb.from('atletas').upsert(
-          currAtletas.map(a => ({ id: a.id, coach_id: coachId, data: a, pct_overrides: collectAtletaPctOverrides(a.id), updated_at: new Date().toISOString() }))
-        ).catch(() => {});
+        sb.from('atletas').upsert(currAtletas.map(a => atletaToDb(a, coachId)), { onConflict: 'app_id' }).catch(() => {});
       }
     };
     const interval = setInterval(syncOverrides, 60000);
