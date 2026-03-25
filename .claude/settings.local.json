@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(ls node_modules/.bin/next*)",
+      "Bash(npm install:*)",
+      "Bash(npx next:*)",
+      "Bash(find '/c/Users/guido/Desktop/Sistema Ironlifting/Repositorio/v0-sistema-ironlifting/.claude/worktrees/loving-bell' -type f \\\\\\(-name *.jsx -o -name *.js -o -name *.tsx \\\\\\))"
+    ]
+  }
+}
