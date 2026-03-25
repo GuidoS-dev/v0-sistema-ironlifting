@@ -29,7 +29,7 @@ export function Hero() {
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-background/85" />
 
-      <div className="container relative z-10 mx-auto px-4 py-20">
+      <div className="container relative z-10 mx-auto px-4 py-20 pb-32">
         <div className="mx-auto max-w-4xl text-center">
           {/* Logo */}
           <div className="mb-8 flex justify-center">
@@ -92,7 +92,7 @@ export function Hero() {
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
         <button 
           onClick={() => {
             const element = document.getElementById("metodologia") || document.querySelector("section:nth-of-type(2)")
