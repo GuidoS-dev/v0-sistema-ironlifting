@@ -369,7 +369,7 @@ const mkSemanas = () => Array.from({length:4},(_,i)=>({
 
 // ── Escuela Básica helpers ──────────────────────────────────────────────────
 const mkBloqueBasica = () => ({ pct: null, series: null, reps: null, kg: null });
-const mkEjBasica = (n = 3) => ({ id: mkId(), ejercicio_id: null, nombre_custom: "", bloques: Array.from({length: n}, mkBloqueBasica) });
+const mkEjBasica = (n = 3) => ({ id: mkId(), ejercicio_id: null, nombre_custom: "", nota: "", bloques: Array.from({length: n}, mkBloqueBasica) });
 const mkTurnosBasica = (n = 3) => Array.from({length:3},(_,i)=>({
   id:mkId(), numero:i+1, dia:"", momento:"", ejercicios: Array.from({length:6}, () => mkEjBasica(n))
 }));
@@ -2447,6 +2447,13 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
     });
   };
 
+  const setNotaEj = (ejIdx, value) => {
+    updateSemanas(ss => {
+      ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx].nota = value;
+      return ss;
+    });
+  };
+
   const addEjercicio = () => {
     updateSemanas(ss => {
       ss[semActiva].turnos[turnoActivo].ejercicios.push(mkEjBasica(numBloques));
@@ -2805,6 +2812,28 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                               cursor:"pointer",fontSize:12,padding:"2px",opacity:.6}}>×</button>
                         </div>
                       </td>
+                    </tr>
+                    {/* Fila de nota/aclaración */}
+                    <tr key={`nota-${ej.id}`} style={{background: eIdx%2===0 ? "var(--surface2)" : "transparent"}}>
+                      <td style={{border:"none",padding:0}}/>
+                      <td colSpan={4 * numBloques + 3} style={{padding:"0 4px 3px",border:"none"}}>
+                        <input
+                          type="text"
+                          value={ej.nota || ""}
+                          placeholder="Aclaración…"
+                          onChange={e => setNotaEj(eIdx, e.target.value)}
+                          title="Aclaración (ej: 2+2+2 para combinados)"
+                          style={{
+                            display: "block", width:"100%", background:"transparent",
+                            border:"none",
+                            borderTop: ej.nota ? "1px solid var(--border)" : "none",
+                            color:"var(--muted)", fontSize:9, textAlign:"center",
+                            outline:"none", padding:"2px 0 0",
+                            fontFamily:"'DM Sans'", marginTop:2
+                          }}
+                        />
+                      </td>
+                      <td style={{border:"none",padding:0}}/>
                     </tr>
                   );
                 })}
