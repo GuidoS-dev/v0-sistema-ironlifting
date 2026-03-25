@@ -1,3 +1,5 @@
+'use client'
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, Trophy, Calendar, Target } from "lucide-react"
@@ -27,7 +29,7 @@ export function Hero() {
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-background/85" />
 
-      <div className="container relative z-10 mx-auto px-4 py-20">
+      <div className="container relative z-10 mx-auto px-4 py-20 pb-32">
         <div className="mx-auto max-w-4xl text-center">
           {/* Logo */}
           <div className="mb-8 flex justify-center">
@@ -90,13 +92,19 @@ export function Hero() {
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-          <span className="text-xs uppercase tracking-wider">Descubre más</span>
-          <div className="h-8 w-5 rounded-full border border-muted-foreground/50 p-1">
-            <div className="h-2 w-full animate-bounce rounded-full bg-[#e8c547]" />
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+        <button 
+          onClick={() => {
+            const element = document.getElementById("metodologia") || document.querySelector("section:nth-of-type(2)")
+            element?.scrollIntoView({ behavior: "smooth" })
+          }}
+          className="flex flex-col items-center gap-3 text-[#e8c547] hover:text-[#f5d96a] transition-colors duration-300 group cursor-pointer"
+        >
+          <span className="text-sm font-semibold uppercase tracking-wider">Descubre más</span>
+          <div className="h-10 w-6 rounded-full border-2 border-[#e8c547] group-hover:border-[#f5d96a] p-2 transition-colors">
+            <div className="h-2 w-full rounded-full bg-[#e8c547] group-hover:bg-[#f5d96a] animate-bounce transition-colors" />
           </div>
-        </div>
+        </button>
       </div>
     </section>
   )
