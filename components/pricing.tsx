@@ -51,6 +51,7 @@ const plans = [
     features: [
       "Todo lo del plan Básico",
       "Análisis de video semanal",
+      "Clase presencial mensual",
       "Llamada mensual 1-a-1",
     ],
   },
@@ -66,6 +67,7 @@ const plans = [
       "Programación diaria detallada",
       "Análisis de video ilimitado",
       "Llamadas semanales 1-a-1",
+      "Clase presencial quincenal",
       "Preparación para competencia",
       "Acceso directo al coach",
     ],
@@ -200,8 +202,8 @@ export function Pricing() {
                     <Button
                       asChild
                       className={`w-full ${plan.popular
-                          ? "bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
-                          : "bg-muted hover:bg-muted/80 text-foreground"
+                        ? "bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
+                        : "bg-muted hover:bg-muted/80 text-foreground"
                         }`}
                     >
                       <a
