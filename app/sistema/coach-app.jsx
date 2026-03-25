@@ -2710,7 +2710,8 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                   const displayName = ej.nombre_custom || ejData?.nombre || "";
 
                   return (
-                    <tr key={ej.id} style={{background: eIdx%2===0 ? "var(--surface2)" : "transparent"}}>
+                    <React.Fragment key={ej.id}>
+                    <tr style={{background: eIdx%2===0 ? "var(--surface2)" : "transparent"}}>
                       {/* REF — input numérico */}
                       <td style={{padding:"3px 4px",textAlign:"center",
                         border:`1px solid ${col}40`,borderRadius:5,
@@ -2835,6 +2836,7 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                       </td>
                       <td style={{border:"none",padding:0}}/>
                     </tr>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
