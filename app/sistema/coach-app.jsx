@@ -367,6 +367,16 @@ const mkSemanas = () => Array.from({length:4},(_,i)=>({
   turnos: mkTurnos()
 }));
 
+// ── Escuela Básica helpers ──────────────────────────────────────────────────
+const mkBloqueBasica = () => ({ pct: null, series: null, reps: null, kg: null });
+const mkEjBasica = (n = 3) => ({ id: mkId(), ejercicio_id: null, nombre_custom: "", bloques: Array.from({length: n}, mkBloqueBasica) });
+const mkTurnosBasica = (n = 3) => Array.from({length:3},(_,i)=>({
+  id:mkId(), numero:i+1, dia:"", momento:"", ejercicios: Array.from({length:6}, () => mkEjBasica(n))
+}));
+const mkSemanasBasica = (numSem = 4, numBloques = 3) => Array.from({length:numSem},(_,i)=>({
+  id:mkId(), numero:i+1, turnos: mkTurnosBasica(numBloques)
+}));
+
 // ─── STYLES ──────────────────────────────────────────────────────────────────
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -2353,6 +2363,515 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
             })()}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ── Planilla Básica (Escuela Básica) ─────────────────────────────────────────
+// Planilla simplificada sin sembrado, sin IRM, sin % semanal, sin distribución.
+// El "sembrado" se hace directamente en la planilla.
+// Cada ejercicio tiene N bloques con %, series, reps, kg editables.
+function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm_arr = 100, irm_env = 200 }) {
+  const [semActiva, setSemActiva] = useState(0);
+  const [turnoActivo, setTurnoActivo] = useState(0);
+  const [ejPickerOpen, setEjPickerOpen] = useState(null); // ejIdx or null
+
+  const normativos = (() => {
+    try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
+    catch { return EJERCICIOS; }
+  })();
+
+  const sem = semanas[semActiva];
+  const turno = sem?.turnos[turnoActivo];
+  const ejs = turno?.ejercicios || [];
+
+  const _bc = () => { try { if (onBeforeChange) onBeforeChange(); } catch {} };
+
+  // Calcular kg automático: IRM × pct_base / 100 × pct_bloque / 100
+  const calcKgBasica = (ejercicio_id, pct) => {
+    if (!ejercicio_id || !pct) return null;
+    const ejData = normativos.find(e => e.id === Number(ejercicio_id));
+    if (!ejData || !ejData.pct_base) return null;
+    const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+    if (!irm) return null;
+    return Math.round(irm * ejData.pct_base / 100 * pct / 100 * 2) / 2;
+  };
+
+  // Deep-clone update — acepta updates extra para el form padre (ej: num_bloques_basica)
+  const updateSemanas = (updater, extraFormUpdates) => {
+    _bc();
+    const next = typeof updater === 'function' ? updater(JSON.parse(JSON.stringify(semanas))) : updater;
+    onChange(next, extraFormUpdates);
+  };
+
+  const updateBloque = (ejIdx, bIdx, field, value) => {
+    updateSemanas(ss => {
+      const ej = ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx];
+      if (!ej.bloques) ej.bloques = Array.from({length: numBloques}, mkBloqueBasica);
+      if (field === "pct") {
+        // Al cambiar %, auto-calcular kg
+        const newPct = value === "" ? null : Number(value);
+        const autoKg = calcKgBasica(ej.ejercicio_id, newPct);
+        ej.bloques[bIdx] = { ...ej.bloques[bIdx], pct: newPct, kg: autoKg };
+      } else {
+        ej.bloques[bIdx] = { ...ej.bloques[bIdx], [field]: value === "" ? null : Number(value) };
+      }
+      return ss;
+    });
+  };
+
+  const setEjercicioId = (ejIdx, newId) => {
+    updateSemanas(ss => {
+      const ej = ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx];
+      ej.ejercicio_id = newId ? Number(newId) : null;
+      ej.nombre_custom = "";
+      // Recalcular kg de todos los bloques con el nuevo ejercicio
+      if (ej.bloques) {
+        ej.bloques.forEach(b => {
+          if (b.pct) b.kg = calcKgBasica(ej.ejercicio_id, b.pct);
+        });
+      }
+      return ss;
+    });
+  };
+
+  const setNombreCustom = (ejIdx, nombre) => {
+    updateSemanas(ss => {
+      ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx].nombre_custom = nombre;
+      return ss;
+    });
+  };
+
+  const addEjercicio = () => {
+    updateSemanas(ss => {
+      ss[semActiva].turnos[turnoActivo].ejercicios.push(mkEjBasica(numBloques));
+      return ss;
+    });
+  };
+
+  const removeEjercicio = (ejIdx) => {
+    if (ejs.length <= 1) return;
+    updateSemanas(ss => {
+      ss[semActiva].turnos[turnoActivo].ejercicios.splice(ejIdx, 1);
+      return ss;
+    });
+  };
+
+  const addTurno = () => {
+    updateSemanas(ss => {
+      const s = ss[semActiva];
+      s.turnos.push({
+        id: mkId(), numero: s.turnos.length + 1, dia: "", momento: "",
+        ejercicios: Array.from({length: 6}, () => mkEjBasica(numBloques))
+      });
+      return ss;
+    });
+  };
+
+  const removeTurno = () => {
+    if (!sem || sem.turnos.length <= 1) return;
+    updateSemanas(ss => {
+      ss[semActiva].turnos.splice(turnoActivo, 1);
+      ss[semActiva].turnos.forEach((t, i) => { t.numero = i + 1; });
+      return ss;
+    });
+    setTurnoActivo(v => Math.max(0, Math.min(v, (sem?.turnos.length || 2) - 2)));
+  };
+
+  const addSemana = () => {
+    updateSemanas(ss => {
+      ss.push({ id: mkId(), numero: ss.length + 1, turnos: mkTurnosBasica(numBloques) });
+      return ss;
+    });
+  };
+
+  const removeSemana = () => {
+    if (semanas.length <= 1) return;
+    updateSemanas(ss => {
+      ss.splice(semActiva, 1);
+      ss.forEach((s, i) => { s.numero = i + 1; });
+      return ss;
+    });
+    setSemActiva(v => Math.max(0, Math.min(v, semanas.length - 2)));
+    setTurnoActivo(0);
+  };
+
+  const addBloqueCol = () => {
+    const newNum = numBloques + 1;
+    updateSemanas(ss => {
+      ss.forEach(s => s.turnos.forEach(t => t.ejercicios.forEach(e => {
+        if (!e.bloques) e.bloques = Array.from({length: numBloques}, mkBloqueBasica);
+        e.bloques.push(mkBloqueBasica());
+      })));
+      return ss;
+    }, { num_bloques_basica: newNum });
+  };
+
+  const removeBloqueCol = (bIdx) => {
+    if (numBloques <= 1) return;
+    updateSemanas(ss => {
+      ss.forEach(s => s.turnos.forEach(t => t.ejercicios.forEach(e => {
+        if (e.bloques && e.bloques.length > bIdx) e.bloques.splice(bIdx, 1);
+      })));
+      return ss;
+    }, { num_bloques_basica: numBloques - 1 });
+  };
+
+  // Move exercise up/down
+  const moveEj = (ejIdx, dir) => {
+    const tgt = ejIdx + dir;
+    if (tgt < 0 || tgt >= ejs.length) return;
+    updateSemanas(ss => {
+      const arr = ss[semActiva].turnos[turnoActivo].ejercicios;
+      [arr[ejIdx], arr[tgt]] = [arr[tgt], arr[ejIdx]];
+      return ss;
+    });
+  };
+
+  // Copy turno to all weeks
+  const copiarTurnoATodasSemanas = () => {
+    if (!turno) return;
+    updateSemanas(ss => {
+      const turnoBase = JSON.parse(JSON.stringify(turno));
+      ss.forEach((s, sIdx) => {
+        if (sIdx === semActiva) return;
+        // Ensure turno index exists
+        while (s.turnos.length <= turnoActivo) {
+          s.turnos.push({
+            id: mkId(), numero: s.turnos.length + 1, dia: "", momento: "",
+            ejercicios: Array.from({length: 6}, () => mkEjBasica(numBloques))
+          });
+        }
+        const copy = JSON.parse(JSON.stringify(turnoBase));
+        copy.id = s.turnos[turnoActivo].id; // keep original id
+        copy.numero = turnoActivo + 1;
+        s.turnos[turnoActivo] = copy;
+      });
+      return ss;
+    });
+  };
+
+  // Compact input style
+  const cellInput = (extra = {}) => ({
+    width: "100%", background: "transparent", border: "none",
+    fontFamily: "'Bebas Neue'", fontSize: 14, textAlign: "center",
+    lineHeight: 1.2, outline: "none", padding: "3px 2px",
+    color: "var(--text)", MozAppearance: "textfield", appearance: "textfield",
+    ...extra
+  });
+
+  if (!sem) return null;
+
+  return (
+    <div>
+      {/* ── Semana tabs ── */}
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8,alignItems:"center"}}>
+        {semanas.map((s,i) => (
+          <button key={s.id}
+            className={`semana-tab${semActiva===i?" active":""}`}
+            onClick={() => { setSemActiva(i); setTurnoActivo(0); }}>
+            Semana {s.numero}
+          </button>
+        ))}
+        <button onClick={addSemana}
+          style={{width:28,height:28,borderRadius:"50%",border:"1px dashed var(--border)",
+            background:"transparent",color:"var(--gold)",cursor:"pointer",fontSize:16,
+            display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
+        {semanas.length > 1 && (
+          <button onClick={removeSemana}
+            title="Eliminar semana actual"
+            style={{width:28,height:28,borderRadius:"50%",border:"1px dashed var(--border)",
+              background:"transparent",color:"var(--red)",cursor:"pointer",fontSize:16,
+              display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
+        )}
+      </div>
+
+      {/* ── Turno tabs ── */}
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:12,alignItems:"center"}}>
+        {sem.turnos.map((t,i) => (
+          <button key={t.id}
+            onClick={() => setTurnoActivo(i)}
+            style={{
+              padding:"4px 12px", borderRadius:6, border:"none",
+              background: turnoActivo===i ? "var(--gold)" : "var(--surface3)",
+              color: turnoActivo===i ? "#000" : "var(--text)",
+              fontFamily:"'Bebas Neue'", fontSize:14, cursor:"pointer", letterSpacing:".04em"
+            }}>
+            T{i+1}{t.dia ? ` · ${t.dia.slice(0,3)}` : ""}
+          </button>
+        ))}
+        <button onClick={addTurno}
+          style={{width:24,height:24,borderRadius:"50%",border:"1px dashed var(--border)",
+            background:"transparent",color:"var(--gold)",cursor:"pointer",fontSize:14,
+            display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
+        {sem.turnos.length > 1 && (
+          <button onClick={removeTurno}
+            title="Eliminar turno actual"
+            style={{width:24,height:24,borderRadius:"50%",border:"1px dashed var(--border)",
+              background:"transparent",color:"var(--red)",cursor:"pointer",fontSize:14,
+              display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
+        )}
+        <button onClick={copiarTurnoATodasSemanas}
+          title="Copiar este turno a todas las semanas"
+          style={{marginLeft:8,padding:"3px 10px",borderRadius:6,border:"1px solid var(--border)",
+            background:"var(--surface2)",color:"var(--muted)",cursor:"pointer",fontSize:10,
+            fontFamily:"'DM Sans'",fontWeight:600}}>
+          Copiar a todas las semanas
+        </button>
+      </div>
+
+      {/* ── Header del turno ── */}
+      {turno && (
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+            <div style={{fontFamily:"'Bebas Neue'",fontSize:20,color:"var(--gold)"}}>
+              Semana {sem.numero} — Turno {turnoActivo+1}
+            </div>
+            {/* Day/Moment inline selectors */}
+            <select value={turno.dia || ""} onChange={e => {
+              updateSemanas(ss => { ss[semActiva].turnos[turnoActivo].dia = e.target.value; return ss; });
+            }} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:6,
+              padding:"3px 6px",color:"var(--text)",fontSize:11,fontFamily:"'DM Sans'"}}>
+              <option value="">Día</option>
+              {["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"].map(d=>(
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+            <select value={turno.momento || ""} onChange={e => {
+              updateSemanas(ss => { ss[semActiva].turnos[turnoActivo].momento = e.target.value; return ss; });
+            }} style={{background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:6,
+              padding:"3px 6px",color:"var(--text)",fontSize:11,fontFamily:"'DM Sans'"}}>
+              <option value="">Momento</option>
+              {["Mañana","Tarde","Noche"].map(m=>(
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* ── Tabla de ejercicios ── */}
+          <div style={{overflowX:"auto"}}>
+            <table className="planilla-tabla" style={{borderCollapse:"separate",borderSpacing:"2px 2px",width:"100%"}}>
+              <thead>
+                <tr>
+                  <th style={{padding:"5px 6px",background:"var(--surface2)",border:"1px solid var(--border)",
+                    borderRadius:5,textAlign:"center",fontSize:10,color:"var(--muted)",fontWeight:700,
+                    textTransform:"uppercase",width:40}}>REF</th>
+                  <th style={{padding:"5px 6px",background:"var(--surface2)",border:"1px solid var(--border)",
+                    borderRadius:5,fontSize:10,color:"var(--muted)",fontWeight:700,
+                    textTransform:"uppercase",minWidth:100}}>EJERCICIO</th>
+                  {Array.from({length: numBloques}).map((_, bIdx) => (
+                    <th key={bIdx} colSpan={4} style={{padding:"3px 4px",
+                      background:"rgba(232,197,71,.08)",
+                      border:"1px solid rgba(232,197,71,.3)",
+                      borderRadius:5,textAlign:"center",fontSize:9,color:"var(--gold)",fontWeight:700}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2}}>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:0,flex:1}}>
+                          {["%","S","R","Kg"].map(l=>(
+                            <div key={l} style={{fontSize:8,color:"var(--muted)",textAlign:"center",fontWeight:700}}>{l}</div>
+                          ))}
+                        </div>
+                        {numBloques > 1 && (
+                          <button onClick={() => removeBloqueCol(bIdx)}
+                            style={{width:14,height:14,borderRadius:"50%",border:"none",
+                              background:"transparent",color:"var(--muted)",cursor:"pointer",
+                              fontSize:11,lineHeight:1,padding:0,flexShrink:0}}
+                            title="Eliminar esta columna de %">×</button>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                  <th style={{padding:"3px 4px",background:"var(--surface2)",border:"1px dashed var(--border)",
+                    borderRadius:5,width:30}}>
+                    <button onClick={addBloqueCol}
+                      title="Agregar columna de %"
+                      style={{width:"100%",background:"transparent",border:"none",
+                        color:"var(--gold)",cursor:"pointer",fontSize:13,fontWeight:700,padding:0}}>+ %</button>
+                  </th>
+                  <th style={{width:26}}/>
+                </tr>
+              </thead>
+              <tbody>
+                {ejs.map((ej, eIdx) => {
+                  const ejData = ej.ejercicio_id ? normativos.find(e => e.id === Number(ej.ejercicio_id)) : null;
+                  const col = ejData ? CAT_COLOR[ejData.categoria] : "var(--border)";
+                  const bloques = ej.bloques || Array.from({length: numBloques}, mkBloqueBasica);
+                  const displayName = ej.nombre_custom || ejData?.nombre || "";
+
+                  return (
+                    <tr key={ej.id} style={{background: eIdx%2===0 ? "var(--surface2)" : "transparent"}}>
+                      {/* REF — input numérico */}
+                      <td style={{padding:"3px 4px",textAlign:"center",
+                        border:`1px solid ${col}40`,borderRadius:5,
+                        background:`${col}0a`}}>
+                        <input type="number" min={1} max={200} className="no-spin"
+                          value={ej.ejercicio_id || ""}
+                          placeholder="—"
+                          onChange={e => setEjercicioId(eIdx, e.target.value)}
+                          style={cellInput({width:36,fontFamily:"'Bebas Neue'",fontSize:16,color:col})}
+                        />
+                      </td>
+                      {/* Ejercicio nombre — click to edit */}
+                      <td style={{padding:"3px 6px",border:"1px solid var(--border)",borderRadius:5,
+                        position:"relative",minWidth:100}}>
+                        <input type="text"
+                          value={displayName}
+                          placeholder="Nombre del ejercicio"
+                          onChange={e => {
+                            if (ejData && e.target.value === ejData.nombre) {
+                              setNombreCustom(eIdx, "");
+                            } else {
+                              setNombreCustom(eIdx, e.target.value);
+                            }
+                          }}
+                          style={{width:"100%",background:"transparent",border:"none",
+                            color:"var(--text)",fontSize:11,outline:"none",padding:"2px 0",
+                            fontFamily:"'DM Sans'"}}
+                        />
+                      </td>
+                      {/* Bloques: % | S | R | Kg */}
+                      {bloques.slice(0, numBloques).map((b, bIdx) => (
+                        <React.Fragment key={bIdx}>
+                          <td style={{padding:"2px 1px",textAlign:"center",
+                            background:"rgba(232,197,71,.04)",
+                            border:"1px solid rgba(232,197,71,.15)",
+                            borderRadius:"5px 0 0 5px",width:36}}>
+                            <input type="number" className="no-spin"
+                              value={b.pct ?? ""}
+                              placeholder="%"
+                              onChange={e => updateBloque(eIdx, bIdx, "pct", e.target.value)}
+                              style={cellInput({fontSize:13,color:"var(--gold)",width:34})}
+                            />
+                          </td>
+                          <td style={{padding:"2px 1px",textAlign:"center",
+                            border:"1px solid var(--border)",width:30}}>
+                            <input type="text" className="no-spin"
+                              value={b.series ?? ""}
+                              placeholder="—"
+                              onChange={e => {
+                                const raw = e.target.value;
+                                // Allow formats like "2+2" or plain numbers
+                                updateSemanas(ss => {
+                                  const ej2 = ss[semActiva].turnos[turnoActivo].ejercicios[eIdx];
+                                  if (!ej2.bloques) ej2.bloques = Array.from({length: numBloques}, mkBloqueBasica);
+                                  ej2.bloques[bIdx] = { ...ej2.bloques[bIdx], series: raw === "" ? null : (isNaN(Number(raw)) ? raw : Number(raw)) };
+                                  return ss;
+                                });
+                              }}
+                              style={cellInput({width:28})}
+                            />
+                          </td>
+                          <td style={{padding:"2px 1px",textAlign:"center",
+                            border:"1px solid var(--border)",width:30}}>
+                            <input type="number" className="no-spin"
+                              value={b.reps ?? ""}
+                              placeholder="—"
+                              onChange={e => updateBloque(eIdx, bIdx, "reps", e.target.value)}
+                              style={cellInput({width:28})}
+                            />
+                          </td>
+                          <td style={{padding:"2px 1px",textAlign:"center",
+                            border:"1px solid var(--border)",
+                            borderRadius:"0 5px 5px 0",width:40}}>
+                            <input type="number" step="0.5" className="no-spin"
+                              value={b.kg ?? ""}
+                              placeholder="—"
+                              onChange={e => updateBloque(eIdx, bIdx, "kg", e.target.value)}
+                              style={cellInput({width:38,color:"var(--muted)",fontSize:12})}
+                            />
+                          </td>
+                        </React.Fragment>
+                      ))}
+                      {/* Spacer for the "+" column */}
+                      <td style={{border:"none"}}/>
+                      {/* Actions */}
+                      <td style={{padding:0,textAlign:"center",border:"none"}}>
+                        <div style={{display:"flex",gap:1,justifyContent:"center"}}>
+                          {eIdx > 0 && (
+                            <button onClick={() => moveEj(eIdx, -1)} title="Mover arriba"
+                              style={{background:"none",border:"none",color:"var(--muted)",
+                                cursor:"pointer",fontSize:10,padding:"2px"}}>▲</button>
+                          )}
+                          {eIdx < ejs.length - 1 && (
+                            <button onClick={() => moveEj(eIdx, 1)} title="Mover abajo"
+                              style={{background:"none",border:"none",color:"var(--muted)",
+                                cursor:"pointer",fontSize:10,padding:"2px"}}>▼</button>
+                          )}
+                          <button onClick={() => removeEjercicio(eIdx)} title="Eliminar ejercicio"
+                            style={{background:"none",border:"none",color:"var(--red)",
+                              cursor:"pointer",fontSize:12,padding:"2px",opacity:.6}}>×</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Agregar ejercicio */}
+          <button onClick={addEjercicio}
+            style={{marginTop:8,padding:"6px 16px",borderRadius:8,
+              border:"1px dashed var(--border)",background:"transparent",
+              color:"var(--gold)",cursor:"pointer",fontSize:12,
+              fontFamily:"'DM Sans'",fontWeight:600,width:"100%"}}>
+            + Agregar ejercicio
+          </button>
+
+          {/* Selector rápido de ejercicios */}
+          {ejPickerOpen !== null && (
+            <Modal title="Seleccionar ejercicio" onClose={() => setEjPickerOpen(null)}>
+              <div style={{maxHeight:400,overflowY:"auto",display:"flex",flexDirection:"column",gap:2}}>
+                {normativos.map(e => (
+                  <button key={e.id} onClick={() => {
+                    setEjercicioId(ejPickerOpen, e.id);
+                    setEjPickerOpen(null);
+                  }} style={{
+                    display:"flex",gap:8,alignItems:"center",padding:"6px 10px",
+                    background:"var(--surface2)",border:"1px solid var(--border)",
+                    borderRadius:6,cursor:"pointer",textAlign:"left",width:"100%"
+                  }}>
+                    <span style={{fontFamily:"'Bebas Neue'",fontSize:16,
+                      color:CAT_COLOR[e.categoria],minWidth:28,textAlign:"center"}}>{e.id}</span>
+                    <span style={{fontSize:12,color:"var(--text)",flex:1}}>{e.nombre}</span>
+                    <span style={{fontSize:10,color:CAT_COLOR[e.categoria]}}>{e.categoria}</span>
+                  </button>
+                ))}
+              </div>
+            </Modal>
+          )}
+
+          {/* Info resumen del turno */}
+          {(() => {
+            const ejsConDatos = ejs.filter(e => e.ejercicio_id);
+            if (ejsConDatos.length === 0) return null;
+            let totalReps = 0;
+            ejsConDatos.forEach(e => {
+              (e.bloques || []).forEach(b => {
+                if (b.reps && b.series) {
+                  const s = typeof b.series === 'string' && b.series.includes('+')
+                    ? b.series.split('+').reduce((a, v) => a + Number(v), 0)
+                    : Number(b.series) || 0;
+                  totalReps += s * (Number(b.reps) || 0);
+                }
+              });
+            });
+            return (
+              <div style={{marginTop:12,display:"flex",gap:16,flexWrap:"wrap",
+                padding:"8px 12px",background:"var(--surface2)",borderRadius:8}}>
+                <div style={{fontSize:11,color:"var(--muted)"}}>
+                  Ejercicios: <span style={{color:"var(--gold)",fontWeight:700}}>{ejsConDatos.length}</span>
+                </div>
+                {totalReps > 0 && (
+                  <div style={{fontSize:11,color:"var(--muted)"}}>
+                    Total reps turno: <span style={{color:"var(--gold)",fontWeight:700}}>{totalReps}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
@@ -6885,6 +7404,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   };
 
   const esSemanal = plt.tipo === "semana";
+  const esBasica  = form.escuela === true || form.escuela === "true";
 
   return (
     <div>
@@ -6900,18 +7420,21 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
               <ChevronLeft size={14}/> Plantillas
             </button>
             <div style={{
-              width:36,height:36,borderRadius:"50%",background:"var(--surface3)",
+              width:36,height:36,borderRadius:"50%",background: esBasica ? "rgba(232,197,71,.15)" : "var(--surface3)",
               display:"flex",alignItems:"center",justifyContent:"center",
               fontFamily:"'Bebas Neue'",fontSize:18,color:"var(--gold)",flexShrink:0
-            }}>P</div>
+            }}>{esBasica ? "EB" : "P"}</div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontFamily:"'Bebas Neue'",fontSize:18,color:"var(--text)",
                 lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {form.nombre}
               </div>
               <div style={{fontSize:11,color:"var(--muted)",marginTop:1}}>
-                {form.semanas?.length} semanas · {form.volumen_total} reps
-                {" · "}IRM prueba: {irm_arr}/{irm_env} kg
+                {esBasica ? (
+                  <>{form.semanas?.length} semanas · {form.num_bloques_basica || 3} columnas de % · Escuela Inicial</>
+                ) : (
+                  <>{form.semanas?.length} semanas · {form.volumen_total} reps{" · "}IRM prueba: {irm_arr}/{irm_env} kg</>
+                )}
               </div>
             </div>
           </div>
@@ -6925,10 +7448,10 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
         border:"1px solid var(--border)",borderTop:"none",
         borderRadius:"0 0 14px 14px",marginBottom:20,
         boxShadow:"0 6px 16px rgba(0,0,0,.5)"}}>
-          {[
-            {id:"planilla", label:"Planilla"},
-            {id:"resumen",  label:"Resumen"},
-          ].map(t=>(
+          {(esBasica
+            ? [{id:"planilla", label:"Planilla"}]
+            : [{id:"planilla", label:"Planilla"},{id:"resumen", label:"Resumen"}]
+          ).map(t=>(
             <button key={t.id} onClick={()=>setVistaActual(t.id)}
               style={{
                 padding:"0 16px", border:"none", background:"none",
@@ -6958,7 +7481,51 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
       </div>
 
       {/* ── Planilla ── */}
-      {vistaActual === "planilla" && (
+      {vistaActual === "planilla" && esBasica && (
+        <div className="card">
+          <div className="flex-between mb16" style={{flexWrap:"wrap",gap:10}}>
+            <div className="card-title" style={{marginBottom:0}}>Planilla Escuela Inicial</div>
+            {/* IRM Arranque / Envión */}
+            <div style={{display:"flex",gap:10,alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:4}}>
+                <label style={{fontSize:10,color:"var(--gold)",fontWeight:700,textTransform:"uppercase",letterSpacing:".05em"}}>IRM Arr</label>
+                <input type="number" min={0} max={300} className="no-spin"
+                  value={form.irm_arranque || ""}
+                  placeholder="kg"
+                  onChange={e => set("irm_arranque", Number(e.target.value) || 0)}
+                  style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",
+                    borderRadius:6,padding:"4px 6px",color:"var(--gold)",fontSize:14,
+                    fontFamily:"'Bebas Neue'",textAlign:"center",outline:"none",
+                    MozAppearance:"textfield",appearance:"textfield"}}
+                />
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:4}}>
+                <label style={{fontSize:10,color:"var(--blue)",fontWeight:700,textTransform:"uppercase",letterSpacing:".05em"}}>IRM Env</label>
+                <input type="number" min={0} max={400} className="no-spin"
+                  value={form.irm_envion || ""}
+                  placeholder="kg"
+                  onChange={e => set("irm_envion", Number(e.target.value) || 0)}
+                  style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",
+                    borderRadius:6,padding:"4px 6px",color:"var(--blue)",fontSize:14,
+                    fontFamily:"'Bebas Neue'",textAlign:"center",outline:"none",
+                    MozAppearance:"textfield",appearance:"textfield"}}
+                />
+              </div>
+              <span style={{fontSize:9,color:"var(--muted)"}}>kg</span>
+            </div>
+          </div>
+          <PlanillaBasica
+            semanas={form.semanas}
+            onChange={(ss, extraUpdates) => setFormWithHist(f => ({...f, semanas: ss, ...(extraUpdates || {})}))}
+            numBloques={form.num_bloques_basica || 3}
+            onBeforeChange={(forced) => pushSnap(forced)}
+            irm_arr={form.irm_arranque || 0}
+            irm_env={form.irm_envion || 0}
+          />
+        </div>
+      )}
+
+      {vistaActual === "planilla" && !esBasica && (
         <>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
             marginBottom:8,flexWrap:"wrap",gap:8}}>
@@ -7070,6 +7637,9 @@ function CrearPlantillaModal({ onSave, onClose }) {
     semanas: mkSemanas(),
     escuela: false,
     escuela_nivel: "1",
+    num_bloques_basica: 3,
+    irm_arranque: 0,
+    irm_envion: 0,
   });
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const modoOpts = ["Preparatorio","Competitivo","General"];
@@ -7083,20 +7653,23 @@ function CrearPlantillaModal({ onSave, onClose }) {
   return (
     <Modal title="Nueva plantilla" onClose={onClose}>
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
-        <div style={{display:"flex",gap:8}}>
-          {[["meso","Mesociclo"],["semana","Semana"]].map(([v,l])=>(
-            <button key={v} onClick={()=>{
-              if (v==="semana") setForm(f=>({...f,tipo:v,semanas:[{...mkSemanas()[0],id:mkId(),numero:1,pct_volumen:100}]}));
-              else setForm(f=>({...f,tipo:v,semanas:mkSemanas()}));
-            }}
-              style={{flex:1,padding:"8px 0",borderRadius:8,border:"none",cursor:"pointer",
-                fontFamily:"'DM Sans'",fontSize:13,fontWeight:700,transition:"all .2s",
-                background: form.tipo===v ? "var(--gold)" : "var(--surface2)",
-                color: form.tipo===v ? "#0a0c10" : "var(--muted)"}}>
-              {l}
-            </button>
-          ))}
-        </div>
+        {/* Tipo selector — oculto si es escuela */}
+        {!form.escuela && (
+          <div style={{display:"flex",gap:8}}>
+            {[["meso","Mesociclo"],["semana","Semana"]].map(([v,l])=>(
+              <button key={v} onClick={()=>{
+                if (v==="semana") setForm(f=>({...f,tipo:v,semanas:[{...mkSemanas()[0],id:mkId(),numero:1,pct_volumen:100}]}));
+                else setForm(f=>({...f,tipo:v,semanas:mkSemanas()}));
+              }}
+                style={{flex:1,padding:"8px 0",borderRadius:8,border:"none",cursor:"pointer",
+                  fontFamily:"'DM Sans'",fontSize:13,fontWeight:700,transition:"all .2s",
+                  background: form.tipo===v ? "var(--gold)" : "var(--surface2)",
+                  color: form.tipo===v ? "#0a0c10" : "var(--muted)"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="form-group">
           <label className="form-label">Nombre *</label>
           <input className="form-input" value={form.nombre}
@@ -7117,7 +7690,15 @@ function CrearPlantillaModal({ onSave, onClose }) {
           borderRadius:10, padding:"10px 14px",
           display:"flex", alignItems:"center", gap:10, cursor:"pointer",
           transition:"all .2s"
-        }} onClick={()=>set("escuela",!form.escuela)}>
+        }} onClick={()=>{
+          const newVal = !form.escuela;
+          setForm(f=>({
+            ...f,
+            escuela: newVal,
+            tipo: "meso",
+            semanas: newVal ? mkSemanasBasica(4, f.num_bloques_basica || 3) : mkSemanas(),
+          }));
+        }}>
           <div style={{
             width:36, height:20, borderRadius:10, position:"relative",
             background: form.escuela ? "#4db6ac" : "var(--surface3)",
@@ -7158,51 +7739,56 @@ function CrearPlantillaModal({ onSave, onClose }) {
           </div>
         )}
 
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          {[
-            ["periodo","Período",PERIODOS.map(p=>[p,PERIODO_LABEL[p]])],
-            ["objetivo","Objetivo",OBJETIVOS.map(o=>[o,OBJETIVO_LABEL[o]])],
-            ["nivel","Nivel",NIVELES.map(n=>[n,NIVEL_LABEL[n]])],
-          ].map(([k,lbl,opts])=>(
-            <div key={k} className="form-group">
-              <label className="form-label">{lbl}</label>
-              <select className="form-select" value={form[k]}
-                onChange={e=>set(k,e.target.value)}>
-                {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-              </select>
+        {/* Campos estándar — ocultos si es escuela (Escuela Inicial usa planilla básica) */}
+        {!form.escuela && (
+          <>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[
+                ["periodo","Período",PERIODOS.map(p=>[p,PERIODO_LABEL[p]])],
+                ["objetivo","Objetivo",OBJETIVOS.map(o=>[o,OBJETIVO_LABEL[o]])],
+                ["nivel","Nivel",NIVELES.map(n=>[n,NIVEL_LABEL[n]])],
+              ].map(([k,lbl,opts])=>(
+                <div key={k} className="form-group">
+                  <label className="form-label">{lbl}</label>
+                  <select className="form-select" value={form[k]}
+                    onChange={e=>set(k,e.target.value)}>
+                    {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              ))}
+              <div className="form-group">
+                <label className="form-label">Modo</label>
+                <select className="form-select" value={form.modo}
+                  onChange={e=>set("modo",e.target.value)}>
+                  {modoOpts.map(m=><option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
             </div>
-          ))}
-          <div className="form-group">
-            <label className="form-label">Modo</label>
-            <select className="form-select" value={form.modo}
-              onChange={e=>set("modo",e.target.value)}>
-              {modoOpts.map(m=><option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-        </div>
-        {form.tipo === "meso" && (
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div className="form-group">
-              <label className="form-label">Semanas</label>
-              <select className="form-select" value={form.semanas.length}
-                onChange={e=>{
-                  const n = Number(e.target.value);
-                  const base = mkSemanas();
-                  set("semanas", Array.from({length:n},(_,i)=>({
-                    ...base[Math.min(i,3)], id:mkId(), numero:i+1,
-                    pct_volumen: n===4?[26,35,23,16][i]??20:Math.round(100/n)
-                  })));
-                }}>
-                {[2,3,4,5,6].map(n=><option key={n} value={n}>{n} semanas</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Volumen total (reps)</label>
-              <input className="form-input" type="number" min={100} max={3000} step={50}
-                value={form.volumen_total}
-                onChange={e=>set("volumen_total",Number(e.target.value))}/>
-            </div>
-          </div>
+            {form.tipo === "meso" && (
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div className="form-group">
+                  <label className="form-label">Semanas</label>
+                  <select className="form-select" value={form.semanas.length}
+                    onChange={e=>{
+                      const n = Number(e.target.value);
+                      const base = mkSemanas();
+                      set("semanas", Array.from({length:n},(_,i)=>({
+                        ...base[Math.min(i,3)], id:mkId(), numero:i+1,
+                        pct_volumen: n===4?[26,35,23,16][i]??20:Math.round(100/n)
+                      })));
+                    }}>
+                    {[2,3,4,5,6].map(n=><option key={n} value={n}>{n} semanas</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Volumen total (reps)</label>
+                  <input className="form-input" type="number" min={100} max={3000} step={50}
+                    value={form.volumen_total}
+                    onChange={e=>set("volumen_total",Number(e.target.value))}/>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
       <div className="modal-footer">
@@ -7606,37 +8192,41 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
           </div>
 
           {editando.escuela && (
-            <div className="form-group">
-              <label className="form-label">Nivel de Escuela</label>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {ESCUELA_NIVELES.map(n=>(
-                  <button key={n} onClick={()=>setEditando(p=>({...p,escuela_nivel:n}))}
-                    style={{padding:"5px 14px",borderRadius:20,border:"none",cursor:"pointer",
-                      fontSize:12,fontWeight:700,transition:"all .15s",
-                      background:editando.escuela_nivel===n?ESCUELA_NIVEL_COLOR[n]:"var(--surface2)",
-                      color:editando.escuela_nivel===n?"#fff":"var(--muted)"}}>
-                    {ESCUELA_NIVEL_LABEL[n]}
-                  </button>
-                ))}
+            <>
+              <div className="form-group">
+                <label className="form-label">Nivel de Escuela</label>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {ESCUELA_NIVELES.map(n=>(
+                    <button key={n} onClick={()=>setEditando(p=>({...p,escuela_nivel:n}))}
+                      style={{padding:"5px 14px",borderRadius:20,border:"none",cursor:"pointer",
+                        fontSize:12,fontWeight:700,transition:"all .15s",
+                        background:editando.escuela_nivel===n?ESCUELA_NIVEL_COLOR[n]:"var(--surface2)",
+                        color:editando.escuela_nivel===n?"#fff":"var(--muted)"}}>
+                      {ESCUELA_NIVEL_LABEL[n]}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            {[
-              ["periodo","Período",PERIODOS.map(p=>[p,PERIODO_LABEL[p]])],
-              ["objetivo","Objetivo",OBJETIVOS.map(o=>[o,OBJETIVO_LABEL[o]])],
-              ["nivel","Nivel",NIVELES.map(n=>[n,NIVEL_LABEL[n]])],
-            ].map(([k,lbl,opts])=>(
-              <div key={k} className="form-group">
-                <label className="form-label">{lbl}</label>
-                <select className="form-select" value={editando[k]}
-                  onChange={e=>setEditando(p=>({...p,[k]:e.target.value}))}>
-                  {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-            ))}
-          </div>
+          {!editando.escuela && (
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[
+                ["periodo","Período",PERIODOS.map(p=>[p,PERIODO_LABEL[p]])],
+                ["objetivo","Objetivo",OBJETIVOS.map(o=>[o,OBJETIVO_LABEL[o]])],
+                ["nivel","Nivel",NIVELES.map(n=>[n,NIVEL_LABEL[n]])],
+              ].map(([k,lbl,opts])=>(
+                <div key={k} className="form-group">
+                  <label className="form-label">{lbl}</label>
+                  <select className="form-select" value={editando[k]}
+                    onChange={e=>setEditando(p=>({...p,[k]:e.target.value}))}>
+                    {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex gap8 mt16" style={{justifyContent:"flex-end"}}>
             <button className="btn btn-ghost" onClick={()=>setEditando(null)}>Cancelar</button>
             <button className="btn btn-gold" onClick={()=>{onUpdate(editando);setEditando(null);}}>
