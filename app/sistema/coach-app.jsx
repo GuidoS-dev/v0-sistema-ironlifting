@@ -9181,8 +9181,8 @@ function LoginScreen({ onAuth }) {
     }}>
       <div style={{width:"100%", maxWidth:400}}>
         {/* Logo */}
-        <div style={{textAlign:"center", marginBottom:32}}>
-          <LogoHorizontal height={60}/>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center", marginBottom:32}}>
+          <LogoHorizontal height={100}/>
           <div style={{fontFamily:"'Bebas Neue'",fontSize:13,color:"var(--muted)",
             letterSpacing:".15em",marginTop:8}}>
             SISTEMA DE GESTIÓN
