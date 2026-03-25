@@ -43,14 +43,7 @@ export function Navbar() {
         </nav>
 
         {/* CTA Buttons - Desktop */}
-        <div className="hidden md:flex items-center gap-3">
-          <Button
-            asChild
-            variant="outline"
-            className="border-[#e8c547] text-[#e8c547] hover:bg-[#e8c547] hover:text-[#0a0c12] font-semibold"
-          >
-            <a href="/auth/login">Iniciar sesión</a>
-          </Button>
+        <div className="hidden md:block">
           <Button
             asChild
             className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
@@ -79,15 +72,6 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
-              <Button
-                asChild
-                variant="outline"
-                className="border-[#e8c547] text-[#e8c547] hover:bg-[#e8c547] hover:text-[#0a0c12] font-semibold"
-              >
-                <a href="/auth/login" onClick={() => setIsOpen(false)}>
-                  Iniciar sesión
-                </a>
-              </Button>
               <Button
                 asChild
                 className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
