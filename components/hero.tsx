@@ -1,3 +1,5 @@
+'use client'
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, Trophy, Calendar, Target } from "lucide-react"
