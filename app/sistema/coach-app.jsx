@@ -4666,8 +4666,13 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
 
   // Editar solo nombre, fecha, modo, IRM del meso actual
   const saveEditMeso = (changes) => {
+    const normalized = {
+      ...changes,
+      irm_arranque: changes.irm_arranque !== undefined ? Number(changes.irm_arranque) || null : mesoVisto?.irm_arranque,
+      irm_envion: changes.irm_envion !== undefined ? Number(changes.irm_envion) || null : mesoVisto?.irm_envion,
+    };
     setMesociclos(prev => prev.map(m =>
-      m.id === mesoVisto.id ? {...m, ...changes} : m
+      m.id === mesoVisto.id ? {...m, ...normalized} : m
     ));
     setShowEditMeso(false);
   };
