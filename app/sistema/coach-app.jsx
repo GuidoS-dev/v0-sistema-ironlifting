@@ -4662,10 +4662,9 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
       {/* ════════════ PDF ════════════ */}
       {vistaActual==="pdf" && (
         <PanelTabBoundary tab="PDF principal">
-          {console.log("[TAB] PDF — mesoVisto:", mesoVisto?.id, "atleta:", atleta?.nombre) || null}
           {mesoVisto
             ? <PagePDF meso={mesoVisto} atleta={atleta} irm_arr={irm_arr} irm_env={irm_env}/>
-            : <div style={{padding:40,textAlign:"center",color:"var(--muted)"}}>mesoVisto es null</div>
+            : <div style={{padding:40,textAlign:"center",color:"var(--muted)"}}>Sin mesociclo seleccionado</div>
           }
         </PanelTabBoundary>
       )}
@@ -4673,10 +4672,9 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
       {/* ════════════ RESUMEN ════════════ */}
       {vistaActual==="resumen" && (
         <PanelTabBoundary tab="Resumen principal">
-          {console.log("[TAB] Resumen — mesoVisto:", mesoVisto?.id, "atleta:", atleta?.nombre) || null}
           {mesoVisto
             ? <PageResumen meso={mesoVisto} atleta={atleta} irm_arr={irm_arr} irm_env={irm_env}/>
-            : <div style={{padding:40,textAlign:"center",color:"var(--muted)"}}>mesoVisto es null</div>
+            : <div style={{padding:40,textAlign:"center",color:"var(--muted)"}}>Sin mesociclo seleccionado</div>
           }
         </PanelTabBoundary>
       )}
