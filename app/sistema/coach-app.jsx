@@ -2776,7 +2776,7 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                             border:"1px solid var(--border)",
                             borderRadius:"0 5px 5px 0",width:40}}>
                             <input type="number" step="0.5" className="no-spin"
-                              value={b.kg ?? ""}
+                              value={calcKgBasica(ej.ejercicio_id, b.pct) ?? b.kg ?? ""}
                               placeholder="—"
                               onChange={e => updateBloque(eIdx, bIdx, "kg", e.target.value)}
                               style={cellInput({width:38,color:"var(--muted)",fontSize:12})}
