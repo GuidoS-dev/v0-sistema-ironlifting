@@ -3,41 +3,35 @@ import os
 
 project_dir = '/vercel/share/v0-project'
 
-# Check if git is available
-try:
-    result = subprocess.run(['which', 'git'], capture_output=True, text=True)
-    print(f'[v0] git path: {result.stdout.strip()}')
-    print(f'[v0] git stderr: {result.stderr.strip()}')
-except Exception as e:
-    print(f'[v0] which git error: {e}')
+os.makedirs(project_dir, exist_ok=True)
 
-# List all binaries in PATH
-try:
-    path_dirs = os.environ.get('PATH', '').split(':')
-    print(f'[v0] PATH dirs: {path_dirs}')
-    for d in path_dirs:
-        if os.path.exists(d):
-            files = os.listdir(d)
-            if 'git' in files:
-                print(f'[v0] Found git in {d}')
-except Exception as e:
-    print(f'[v0] Error listing PATH: {e}')
+# Check if already a git repo
+git_dir = os.path.join(project_dir, '.git')
 
-# Try running git directly
-try:
-    result = subprocess.run(['/usr/bin/git', '--version'], capture_output=True, text=True)
-    print(f'[v0] git version: {result.stdout.strip()}')
-except Exception as e:
-    print(f'[v0] /usr/bin/git error: {e}')
+if os.path.exists(git_dir):
+    print('[v0] Git repo exists, pulling latest changes...')
+    result = subprocess.run(
+        ['/usr/bin/git', 'pull', 'origin', 'main'],
+        capture_output=True, text=True, cwd=project_dir
+    )
+    print(f'[v0] stdout: {result.stdout}')
+    print(f'[v0] stderr: {result.stderr}')
+else:
+    print('[v0] Cloning repository...')
+    result = subprocess.run(
+        ['/usr/bin/git', 'clone', 'https://github.com/GuidoS-dev/v0-sistema-ironlifting.git', '.'],
+        capture_output=True, text=True, cwd=project_dir
+    )
+    print(f'[v0] stdout: {result.stdout}')
+    print(f'[v0] stderr: {result.stderr}')
+    print(f'[v0] return code: {result.returncode}')
 
-# Try /usr/local/bin/git
-try:
-    result = subprocess.run(['/usr/local/bin/git', '--version'], capture_output=True, text=True)
-    print(f'[v0] git version local: {result.stdout.strip()}')
-except Exception as e:
-    print(f'[v0] /usr/local/bin/git error: {e}')
-
-# List files already in project
-print(f'[v0] Files in {project_dir}:')
-for f in os.listdir(project_dir):
-    print(f'  {f}')
+# List TSX files found
+print('\n[v0] TSX files in project:')
+for root, dirs, files in os.walk(project_dir):
+    # Skip hidden and build directories
+    dirs[:] = [d for d in dirs if d not in ['node_modules', '.next', '.git', '__pycache__']]
+    for f in files:
+        if f.endswith('.tsx') or f.endswith('.ts'):
+            rel_path = os.path.relpath(os.path.join(root, f), project_dir)
+            print(f'  {rel_path}')

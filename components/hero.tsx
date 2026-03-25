@@ -39,7 +39,7 @@ export function Hero() {
           {/* Badge */}
           <Badge
             variant="outline"
-            className="mb-6 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547] px-4 py-1"
+            className="mb-6 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547] px-4 py-1 max-w-full whitespace-normal text-center leading-snug"
           >
             Programación científica y técnica profesional para todos los niveles
           </Badge>
