@@ -7495,9 +7495,9 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
               <div style={{display:"flex",alignItems:"center",gap:4}}>
                 <label style={{fontSize:10,color:"var(--gold)",fontWeight:700,textTransform:"uppercase",letterSpacing:".05em"}}>IRM Arr</label>
                 <input type="number" min={0} max={300} className="no-spin"
-                  value={form.irm_arranque || ""}
+                  value={form.irm_arranque ?? ""}
                   placeholder="kg"
-                  onChange={e => set("irm_arranque", Number(e.target.value) || 0)}
+                  onChange={e => set("irm_arranque", e.target.value === "" ? null : Number(e.target.value))}
                   style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",
                     borderRadius:6,padding:"4px 6px",color:"var(--gold)",fontSize:14,
                     fontFamily:"'Bebas Neue'",textAlign:"center",outline:"none",
@@ -7507,9 +7507,9 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
               <div style={{display:"flex",alignItems:"center",gap:4}}>
                 <label style={{fontSize:10,color:"var(--blue)",fontWeight:700,textTransform:"uppercase",letterSpacing:".05em"}}>IRM Env</label>
                 <input type="number" min={0} max={400} className="no-spin"
-                  value={form.irm_envion || ""}
+                  value={form.irm_envion ?? ""}
                   placeholder="kg"
-                  onChange={e => set("irm_envion", Number(e.target.value) || 0)}
+                  onChange={e => set("irm_envion", e.target.value === "" ? null : Number(e.target.value))}
                   style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",
                     borderRadius:6,padding:"4px 6px",color:"var(--blue)",fontSize:14,
                     fontFamily:"'Bebas Neue'",textAlign:"center",outline:"none",
@@ -7524,8 +7524,8 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
             onChange={(ss, extraUpdates) => setFormWithHist(f => ({...f, semanas: ss, ...(extraUpdates || {})}))}
             numBloques={form.num_bloques_basica || 3}
             onBeforeChange={(forced) => pushSnap(forced)}
-            irm_arr={form.irm_arranque || 0}
-            irm_env={form.irm_envion || 0}
+            irm_arr={form.irm_arranque ?? 100}
+            irm_env={form.irm_envion ?? 200}
           />
         </div>
       )}
