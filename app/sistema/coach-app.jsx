@@ -2400,23 +2400,6 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
     return Math.round(irm * ejData.pct_base / 100 * pct / 100 * 2) / 2;
   };
 
-  // Recalcular todos los kg cuando cambian los IRM
-  const isFirstRender = React.useRef(true);
-  React.useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
-    const updated = JSON.parse(JSON.stringify(semanas));
-    let changed = false;
-    updated.forEach(sem => sem.turnos.forEach(turno => turno.ejercicios.forEach(ej => {
-      (ej.bloques || []).forEach(b => {
-        if (b.pct && ej.ejercicio_id) {
-          const newKg = calcKgBasica(ej.ejercicio_id, b.pct);
-          if (newKg !== null && newKg !== b.kg) { b.kg = newKg; changed = true; }
-        }
-      });
-    })));
-    if (changed) onChange(updated);
-  }, [irm_arr, irm_env]);
-
   // Deep-clone update — acepta updates extra para el form padre (ej: num_bloques_basica)
   const updateSemanas = (updater, extraFormUpdates) => {
     _bc();
@@ -2793,9 +2776,8 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                             border:"1px solid var(--border)",
                             borderRadius:"0 5px 5px 0",width:40}}>
                             <input type="number" step="0.5" className="no-spin"
-                              value={b.kg ?? ""}
-                              placeholder="—"
-                              onChange={e => updateBloque(eIdx, bIdx, "kg", e.target.value)}
+                              value={calcKgBasica(ej.ejercicio_id, b.pct) ?? b.kg ?? ""}
+                              readOnly
                               style={cellInput({width:38,color:"var(--muted)",fontSize:12})}
                             />
                           </td>
