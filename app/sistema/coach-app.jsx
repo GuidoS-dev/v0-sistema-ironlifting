@@ -361,7 +361,7 @@ const mkTurnos = () => Array.from({length:9},(_,i)=>({
   id:mkId(), numero:i+1, dia:"", momento:"", ejercicios:Array.from({length:3},()=>({id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0}))
 }));
 const mkSemanas = () => Array.from({length:4},(_,i)=>({
-  id:mkId(), numero:i+1, pct_volumen:i===0?26:i===1?35:i===2?23:16,
+  id:mkId(), numero:i+1, pct_volumen:25,
   reps_calculadas:0, reps_ajustadas:0,
   pct_grupos:{Arranque:25,Envion:35,Tirones:20,Piernas:20},
   turnos: mkTurnos()
@@ -429,6 +429,8 @@ const css = `
   .form-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
   .form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:border .2s;width:100%;box-sizing:border-box;min-width:0;max-width:100%}
   .form-input:focus{border-color:var(--gold)}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
   .form-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;cursor:pointer;width:100%;box-sizing:border-box;min-width:0;max-width:100%}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
   .form-row .form-group{flex:none;min-width:0;margin-bottom:0;width:100%}
