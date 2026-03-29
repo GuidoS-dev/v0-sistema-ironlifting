@@ -7378,9 +7378,9 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
         </div>
         <div style={{display:"flex",gap:4,flexShrink:0,pointerEvents:"auto",position:"relative",zIndex:10}}>
           {onOpen && (
-            <button onClick={onOpen} title="Abrir"
-              onMouseEnter={() => setHoverBtn("open")}
-              onMouseLeave={() => setHoverBtn(null)}
+            <button onClick={(e) => { e.stopPropagation(); onOpen(); }} title="Abrir"
+              onMouseEnter={(e) => { e.stopPropagation(); setHoverBtn("open"); }}
+              onMouseLeave={(e) => { e.stopPropagation(); setHoverBtn(null); }}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:getBtnColor("open"),padding:"2px 5px",borderRadius:5,
                 fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}>
@@ -7388,9 +7388,9 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
             </button>
           )}
           {onDuplicate && (
-            <button onClick={onDuplicate} title="Duplicar como nueva plantilla"
-              onMouseEnter={() => setHoverBtn("duplicate")}
-              onMouseLeave={() => setHoverBtn(null)}
+            <button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} title="Duplicar como nueva plantilla"
+              onMouseEnter={(e) => { e.stopPropagation(); setHoverBtn("duplicate"); }}
+              onMouseLeave={(e) => { e.stopPropagation(); setHoverBtn(null); }}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:getBtnColor("duplicate"),padding:"2px 5px",borderRadius:5,
                 fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}>
@@ -7398,9 +7398,9 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
             </button>
           )}
           {onEdit && (
-            <button onClick={onEdit} title="Editar metadatos"
-              onMouseEnter={() => setHoverBtn("edit")}
-              onMouseLeave={() => setHoverBtn(null)}
+            <button onClick={(e) => { e.stopPropagation(); onEdit(); }} title="Editar metadatos"
+              onMouseEnter={(e) => { e.stopPropagation(); setHoverBtn("edit"); }}
+              onMouseLeave={(e) => { e.stopPropagation(); setHoverBtn(null); }}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:getBtnColor("edit"),padding:"2px 5px",borderRadius:5,
                 fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}>
@@ -7408,9 +7408,9 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
             </button>
           )}
           {onDelete && (
-            <button onClick={onDelete} title="Eliminar"
-              onMouseEnter={() => setHoverBtn("delete")}
-              onMouseLeave={() => setHoverBtn(null)}
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} title="Eliminar"
+              onMouseEnter={(e) => { e.stopPropagation(); setHoverBtn("delete"); }}
+              onMouseLeave={(e) => { e.stopPropagation(); setHoverBtn(null); }}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:getBtnColor("delete"),padding:"2px 5px",borderRadius:5,
                 fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}>
