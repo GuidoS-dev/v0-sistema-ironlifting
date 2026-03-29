@@ -1296,7 +1296,7 @@ function calcSeriesRepsKg(tablas, ej, ejData, irm_arr, irm_env, modo, reps_asign
 
     // Reps intermedias = pct_tabla × reps_asignadas / 100  (redondeado)
     const tablaVal  = tablaRow ? (tablaRow[String(intens)] || 0) : 0;
-    const repsInter = Math.round(tablaVal / 100 * (reps_asignadas || 0));
+    const repsInter = Math.round(tablaVal * (reps_asignadas || 0) / 100);
 
     if (repsInter === 0) return { intens, series: null, reps_serie: null, kg };
 
