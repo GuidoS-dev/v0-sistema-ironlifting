@@ -2468,58 +2468,101 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
               const turno = semanas[semActiva]?.turnos[turnoActivo];
               if (!turno) return null;
 
-              const allComps = [...(turno.complementarios_before || []), ...(turno.complementarios_after || [])];
+              const mkBloqueComp = () => ({ pct: null, series: null, reps: null, kg: null, nota: "" });
+              const normComp = (c) => ({ ...c, bloques: c.bloques || [mkBloqueComp()] });
+              const numCompBloques = turno.num_bloques_comp || 1;
+
+              const allComps = [
+                ...(turno.complementarios_before || []).map(c => ({...normComp(c), _isBefore: true})),
+                ...(turno.complementarios_after  || []).map(c => ({...normComp(c), _isBefore: false})),
+              ];
+
               const _setTurno = (newTurno) => onChangeTurno?.(semActiva, turnoActivo, newTurno);
-              const updateComp = (compId, updates) => {
-                const isBefore = turno.complementarios_before?.some(c => c.id === compId);
-                if (isBefore) {
-                  const idx = turno.complementarios_before.findIndex(c => c.id === compId);
-                  const updated = [...turno.complementarios_before];
-                  updated[idx] = {...updated[idx], ...updates};
-                  _setTurno({...turno, complementarios_before: updated});
-                } else {
-                  const idx = turno.complementarios_after.findIndex(c => c.id === compId);
-                  const updated = [...turno.complementarios_after];
-                  updated[idx] = {...updated[idx], ...updates};
-                  _setTurno({...turno, complementarios_after: updated});
-                }
+
+              const calcKgComp = (ejercicio_id, pct) => {
+                if (!ejercicio_id || !pct) return null;
+                const ejData = normativos.find(e => e.id === Number(ejercicio_id));
+                if (!ejData || !ejData.pct_base) return null;
+                const irmVal = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+                if (!irmVal) return null;
+                return Math.round(irmVal * ejData.pct_base / 100 * pct / 100 * 2) / 2;
               };
+
+              const _mapComp = (compId, fn) => {
+                const bef = turno.complementarios_before || [];
+                const aft = turno.complementarios_after  || [];
+                if (bef.some(c => c.id === compId))
+                  return _setTurno({...turno, complementarios_before: bef.map(c => c.id === compId ? fn(normComp(c)) : c)});
+                _setTurno({...turno, complementarios_after: aft.map(c => c.id === compId ? fn(normComp(c)) : c)});
+              };
+
+              const updateBloqueComp = (compId, bIdx, field, value) => {
+                _mapComp(compId, comp => {
+                  const bloques = [...comp.bloques];
+                  if (field === "pct") {
+                    const newPct = value === "" ? null : Number(value);
+                    bloques[bIdx] = {...bloques[bIdx], pct: newPct, kg: calcKgComp(comp.ejercicio_id, newPct)};
+                  } else if (field === "nota" || field === "series") {
+                    bloques[bIdx] = {...bloques[bIdx], [field]: value === "" ? null : value};
+                  } else {
+                    bloques[bIdx] = {...bloques[bIdx], [field]: value === "" ? null : Number(value)};
+                  }
+                  return {...comp, bloques};
+                });
+              };
+
               const deleteComp = (compId) => {
-                const isBefore = turno.complementarios_before?.some(c => c.id === compId);
-                if (isBefore) {
-                  const updated = turno.complementarios_before.filter(c => c.id !== compId);
-                  _setTurno({...turno, complementarios_before: updated});
-                } else {
-                  const updated = turno.complementarios_after.filter(c => c.id !== compId);
-                  _setTurno({...turno, complementarios_after: updated});
-                }
+                _setTurno({...turno,
+                  complementarios_before: (turno.complementarios_before || []).filter(c => c.id !== compId),
+                  complementarios_after:  (turno.complementarios_after  || []).filter(c => c.id !== compId),
+                });
               };
-              const addComp = () => {
-                const newComp = {id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0,aclaracion:""};
-                _setTurno({...turno, complementarios_after: [...(turno.complementarios_after || []), newComp]});
-              };
-              const moveComp = (compId) => {
-                const isBefore = turno.complementarios_before?.some(c => c.id === compId);
+
+              const toggleMomento = (compId) => {
+                const bef = turno.complementarios_before || [];
+                const aft = turno.complementarios_after  || [];
+                const isBefore = bef.some(c => c.id === compId);
                 if (isBefore) {
-                  const comp = turno.complementarios_before.find(c => c.id === compId);
-                  _setTurno({...turno,
-                    complementarios_before: turno.complementarios_before.filter(c => c.id !== compId),
-                    complementarios_after:  [...(turno.complementarios_after  || []), comp]
-                  });
+                  const comp = bef.find(c => c.id === compId);
+                  _setTurno({...turno, complementarios_before: bef.filter(c => c.id !== compId), complementarios_after: [...aft, comp]});
                 } else {
-                  const comp = (turno.complementarios_after || []).find(c => c.id === compId);
-                  _setTurno({...turno,
-                    complementarios_after:  (turno.complementarios_after || []).filter(c => c.id !== compId),
-                    complementarios_before: [...(turno.complementarios_before || []), comp]
-                  });
+                  const comp = aft.find(c => c.id === compId);
+                  _setTurno({...turno, complementarios_after: aft.filter(c => c.id !== compId), complementarios_before: [...bef, comp]});
                 }
               };
 
-              const thStyle = {padding:"5px 6px",background:"var(--surface2)",border:"1px solid var(--border)",
-                borderRadius:5,textAlign:"center",fontSize:10,color:"var(--muted)",fontWeight:700,textTransform:"uppercase"};
-              const tdStyle = (extra={}) => ({padding:"2px 3px",border:"1px solid var(--border)",borderRadius:5,textAlign:"center",...extra});
-              const inpStyle = (extra={}) => ({width:"100%",background:"transparent",border:"none",
-                color:"var(--text)",fontSize:12,textAlign:"center",outline:"none",fontFamily:"'DM Sans'",...extra});
+              const addComp = () => {
+                const newComp = {id: mkId(), ejercicio_id: null, bloques: Array.from({length: numCompBloques}, mkBloqueComp)};
+                _setTurno({...turno, complementarios_after: [...(turno.complementarios_after || []), newComp]});
+              };
+
+              const addBloqueCompCol = () => {
+                const upd = (list) => (list || []).map(c => ({...normComp(c), bloques: [...(normComp(c).bloques), mkBloqueComp()]}));
+                _setTurno({...turno, num_bloques_comp: numCompBloques + 1,
+                  complementarios_before: upd(turno.complementarios_before),
+                  complementarios_after:  upd(turno.complementarios_after)});
+              };
+
+              const removeBloqueCompCol = (bIdx) => {
+                if (numCompBloques <= 1) return;
+                const upd = (list) => (list || []).map(c => {
+                  const bl = [...normComp(c).bloques]; bl.splice(bIdx, 1); return {...normComp(c), bloques: bl};
+                });
+                _setTurno({...turno, num_bloques_comp: numCompBloques - 1,
+                  complementarios_before: upd(turno.complementarios_before),
+                  complementarios_after:  upd(turno.complementarios_after)});
+              };
+
+              const cellInputComp = (extra = {}) => ({
+                width:"100%", background:"transparent", border:"none",
+                fontFamily:"'Bebas Neue'", fontSize:14, textAlign:"center",
+                lineHeight:1.2, outline:"none", padding:"3px 2px",
+                color:"var(--text)", MozAppearance:"textfield", appearance:"textfield",
+                ...extra
+              });
+
+              const thBase = {padding:"5px 6px",background:"var(--surface2)",border:"1px solid var(--border)",
+                borderRadius:5,fontSize:10,color:"var(--muted)",fontWeight:700,textTransform:"uppercase",textAlign:"center"};
 
               return (
                 <div style={{marginTop:20, borderTop:"1px solid var(--border)", paddingTop:16}}>
@@ -2530,76 +2573,122 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                     <table className="planilla-tabla" style={{borderCollapse:"separate",borderSpacing:"2px 2px",width:"100%"}}>
                       <thead>
                         <tr>
-                          <th style={{...thStyle,width:70}}>MOMENTO</th>
-                          <th style={{...thStyle,textAlign:"left",minWidth:180}}>EJERCICIO</th>
-                          <th style={{...thStyle,width:44}}>%</th>
-                          <th style={{...thStyle,width:34}}>TBL</th>
-                          <th style={{...thStyle,width:34}}>R</th>
-                          <th style={{...thStyle,width:44}}>Kg</th>
-                          <th style={{...thStyle,width:24,border:"none",background:"transparent"}}/>
+                          <th style={{...thBase,width:62}}>MOMENTO</th>
+                          <th style={{...thBase,minWidth:120,textAlign:"left"}}>EJERCICIO</th>
+                          {Array.from({length: numCompBloques}).map((_, bIdx) => (
+                            <th key={bIdx} style={{padding:"3px 4px",
+                              background:"rgba(232,197,71,.08)",border:"1px solid rgba(232,197,71,.3)",
+                              borderRadius:5,textAlign:"center",fontSize:9,color:"var(--gold)",fontWeight:700}}>
+                              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2}}>
+                                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:0,flex:1}}>
+                                  {["%","S","R","Kg"].map(l=>(
+                                    <div key={l} style={{fontSize:8,color:"var(--muted)",textAlign:"center",fontWeight:700}}>{l}</div>
+                                  ))}
+                                </div>
+                                {numCompBloques > 1 && (
+                                  <button onClick={() => removeBloqueCompCol(bIdx)}
+                                    style={{width:14,height:14,borderRadius:"50%",border:"none",
+                                      background:"transparent",color:"var(--muted)",cursor:"pointer",
+                                      fontSize:11,lineHeight:1,padding:0,flexShrink:0}}
+                                    title="Eliminar columna">×</button>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                          <th style={{padding:"3px 4px",background:"var(--surface2)",border:"1px dashed var(--border)",
+                            borderRadius:5,width:30}}>
+                            <button onClick={addBloqueCompCol} title="Agregar columna de %"
+                              style={{width:"100%",background:"transparent",border:"none",
+                                color:"var(--gold)",cursor:"pointer",fontSize:13,fontWeight:700,padding:0}}>+ %</button>
+                          </th>
+                          <th style={{width:26}}/>
                         </tr>
                       </thead>
                       <tbody>
                         {allComps.length === 0 ? (
                           <tr>
-                            <td colSpan="7" style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12,border:"none"}}>
+                            <td colSpan={numCompBloques + 4} style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12,border:"none"}}>
                               Sin complementarios. Haz click en "+ Agregar ejercicio" para añadir uno.
                             </td>
                           </tr>
-                        ) : (
-                          allComps.map((comp) => {
-                            const isBefore = turno.complementarios_before?.some(c => c.id === comp.id);
-                            const ejData = normativos.find(e => e.id === Number(comp.ejercicio_id));
-                            const iRMAtleta = ejData ? (ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env)) : 0;
-                            const kgBase = ejData && ejData.pct_base && iRMAtleta ? iRMAtleta * ejData.pct_base / 100 : 0;
-                            const kgIntens = kgBase ? Math.round(kgBase * comp.intensidad / 100) : 0;
-
-                            return (
-                              <tr key={comp.id}>
-                                <td style={tdStyle()}>
-                                  <button onClick={()=>moveComp(comp.id)} title="Cambiar momento" style={{
+                        ) : allComps.map((comp, cIdx) => {
+                          const isBefore = comp._isBefore;
+                          const ejData = comp.ejercicio_id ? normativos.find(e => e.id === Number(comp.ejercicio_id)) : null;
+                          const col = ejData ? CAT_COLOR[ejData.categoria] : "var(--border)";
+                          const bloques = comp.bloques;
+                          return (
+                            <tr key={comp.id} style={{background: cIdx%2===0 ? "var(--surface2)" : "transparent"}}>
+                              {/* MOMENTO */}
+                              <td style={{padding:"3px 4px",textAlign:"center",border:"1px solid var(--border)",borderRadius:5}}>
+                                <button onClick={() => toggleMomento(comp.id)} title="Cambiar momento"
+                                  style={{
                                     background: isBefore ? "rgba(232,197,71,.12)" : "rgba(80,180,255,.12)",
-                                    border: `1px solid ${isBefore ? "rgba(232,197,71,.35)" : "rgba(80,180,255,.35)"}`,
+                                    border:`1px solid ${isBefore ? "rgba(232,197,71,.35)" : "rgba(80,180,255,.35)"}`,
                                     color: isBefore ? "var(--gold)" : "#50b4ff",
-                                    borderRadius:4, fontSize:9, padding:"3px 6px",
+                                    borderRadius:4, fontSize:9, padding:"3px 5px",
                                     cursor:"pointer", fontWeight:700, fontFamily:"'DM Sans'", width:"100%"
                                   }}>
-                                    {isBefore ? "ANTES" : "DESPUÉS"}
-                                  </button>
-                                </td>
-                                <td style={tdStyle({textAlign:"left",padding:"2px 6px"})}>
-                                  <EjBuscador value={comp.ejercicio_id} onChange={id=>updateComp(comp.id,{ejercicio_id:id})}/>
-                                </td>
-                                <td style={tdStyle({background:"rgba(232,197,71,.04)",border:"1px solid rgba(232,197,71,.15)"})}>
-                                  <input type="number" className="no-spin" min="40" max="110"
-                                    value={comp.intensidad}
-                                    onChange={e=>updateComp(comp.id,{intensidad:Number(e.target.value)})}
-                                    style={inpStyle({color:"var(--gold)",fontSize:13})}/>
-                                </td>
-                                <td style={tdStyle()}>
-                                  <select value={comp.tabla} onChange={e=>updateComp(comp.id,{tabla:Number(e.target.value)})}
-                                    style={inpStyle({cursor:"pointer"})}>
-                                    <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option>
-                                  </select>
-                                </td>
-                                <td style={tdStyle()}>
-                                  <input type="number" className="no-spin" min="0"
-                                    value={comp.reps_asignadas}
-                                    onChange={e=>updateComp(comp.id,{reps_asignadas:Number(e.target.value)})}
-                                    style={inpStyle()}/>
-                                </td>
-                                <td style={tdStyle({color:"var(--muted)",fontSize:12})}>
-                                  {kgIntens || "—"}
-                                </td>
-                                <td style={{border:"none",padding:"0 2px",textAlign:"center"}}>
-                                  <button onClick={()=>deleteComp(comp.id)}
-                                    style={{background:"none",border:"none",cursor:"pointer",
-                                      color:"var(--red)",fontSize:13,padding:"2px",opacity:.7}}>×</button>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
+                                  {isBefore ? "ANTES" : "DESPUÉS"}
+                                </button>
+                              </td>
+                              {/* EJERCICIO */}
+                              <td style={{padding:"3px 6px",border:`1px solid ${col}40`,borderRadius:5,background:`${col}0a`,minWidth:120}}>
+                                <EjBuscador value={comp.ejercicio_id} onChange={id => {
+                                  _mapComp(comp.id, c => ({...c, ejercicio_id: id ? Number(id) : null,
+                                    bloques: c.bloques.map(b => ({...b, kg: calcKgComp(id ? Number(id) : null, b.pct)}))
+                                  }));
+                                }}/>
+                              </td>
+                              {/* Bloques */}
+                              {bloques.slice(0, numCompBloques).map((b, bIdx) => {
+                                const hasNota = b.nota && b.nota.trim() !== "";
+                                const hasData = b.pct || b.series || b.reps;
+                                return (
+                                  <td key={bIdx} style={{padding:"2px 3px",textAlign:"center",
+                                    background:"rgba(232,197,71,.04)",
+                                    border:`1px solid ${hasNota ? "var(--muted)" : "rgba(232,197,71,.15)"}`,
+                                    borderRadius:5,position:"relative"}}>
+                                    <div style={{display:"grid",gridTemplateColumns:"36px 30px 30px 40px",gap:0}}>
+                                      <input type="number" className="no-spin"
+                                        value={b.pct ?? ""} placeholder="%"
+                                        onChange={e => updateBloqueComp(comp.id, bIdx, "pct", e.target.value)}
+                                        style={cellInputComp({fontSize:13,color:"var(--gold)",width:34})}/>
+                                      <input type="text" className="no-spin"
+                                        value={b.series ?? ""} placeholder="—"
+                                        onChange={e => updateBloqueComp(comp.id, bIdx, "series", e.target.value)}
+                                        style={cellInputComp({width:28})}/>
+                                      <input type="number" className="no-spin"
+                                        value={b.reps ?? ""} placeholder="—"
+                                        onChange={e => updateBloqueComp(comp.id, bIdx, "reps", e.target.value)}
+                                        style={cellInputComp({width:28})}/>
+                                      <input type="number" step="0.5" className="no-spin"
+                                        value={calcKgComp(comp.ejercicio_id, b.pct) ?? b.kg ?? ""} readOnly
+                                        style={cellInputComp({width:38,color:"var(--muted)",fontSize:12})}/>
+                                    </div>
+                                    <input type="text"
+                                      value={b.nota || ""} placeholder="…"
+                                      onChange={e => updateBloqueComp(comp.id, bIdx, "nota", e.target.value)}
+                                      title="Aclaración"
+                                      style={{
+                                        display:(hasData || hasNota) ? "block" : "none",
+                                        width:"100%", background:"transparent", border:"none",
+                                        borderTop: hasNota ? "1px solid var(--border)" : "none",
+                                        color:"var(--muted)", fontSize:9, textAlign:"center",
+                                        outline:"none", padding:"2px 0 0",
+                                        fontFamily:"'DM Sans'", marginTop:2
+                                      }}/>
+                                  </td>
+                                );
+                              })}
+                              <td style={{border:"none"}}/>
+                              <td style={{padding:0,textAlign:"center",border:"none"}}>
+                                <button onClick={() => deleteComp(comp.id)} title="Eliminar"
+                                  style={{background:"none",border:"none",color:"var(--red)",
+                                    cursor:"pointer",fontSize:12,padding:"2px",opacity:.6}}>×</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
