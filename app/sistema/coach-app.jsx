@@ -863,7 +863,12 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
             id:mkId(), ejercicio_id:e.ejercicio_id,
             intensidad:e.intensidad, tabla:e.tabla,
             reps_asignadas: opts.reps ? (e.reps_asignadas||0) : 0
-          }))
+          })),
+          ...(opts.complementarios ? {
+            complementarios_before: (t.complementarios_before||[]).map(c=>({...c, id:mkId()})),
+            complementarios_after:  (t.complementarios_after ||[]).map(c=>({...c, id:mkId()})),
+            num_bloques_comp: t.num_bloques_comp || 1,
+          } : {})
         }))
       }));
       setForm(f=>({
@@ -8803,7 +8808,7 @@ function PlantillaPicker({ plantillas, tipo="meso", onSelect, onClose }) {
 
   const [selected, setSelected] = useState(null);
   const [opts, setOpts] = useState({
-    irm:true, volumen:true, reps:true, celdas:true, grupos:true
+    irm:true, volumen:true, reps:true, celdas:true, grupos:true, complementarios:true
   });
   const toggleOpt = (k) => setOpts(o=>({...o,[k]:!o[k]}));
 
@@ -8811,6 +8816,7 @@ function PlantillaPicker({ plantillas, tipo="meso", onSelect, onClose }) {
   const hasReps    = selected?.semanas?.some(s=>s.turnos.some(t=>t.ejercicios.some(e=>e.reps_asignadas>0)));
   const hasCeldas  = selected?.overrides && Object.keys(selected.overrides.cellEdit||{}).length > 0;
   const hasGrupos  = selected?.overrides && Object.keys(selected.overrides.semPcts||{}).length > 0;
+  const hasComps   = selected?.semanas?.some(s=>s.turnos.some(t=>(t.complementarios_before?.length||0)+(t.complementarios_after?.length||0)>0));
 
   if (selected) {
     return (
@@ -8826,8 +8832,9 @@ function PlantillaPicker({ plantillas, tipo="meso", onSelect, onClose }) {
             {k:"volumen",    label:"Volumen total y % semanal", desc:`${selected.volumen_total||"?"} reps`, show:!!selected.volumen_total},
             {k:"irm",        label:"IRM del atleta", desc:`Arr: ${selected.irm_arranque||"—"} / Env: ${selected.irm_envion||"—"}`, show:!!hasIrm},
             {k:"reps",       label:"Reps asignadas", desc:"Reps concretas de cada ejercicio", show:!!hasReps},
-            {k:"celdas",     label:"Overrides de celdas", desc:"Series/Reps/Kg editados manualmente", show:!!hasCeldas},
-            {k:"grupos",     label:"Distribución de grupos", desc:"% por semana y turno", show:!!hasGrupos},
+            {k:"celdas",          label:"Overrides de celdas",        desc:"Series/Reps/Kg editados manualmente", show:!!hasCeldas},
+            {k:"grupos",          label:"Distribución de grupos",      desc:"% por semana y turno",               show:!!hasGrupos},
+            {k:"complementarios", label:"Ejercicios complementarios",  desc:"Ejercicios antes/después de cada turno", show:!!hasComps},
           ].map(({k,label,desc,always,show=true})=>(
             show || always ? (
               <label key={k} style={{display:"flex",alignItems:"flex-start",gap:10,cursor:always?"default":"pointer",
