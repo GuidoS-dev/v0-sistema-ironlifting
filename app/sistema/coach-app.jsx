@@ -2648,22 +2648,22 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                                     background:"rgba(232,197,71,.04)",
                                     border:`1px solid ${hasNota ? "var(--muted)" : "rgba(232,197,71,.15)"}`,
                                     borderRadius:5,position:"relative"}}>
-                                    <div style={{display:"grid",gridTemplateColumns:"36px 30px 30px 40px",gap:0}}>
+                                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:0}}>
                                       <input type="number" className="no-spin"
                                         value={b.pct ?? ""} placeholder="%"
                                         onChange={e => updateBloqueComp(comp.id, bIdx, "pct", e.target.value)}
-                                        style={cellInputComp({fontSize:13,color:"var(--gold)",width:34})}/>
+                                        style={cellInputComp({fontSize:13,color:"var(--gold)"})}/>
                                       <input type="text" className="no-spin"
                                         value={b.series ?? ""} placeholder="—"
                                         onChange={e => updateBloqueComp(comp.id, bIdx, "series", e.target.value)}
-                                        style={cellInputComp({width:28})}/>
+                                        style={cellInputComp()}/>
                                       <input type="number" className="no-spin"
                                         value={b.reps ?? ""} placeholder="—"
                                         onChange={e => updateBloqueComp(comp.id, bIdx, "reps", e.target.value)}
-                                        style={cellInputComp({width:28})}/>
+                                        style={cellInputComp()}/>
                                       <input type="number" step="0.5" className="no-spin"
                                         value={calcKgComp(comp.ejercicio_id, b.pct) ?? b.kg ?? ""} readOnly
-                                        style={cellInputComp({width:38,color:"var(--muted)",fontSize:12})}/>
+                                        style={cellInputComp({color:"var(--muted)",fontSize:12})}/>
                                     </div>
                                     <input type="text"
                                       value={b.nota || ""} placeholder="…"
@@ -3085,12 +3085,12 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                             background:"rgba(232,197,71,.04)",
                             border:`1px solid ${hasNota ? "var(--muted)" : "rgba(232,197,71,.15)"}`,
                             borderRadius:5, position:"relative"}}>
-                            <div style={{display:"grid",gridTemplateColumns:"36px 30px 30px 40px",gap:0}}>
+                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:0}}>
                               <input type="number" className="no-spin"
                                 value={b.pct ?? ""}
                                 placeholder="%"
                                 onChange={e => updateBloque(eIdx, bIdx, "pct", e.target.value)}
-                                style={cellInput({fontSize:13,color:"var(--gold)",width:34})}
+                                style={cellInput({fontSize:13,color:"var(--gold)"})}
                               />
                               <input type="text" className="no-spin"
                                 value={b.series ?? ""}
@@ -3104,18 +3104,18 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                                     return ss;
                                   });
                                 }}
-                                style={cellInput({width:28})}
+                                style={cellInput()}
                               />
                               <input type="number" className="no-spin"
                                 value={b.reps ?? ""}
                                 placeholder="—"
                                 onChange={e => updateBloque(eIdx, bIdx, "reps", e.target.value)}
-                                style={cellInput({width:28})}
+                                style={cellInput()}
                               />
                               <input type="number" step="0.5" className="no-spin"
                                 value={calcKgBasica(ej.ejercicio_id, b.pct) ?? b.kg ?? ""}
                                 readOnly
-                                style={cellInput({width:38,color:"var(--muted)",fontSize:12})}
+                                style={cellInput({color:"var(--muted)",fontSize:12})}
                               />
                             </div>
                             <input
