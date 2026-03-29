@@ -1040,7 +1040,6 @@ function EjBuscador({ value, onChange }) {
               display:"flex", alignItems:"center", gap:10}}>
               <input ref={inputRef}
                 value={query} onChange={e=>setQuery(e.target.value)}
-                onKeyDown={e=>{ if(e.key==="Enter" && results.length>0) select(results[0]); }}
                 placeholder="Número o nombre del ejercicio..."
                 style={{flex:1, background:"var(--surface2)",
                   border:"1px solid var(--border)", borderRadius:8,
@@ -3639,6 +3638,25 @@ function EjBuscadorCompacto({ value, onChange, color, title }) {
   })();
 
   const select = (ej) => { onChange(ej ? ej.id : null); setQuery(""); setOpen(false); };
+
+  // Refs para acceso fresco en event listeners
+  const resultsRef = useRef(results);
+  resultsRef.current = results;
+  const selectRef = useRef(select);
+  selectRef.current = select;
+
+  // Enter key para seleccionar primer resultado
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (e.key === "Enter" && resultsRef.current.length > 0) {
+        e.preventDefault();
+        selectRef.current(resultsRef.current[0]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open]);
 
   // Block body scroll when open
   useEffect(() => {
