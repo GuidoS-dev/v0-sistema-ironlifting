@@ -7367,14 +7367,12 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
             </div>
           )}
         </div>
-        <div style={{display:"flex",gap:4,flexShrink:0,pointerEvents:"auto",position:"relative",zIndex:10}}>
+        <div style={{display:"flex",gap:4,flexShrink:0}}>
           {onOpen && (
             <button onClick={onOpen} title="Abrir"
               style={{background:"none",border:"none",cursor:"pointer",
                 color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.color="var(--blue)"}
-              onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
+                fontSize:12,lineHeight:1}}>
               <FileText size={13}/>
             </button>
           )}
@@ -7382,7 +7380,7 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
             <button onClick={onDuplicate} title="Duplicar como nueva plantilla"
               style={{background:"none",border:"none",cursor:"pointer",
                 color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}
+                fontSize:12,lineHeight:1}}
               onMouseEnter={e=>e.currentTarget.style.color="var(--gold)"}
               onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
               <Files size={13}/>
@@ -7392,9 +7390,7 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
             <button onClick={onEdit} title="Editar metadatos"
               style={{background:"none",border:"none",cursor:"pointer",
                 color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.color="var(--gold)"}
-              onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
+                fontSize:12,lineHeight:1}}>
               <Pencil size={13}/>
             </button>
           )}
@@ -7402,7 +7398,7 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
             <button onClick={onDelete} title="Eliminar"
               style={{background:"none",border:"none",cursor:"pointer",
                 color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}
+                fontSize:12,lineHeight:1}}
               onMouseEnter={e=>e.currentTarget.style.color="var(--red)"}
               onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
               <Trash2 size={13}/>
