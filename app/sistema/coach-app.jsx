@@ -7334,6 +7334,8 @@ function GuardarPlantillaModal({ tipo, dataMeso, dataSemana, dataDistribucion, o
 
 // ── Card de plantilla ─────────────────────────────────────────────────────────
 function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, compact=false }) {
+  const [hoverBtn, setHoverBtn] = useState(null);
+  
   const normativos = (() => {
     try { return JSON.parse(localStorage.getItem('liftplan_normativos')||'null')||EJERCICIOS; }
     catch { return EJERCICIOS; }
@@ -7342,6 +7344,13 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
   const ejCount = plt.tipo==="meso"
     ? (plt.semanas||[]).reduce((a,s)=>a+s.turnos.reduce((b,t)=>b+t.ejercicios.filter(e=>e.ejercicio_id).length,0),0)
     : plt.tipo==="semana" ? (plt.semana?.turnos||[]).reduce((a,t)=>a+t.ejercicios.filter(e=>e.ejercicio_id).length,0) : null;
+
+  const getBtnColor = (btn) => {
+    if(hoverBtn !== btn) return "var(--muted)";
+    if(btn === "open") return "var(--blue)";
+    if(btn === "delete") return "var(--red)";
+    return "var(--gold)";
+  };
 
   return (
     <div style={{
@@ -7370,41 +7379,41 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
         <div style={{display:"flex",gap:4,flexShrink:0,pointerEvents:"auto",position:"relative",zIndex:10}}>
           {onOpen && (
             <button onClick={onOpen} title="Abrir"
+              onMouseEnter={() => setHoverBtn("open")}
+              onMouseLeave={() => setHoverBtn(null)}
               style={{background:"none",border:"none",cursor:"pointer",
-                color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.color="var(--blue)"}
-              onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
+                color:getBtnColor("open"),padding:"2px 5px",borderRadius:5,
+                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}>
               <FileText size={13}/>
             </button>
           )}
           {onDuplicate && (
             <button onClick={onDuplicate} title="Duplicar como nueva plantilla"
+              onMouseEnter={() => setHoverBtn("duplicate")}
+              onMouseLeave={() => setHoverBtn(null)}
               style={{background:"none",border:"none",cursor:"pointer",
-                color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.color="var(--gold)"}
-              onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
+                color:getBtnColor("duplicate"),padding:"2px 5px",borderRadius:5,
+                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}>
               <Files size={13}/>
             </button>
           )}
           {onEdit && (
             <button onClick={onEdit} title="Editar metadatos"
+              onMouseEnter={() => setHoverBtn("edit")}
+              onMouseLeave={() => setHoverBtn(null)}
               style={{background:"none",border:"none",cursor:"pointer",
-                color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.color="var(--gold)"}
-              onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
+                color:getBtnColor("edit"),padding:"2px 5px",borderRadius:5,
+                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}>
               <Pencil size={13}/>
             </button>
           )}
           {onDelete && (
             <button onClick={onDelete} title="Eliminar"
+              onMouseEnter={() => setHoverBtn("delete")}
+              onMouseLeave={() => setHoverBtn(null)}
               style={{background:"none",border:"none",cursor:"pointer",
-                color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.color="var(--red)"}
-              onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
+                color:getBtnColor("delete"),padding:"2px 5px",borderRadius:5,
+                fontSize:12,lineHeight:1,pointerEvents:"auto",transition:"color .2s"}}>
               <Trash2 size={13}/>
             </button>
           )}
