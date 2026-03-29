@@ -2658,6 +2658,7 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                       <thead>
                         <tr>
                           <th style={{...thBase,width:62}}>MOMENTO</th>
+                          <th style={{...thBase,width:40}}>ID</th>
                           <th style={{...thBase,minWidth:120,textAlign:"left"}}>EJERCICIO</th>
                           {Array.from({length: numCompBloques}).map((_, bIdx) => (
                             <th key={bIdx} style={{padding:"3px 4px",
@@ -2691,7 +2692,7 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                       <tbody>
                         {allComps.length === 0 ? (
                           <tr>
-                            <td colSpan={numCompBloques + 4} style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12,border:"none"}}>
+                            <td colSpan={numCompBloques + 5} style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12,border:"none"}}>
                               Sin complementarios. Haz click en "+ Agregar ejercicio" para añadir uno.
                             </td>
                           </tr>
@@ -2715,21 +2716,25 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                                   {isBefore ? "ANTES" : "DESPUÉS"}
                                 </button>
                               </td>
+                              {/* ID — click abre picker */}
+                              <td onClick={() => setCompPickerOpen(comp.id)}
+                                style={{padding:"3px 4px",textAlign:"center",
+                                  border:`1px solid ${col}40`,borderRadius:5,background:`${col}0a`,
+                                  cursor:"pointer",width:40}}>
+                                <span style={{fontFamily:"'Bebas Neue'",fontSize:16,color:col,lineHeight:1}}>
+                                  {comp.ejercicio_id || "—"}
+                                </span>
+                              </td>
                               {/* EJERCICIO */}
-                              <td style={{padding:"3px 6px",border:`1px solid ${col}40`,borderRadius:5,background:`${col}0a`,minWidth:120}}>
-                                <div style={{display:"flex",alignItems:"center",gap:3}}>
-                                  <input
-                                    type="text"
-                                    value={comp.nombre_custom || (ejData ? ejData.nombre : "")}
-                                    placeholder="Nombre del ejercicio"
-                                    onChange={e => _mapComp(comp.id, c => ({...c, nombre_custom: e.target.value}))}
-                                    style={{flex:1,background:"transparent",border:"none",color:"var(--text)",
-                                      fontSize:11,outline:"none",padding:"2px 0",fontFamily:"'DM Sans'"}}
-                                  />
-                                  <button onClick={() => setCompPickerOpen(comp.id)} title="Buscar ejercicio"
-                                    style={{background:"none",border:"none",cursor:"pointer",
-                                      color:"var(--muted)",fontSize:10,padding:"0 2px",flexShrink:0,opacity:.6}}>↗</button>
-                                </div>
+                              <td style={{padding:"3px 6px",border:"1px solid var(--border)",borderRadius:5,minWidth:120}}>
+                                <input
+                                  type="text"
+                                  value={comp.nombre_custom || (ejData ? ejData.nombre : "")}
+                                  placeholder="Nombre del ejercicio"
+                                  onChange={e => _mapComp(comp.id, c => ({...c, nombre_custom: e.target.value}))}
+                                  style={{width:"100%",background:"transparent",border:"none",color:"var(--text)",
+                                    fontSize:11,outline:"none",padding:"2px 0",fontFamily:"'DM Sans'"}}
+                                />
                               </td>
                               {/* Bloques */}
                               {bloques.slice(0, numCompBloques).map((b, bIdx) => {
