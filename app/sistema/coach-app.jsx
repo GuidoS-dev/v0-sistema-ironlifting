@@ -831,10 +831,12 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
     nombre: "", descripcion: "",
     volumen_total: 1200, modo: "Preparatorio",
     irm_arranque: "", irm_envion: "",
+    escuela: false, escuela_nivel: "1", num_bloques_basica: 3,
     semanas: mkSemanas()
   });
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
-  const totalPct = form.semanas.reduce((s,sem)=>s+Number(sem.pct_volumen),0);
+  const esEscuela = form.escuela === true || form.escuela === "true";
+  const totalPct = esEscuela ? 100 : form.semanas.reduce((s,sem)=>s+Number(sem.pct_volumen),0);
   const [showPicker, setShowPicker] = useState(false);
   const [pendingOverrides, setPendingOverrides] = useState(null);
   const [pendingGrupos, setPendingGrupos] = useState(null);
@@ -851,37 +853,64 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
 
   const confirmApply = (plt, opts) => {
     if (plt.tipo==="meso" && plt.semanas) {
-      const newSemanas = plt.semanas.map((s,i)=>({
-        ...mkSemanas()[Math.min(i, mkSemanas().length-1)],
-        id: mkId(),
-        numero: s.numero,
-        pct_volumen: opts.volumen ? s.pct_volumen : mkSemanas()[Math.min(i, mkSemanas().length-1)].pct_volumen,
-        reps_ajustadas: opts.reps ? s.reps_ajustadas : undefined,
-        turnos: s.turnos.map(t=>({
-          id: mkId(), dia:t.dia, momento:t.momento,
-          ejercicios: t.ejercicios.map(e=>({
-            id:mkId(), ejercicio_id:e.ejercicio_id,
-            intensidad:e.intensidad, tabla:e.tabla,
-            reps_asignadas: opts.reps ? (e.reps_asignadas||0) : 0
-          })),
-          ...(opts.complementarios ? {
-            complementarios_before: (t.complementarios_before||[]).map(c=>({...c, id:mkId()})),
-            complementarios_after:  (t.complementarios_after ||[]).map(c=>({...c, id:mkId()})),
-            num_bloques_comp: t.num_bloques_comp || 1,
-          } : {})
-        }))
-      }));
-      setForm(f=>({
-        ...f,
-        nombre: f.nombre || plt.nombre,
-        modo: plt.modo || f.modo,
-        ...(opts.volumen ? {volumen_total: plt.volumen_total} : {}),
-        ...(opts.irm ? {irm_arranque: plt.irm_arranque||"", irm_envion: plt.irm_envion||""} : {}),
-        semanas: newSemanas
-      }));
-      // Guardar overrides en un ref para aplicar al mesociclo nuevo tras creación
-      if (opts.celdas && plt.overrides) setPendingOverrides({opts, overrides: plt.overrides});
-      if (opts.grupos && plt.overrides) setPendingGrupos({opts, overrides: plt.overrides});
+      const esEscuela = plt.escuela === true || plt.escuela === "true";
+      if (esEscuela) {
+        // Plantilla escuela: preservar estructura de bloques tal cual
+        const newSemanas = plt.semanas.map(s => ({
+          id: mkId(),
+          numero: s.numero,
+          turnos: (s.turnos || []).map(t => ({
+            id: mkId(), dia: t.dia, momento: t.momento,
+            ejercicios: (t.ejercicios || []).map(e => ({
+              id: mkId(),
+              ejercicio_id: e.ejercicio_id,
+              nombre_custom: e.nombre_custom || "",
+              bloques: (e.bloques || []).map(b => ({...b}))
+            }))
+          }))
+        }));
+        setForm(f => ({
+          ...f,
+          nombre: f.nombre || plt.nombre,
+          escuela: true,
+          escuela_nivel: plt.escuela_nivel || "1",
+          num_bloques_basica: plt.num_bloques_basica || 3,
+          ...(opts.irm ? {irm_arranque: plt.irm_arranque || "", irm_envion: plt.irm_envion || ""} : {}),
+          semanas: newSemanas
+        }));
+      } else {
+        const newSemanas = plt.semanas.map((s,i)=>({
+          ...mkSemanas()[Math.min(i, mkSemanas().length-1)],
+          id: mkId(),
+          numero: s.numero,
+          pct_volumen: opts.volumen ? s.pct_volumen : mkSemanas()[Math.min(i, mkSemanas().length-1)].pct_volumen,
+          reps_ajustadas: opts.reps ? s.reps_ajustadas : undefined,
+          turnos: s.turnos.map(t=>({
+            id: mkId(), dia:t.dia, momento:t.momento,
+            ejercicios: t.ejercicios.map(e=>({
+              id:mkId(), ejercicio_id:e.ejercicio_id,
+              intensidad:e.intensidad, tabla:e.tabla,
+              reps_asignadas: opts.reps ? (e.reps_asignadas||0) : 0
+            })),
+            ...(opts.complementarios ? {
+              complementarios_before: (t.complementarios_before||[]).map(c=>({...c, id:mkId()})),
+              complementarios_after:  (t.complementarios_after ||[]).map(c=>({...c, id:mkId()})),
+              num_bloques_comp: t.num_bloques_comp || 1,
+            } : {})
+          }))
+        }));
+        setForm(f=>({
+          ...f,
+          nombre: f.nombre || plt.nombre,
+          modo: plt.modo || f.modo,
+          ...(opts.volumen ? {volumen_total: plt.volumen_total} : {}),
+          ...(opts.irm ? {irm_arranque: plt.irm_arranque||"", irm_envion: plt.irm_envion||""} : {}),
+          semanas: newSemanas
+        }));
+        // Guardar overrides en un ref para aplicar al mesociclo nuevo tras creación
+        if (opts.celdas && plt.overrides) setPendingOverrides({opts, overrides: plt.overrides});
+        if (opts.grupos && plt.overrides) setPendingGrupos({opts, overrides: plt.overrides});
+      }
     }
     setPendingPlantilla(null);
   };
@@ -941,33 +970,42 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
         </div>
       </div>
       <datalist id="irm-values">{IRM_VALUES.map(v=><option key={v} value={v}/>)}</datalist>
-      <div className="form-group"><label className="form-label">Volumen total de repeticiones</label>
-        <input className="form-input" type="number" value={form.volumen_total} onChange={e=>set("volumen_total",Number(e.target.value))}/></div>
-      <div className="divider"/>
-      <div className="form-label mb8">Distribución semanal</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
-        {form.semanas.map((sem,i)=>(
-          <div key={sem.id} style={{background:"var(--surface2)",borderRadius:8,padding:12,border:"1px solid var(--border)"}}>
-            <div className="text-sm text-muted mb8">Semana {sem.numero}</div>
-            <div className="flex gap8" style={{alignItems:"center"}}>
-              <input className="form-input" type="number" min={0} max={100} value={sem.pct_volumen}
-                onChange={e=>{const s=[...form.semanas];s[i]={...s[i],pct_volumen:Number(e.target.value)};set("semanas",s)}}
-                style={{width:70}}/>
-              <span className="text-muted">%</span>
-              <span className="text-gold" style={{fontFamily:"'Bebas Neue'",fontSize:18}}>
-                {calcVolumenSemana(form.volumen_total,sem.pct_volumen)}
-              </span>
-              <span className="text-sm text-muted">reps</span>
-            </div>
+      {esEscuela ? (
+        <div style={{padding:"10px 14px",background:"rgba(77,182,172,.08)",border:"1px solid rgba(77,182,172,.3)",
+          borderRadius:8,fontSize:12,color:"#4db6ac"}}>
+          Planilla Escuela Inicial · Nivel {form.escuela_nivel} · {form.semanas?.length} semanas
+        </div>
+      ) : (
+        <>
+          <div className="form-group"><label className="form-label">Volumen total de repeticiones</label>
+            <input className="form-input" type="number" value={form.volumen_total} onChange={e=>set("volumen_total",Number(e.target.value))}/></div>
+          <div className="divider"/>
+          <div className="form-label mb8">Distribución semanal</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+            {form.semanas.map((sem,i)=>(
+              <div key={sem.id} style={{background:"var(--surface2)",borderRadius:8,padding:12,border:"1px solid var(--border)"}}>
+                <div className="text-sm text-muted mb8">Semana {sem.numero}</div>
+                <div className="flex gap8" style={{alignItems:"center"}}>
+                  <input className="form-input" type="number" min={0} max={100} value={sem.pct_volumen}
+                    onChange={e=>{const s=[...form.semanas];s[i]={...s[i],pct_volumen:Number(e.target.value)};set("semanas",s)}}
+                    style={{width:70}}/>
+                  <span className="text-muted">%</span>
+                  <span className="text-gold" style={{fontFamily:"'Bebas Neue'",fontSize:18}}>
+                    {calcVolumenSemana(form.volumen_total,sem.pct_volumen)}
+                  </span>
+                  <span className="text-sm text-muted">reps</span>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="mt12 text-sm" style={{color: totalPct===100?"var(--green)":"var(--red)"}}>
-        Total: {totalPct}% {totalPct!==100&&"(debe sumar 100%)"}
-      </div>
+          <div className="mt12 text-sm" style={{color: totalPct===100?"var(--green)":"var(--red)"}}>
+            Total: {totalPct}% {totalPct!==100&&"(debe sumar 100%)"}
+          </div>
+        </>
+      )}
       <div className="modal-footer">
         <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-        <button className="btn btn-gold" onClick={()=>onSave({...form,semanas:form.semanas.map(s=>({...s,reps_calculadas:calcVolumenSemana(form.volumen_total,s.pct_volumen),reps_ajustadas:calcVolumenSemana(form.volumen_total,s.pct_volumen)}))})}>
+        <button className="btn btn-gold" onClick={()=>onSave(esEscuela ? form : {...form,semanas:form.semanas.map(s=>({...s,reps_calculadas:calcVolumenSemana(form.volumen_total,s.pct_volumen),reps_ajustadas:calcVolumenSemana(form.volumen_total,s.pct_volumen)}))})}>
           Crear Mesociclo
         </button>
       </div>
@@ -5737,113 +5775,178 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
       {/* ════════════ PLANILLA ════════════ */}
       {vistaActual==="meso" && mesoVisto && (
         <>
-          {/* Stats semanas + botón editar volumen */}
+          {/* Toolbar */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8,minWidth:0}}>
-            <div style={{fontSize:12,color:"var(--muted)"}}>
-              Total: <span style={{color:"var(--gold)",fontWeight:700}}>{mesoVisto.volumen_total}</span> reps
-            </div>
-            <button className="btn btn-ghost btn-sm" onClick={()=>setShowEditVol(true)}>
-              <Pencil size={12}/> Editar volumen y semanas
-            </button>
+            {(mesoVisto.escuela === true || mesoVisto.escuela === "true") ? (
+              <div style={{fontSize:12,color:"#4db6ac"}}>
+                Planilla Escuela Inicial · Nivel {mesoVisto.escuela_nivel}
+              </div>
+            ) : (
+              <>
+                <div style={{fontSize:12,color:"var(--muted)"}}>
+                  Total: <span style={{color:"var(--gold)",fontWeight:700}}>{mesoVisto.volumen_total}</span> reps
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setShowEditVol(true)}>
+                  <Pencil size={12}/> Editar volumen y semanas
+                </button>
+              </>
+            )}
             <button className="btn btn-ghost btn-sm" onClick={()=>setShowGuardarPlantilla("meso")}
               style={{color:"var(--muted)"}}>
               <Library size={12}/> Guardar como plantilla
             </button>
           </div>
 
-          <div className="stats-row mb16">
-            {mesoVisto.semanas.map((s,i)=>{
-              const fase = atleta.genero==="f" && atleta.ciclo?.ultimo_inicio
-                ? getFaseCiclo(atleta.ciclo, getFechaSemana(mesoVisto.fecha_inicio, s.numero))
-                : null;
-              const faseInfo = fase ? FASES_CICLO[fase] : null;
-              return (
-                <div key={s.id} className="stat-box"
-                  style={faseInfo ? {border:`1px solid ${faseInfo.color}60`,background:faseInfo.bg} : {}}>
-                  <div className="stat-box-val">{s.reps_ajustadas||s.reps_calculadas||0}</div>
-                  <div className="stat-box-lbl">Semana {s.numero} · {s.pct_volumen}%</div>
-                  {faseInfo && (
-                    <div style={{fontSize:10,fontWeight:700,color:faseInfo.color,
-                      marginTop:4,display:"flex",alignItems:"center",gap:3}}>
-                      <faseInfo.Icon size={11}/> {faseInfo.label}
-                    </div>
-                  )}
-                  <div className="prog-bar">
-                    <div className="prog-fill" style={{width:`${s.pct_volumen}%`,
-                      background:faseInfo?faseInfo.color:"var(--gold)"}}/>
+          {/* ── Escuela Inicial: PlanillaBasica ── */}
+          {(mesoVisto.escuela === true || mesoVisto.escuela === "true") ? (
+            <div className="card">
+              <div className="flex-between mb16" style={{flexWrap:"wrap",gap:10}}>
+                <div className="card-title" style={{marginBottom:0}}>Planilla Escuela Inicial</div>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:4}}>
+                    <label style={{fontSize:10,color:"var(--gold)",fontWeight:700,textTransform:"uppercase",letterSpacing:".05em"}}>IRM Arr</label>
+                    <input type="number" min={0} max={300} className="no-spin"
+                      value={mesoVisto.irm_arranque ?? ""}
+                      placeholder="kg"
+                      onChange={e => {
+                        pushSnap();
+                        setMesociclos(prev => prev.map(m => m.id === mesoVisto.id
+                          ? {...m, irm_arranque: e.target.value === "" ? null : Number(e.target.value)}
+                          : m
+                        ));
+                      }}
+                      style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",
+                        borderRadius:6,padding:"4px 6px",color:"var(--gold)",fontSize:14,
+                        fontFamily:"'Bebas Neue'",textAlign:"center",outline:"none",
+                        MozAppearance:"textfield",appearance:"textfield"}}
+                    />
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:4}}>
+                    <label style={{fontSize:10,color:"var(--blue)",fontWeight:700,textTransform:"uppercase",letterSpacing:".05em"}}>IRM Env</label>
+                    <input type="number" min={0} max={400} className="no-spin"
+                      value={mesoVisto.irm_envion ?? ""}
+                      placeholder="kg"
+                      onChange={e => {
+                        pushSnap();
+                        setMesociclos(prev => prev.map(m => m.id === mesoVisto.id
+                          ? {...m, irm_envion: e.target.value === "" ? null : Number(e.target.value)}
+                          : m
+                        ));
+                      }}
+                      style={{width:52,background:"var(--surface2)",border:"1px solid var(--border)",
+                        borderRadius:6,padding:"4px 6px",color:"var(--blue)",fontSize:14,
+                        fontFamily:"'Bebas Neue'",textAlign:"center",outline:"none",
+                        MozAppearance:"textfield",appearance:"textfield"}}
+                    />
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Sembrado mensual completo */}
-          <div className="card">
-            <div className="flex-between mb16">
-              <div className="card-title" style={{marginBottom:0}}>
-                Sembrado Mensual
-
               </div>
+              <PlanillaBasica
+                semanas={mesoVisto.semanas}
+                onChange={(ss) => updateMeso({...mesoVisto, semanas: ss})}
+                numBloques={mesoVisto.num_bloques_basica || 3}
+                onBeforeChange={(forced) => pushSnap(forced)}
+                irm_arr={irm_arr}
+                irm_env={irm_env}
+              />
             </div>
-            <SembradoMensual
-              semanas={mesoVisto.semanas}
-              irm_arr={irm_arr}
-              irm_env={irm_env}
-              meso={mesoVisto}
-              onChangeSemana={updateSemanaH}
-              onChangeTodasSemanas={(newSemanas) => {
-                updateMeso({...mesoVisto, semanas: newSemanas});
-              }}
-            />
-            <ResumenGrupos semanas={mesoVisto.semanas} meso={mesoVisto}
-              onGuardarDistribucion={(dist)=>{
-                try {
-                  const stored = JSON.parse(localStorage.getItem('liftplan_plantillas')||'[]');
-                  const nuevo = {
-                    id:mkId(), tipo:"distribucion", creado:new Date().toISOString().slice(0,10),
-                    nombre:`Distribución ${mesoVisto.nombre||'Mesociclo'}`,
-                    descripcion:`${mesoVisto.semanas.length} semanas`,
-                    periodo:"general", objetivo:"mixto", nivel:"intermedio",
-                    distribucion: dist
-                  };
-                  localStorage.setItem('liftplan_plantillas', JSON.stringify([...stored, nuevo]));
-                  alert('Distribución guardada como plantilla');
-                } catch(e){}
-              }}
-              semPctOverrides={semPctOverrides} semPctManual={semPctManual}
-              setSemPctOverrides={setSemPctOverridesH} setSemPctManual={setSemPctManualH}
-              onRequestReset={(label, fn) => setConfirmReset({label, onConfirm: fn})}
-              onBeforeChange={(forced)=>{ if(!forced && histIdxRef.current!=null) pushSnap(); else pushSnap(true); }}
-            />
-            <DistribucionTurnos semanas={mesoVisto.semanas} meso={mesoVisto}
-              turnoPctOverrides={turnoPctOverrides} turnoPctManual={turnoPctManual}
-              setTurnoPctOverrides={setTurnoPctOverridesH} setTurnoPctManual={setTurnoPctManualH}
-              semPctOverrides={semPctOverrides} semPctManual={semPctManual}
-              onRequestReset={(label, fn) => setConfirmReset({label, onConfirm: fn})}
-              onBeforeChange={(forced)=>pushSnap(forced)}
-            />
-            <PlanillaTurno
-              semanas={mesoVisto.semanas}
-              irm_arr={irm_arr}
-              irm_env={irm_env}
-              meso={mesoVisto}
-              semPctOverrides={semPctOverrides} semPctManual={semPctManual}
-              turnoPctOverrides={turnoPctOverrides} turnoPctManual={turnoPctManual}
-              onRequestReset={(label, fn) => setConfirmReset({label, onConfirm: fn})}
-              onBeforeChange={(forced)=>{ pushSnap(forced); }}
-              onChangeTurno={(sIdx, tIdx, newTurno) => {
-                const sem = mesoVisto.semanas[sIdx];
-                const ts = [...sem.turnos]; ts[tIdx] = newTurno;
-                updateSemana(sIdx, {...sem, turnos: ts});
-              }}
-              repsEdit={repsEdit}   setRepsEdit={setRepsEditRaw}
-              manualEdit={manualEdit} setManualEdit={setManualEditRaw}
-              cellEdit={cellEdit}   setCellEdit={setCellEditRaw}
-              cellManual={cellManual} setCellManual={setCellManualRaw}
-              nameEdit={nameEdit}   setNameEdit={setNameEditRaw}
-              noteEdit={noteEdit}   setNoteEdit={setNoteEditRaw}
-            />
-          </div>
+          ) : (
+            <>
+              {/* Stats semanas */}
+              <div className="stats-row mb16">
+                {mesoVisto.semanas.map((s,i)=>{
+                  const fase = atleta.genero==="f" && atleta.ciclo?.ultimo_inicio
+                    ? getFaseCiclo(atleta.ciclo, getFechaSemana(mesoVisto.fecha_inicio, s.numero))
+                    : null;
+                  const faseInfo = fase ? FASES_CICLO[fase] : null;
+                  return (
+                    <div key={s.id} className="stat-box"
+                      style={faseInfo ? {border:`1px solid ${faseInfo.color}60`,background:faseInfo.bg} : {}}>
+                      <div className="stat-box-val">{s.reps_ajustadas||s.reps_calculadas||0}</div>
+                      <div className="stat-box-lbl">Semana {s.numero} · {s.pct_volumen}%</div>
+                      {faseInfo && (
+                        <div style={{fontSize:10,fontWeight:700,color:faseInfo.color,
+                          marginTop:4,display:"flex",alignItems:"center",gap:3}}>
+                          <faseInfo.Icon size={11}/> {faseInfo.label}
+                        </div>
+                      )}
+                      <div className="prog-bar">
+                        <div className="prog-fill" style={{width:`${s.pct_volumen}%`,
+                          background:faseInfo?faseInfo.color:"var(--gold)"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Sembrado mensual completo */}
+              <div className="card">
+                <div className="flex-between mb16">
+                  <div className="card-title" style={{marginBottom:0}}>
+                    Sembrado Mensual
+                  </div>
+                </div>
+                <SembradoMensual
+                  semanas={mesoVisto.semanas}
+                  irm_arr={irm_arr}
+                  irm_env={irm_env}
+                  meso={mesoVisto}
+                  onChangeSemana={updateSemanaH}
+                  onChangeTodasSemanas={(newSemanas) => {
+                    updateMeso({...mesoVisto, semanas: newSemanas});
+                  }}
+                />
+                <ResumenGrupos semanas={mesoVisto.semanas} meso={mesoVisto}
+                  onGuardarDistribucion={(dist)=>{
+                    try {
+                      const stored = JSON.parse(localStorage.getItem('liftplan_plantillas')||'[]');
+                      const nuevo = {
+                        id:mkId(), tipo:"distribucion", creado:new Date().toISOString().slice(0,10),
+                        nombre:`Distribución ${mesoVisto.nombre||'Mesociclo'}`,
+                        descripcion:`${mesoVisto.semanas.length} semanas`,
+                        periodo:"general", objetivo:"mixto", nivel:"intermedio",
+                        distribucion: dist
+                      };
+                      localStorage.setItem('liftplan_plantillas', JSON.stringify([...stored, nuevo]));
+                      alert('Distribución guardada como plantilla');
+                    } catch(e){}
+                  }}
+                  semPctOverrides={semPctOverrides} semPctManual={semPctManual}
+                  setSemPctOverrides={setSemPctOverridesH} setSemPctManual={setSemPctManualH}
+                  onRequestReset={(label, fn) => setConfirmReset({label, onConfirm: fn})}
+                  onBeforeChange={(forced)=>{ if(!forced && histIdxRef.current!=null) pushSnap(); else pushSnap(true); }}
+                />
+                <DistribucionTurnos semanas={mesoVisto.semanas} meso={mesoVisto}
+                  turnoPctOverrides={turnoPctOverrides} turnoPctManual={turnoPctManual}
+                  setTurnoPctOverrides={setTurnoPctOverridesH} setTurnoPctManual={setTurnoPctManualH}
+                  semPctOverrides={semPctOverrides} semPctManual={semPctManual}
+                  onRequestReset={(label, fn) => setConfirmReset({label, onConfirm: fn})}
+                  onBeforeChange={(forced)=>pushSnap(forced)}
+                />
+                <PlanillaTurno
+                  semanas={mesoVisto.semanas}
+                  irm_arr={irm_arr}
+                  irm_env={irm_env}
+                  meso={mesoVisto}
+                  semPctOverrides={semPctOverrides} semPctManual={semPctManual}
+                  turnoPctOverrides={turnoPctOverrides} turnoPctManual={turnoPctManual}
+                  onRequestReset={(label, fn) => setConfirmReset({label, onConfirm: fn})}
+                  onBeforeChange={(forced)=>{ pushSnap(forced); }}
+                  onChangeTurno={(sIdx, tIdx, newTurno) => {
+                    const sem = mesoVisto.semanas[sIdx];
+                    const ts = [...sem.turnos]; ts[tIdx] = newTurno;
+                    updateSemana(sIdx, {...sem, turnos: ts});
+                  }}
+                  repsEdit={repsEdit}   setRepsEdit={setRepsEditRaw}
+                  manualEdit={manualEdit} setManualEdit={setManualEditRaw}
+                  cellEdit={cellEdit}   setCellEdit={setCellEditRaw}
+                  cellManual={cellManual} setCellManual={setCellManualRaw}
+                  nameEdit={nameEdit}   setNameEdit={setNameEditRaw}
+                  noteEdit={noteEdit}   setNoteEdit={setNoteEditRaw}
+                />
+              </div>
+            </>
+          )}
         </>
       )}
 
