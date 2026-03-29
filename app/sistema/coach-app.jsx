@@ -7477,7 +7477,10 @@ function GuardarPlantillaModal({ tipo, dataMeso, dataSemana, dataDistribucion, o
           ejercicios: t.ejercicios.filter(e=>e.ejercicio_id).map(e=>({
             ejercicio_id: e.ejercicio_id, intensidad: e.intensidad,
             tabla: e.tabla, reps_asignadas: e.reps_asignadas || 0
-          }))
+          })),
+          complementarios_before: (t.complementarios_before || []).map(c=>({...c})),
+          complementarios_after:  (t.complementarios_after  || []).map(c=>({...c})),
+          num_bloques_comp: t.num_bloques_comp || 1,
         }))
       }));
       base.volumen_total = dataMeso.volumen_total;
