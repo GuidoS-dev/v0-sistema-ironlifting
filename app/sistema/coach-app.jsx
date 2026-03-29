@@ -1435,6 +1435,8 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
   const [tipSem,          setTipSem]          = useState(null);
   const [tipTurno,        setTipTurno]        = useState(null);
   const [compPickerOpen,  setCompPickerOpen]  = useState(null); // compId | null
+  const [compPickerQuery, setCompPickerQuery] = useState("");
+  const compPickerListRef = useRef(null);
 
   // Clave única por mesociclo para persistencia
   const _k = (type) => `liftplan_pt_${meso.id}_${type}`;
@@ -2567,28 +2569,86 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
 
               return (
                 <div>
-                {compPickerOpen !== null && (
-                  <Modal title="Seleccionar ejercicio" onClose={() => setCompPickerOpen(null)}>
-                    <div style={{maxHeight:400,overflowY:"auto",display:"flex",flexDirection:"column",gap:2}}>
-                      {normativos.map(e => (
-                        <button key={e.id} onClick={() => {
-                          _mapComp(compPickerOpen, c => ({
-                            ...c, ejercicio_id: e.id, nombre_custom: "",
-                            bloques: c.bloques.map(b => ({...b, kg: calcKgComp(e.id, b.pct)}))
-                          }));
-                          setCompPickerOpen(null);
-                        }} style={{display:"flex",gap:8,alignItems:"center",padding:"6px 10px",
-                          background:"var(--surface2)",border:"1px solid var(--border)",
-                          borderRadius:6,cursor:"pointer",textAlign:"left",width:"100%"}}>
-                          <span style={{fontFamily:"'Bebas Neue'",fontSize:16,
-                            color:CAT_COLOR[e.categoria],minWidth:28,textAlign:"center"}}>{e.id}</span>
-                          <span style={{fontSize:12,color:"var(--text)",flex:1}}>{e.nombre}</span>
-                          <span style={{fontSize:10,color:CAT_COLOR[e.categoria]}}>{e.categoria}</span>
-                        </button>
-                      ))}
+                {compPickerOpen !== null && (() => {
+                  const q = compPickerQuery.trim().toLowerCase();
+                  const byId   = normativos.filter(e => String(e.id).startsWith(q));
+                  const byName = normativos.filter(e => !String(e.id).startsWith(q) && e.nombre.toLowerCase().includes(q));
+                  const results = q ? [...byId, ...byName] : normativos;
+                  const GRUPOS = ["Arranque","Envion","Tirones","Piernas","Complementarios"];
+                  const jumpToGroup = (g) => {
+                    const el = compPickerListRef.current?.querySelector(`[data-firstgroup="${g}"]`);
+                    if (el) el.scrollIntoView({ block:"start", behavior:"smooth" });
+                  };
+                  return (
+                    <div style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(0,0,0,.6)",
+                      display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}
+                      onClick={e=>{ if(e.target===e.currentTarget){ setCompPickerOpen(null); setCompPickerQuery(""); } }}>
+                      <div style={{background:"var(--surface)",borderRadius:14,width:"100%",maxWidth:520,
+                        maxHeight:"75vh",display:"flex",flexDirection:"column",overflow:"hidden",
+                        boxShadow:"0 8px 40px rgba(0,0,0,.6)"}}>
+                        <div style={{padding:"12px 16px 8px",borderBottom:"1px solid var(--border)",
+                          display:"flex",alignItems:"center",gap:10}}>
+                          <input autoFocus
+                            value={compPickerQuery}
+                            onChange={e => setCompPickerQuery(e.target.value)}
+                            placeholder="Número o nombre del ejercicio..."
+                            style={{flex:1,background:"var(--surface2)",border:"1px solid var(--border)",
+                              borderRadius:8,color:"var(--text)",fontSize:14,padding:"8px 12px",
+                              outline:"none",fontFamily:"'DM Sans'"}}
+                          />
+                          <button onClick={() => { setCompPickerOpen(null); setCompPickerQuery(""); }}
+                            style={{background:"none",border:"none",color:"var(--muted)",
+                              cursor:"pointer",fontSize:22,lineHeight:1,padding:"0 4px"}}>×</button>
+                        </div>
+                        <div style={{display:"flex",gap:4,padding:"6px 16px",borderBottom:"1px solid var(--border)",flexWrap:"wrap"}}>
+                          {GRUPOS.map(g => (
+                            <button key={g} onClick={() => jumpToGroup(g)}
+                              style={{padding:"2px 9px",borderRadius:12,
+                                border:`1px solid ${CAT_COLOR[g]||"var(--border)"}`,
+                                background:`${CAT_COLOR[g]||"var(--muted)"}18`,
+                                color:CAT_COLOR[g]||"var(--muted)",
+                                fontSize:11,fontWeight:700,cursor:"pointer",
+                                fontFamily:"'Bebas Neue'",letterSpacing:".04em"}}>
+                              {g.slice(0,3).toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                        <div ref={compPickerListRef} style={{overflowY:"auto",flex:1}}>
+                          {(() => {
+                            const seen = new Set();
+                            return results.map(e => {
+                              const col = CAT_COLOR[e.categoria] || "var(--muted)";
+                              const isFirst = !seen.has(e.categoria) && seen.add(e.categoria);
+                              return (
+                                <div key={e.id}
+                                  {...(isFirst ? {"data-firstgroup": e.categoria} : {})}
+                                  onClick={() => {
+                                    _mapComp(compPickerOpen, c => ({
+                                      ...c, ejercicio_id: e.id, nombre_custom: "",
+                                      bloques: c.bloques.map(b => ({...b, kg: calcKgComp(e.id, b.pct)}))
+                                    }));
+                                    setCompPickerOpen(null);
+                                    setCompPickerQuery("");
+                                  }}
+                                  style={{padding:"10px 16px",display:"flex",alignItems:"center",gap:10,
+                                    borderBottom:"1px solid var(--border)",cursor:"pointer",
+                                    background:"transparent"}}>
+                                  <span style={{fontFamily:"'Bebas Neue'",fontSize:15,
+                                    color:col,minWidth:28,textAlign:"right"}}>{e.id}</span>
+                                  <span style={{flex:1,fontSize:13,color:"var(--text)"}}>{e.nombre}</span>
+                                  <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",
+                                    borderRadius:10,background:`${col}20`,color:col,flexShrink:0}}>
+                                    {e.categoria.slice(0,3)}
+                                  </span>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
                     </div>
-                  </Modal>
-                )}
+                  );
+                })()}
                 <div style={{marginTop:20, borderTop:"1px solid var(--border)", paddingTop:16}}>
                   <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:10,textTransform:"uppercase",letterSpacing:".08em"}}>
                     Ejercicios Complementarios
