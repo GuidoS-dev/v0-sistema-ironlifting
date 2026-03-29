@@ -1429,7 +1429,7 @@ function calcKgEj(ejercicio_id, intensidad, irm_arr, irm_env, tablas_normativos)
   return Math.round(irm * ej.pct_base / 100 * intensidad / 100 * 2) / 2;
 }
 
-function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPctManual, turnoPctOverrides, turnoPctManual, onRequestReset, onBeforeChange, repsEdit, setRepsEdit: setRepsEditProp, manualEdit, setManualEdit: setManualEditProp, cellEdit, setCellEdit: setCellEditProp, cellManual, setCellManual: setCellManualProp, nameEdit, setNameEdit: setNameEditProp, noteEdit, setNoteEdit: setNoteEditProp }) {
+function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPctManual, turnoPctOverrides, turnoPctManual, onRequestReset, onBeforeChange, onChangeTurno, repsEdit, setRepsEdit: setRepsEditProp, manualEdit, setManualEdit: setManualEditProp, cellEdit, setCellEdit: setCellEditProp, cellManual, setCellManual: setCellManualProp, nameEdit, setNameEdit: setNameEditProp, noteEdit, setNoteEdit: setNoteEditProp }) {
   const [semActiva,   setSemActiva]   = useState(0);
   const [turnoActivo, setTurnoActivo] = useState(0);
   const [tipSem,      setTipSem]      = useState(null);
@@ -2469,33 +2469,34 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
               if (!turno) return null;
 
               const allComps = [...(turno.complementarios_before || []), ...(turno.complementarios_after || [])];
+              const _setTurno = (newTurno) => onChangeTurno?.(semActiva, turnoActivo, newTurno);
               const updateComp = (compId, updates) => {
                 const isBefore = turno.complementarios_before?.some(c => c.id === compId);
                 if (isBefore) {
                   const idx = turno.complementarios_before.findIndex(c => c.id === compId);
                   const updated = [...turno.complementarios_before];
                   updated[idx] = {...updated[idx], ...updates};
-                  onChange({...turno, complementarios_before: updated});
+                  _setTurno({...turno, complementarios_before: updated});
                 } else {
                   const idx = turno.complementarios_after.findIndex(c => c.id === compId);
                   const updated = [...turno.complementarios_after];
                   updated[idx] = {...updated[idx], ...updates};
-                  onChange({...turno, complementarios_after: updated});
+                  _setTurno({...turno, complementarios_after: updated});
                 }
               };
               const deleteComp = (compId) => {
                 const isBefore = turno.complementarios_before?.some(c => c.id === compId);
                 if (isBefore) {
                   const updated = turno.complementarios_before.filter(c => c.id !== compId);
-                  onChange({...turno, complementarios_before: updated});
+                  _setTurno({...turno, complementarios_before: updated});
                 } else {
                   const updated = turno.complementarios_after.filter(c => c.id !== compId);
-                  onChange({...turno, complementarios_after: updated});
+                  _setTurno({...turno, complementarios_after: updated});
                 }
               };
               const addComp = () => {
                 const newComp = {id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0,aclaracion:""};
-                onChange({...turno, complementarios_after: [...(turno.complementarios_after || []), newComp]});
+                _setTurno({...turno, complementarios_after: [...(turno.complementarios_after || []), newComp]});
               };
 
               return (
@@ -5530,6 +5531,11 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
               turnoPctOverrides={turnoPctOverrides} turnoPctManual={turnoPctManual}
               onRequestReset={(label, fn) => setConfirmReset({label, onConfirm: fn})}
               onBeforeChange={(forced)=>{ pushSnap(forced); }}
+              onChangeTurno={(sIdx, tIdx, newTurno) => {
+                const sem = mesoVisto.semanas[sIdx];
+                const ts = [...sem.turnos]; ts[tIdx] = newTurno;
+                updateSemana(sIdx, {...sem, turnos: ts});
+              }}
               repsEdit={repsEdit}   setRepsEdit={setRepsEditRaw}
               manualEdit={manualEdit} setManualEdit={setManualEditRaw}
               cellEdit={cellEdit}   setCellEdit={setCellEditRaw}
@@ -7883,6 +7889,11 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
                   turnoPctOverrides={turnoPctOverrides} turnoPctManual={turnoPctManual}
                   onRequestReset={(label,fn)=>setConfirmReset({label,onConfirm:fn})}
                   onBeforeChange={(forced)=>pushSnap(forced)}
+                  onChangeTurno={(sIdx, tIdx, newTurno) => {
+                    const sem = form.semanas[sIdx];
+                    const ts = [...sem.turnos]; ts[tIdx] = newTurno;
+                    updateSemana(sIdx, {...sem, turnos: ts});
+                  }}
                   repsEdit={repsEdit}   setRepsEdit={setRepsEditRaw}
                   manualEdit={manualEdit} setManualEdit={setManualEditRaw}
                   cellEdit={cellEdit}   setCellEdit={setCellEditRaw}
