@@ -7372,36 +7372,40 @@ function PlantillaCard({ plt, onUse, onOpen, onEdit, onDelete, onDuplicate, comp
             <button onClick={onOpen} title="Abrir"
               style={{background:"none",border:"none",cursor:"pointer",
                 color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1}}>
-              <FileText size={13}/>
+                fontSize:12,lineHeight:1,transition:"color .15s"}}
+              onMouseEnter={e=>e.currentTarget.style.color="var(--gold)"}
+              onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
+              <FileText size={13} style={{pointerEvents:"none"}}/>
             </button>
           )}
           {onDuplicate && (
             <button onClick={onDuplicate} title="Duplicar como nueva plantilla"
               style={{background:"none",border:"none",cursor:"pointer",
                 color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1}}
+                fontSize:12,lineHeight:1,transition:"color .15s"}}
               onMouseEnter={e=>e.currentTarget.style.color="var(--gold)"}
               onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
-              <Files size={13}/>
+              <Files size={13} style={{pointerEvents:"none"}}/>
             </button>
           )}
           {onEdit && (
             <button onClick={onEdit} title="Editar metadatos"
               style={{background:"none",border:"none",cursor:"pointer",
                 color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1}}>
-              <Pencil size={13}/>
+                fontSize:12,lineHeight:1,transition:"color .15s"}}
+              onMouseEnter={e=>e.currentTarget.style.color="var(--gold)"}
+              onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
+              <Pencil size={13} style={{pointerEvents:"none"}}/>
             </button>
           )}
           {onDelete && (
             <button onClick={onDelete} title="Eliminar"
               style={{background:"none",border:"none",cursor:"pointer",
                 color:"var(--muted)",padding:"2px 5px",borderRadius:5,
-                fontSize:12,lineHeight:1}}
+                fontSize:12,lineHeight:1,transition:"color .15s"}}
               onMouseEnter={e=>e.currentTarget.style.color="var(--red)"}
               onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"}>
-              <Trash2 size={13}/>
+              <Trash2 size={13} style={{pointerEvents:"none"}}/>
             </button>
           )}
         </div>
