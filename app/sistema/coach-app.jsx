@@ -371,7 +371,7 @@ const mkSemanas = () => Array.from({length:4},(_,i)=>({
 }));
 
 // ── Escuela Básica helpers ──────────────────────────────────────────────────
-const mkBloqueBasica = () => ({ pct: null, series: null, reps: null, kg: null });
+const mkBloqueBasica = () => ({ pct: null, series: null, reps: null, kg: null, nota: "" });
 const mkEjBasica = (n = 3) => ({ id: mkId(), ejercicio_id: null, nombre_custom: "", bloques: Array.from({length: n}, mkBloqueBasica) });
 const mkTurnosBasica = (n = 3) => Array.from({length:3},(_,i)=>({
   id:mkId(), numero:i+1, dia:"", momento:"", ejercicios: Array.from({length:6}, () => mkEjBasica(n))
@@ -863,7 +863,12 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
             id:mkId(), ejercicio_id:e.ejercicio_id,
             intensidad:e.intensidad, tabla:e.tabla,
             reps_asignadas: opts.reps ? (e.reps_asignadas||0) : 0
-          }))
+          })),
+          ...(opts.complementarios ? {
+            complementarios_before: (t.complementarios_before||[]).map(c=>({...c, id:mkId()})),
+            complementarios_after:  (t.complementarios_after ||[]).map(c=>({...c, id:mkId()})),
+            num_bloques_comp: t.num_bloques_comp || 1,
+          } : {})
         }))
       }));
       setForm(f=>({
@@ -1429,11 +1434,14 @@ function calcKgEj(ejercicio_id, intensidad, irm_arr, irm_env, tablas_normativos)
   return Math.round(irm * ej.pct_base / 100 * intensidad / 100 * 2) / 2;
 }
 
-function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPctManual, turnoPctOverrides, turnoPctManual, onRequestReset, onBeforeChange, repsEdit, setRepsEdit: setRepsEditProp, manualEdit, setManualEdit: setManualEditProp, cellEdit, setCellEdit: setCellEditProp, cellManual, setCellManual: setCellManualProp, nameEdit, setNameEdit: setNameEditProp, noteEdit, setNoteEdit: setNoteEditProp }) {
-  const [semActiva,   setSemActiva]   = useState(0);
-  const [turnoActivo, setTurnoActivo] = useState(0);
-  const [tipSem,      setTipSem]      = useState(null);
-  const [tipTurno,    setTipTurno]    = useState(null);
+function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPctManual, turnoPctOverrides, turnoPctManual, onRequestReset, onBeforeChange, onChangeTurno, repsEdit, setRepsEdit: setRepsEditProp, manualEdit, setManualEdit: setManualEditProp, cellEdit, setCellEdit: setCellEditProp, cellManual, setCellManual: setCellManualProp, nameEdit, setNameEdit: setNameEditProp, noteEdit, setNoteEdit: setNoteEditProp }) {
+  const [semActiva,       setSemActiva]       = useState(0);
+  const [turnoActivo,     setTurnoActivo]     = useState(0);
+  const [tipSem,          setTipSem]          = useState(null);
+  const [tipTurno,        setTipTurno]        = useState(null);
+  const [compPickerOpen,  setCompPickerOpen]  = useState(null); // compId | null
+  const [compPickerQuery, setCompPickerQuery] = useState("");
+  const compPickerListRef = useRef(null);
 
   // Clave única por mesociclo para persistencia
   const _k = (type) => `liftplan_pt_${meso.id}_${type}`;
@@ -2468,101 +2476,332 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
               const turno = semanas[semActiva]?.turnos[turnoActivo];
               if (!turno) return null;
 
-              const allComps = [...(turno.complementarios_before || []), ...(turno.complementarios_after || [])];
-              const updateComp = (compId, updates) => {
-                const isBefore = turno.complementarios_before?.some(c => c.id === compId);
-                if (isBefore) {
-                  const idx = turno.complementarios_before.findIndex(c => c.id === compId);
-                  const updated = [...turno.complementarios_before];
-                  updated[idx] = {...updated[idx], ...updates};
-                  onChange({...turno, complementarios_before: updated});
-                } else {
-                  const idx = turno.complementarios_after.findIndex(c => c.id === compId);
-                  const updated = [...turno.complementarios_after];
-                  updated[idx] = {...updated[idx], ...updates};
-                  onChange({...turno, complementarios_after: updated});
-                }
-              };
-              const deleteComp = (compId) => {
-                const isBefore = turno.complementarios_before?.some(c => c.id === compId);
-                if (isBefore) {
-                  const updated = turno.complementarios_before.filter(c => c.id !== compId);
-                  onChange({...turno, complementarios_before: updated});
-                } else {
-                  const updated = turno.complementarios_after.filter(c => c.id !== compId);
-                  onChange({...turno, complementarios_after: updated});
-                }
-              };
-              const addComp = () => {
-                const newComp = {id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0,aclaracion:""};
-                onChange({...turno, complementarios_after: [...(turno.complementarios_after || []), newComp]});
+              const mkBloqueComp = () => ({ pct: null, series: null, reps: null, kg: null, nota: "" });
+              const normComp = (c) => ({ nombre_custom: "", ...c, bloques: c.bloques || [mkBloqueComp()] });
+              const numCompBloques = turno.num_bloques_comp || 1;
+
+              const allComps = [
+                ...(turno.complementarios_before || []).map(c => ({...normComp(c), _isBefore: true})),
+                ...(turno.complementarios_after  || []).map(c => ({...normComp(c), _isBefore: false})),
+              ];
+
+              const _setTurno = (newTurno) => onChangeTurno?.(semActiva, turnoActivo, newTurno);
+
+              const calcKgComp = (ejercicio_id, pct) => {
+                if (!ejercicio_id || !pct) return null;
+                const ejData = normativos.find(e => e.id === Number(ejercicio_id));
+                if (!ejData || !ejData.pct_base) return null;
+                const irmVal = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+                if (!irmVal) return null;
+                return Math.round(irmVal * ejData.pct_base / 100 * pct / 100 * 2) / 2;
               };
 
+              const _mapComp = (compId, fn) => {
+                const bef = turno.complementarios_before || [];
+                const aft = turno.complementarios_after  || [];
+                if (bef.some(c => c.id === compId))
+                  return _setTurno({...turno, complementarios_before: bef.map(c => c.id === compId ? fn(normComp(c)) : c)});
+                _setTurno({...turno, complementarios_after: aft.map(c => c.id === compId ? fn(normComp(c)) : c)});
+              };
+
+              const updateBloqueComp = (compId, bIdx, field, value) => {
+                _mapComp(compId, comp => {
+                  const bloques = [...comp.bloques];
+                  if (field === "pct") {
+                    const newPct = value === "" ? null : Number(value);
+                    bloques[bIdx] = {...bloques[bIdx], pct: newPct, kg: calcKgComp(comp.ejercicio_id, newPct)};
+                  } else if (field === "nota" || field === "series") {
+                    bloques[bIdx] = {...bloques[bIdx], [field]: value === "" ? null : value};
+                  } else {
+                    bloques[bIdx] = {...bloques[bIdx], [field]: value === "" ? null : Number(value)};
+                  }
+                  return {...comp, bloques};
+                });
+              };
+
+              const deleteComp = (compId) => {
+                _setTurno({...turno,
+                  complementarios_before: (turno.complementarios_before || []).filter(c => c.id !== compId),
+                  complementarios_after:  (turno.complementarios_after  || []).filter(c => c.id !== compId),
+                });
+              };
+
+              const toggleMomento = (compId) => {
+                const bef = turno.complementarios_before || [];
+                const aft = turno.complementarios_after  || [];
+                const isBefore = bef.some(c => c.id === compId);
+                if (isBefore) {
+                  const comp = bef.find(c => c.id === compId);
+                  _setTurno({...turno, complementarios_before: bef.filter(c => c.id !== compId), complementarios_after: [...aft, comp]});
+                } else {
+                  const comp = aft.find(c => c.id === compId);
+                  _setTurno({...turno, complementarios_after: aft.filter(c => c.id !== compId), complementarios_before: [...bef, comp]});
+                }
+              };
+
+              const addComp = () => {
+                const newComp = {id: mkId(), ejercicio_id: null, bloques: Array.from({length: numCompBloques}, mkBloqueComp)};
+                _setTurno({...turno, complementarios_after: [...(turno.complementarios_after || []), newComp]});
+              };
+
+              const addBloqueCompCol = () => {
+                const upd = (list) => (list || []).map(c => ({...normComp(c), bloques: [...(normComp(c).bloques), mkBloqueComp()]}));
+                _setTurno({...turno, num_bloques_comp: numCompBloques + 1,
+                  complementarios_before: upd(turno.complementarios_before),
+                  complementarios_after:  upd(turno.complementarios_after)});
+              };
+
+              const removeBloqueCompCol = (bIdx) => {
+                if (numCompBloques <= 1) return;
+                const upd = (list) => (list || []).map(c => {
+                  const bl = [...normComp(c).bloques]; bl.splice(bIdx, 1); return {...normComp(c), bloques: bl};
+                });
+                _setTurno({...turno, num_bloques_comp: numCompBloques - 1,
+                  complementarios_before: upd(turno.complementarios_before),
+                  complementarios_after:  upd(turno.complementarios_after)});
+              };
+
+              const cellInputComp = (extra = {}) => ({
+                width:"100%", background:"transparent", border:"none",
+                fontFamily:"'Bebas Neue'", fontSize:14, textAlign:"center",
+                lineHeight:1.2, outline:"none", padding:"3px 2px",
+                color:"var(--text)", MozAppearance:"textfield", appearance:"textfield",
+                ...extra
+              });
+
+              const thBase = {padding:"5px 6px",background:"var(--surface2)",border:"1px solid var(--border)",
+                borderRadius:5,fontSize:10,color:"var(--muted)",fontWeight:700,textTransform:"uppercase",textAlign:"center"};
+
               return (
+                <div>
+                {compPickerOpen !== null && (() => {
+                  const q = compPickerQuery.trim().toLowerCase();
+                  const byId   = normativos.filter(e => String(e.id).startsWith(q));
+                  const byName = normativos.filter(e => !String(e.id).startsWith(q) && e.nombre.toLowerCase().includes(q));
+                  const results = q ? [...byId, ...byName] : normativos;
+                  const GRUPOS = ["Arranque","Envion","Tirones","Piernas","Complementarios"];
+                  const jumpToGroup = (g) => {
+                    const el = compPickerListRef.current?.querySelector(`[data-firstgroup="${g}"]`);
+                    if (el) el.scrollIntoView({ block:"start", behavior:"smooth" });
+                  };
+                  return (
+                    <div style={{position:"fixed",inset:0,zIndex:2000,background:"rgba(0,0,0,.6)",
+                      display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}
+                      onClick={e=>{ if(e.target===e.currentTarget){ setCompPickerOpen(null); setCompPickerQuery(""); } }}>
+                      <div style={{background:"var(--surface)",borderRadius:14,width:"100%",maxWidth:520,
+                        maxHeight:"75vh",display:"flex",flexDirection:"column",overflow:"hidden",
+                        boxShadow:"0 8px 40px rgba(0,0,0,.6)"}}>
+                        <div style={{padding:"12px 16px 8px",borderBottom:"1px solid var(--border)",
+                          display:"flex",alignItems:"center",gap:10}}>
+                          <input autoFocus
+                            value={compPickerQuery}
+                            onChange={e => setCompPickerQuery(e.target.value)}
+                            placeholder="Número o nombre del ejercicio..."
+                            style={{flex:1,background:"var(--surface2)",border:"1px solid var(--border)",
+                              borderRadius:8,color:"var(--text)",fontSize:14,padding:"8px 12px",
+                              outline:"none",fontFamily:"'DM Sans'"}}
+                          />
+                          <button onClick={() => { setCompPickerOpen(null); setCompPickerQuery(""); }}
+                            style={{background:"none",border:"none",color:"var(--muted)",
+                              cursor:"pointer",fontSize:22,lineHeight:1,padding:"0 4px"}}>×</button>
+                        </div>
+                        <div style={{display:"flex",gap:4,padding:"6px 16px",borderBottom:"1px solid var(--border)",flexWrap:"wrap"}}>
+                          {GRUPOS.map(g => (
+                            <button key={g} onClick={() => jumpToGroup(g)}
+                              style={{padding:"2px 9px",borderRadius:12,
+                                border:`1px solid ${CAT_COLOR[g]||"var(--border)"}`,
+                                background:`${CAT_COLOR[g]||"var(--muted)"}18`,
+                                color:CAT_COLOR[g]||"var(--muted)",
+                                fontSize:11,fontWeight:700,cursor:"pointer",
+                                fontFamily:"'Bebas Neue'",letterSpacing:".04em"}}>
+                              {g.slice(0,3).toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                        <div ref={compPickerListRef} style={{overflowY:"auto",flex:1}}>
+                          {(() => {
+                            const seen = new Set();
+                            return results.map(e => {
+                              const col = CAT_COLOR[e.categoria] || "var(--muted)";
+                              const isFirst = !seen.has(e.categoria) && seen.add(e.categoria);
+                              return (
+                                <div key={e.id}
+                                  {...(isFirst ? {"data-firstgroup": e.categoria} : {})}
+                                  onClick={() => {
+                                    _mapComp(compPickerOpen, c => ({
+                                      ...c, ejercicio_id: e.id, nombre_custom: "",
+                                      bloques: c.bloques.map(b => ({...b, kg: calcKgComp(e.id, b.pct)}))
+                                    }));
+                                    setCompPickerOpen(null);
+                                    setCompPickerQuery("");
+                                  }}
+                                  style={{padding:"10px 16px",display:"flex",alignItems:"center",gap:10,
+                                    borderBottom:"1px solid var(--border)",cursor:"pointer",
+                                    background:"transparent"}}>
+                                  <span style={{fontFamily:"'Bebas Neue'",fontSize:15,
+                                    color:col,minWidth:28,textAlign:"right"}}>{e.id}</span>
+                                  <span style={{flex:1,fontSize:13,color:"var(--text)"}}>{e.nombre}</span>
+                                  <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",
+                                    borderRadius:10,background:`${col}20`,color:col,flexShrink:0}}>
+                                    {e.categoria.slice(0,3)}
+                                  </span>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div style={{marginTop:20, borderTop:"1px solid var(--border)", paddingTop:16}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:12,textTransform:"uppercase",letterSpacing:".08em"}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:10,textTransform:"uppercase",letterSpacing:".08em"}}>
                     Ejercicios Complementarios
                   </div>
                   <div style={{overflowX:"auto"}}>
-                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:"1000px"}}>
+                    <table className="planilla-tabla" style={{borderCollapse:"separate",borderSpacing:"2px 2px",width:"100%"}}>
                       <thead>
-                        <tr style={{background:"var(--surface2)",borderBottom:"2px solid var(--border)"}}>
-                          <th style={{padding:"8px 6px",width:"30px",textAlign:"center",color:"var(--muted)",fontSize:11}}></th>
-                          <th style={{padding:"8px 6px",textAlign:"left",color:"var(--muted)",fontSize:11,minWidth:"400px"}}>EJERCICIO</th>
-                          <th style={{padding:"8px 6px",width:"50px",textAlign:"center",color:"var(--muted)",fontSize:11}}>%</th>
-                          <th style={{padding:"8px 6px",width:"40px",textAlign:"center",color:"var(--muted)",fontSize:11}}>S</th>
-                          <th style={{padding:"8px 6px",width:"40px",textAlign:"center",color:"var(--muted)",fontSize:11}}>R</th>
-                          <th style={{padding:"8px 6px",width:"50px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Kg</th>
-                          <th style={{padding:"8px 6px",width:"30px",textAlign:"center",color:"var(--muted)",fontSize:11}}></th>
+                        <tr>
+                          <th style={{...thBase,width:62}}>MOMENTO</th>
+                          <th style={{...thBase,width:40}}>ID</th>
+                          <th style={{...thBase,minWidth:120,textAlign:"left"}}>EJERCICIO</th>
+                          {Array.from({length: numCompBloques}).map((_, bIdx) => (
+                            <th key={bIdx} style={{padding:"3px 4px",
+                              background:"rgba(232,197,71,.08)",border:"1px solid rgba(232,197,71,.3)",
+                              borderRadius:5,textAlign:"center",fontSize:9,color:"var(--gold)",fontWeight:700}}>
+                              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2}}>
+                                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:0,flex:1}}>
+                                  {["%","S","R","Kg"].map(l=>(
+                                    <div key={l} style={{fontSize:8,color:"var(--muted)",textAlign:"center",fontWeight:700}}>{l}</div>
+                                  ))}
+                                </div>
+                                {numCompBloques > 1 && (
+                                  <button onClick={() => removeBloqueCompCol(bIdx)}
+                                    style={{width:14,height:14,borderRadius:"50%",border:"none",
+                                      background:"transparent",color:"var(--muted)",cursor:"pointer",
+                                      fontSize:11,lineHeight:1,padding:0,flexShrink:0}}
+                                    title="Eliminar columna">×</button>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                          <th style={{padding:"3px 4px",background:"var(--surface2)",border:"1px dashed var(--border)",
+                            borderRadius:5,width:30}}>
+                            <button onClick={addBloqueCompCol} title="Agregar columna de %"
+                              style={{width:"100%",background:"transparent",border:"none",
+                                color:"var(--gold)",cursor:"pointer",fontSize:13,fontWeight:700,padding:0}}>+ %</button>
+                          </th>
+                          <th style={{width:26}}/>
                         </tr>
                       </thead>
                       <tbody>
                         {allComps.length === 0 ? (
                           <tr>
-                            <td colSpan="7" style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12}}>
+                            <td colSpan={numCompBloques + 5} style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12,border:"none"}}>
                               Sin complementarios. Haz click en "+ Agregar ejercicio" para añadir uno.
                             </td>
                           </tr>
-                        ) : (
-                          allComps.map((comp, idx) => {
-                            const ejData = normativos.find(e => e.id === Number(comp.ejercicio_id));
-                            const iRMAtleta = ejData ? (ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env)) : 0;
-                            const kgBase = ejData && ejData.pct_base && iRMAtleta ? iRMAtleta * ejData.pct_base / 100 : 0;
-                            const kgIntens = kgBase ? Math.round(kgBase * comp.intensidad / 100) : 0;
-
-                            return (
-                              <tr key={comp.id} style={{borderBottom:"1px solid var(--border)"}}>
-                                <td style={{padding:"6px 4px",textAlign:"center",color:"var(--muted)",fontSize:11}}>{idx+1}</td>
-                                <td style={{padding:"6px 4px"}}>
-                                  <div style={{cursor:"pointer",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px 8px",color:"var(--text)",fontSize:12}}>
-                                    <EjBuscador value={comp.ejercicio_id} onChange={id=>updateComp(comp.id,{ejercicio_id:id})}/>
-                                  </div>
-                                </td>
-                                <td style={{padding:"6px 4px"}}>
-                                  <input type="number" min="40" max="110" value={comp.intensidad} onChange={e=>updateComp(comp.id,{intensidad:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--gold)",textAlign:"center",fontSize:12}}/>
-                                </td>
-                                <td style={{padding:"6px 4px"}}>
-                                  <select value={comp.tabla} onChange={e=>updateComp(comp.id,{tabla:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--text)",fontSize:12}}>
-                                    <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option>
-                                  </select>
-                                </td>
-                                <td style={{padding:"6px 4px"}}>
-                                  <input type="number" min="0" value={comp.reps_asignadas} onChange={e=>updateComp(comp.id,{reps_asignadas:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--green)",textAlign:"center",fontSize:12}}/>
-                                </td>
-                                <td style={{padding:"6px 4px",textAlign:"center",color:"var(--gold)",fontSize:12,fontWeight:600}}>{kgIntens}</td>
-                                <td style={{padding:"6px 4px",textAlign:"center"}}>
-                                  <button onClick={()=>deleteComp(comp.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:14,padding:"2px 4px"}}>✕</button>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
+                        ) : allComps.map((comp, cIdx) => {
+                          const isBefore = comp._isBefore;
+                          const ejData = comp.ejercicio_id ? normativos.find(e => e.id === Number(comp.ejercicio_id)) : null;
+                          const col = ejData ? CAT_COLOR[ejData.categoria] : "var(--border)";
+                          const bloques = comp.bloques;
+                          return (
+                            <tr key={comp.id} style={{background: cIdx%2===0 ? "var(--surface2)" : "transparent"}}>
+                              {/* MOMENTO */}
+                              <td style={{padding:"3px 4px",textAlign:"center",border:"1px solid var(--border)",borderRadius:5}}>
+                                <button onClick={() => toggleMomento(comp.id)} title="Cambiar momento"
+                                  style={{
+                                    background: isBefore ? "rgba(232,197,71,.12)" : "rgba(80,180,255,.12)",
+                                    border:`1px solid ${isBefore ? "rgba(232,197,71,.35)" : "rgba(80,180,255,.35)"}`,
+                                    color: isBefore ? "var(--gold)" : "#50b4ff",
+                                    borderRadius:4, fontSize:9, padding:"3px 5px",
+                                    cursor:"pointer", fontWeight:700, fontFamily:"'DM Sans'", width:"100%"
+                                  }}>
+                                  {isBefore ? "ANTES" : "DESPUÉS"}
+                                </button>
+                              </td>
+                              {/* ID — click abre picker */}
+                              <td onClick={() => setCompPickerOpen(comp.id)}
+                                style={{padding:"3px 4px",textAlign:"center",
+                                  border:`1px solid ${col}40`,borderRadius:5,background:`${col}0a`,
+                                  cursor:"pointer",width:40}}>
+                                <span style={{fontFamily:"'Bebas Neue'",fontSize:16,color:col,lineHeight:1}}>
+                                  {comp.ejercicio_id || "—"}
+                                </span>
+                              </td>
+                              {/* EJERCICIO */}
+                              <td style={{padding:"3px 6px",border:"1px solid var(--border)",borderRadius:5,minWidth:120}}>
+                                <input
+                                  type="text"
+                                  value={comp.nombre_custom || (ejData ? ejData.nombre : "")}
+                                  placeholder="Nombre del ejercicio"
+                                  onChange={e => _mapComp(comp.id, c => ({...c, nombre_custom: e.target.value}))}
+                                  style={{width:"100%",background:"transparent",border:"none",color:"var(--text)",
+                                    fontSize:11,outline:"none",padding:"2px 0",fontFamily:"'DM Sans'"}}
+                                />
+                              </td>
+                              {/* Bloques */}
+                              {bloques.slice(0, numCompBloques).map((b, bIdx) => {
+                                const hasNota = b.nota && b.nota.trim() !== "";
+                                const hasData = b.pct || b.series || b.reps;
+                                return (
+                                  <td key={bIdx} style={{padding:"2px 3px",textAlign:"center",
+                                    background:"rgba(232,197,71,.04)",
+                                    border:`1px solid ${hasNota ? "var(--muted)" : "rgba(232,197,71,.15)"}`,
+                                    borderRadius:5,position:"relative"}}>
+                                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:0}}>
+                                      <input type="number" className="no-spin"
+                                        value={b.pct ?? ""} placeholder="%"
+                                        onChange={e => updateBloqueComp(comp.id, bIdx, "pct", e.target.value)}
+                                        style={cellInputComp({fontSize:13,color:"var(--gold)"})}/>
+                                      <input type="text" className="no-spin"
+                                        value={b.series ?? ""} placeholder="—"
+                                        onChange={e => updateBloqueComp(comp.id, bIdx, "series", e.target.value)}
+                                        style={cellInputComp()}/>
+                                      <input type="number" className="no-spin"
+                                        value={b.reps ?? ""} placeholder="—"
+                                        onChange={e => updateBloqueComp(comp.id, bIdx, "reps", e.target.value)}
+                                        style={cellInputComp()}/>
+                                      <input type="number" step="0.5" className="no-spin"
+                                        value={calcKgComp(comp.ejercicio_id, b.pct) ?? b.kg ?? ""} readOnly
+                                        style={cellInputComp({color:"var(--muted)",fontSize:12})}/>
+                                    </div>
+                                    <input type="text"
+                                      value={b.nota || ""} placeholder="…"
+                                      onChange={e => updateBloqueComp(comp.id, bIdx, "nota", e.target.value)}
+                                      title="Aclaración"
+                                      style={{
+                                        display:(hasData || hasNota) ? "block" : "none",
+                                        width:"100%", background:"transparent", border:"none",
+                                        borderTop: hasNota ? "1px solid var(--border)" : "none",
+                                        color:"var(--muted)", fontSize:9, textAlign:"center",
+                                        outline:"none", padding:"2px 0 0",
+                                        fontFamily:"'DM Sans'", marginTop:2
+                                      }}/>
+                                  </td>
+                                );
+                              })}
+                              <td style={{border:"none"}}/>
+                              <td style={{padding:0,textAlign:"center",border:"none"}}>
+                                <button onClick={() => deleteComp(comp.id)} title="Eliminar"
+                                  style={{background:"none",border:"none",color:"var(--red)",
+                                    cursor:"pointer",fontSize:12,padding:"2px",opacity:.6}}>×</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
-                  <div style={{marginTop:8,textAlign:"center"}}>
-                    <button onClick={addComp} style={{background:"none",border:"none",cursor:"pointer",color:"var(--gold)",fontSize:12,padding:"6px 12px",fontWeight:600}}>+ Agregar ejercicio</button>
-                  </div>
+                  <button onClick={addComp}
+                    style={{marginTop:8,padding:"6px 16px",borderRadius:8,
+                      border:"1px dashed var(--border)",background:"transparent",
+                      color:"var(--gold)",cursor:"pointer",fontSize:12,
+                      fontFamily:"'DM Sans'",fontWeight:600,width:"100%"}}>
+                    + Agregar ejercicio
+                  </button>
+                </div>
                 </div>
               );
             })()}
@@ -2622,6 +2861,8 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
         const newPct = value === "" ? null : Number(value);
         const autoKg = calcKgBasica(ej.ejercicio_id, newPct);
         ej.bloques[bIdx] = { ...ej.bloques[bIdx], pct: newPct, kg: autoKg };
+      } else if (field === "nota") {
+        ej.bloques[bIdx] = { ...ej.bloques[bIdx], nota: value };
       } else {
         ej.bloques[bIdx] = { ...ej.bloques[bIdx], [field]: value === "" ? null : Number(value) };
       }
@@ -2650,6 +2891,7 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
       return ss;
     });
   };
+
 
   const addEjercicio = () => {
     updateSemanas(ss => {
@@ -2869,7 +3111,7 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                     borderRadius:5,fontSize:10,color:"var(--muted)",fontWeight:700,
                     textTransform:"uppercase",minWidth:100}}>EJERCICIO</th>
                   {Array.from({length: numBloques}).map((_, bIdx) => (
-                    <th key={bIdx} colSpan={4} style={{padding:"3px 4px",
+                    <th key={bIdx} style={{padding:"3px 4px",
                       background:"rgba(232,197,71,.08)",
                       border:"1px solid rgba(232,197,71,.3)",
                       borderRadius:5,textAlign:"center",fontSize:9,color:"var(--gold)",fontWeight:700}}>
@@ -2937,58 +3179,66 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                             fontFamily:"'DM Sans'"}}
                         />
                       </td>
-                      {/* Bloques: % | S | R | Kg */}
-                      {bloques.slice(0, numBloques).map((b, bIdx) => (
-                        <React.Fragment key={bIdx}>
-                          <td style={{padding:"2px 1px",textAlign:"center",
+                      {/* Bloques: % | S | R | Kg + nota */}
+                      {bloques.slice(0, numBloques).map((b, bIdx) => {
+                        const hasNota = b.nota && b.nota.trim() !== "";
+                        const hasData = b.pct || b.series || b.reps;
+                        return (
+                          <td key={bIdx} style={{padding:"2px 3px",textAlign:"center",
                             background:"rgba(232,197,71,.04)",
-                            border:"1px solid rgba(232,197,71,.15)",
-                            borderRadius:"5px 0 0 5px",width:36}}>
-                            <input type="number" className="no-spin"
-                              value={b.pct ?? ""}
-                              placeholder="%"
-                              onChange={e => updateBloque(eIdx, bIdx, "pct", e.target.value)}
-                              style={cellInput({fontSize:13,color:"var(--gold)",width:34})}
-                            />
-                          </td>
-                          <td style={{padding:"2px 1px",textAlign:"center",
-                            border:"1px solid var(--border)",width:30}}>
-                            <input type="text" className="no-spin"
-                              value={b.series ?? ""}
-                              placeholder="—"
-                              onChange={e => {
-                                const raw = e.target.value;
-                                // Allow formats like "2+2" or plain numbers
-                                updateSemanas(ss => {
-                                  const ej2 = ss[semActiva].turnos[turnoActivo].ejercicios[eIdx];
-                                  if (!ej2.bloques) ej2.bloques = Array.from({length: numBloques}, mkBloqueBasica);
-                                  ej2.bloques[bIdx] = { ...ej2.bloques[bIdx], series: raw === "" ? null : (isNaN(Number(raw)) ? raw : Number(raw)) };
-                                  return ss;
-                                });
+                            border:`1px solid ${hasNota ? "var(--muted)" : "rgba(232,197,71,.15)"}`,
+                            borderRadius:5, position:"relative"}}>
+                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:0}}>
+                              <input type="number" className="no-spin"
+                                value={b.pct ?? ""}
+                                placeholder="%"
+                                onChange={e => updateBloque(eIdx, bIdx, "pct", e.target.value)}
+                                style={cellInput({fontSize:13,color:"var(--gold)"})}
+                              />
+                              <input type="text" className="no-spin"
+                                value={b.series ?? ""}
+                                placeholder="—"
+                                onChange={e => {
+                                  const raw = e.target.value;
+                                  updateSemanas(ss => {
+                                    const ej2 = ss[semActiva].turnos[turnoActivo].ejercicios[eIdx];
+                                    if (!ej2.bloques) ej2.bloques = Array.from({length: numBloques}, mkBloqueBasica);
+                                    ej2.bloques[bIdx] = { ...ej2.bloques[bIdx], series: raw === "" ? null : (isNaN(Number(raw)) ? raw : Number(raw)) };
+                                    return ss;
+                                  });
+                                }}
+                                style={cellInput()}
+                              />
+                              <input type="number" className="no-spin"
+                                value={b.reps ?? ""}
+                                placeholder="—"
+                                onChange={e => updateBloque(eIdx, bIdx, "reps", e.target.value)}
+                                style={cellInput()}
+                              />
+                              <input type="number" step="0.5" className="no-spin"
+                                value={calcKgBasica(ej.ejercicio_id, b.pct) ?? b.kg ?? ""}
+                                readOnly
+                                style={cellInput({color:"var(--muted)",fontSize:12})}
+                              />
+                            </div>
+                            <input
+                              type="text"
+                              value={b.nota || ""}
+                              placeholder="…"
+                              onChange={e => updateBloque(eIdx, bIdx, "nota", e.target.value)}
+                              title="Aclaración (ej: 2+2+2 para combinados)"
+                              style={{
+                                display: (hasData || hasNota) ? "block" : "none",
+                                width:"100%", background:"transparent", border:"none",
+                                borderTop: hasNota ? "1px solid var(--border)" : "none",
+                                color:"var(--muted)", fontSize:9, textAlign:"center",
+                                outline:"none", padding:"2px 0 0",
+                                fontFamily:"'DM Sans'", marginTop:2
                               }}
-                              style={cellInput({width:28})}
                             />
                           </td>
-                          <td style={{padding:"2px 1px",textAlign:"center",
-                            border:"1px solid var(--border)",width:30}}>
-                            <input type="number" className="no-spin"
-                              value={b.reps ?? ""}
-                              placeholder="—"
-                              onChange={e => updateBloque(eIdx, bIdx, "reps", e.target.value)}
-                              style={cellInput({width:28})}
-                            />
-                          </td>
-                          <td style={{padding:"2px 1px",textAlign:"center",
-                            border:"1px solid var(--border)",
-                            borderRadius:"0 5px 5px 0",width:40}}>
-                            <input type="number" step="0.5" className="no-spin"
-                              value={calcKgBasica(ej.ejercicio_id, b.pct) ?? b.kg ?? ""}
-                              readOnly
-                              style={cellInput({width:38,color:"var(--muted)",fontSize:12})}
-                            />
-                          </td>
-                        </React.Fragment>
-                      ))}
+                        );
+                      })}
                       {/* Spacer for the "+" column */}
                       <td style={{border:"none"}}/>
                       {/* Actions */}
@@ -5519,6 +5769,11 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
               turnoPctOverrides={turnoPctOverrides} turnoPctManual={turnoPctManual}
               onRequestReset={(label, fn) => setConfirmReset({label, onConfirm: fn})}
               onBeforeChange={(forced)=>{ pushSnap(forced); }}
+              onChangeTurno={(sIdx, tIdx, newTurno) => {
+                const sem = mesoVisto.semanas[sIdx];
+                const ts = [...sem.turnos]; ts[tIdx] = newTurno;
+                updateSemana(sIdx, {...sem, turnos: ts});
+              }}
               repsEdit={repsEdit}   setRepsEdit={setRepsEditRaw}
               manualEdit={manualEdit} setManualEdit={setManualEditRaw}
               cellEdit={cellEdit}   setCellEdit={setCellEditRaw}
@@ -7222,7 +7477,10 @@ function GuardarPlantillaModal({ tipo, dataMeso, dataSemana, dataDistribucion, o
           ejercicios: t.ejercicios.filter(e=>e.ejercicio_id).map(e=>({
             ejercicio_id: e.ejercicio_id, intensidad: e.intensidad,
             tabla: e.tabla, reps_asignadas: e.reps_asignadas || 0
-          }))
+          })),
+          complementarios_before: (t.complementarios_before || []).map(c=>({...c})),
+          complementarios_after:  (t.complementarios_after  || []).map(c=>({...c})),
+          num_bloques_comp: t.num_bloques_comp || 1,
         }))
       }));
       base.volumen_total = dataMeso.volumen_total;
@@ -7875,6 +8133,11 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
                   turnoPctOverrides={turnoPctOverrides} turnoPctManual={turnoPctManual}
                   onRequestReset={(label,fn)=>setConfirmReset({label,onConfirm:fn})}
                   onBeforeChange={(forced)=>pushSnap(forced)}
+                  onChangeTurno={(sIdx, tIdx, newTurno) => {
+                    const sem = form.semanas[sIdx];
+                    const ts = [...sem.turnos]; ts[tIdx] = newTurno;
+                    updateSemana(sIdx, {...sem, turnos: ts});
+                  }}
                   repsEdit={repsEdit}   setRepsEdit={setRepsEditRaw}
                   manualEdit={manualEdit} setManualEdit={setManualEditRaw}
                   cellEdit={cellEdit}   setCellEdit={setCellEditRaw}
@@ -8186,8 +8449,41 @@ function DuplicarPlantillaModal({ plantillas, base, onSave, onClose }) {
 }
 
 
-function SectionHeader({title, count, color="#4db6ac", badge, collapsed, onToggle, children}) {
-  return (
+function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
+  const [busqueda,      setBusqueda]      = useState("");
+  const [editando,      setEditando]      = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showCrear,     setShowCrear]     = useState(false);
+  const [showNueva,     setShowNueva]     = useState(false); // modal selector crear/importar
+  const [duplicando,    setDuplicando]    = useState(null);  // plantilla base para duplicar
+  const [showImportar,  setShowImportar]  = useState(false);
+  // Colapso por sección y nivel
+  const [colapsadoEscuela, setColapsadoEscuela] = useState({});
+  const [colapsadoEscuelaMain, setColapsadoEscuelaMain] = useState(false);
+  const [colapsadoMias,    setColapsadoMias]    = useState(false);
+
+  const escuela = plantillas.filter(p => p.escuela === true || p.escuela === "true");
+  const mias    = plantillas.filter(p => !p.escuela || p.escuela === false || p.escuela === "false");
+
+  const matchBusqueda = (p) => !busqueda
+    || p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    || p.descripcion?.toLowerCase().includes(busqueda.toLowerCase());
+
+  const duplicar = (plt) => { setDuplicando(plt); };
+
+  const CardGrid = ({lista}) => (
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+      {lista.map(plt=>(
+        <PlantillaCard key={plt.id} plt={plt}
+          onOpen={onOpen ? ()=>onOpen(plt) : undefined}
+          onDuplicate={()=>duplicar(plt)}
+          onEdit={()=>setEditando(plt)}
+          onDelete={()=>setConfirmDelete(plt)}/>
+      ))}
+    </div>
+  );
+
+  const SectionHeader = ({title, count, color="#4db6ac", badge, collapsed, onToggle, children}) => (
     <div style={{marginBottom:collapsed?8:20}}>
       <div style={{
         display:"flex",alignItems:"center",gap:10,
@@ -8212,79 +8508,42 @@ function SectionHeader({title, count, color="#4db6ac", badge, collapsed, onToggl
       )}
     </div>
   );
-}
 
-function CardGrid({ lista, onOpen, onDuplicate, onEdit, onDelete }) {
-  return (
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
-      {lista.map(plt=>(
-        <PlantillaCard key={plt.id} plt={plt}
-          onOpen={onOpen ? ()=>onOpen(plt) : undefined}
-          onDuplicate={()=>onDuplicate(plt)}
-          onEdit={()=>onEdit(plt)}
-          onDelete={()=>onDelete(plt)}/>
-      ))}
-    </div>
-  );
-}
-
-function NivelSection({ nivel, pltList, colapsadoEscuela, setColapsadoEscuela, matchBusqueda, onOpen, onDuplicate, onEdit, onDelete }) {
-  const filtradas = pltList.filter(matchBusqueda);
-  if (filtradas.length === 0) return null;
-  const col = colapsadoEscuela[nivel];
-  return (
-    <div style={{marginBottom:12}}>
-      <div style={{
-        display:"flex",alignItems:"center",gap:8,
-        padding:"6px 12px",borderRadius:col?"8px":"8px 8px 0 0",
-        background:"var(--surface2)",border:"1px solid var(--border)",
-        cursor:"pointer",userSelect:"none"
-      }} onClick={()=>setColapsadoEscuela(p=>({...p,[nivel]:!col}))}>
-        <div style={{width:10,height:10,borderRadius:"50%",flexShrink:0,
-          background:ESCUELA_NIVEL_COLOR[nivel]}}/>
-        <span style={{fontFamily:"'Bebas Neue'",fontSize:15,
-          color:ESCUELA_NIVEL_COLOR[nivel],letterSpacing:".04em"}}>
-          {ESCUELA_NIVEL_LABEL[nivel]}
-        </span>
-        <span style={{fontSize:11,color:"var(--muted)",marginLeft:2}}>
-          {filtradas.length} plantilla{filtradas.length!==1?"s":""}
-        </span>
-        <span style={{marginLeft:"auto",color:"var(--muted)",fontSize:13,
-          transform:col?"rotate(-90deg)":"rotate(0deg)",transition:"transform .2s"}}>▾</span>
-      </div>
-      {!col && (
-        <div style={{border:"1px solid var(--border)",borderTop:"none",
-          borderRadius:"0 0 8px 8px",padding:12}}>
-          <CardGrid lista={filtradas} onOpen={onOpen} onDuplicate={onDuplicate} onEdit={onEdit} onDelete={onDelete}/>
+  const NivelSection = ({nivel, pltList}) => {
+    const filtradas = pltList.filter(matchBusqueda);
+    if (filtradas.length === 0) return null;
+    const col = colapsadoEscuela[nivel];
+    return (
+      <div style={{marginBottom:12}}>
+        <div style={{
+          display:"flex",alignItems:"center",gap:8,
+          padding:"6px 12px",borderRadius:col?"8px":"8px 8px 0 0",
+          background:"var(--surface2)",border:"1px solid var(--border)",
+          cursor:"pointer",userSelect:"none"
+        }} onClick={()=>setColapsadoEscuela(p=>({...p,[nivel]:!col}))}>
+          <div style={{
+            width:10,height:10,borderRadius:"50%",flexShrink:0,
+            background:ESCUELA_NIVEL_COLOR[nivel]
+          }}/>
+          <span style={{fontFamily:"'Bebas Neue'",fontSize:15,
+            color:ESCUELA_NIVEL_COLOR[nivel],letterSpacing:".04em"}}>
+            {ESCUELA_NIVEL_LABEL[nivel]}
+          </span>
+          <span style={{fontSize:11,color:"var(--muted)",marginLeft:2}}>
+            {filtradas.length} plantilla{filtradas.length!==1?"s":""}
+          </span>
+          <span style={{marginLeft:"auto",color:"var(--muted)",fontSize:13,
+            transform:col?"rotate(-90deg)":"rotate(0deg)",transition:"transform .2s"}}>▾</span>
         </div>
-      )}
-    </div>
-  );
-}
-
-function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
-  const [busqueda,      setBusqueda]      = useState("");
-  const [editando,      setEditando]      = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [showCrear,     setShowCrear]     = useState(false);
-  const [showNueva,     setShowNueva]     = useState(false);
-  const [duplicando,    setDuplicando]    = useState(null);
-  const [showImportar,  setShowImportar]  = useState(false);
-  const [colapsadoEscuela, setColapsadoEscuela] = useState({});
-  const [colapsadoEscuelaMain, setColapsadoEscuelaMain] = useState(false);
-  const [colapsadoMias,    setColapsadoMias]    = useState(false);
-
-  const escuela = plantillas.filter(p => p.escuela === true || p.escuela === "true");
-  const mias    = plantillas.filter(p => !p.escuela || p.escuela === false || p.escuela === "false");
-
-  const matchBusqueda = (p) => !busqueda
-    || p.nombre.toLowerCase().includes(busqueda.toLowerCase())
-    || p.descripcion?.toLowerCase().includes(busqueda.toLowerCase());
-
-  const handleOpen      = onOpen ? (plt) => onOpen(plt) : null;
-  const handleDuplicate = (plt) => setDuplicando(plt);
-  const handleEdit      = (plt) => setEditando(plt);
-  const handleDelete    = (plt) => setConfirmDelete(plt);
+        {!col && (
+          <div style={{border:"1px solid var(--border)",borderTop:"none",
+            borderRadius:"0 0 8px 8px",padding:12}}>
+            <CardGrid lista={filtradas}/>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -8413,14 +8672,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
               onToggle={()=>setColapsadoEscuelaMain(v=>!v)}>
               {ESCUELA_NIVELES.map(n => (
                 <NivelSection key={n} nivel={n}
-                  pltList={escuela.filter(p => p.escuela_nivel === n)}
-                  colapsadoEscuela={colapsadoEscuela}
-                  setColapsadoEscuela={setColapsadoEscuela}
-                  matchBusqueda={matchBusqueda}
-                  onOpen={handleOpen}
-                  onDuplicate={handleDuplicate}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}/>
+                  pltList={escuela.filter(p => p.escuela_nivel === n)}/>
               ))}
               {/* Plantillas de escuela sin nivel asignado */}
               {(() => {
@@ -8431,7 +8683,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
                       fontWeight:600,textTransform:"uppercase",letterSpacing:".06em"}}>
                       Sin nivel asignado
                     </div>
-                    <CardGrid lista={sinNivel} onOpen={handleOpen} onDuplicate={handleDuplicate} onEdit={handleEdit} onDelete={handleDelete}/>
+                    <CardGrid lista={sinNivel}/>
                   </div>
                 ) : null;
               })()}
@@ -8446,7 +8698,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
               color="var(--gold)"
               collapsed={colapsadoMias}
               onToggle={()=>setColapsadoMias(v=>!v)}>
-              <CardGrid lista={mias.filter(matchBusqueda)} onOpen={handleOpen} onDuplicate={handleDuplicate} onEdit={handleEdit} onDelete={handleDelete}/>
+              <CardGrid lista={mias.filter(matchBusqueda)}/>
             </SectionHeader>
           )}
 
@@ -8562,7 +8814,7 @@ function PlantillaPicker({ plantillas, tipo="meso", onSelect, onClose }) {
 
   const [selected, setSelected] = useState(null);
   const [opts, setOpts] = useState({
-    irm:true, volumen:true, reps:true, celdas:true, grupos:true
+    irm:true, volumen:true, reps:true, celdas:true, grupos:true, complementarios:true
   });
   const toggleOpt = (k) => setOpts(o=>({...o,[k]:!o[k]}));
 
@@ -8570,6 +8822,7 @@ function PlantillaPicker({ plantillas, tipo="meso", onSelect, onClose }) {
   const hasReps    = selected?.semanas?.some(s=>s.turnos.some(t=>t.ejercicios.some(e=>e.reps_asignadas>0)));
   const hasCeldas  = selected?.overrides && Object.keys(selected.overrides.cellEdit||{}).length > 0;
   const hasGrupos  = selected?.overrides && Object.keys(selected.overrides.semPcts||{}).length > 0;
+  const hasComps   = selected?.semanas?.some(s=>s.turnos.some(t=>(t.complementarios_before?.length||0)+(t.complementarios_after?.length||0)>0));
 
   if (selected) {
     return (
@@ -8585,8 +8838,9 @@ function PlantillaPicker({ plantillas, tipo="meso", onSelect, onClose }) {
             {k:"volumen",    label:"Volumen total y % semanal", desc:`${selected.volumen_total||"?"} reps`, show:!!selected.volumen_total},
             {k:"irm",        label:"IRM del atleta", desc:`Arr: ${selected.irm_arranque||"—"} / Env: ${selected.irm_envion||"—"}`, show:!!hasIrm},
             {k:"reps",       label:"Reps asignadas", desc:"Reps concretas de cada ejercicio", show:!!hasReps},
-            {k:"celdas",     label:"Overrides de celdas", desc:"Series/Reps/Kg editados manualmente", show:!!hasCeldas},
-            {k:"grupos",     label:"Distribución de grupos", desc:"% por semana y turno", show:!!hasGrupos},
+            {k:"celdas",          label:"Overrides de celdas",        desc:"Series/Reps/Kg editados manualmente", show:!!hasCeldas},
+            {k:"grupos",          label:"Distribución de grupos",      desc:"% por semana y turno",               show:!!hasGrupos},
+            {k:"complementarios", label:"Ejercicios complementarios",  desc:"Ejercicios antes/después de cada turno", show:!!hasComps},
           ].map(({k,label,desc,always,show=true})=>(
             show || always ? (
               <label key={k} style={{display:"flex",alignItems:"flex-start",gap:10,cursor:always?"default":"pointer",
