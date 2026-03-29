@@ -2462,6 +2462,76 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                 </div>
               );
             })()}
+
+            {/* TABLA DE COMPLEMENTARIOS */}
+            {(() => {
+              const turno = semanas[semActiva]?.turnos[turnoActivo];
+              if (!turno) return null;
+
+              const compsAntesCount = turno.complementarios_before?.filter(c => c.ejercicio_id)?.length || 0;
+              const compsAfterCount = turno.complementarios_after?.filter(c => c.ejercicio_id)?.length || 0;
+
+              if (compsAntesCount === 0 && compsAfterCount === 0) return null;
+
+              const renderCompRow = (comp, label) => {
+                const ejData = normativos.find(e => e.id === Number(comp.ejercicio_id));
+                if (!ejData) return null;
+
+                const iRMAtleta = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+                const kgBase = (ejData.pct_base && iRMAtleta) ? iRMAtleta * ejData.pct_base / 100 : null;
+                const kgIntens = kgBase ? Math.round(kgBase * comp.intensidad / 100) : null;
+
+                return (
+                  <tr key={comp.id} style={{borderBottom:"1px solid var(--border)"}}>
+                    <td style={{padding:"8px 12px",fontSize:12,color:"var(--text)"}}>{label}</td>
+                    <td style={{padding:"8px 12px",fontSize:12,color:"var(--text)"}}>{ejData.nombre}</td>
+                    <td style={{padding:"8px 12px",fontSize:12,textAlign:"center",color:"var(--gold)"}}>{comp.intensidad}%</td>
+                    <td style={{padding:"8px 12px",fontSize:12,textAlign:"center",color:"var(--blue)"}}>T{comp.tabla}</td>
+                    <td style={{padding:"8px 12px",fontSize:12,textAlign:"center",color:"var(--green)"}}>{comp.reps_asignadas}</td>
+                    <td style={{padding:"8px 12px",fontSize:12,textAlign:"center",color:"var(--gold)"}}>{kgIntens}kg</td>
+                    <td style={{padding:"8px 12px",fontSize:12,color:"var(--muted)"}}>{comp.aclaracion || "—"}</td>
+                  </tr>
+                );
+              };
+
+              return (
+                <div style={{marginTop:20, borderTop:"1px solid var(--border)", paddingTop:16}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:12,textTransform:"uppercase",letterSpacing:".08em"}}>
+                    Ejercicios Complementarios
+                  </div>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead>
+                      <tr style={{background:"var(--surface2)",borderBottom:"2px solid var(--border)"}}>
+                        <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Posición</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Ejercicio</th>
+                        <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Int %</th>
+                        <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Tabla</th>
+                        <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Reps</th>
+                        <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Kg</th>
+                        <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Aclaración</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {compsAntesCount > 0 && (
+                        <>
+                          {turno.complementarios_before.filter(c => c.ejercicio_id).map((comp, idx) =>
+                            renderCompRow(comp, `ANTES ${idx+1}`)
+                          )}
+                        </>
+                      )}
+                      {compsAfterCount > 0 && (
+                        <>
+                          {turno.complementarios_after.filter(c => c.ejercicio_id).map((comp, idx) =>
+                            renderCompRow(comp, `DESPUÉS ${idx+1}`)
+                          )}
+                        </>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+
             </div>
           )}
         </div>
