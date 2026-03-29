@@ -2498,61 +2498,103 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                 const newComp = {id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0,aclaracion:""};
                 _setTurno({...turno, complementarios_after: [...(turno.complementarios_after || []), newComp]});
               };
+              const moveComp = (compId) => {
+                const isBefore = turno.complementarios_before?.some(c => c.id === compId);
+                if (isBefore) {
+                  const comp = turno.complementarios_before.find(c => c.id === compId);
+                  _setTurno({...turno,
+                    complementarios_before: turno.complementarios_before.filter(c => c.id !== compId),
+                    complementarios_after:  [...(turno.complementarios_after  || []), comp]
+                  });
+                } else {
+                  const comp = (turno.complementarios_after || []).find(c => c.id === compId);
+                  _setTurno({...turno,
+                    complementarios_after:  (turno.complementarios_after || []).filter(c => c.id !== compId),
+                    complementarios_before: [...(turno.complementarios_before || []), comp]
+                  });
+                }
+              };
+
+              const thStyle = {padding:"5px 6px",background:"var(--surface2)",border:"1px solid var(--border)",
+                borderRadius:5,textAlign:"center",fontSize:10,color:"var(--muted)",fontWeight:700,textTransform:"uppercase"};
+              const tdStyle = (extra={}) => ({padding:"2px 3px",border:"1px solid var(--border)",borderRadius:5,textAlign:"center",...extra});
+              const inpStyle = (extra={}) => ({width:"100%",background:"transparent",border:"none",
+                color:"var(--text)",fontSize:12,textAlign:"center",outline:"none",fontFamily:"'DM Sans'",...extra});
 
               return (
                 <div style={{marginTop:20, borderTop:"1px solid var(--border)", paddingTop:16}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:12,textTransform:"uppercase",letterSpacing:".08em"}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:10,textTransform:"uppercase",letterSpacing:".08em"}}>
                     Ejercicios Complementarios
                   </div>
                   <div style={{overflowX:"auto"}}>
-                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:"1000px"}}>
+                    <table className="planilla-tabla" style={{borderCollapse:"separate",borderSpacing:"2px 2px",width:"100%"}}>
                       <thead>
-                        <tr style={{background:"var(--surface2)",borderBottom:"2px solid var(--border)"}}>
-                          <th style={{padding:"8px 6px",width:"30px",textAlign:"center",color:"var(--muted)",fontSize:11}}></th>
-                          <th style={{padding:"8px 6px",textAlign:"left",color:"var(--muted)",fontSize:11,minWidth:"400px"}}>EJERCICIO</th>
-                          <th style={{padding:"8px 6px",width:"50px",textAlign:"center",color:"var(--muted)",fontSize:11}}>%</th>
-                          <th style={{padding:"8px 6px",width:"40px",textAlign:"center",color:"var(--muted)",fontSize:11}}>S</th>
-                          <th style={{padding:"8px 6px",width:"40px",textAlign:"center",color:"var(--muted)",fontSize:11}}>R</th>
-                          <th style={{padding:"8px 6px",width:"50px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Kg</th>
-                          <th style={{padding:"8px 6px",width:"30px",textAlign:"center",color:"var(--muted)",fontSize:11}}></th>
+                        <tr>
+                          <th style={{...thStyle,width:70}}>MOMENTO</th>
+                          <th style={{...thStyle,textAlign:"left",minWidth:180}}>EJERCICIO</th>
+                          <th style={{...thStyle,width:44}}>%</th>
+                          <th style={{...thStyle,width:34}}>TBL</th>
+                          <th style={{...thStyle,width:34}}>R</th>
+                          <th style={{...thStyle,width:44}}>Kg</th>
+                          <th style={{...thStyle,width:24,border:"none",background:"transparent"}}/>
                         </tr>
                       </thead>
                       <tbody>
                         {allComps.length === 0 ? (
                           <tr>
-                            <td colSpan="7" style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12}}>
+                            <td colSpan="7" style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12,border:"none"}}>
                               Sin complementarios. Haz click en "+ Agregar ejercicio" para añadir uno.
                             </td>
                           </tr>
                         ) : (
-                          allComps.map((comp, idx) => {
+                          allComps.map((comp) => {
+                            const isBefore = turno.complementarios_before?.some(c => c.id === comp.id);
                             const ejData = normativos.find(e => e.id === Number(comp.ejercicio_id));
                             const iRMAtleta = ejData ? (ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env)) : 0;
                             const kgBase = ejData && ejData.pct_base && iRMAtleta ? iRMAtleta * ejData.pct_base / 100 : 0;
                             const kgIntens = kgBase ? Math.round(kgBase * comp.intensidad / 100) : 0;
 
                             return (
-                              <tr key={comp.id} style={{borderBottom:"1px solid var(--border)"}}>
-                                <td style={{padding:"6px 4px",textAlign:"center",color:"var(--muted)",fontSize:11}}>{idx+1}</td>
-                                <td style={{padding:"6px 4px"}}>
-                                  <div style={{cursor:"pointer",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px 8px",color:"var(--text)",fontSize:12}}>
-                                    <EjBuscador value={comp.ejercicio_id} onChange={id=>updateComp(comp.id,{ejercicio_id:id})}/>
-                                  </div>
+                              <tr key={comp.id}>
+                                <td style={tdStyle()}>
+                                  <button onClick={()=>moveComp(comp.id)} title="Cambiar momento" style={{
+                                    background: isBefore ? "rgba(232,197,71,.12)" : "rgba(80,180,255,.12)",
+                                    border: `1px solid ${isBefore ? "rgba(232,197,71,.35)" : "rgba(80,180,255,.35)"}`,
+                                    color: isBefore ? "var(--gold)" : "#50b4ff",
+                                    borderRadius:4, fontSize:9, padding:"3px 6px",
+                                    cursor:"pointer", fontWeight:700, fontFamily:"'DM Sans'", width:"100%"
+                                  }}>
+                                    {isBefore ? "ANTES" : "DESPUÉS"}
+                                  </button>
                                 </td>
-                                <td style={{padding:"6px 4px"}}>
-                                  <input type="number" min="40" max="110" value={comp.intensidad} onChange={e=>updateComp(comp.id,{intensidad:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--gold)",textAlign:"center",fontSize:12}}/>
+                                <td style={tdStyle({textAlign:"left",padding:"2px 6px"})}>
+                                  <EjBuscador value={comp.ejercicio_id} onChange={id=>updateComp(comp.id,{ejercicio_id:id})}/>
                                 </td>
-                                <td style={{padding:"6px 4px"}}>
-                                  <select value={comp.tabla} onChange={e=>updateComp(comp.id,{tabla:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--text)",fontSize:12}}>
+                                <td style={tdStyle({background:"rgba(232,197,71,.04)",border:"1px solid rgba(232,197,71,.15)"})}>
+                                  <input type="number" className="no-spin" min="40" max="110"
+                                    value={comp.intensidad}
+                                    onChange={e=>updateComp(comp.id,{intensidad:Number(e.target.value)})}
+                                    style={inpStyle({color:"var(--gold)",fontSize:13})}/>
+                                </td>
+                                <td style={tdStyle()}>
+                                  <select value={comp.tabla} onChange={e=>updateComp(comp.id,{tabla:Number(e.target.value)})}
+                                    style={inpStyle({cursor:"pointer"})}>
                                     <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option>
                                   </select>
                                 </td>
-                                <td style={{padding:"6px 4px"}}>
-                                  <input type="number" min="0" value={comp.reps_asignadas} onChange={e=>updateComp(comp.id,{reps_asignadas:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--green)",textAlign:"center",fontSize:12}}/>
+                                <td style={tdStyle()}>
+                                  <input type="number" className="no-spin" min="0"
+                                    value={comp.reps_asignadas}
+                                    onChange={e=>updateComp(comp.id,{reps_asignadas:Number(e.target.value)})}
+                                    style={inpStyle()}/>
                                 </td>
-                                <td style={{padding:"6px 4px",textAlign:"center",color:"var(--gold)",fontSize:12,fontWeight:600}}>{kgIntens}</td>
-                                <td style={{padding:"6px 4px",textAlign:"center"}}>
-                                  <button onClick={()=>deleteComp(comp.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:14,padding:"2px 4px"}}>✕</button>
+                                <td style={tdStyle({color:"var(--muted)",fontSize:12})}>
+                                  {kgIntens || "—"}
+                                </td>
+                                <td style={{border:"none",padding:"0 2px",textAlign:"center"}}>
+                                  <button onClick={()=>deleteComp(comp.id)}
+                                    style={{background:"none",border:"none",cursor:"pointer",
+                                      color:"var(--red)",fontSize:13,padding:"2px",opacity:.7}}>×</button>
                                 </td>
                               </tr>
                             );
@@ -2561,9 +2603,13 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                       </tbody>
                     </table>
                   </div>
-                  <div style={{marginTop:8,textAlign:"center"}}>
-                    <button onClick={addComp} style={{background:"none",border:"none",cursor:"pointer",color:"var(--gold)",fontSize:12,padding:"6px 12px",fontWeight:600}}>+ Agregar ejercicio</button>
-                  </div>
+                  <button onClick={addComp}
+                    style={{marginTop:8,padding:"6px 16px",borderRadius:8,
+                      border:"1px dashed var(--border)",background:"transparent",
+                      color:"var(--gold)",cursor:"pointer",fontSize:12,
+                      fontFamily:"'DM Sans'",fontWeight:600,width:"100%"}}>
+                    + Agregar ejercicio
+                  </button>
                 </div>
               );
             })()}
