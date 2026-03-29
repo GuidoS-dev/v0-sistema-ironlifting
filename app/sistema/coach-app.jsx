@@ -3131,6 +3131,10 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                       </div>
                     </th>
                   ))}
+                  <th style={{padding:"3px 4px",background:"rgba(232,197,71,.08)",border:"1px solid rgba(232,197,71,.3)",borderRadius:5,textAlign:"center",fontSize:9,color:"var(--gold)",fontWeight:700}}>VOL<br/>REPs</th>
+                  <th style={{padding:"3px 4px",background:"rgba(71,180,232,.08)",border:"1px solid rgba(71,180,232,.3)",borderRadius:5,textAlign:"center",fontSize:9,color:"var(--blue)",fontWeight:700}}>VOL<br/>Kg</th>
+                  <th style={{padding:"3px 4px",background:"rgba(71,232,160,.05)",border:"1px solid rgba(71,232,160,.2)",borderRadius:5,textAlign:"center",fontSize:9,color:"var(--green)",fontWeight:700}}>Peso<br/>Medio</th>
+                  <th style={{padding:"3px 4px",background:"rgba(155,135,232,.05)",border:"1px solid rgba(155,135,232,.2)",borderRadius:5,textAlign:"center",fontSize:9,color:"#9b87e8",fontWeight:700}}>Int<br/>Media</th>
                   <th style={{padding:"3px 4px",background:"var(--surface2)",border:"1px dashed var(--border)",
                     borderRadius:5,width:30}}>
                     <button onClick={addBloqueCol}
@@ -3239,6 +3243,53 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                           </td>
                         );
                       })}
+                      {/* Stats: VOL REPs, VOL Kg, Peso Medio, Int Media */}
+                      {(() => {
+                        let volReps = 0, volKg = 0;
+                        (bloques || []).slice(0, numBloques).forEach(b => {
+                          if (!b.series && !b.reps) return;
+                          const s = typeof b.series === 'string' && b.series.includes('+')
+                            ? b.series.split('+').reduce((a, v) => a + Number(v), 0)
+                            : Number(b.series) || 0;
+                          const r = Number(b.reps) || 0;
+                          const kg = Number(calcKgBasica(ej.ejercicio_id, b.pct) ?? b.kg ?? 0);
+                          volReps += s * r;
+                          volKg += s * r * kg;
+                        });
+                        const pesoMedio = volReps > 0 ? Math.round(volKg / volReps * 2) / 2 : null;
+                        let intMedia = null;
+                        if (volReps > 0 && volKg > 0 && ejData && ejData.pct_base) {
+                          const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+                          if (irm) {
+                            const kgBase = irm * ejData.pct_base / 100;
+                            intMedia = Math.round((volKg / volReps) / kgBase * 100);
+                          }
+                        }
+                        return (
+                          <>
+                            <td style={{padding:"5px 6px",textAlign:"center",background:"rgba(232,197,71,.06)",border:"1px solid rgba(232,197,71,.2)",borderRadius:5}}>
+                              <div style={{fontFamily:"'Bebas Neue'",fontSize:16,color:"var(--gold)",lineHeight:1}}>
+                                {volReps > 0 ? volReps : "—"}
+                              </div>
+                            </td>
+                            <td style={{padding:"5px 6px",textAlign:"center",background:"rgba(71,180,232,.06)",border:"1px solid rgba(71,180,232,.2)",borderRadius:5}}>
+                              <div style={{fontFamily:"'Bebas Neue'",fontSize:16,color:"var(--blue)",lineHeight:1}}>
+                                {volKg > 0 ? (Number.isInteger(volKg) ? volKg : volKg.toFixed(1)) : "—"}
+                              </div>
+                            </td>
+                            <td style={{padding:"5px 6px",textAlign:"center",background:"rgba(71,232,160,.05)",border:"1px solid rgba(71,232,160,.2)",borderRadius:5}}>
+                              <div style={{fontFamily:"'Bebas Neue'",fontSize:16,color:"var(--green)",lineHeight:1}}>
+                                {pesoMedio !== null ? (pesoMedio % 1 === 0 ? pesoMedio : pesoMedio.toFixed(1)) : "—"}
+                              </div>
+                            </td>
+                            <td style={{padding:"5px 6px",textAlign:"center",background:"rgba(155,135,232,.05)",border:"1px solid rgba(155,135,232,.2)",borderRadius:5}}>
+                              <div style={{fontFamily:"'Bebas Neue'",fontSize:16,color:"#9b87e8",lineHeight:1}}>
+                                {intMedia !== null ? intMedia + "%" : "—"}
+                              </div>
+                            </td>
+                          </>
+                        );
+                      })()}
                       {/* Spacer for the "+" column */}
                       <td style={{border:"none"}}/>
                       {/* Actions */}
@@ -3302,28 +3353,39 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
           {(() => {
             const ejsConDatos = ejs.filter(e => e.ejercicio_id);
             if (ejsConDatos.length === 0) return null;
-            let totalReps = 0;
+            let totalReps = 0, totalKg = 0;
             ejsConDatos.forEach(e => {
-              (e.bloques || []).forEach(b => {
-                if (b.reps && b.series) {
-                  const s = typeof b.series === 'string' && b.series.includes('+')
-                    ? b.series.split('+').reduce((a, v) => a + Number(v), 0)
-                    : Number(b.series) || 0;
-                  totalReps += s * (Number(b.reps) || 0);
-                }
+              const eData = normativos.find(n => n.id === Number(e.ejercicio_id));
+              (e.bloques || []).slice(0, numBloques).forEach(b => {
+                if (!b.series && !b.reps) return;
+                const s = typeof b.series === 'string' && b.series.includes('+')
+                  ? b.series.split('+').reduce((a, v) => a + Number(v), 0)
+                  : Number(b.series) || 0;
+                const r = Number(b.reps) || 0;
+                const kg = Number(calcKgBasica(e.ejercicio_id, b.pct) ?? b.kg ?? 0);
+                totalReps += s * r;
+                totalKg += s * r * kg;
               });
             });
+            const pesoMedioTotal = totalReps > 0 ? Math.round(totalKg / totalReps * 2) / 2 : null;
+            const metrics = [
+              { label:"VOL REPs", value: totalReps > 0 ? totalReps : null, color:"var(--gold)" },
+              { label:"VOL Kg",   value: totalKg > 0 ? (Number.isInteger(totalKg) ? totalKg : totalKg.toFixed(1)) : null, color:"var(--blue)" },
+              { label:"Peso Medio", value: pesoMedioTotal !== null ? (pesoMedioTotal % 1 === 0 ? pesoMedioTotal : pesoMedioTotal.toFixed(1)) : null, color:"var(--green)" },
+            ];
             return (
-              <div style={{marginTop:12,display:"flex",gap:16,flexWrap:"wrap",
-                padding:"8px 12px",background:"var(--surface2)",borderRadius:8}}>
-                <div style={{fontSize:11,color:"var(--muted)"}}>
+              <div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                <div style={{fontSize:11,color:"var(--muted)",padding:"6px 10px",background:"var(--surface2)",borderRadius:8}}>
                   Ejercicios: <span style={{color:"var(--gold)",fontWeight:700}}>{ejsConDatos.length}</span>
                 </div>
-                {totalReps > 0 && (
-                  <div style={{fontSize:11,color:"var(--muted)"}}>
-                    Total reps turno: <span style={{color:"var(--gold)",fontWeight:700}}>{totalReps}</span>
+                {metrics.map(m => m.value !== null && (
+                  <div key={m.label} style={{padding:"4px 10px",borderRadius:8,
+                    background:"var(--surface2)",border:`1px solid ${m.color}30`,
+                    display:"flex",flexDirection:"column",alignItems:"center",minWidth:60}}>
+                    <div style={{fontSize:9,color:"var(--muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:".04em"}}>{m.label}</div>
+                    <div style={{fontFamily:"'Bebas Neue'",fontSize:18,color:m.color,lineHeight:1}}>{m.value}</div>
                   </div>
-                )}
+                ))}
               </div>
             );
           })()}
