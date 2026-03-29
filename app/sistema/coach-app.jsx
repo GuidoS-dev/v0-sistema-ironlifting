@@ -371,8 +371,8 @@ const mkSemanas = () => Array.from({length:4},(_,i)=>({
 }));
 
 // ── Escuela Básica helpers ──────────────────────────────────────────────────
-const mkBloqueBasica = () => ({ pct: null, series: null, reps: null, kg: null });
-const mkEjBasica = (n = 3) => ({ id: mkId(), ejercicio_id: null, nombre_custom: "", nota: "", bloques: Array.from({length: n}, mkBloqueBasica) });
+const mkBloqueBasica = () => ({ pct: null, series: null, reps: null, kg: null, nota: "" });
+const mkEjBasica = (n = 3) => ({ id: mkId(), ejercicio_id: null, nombre_custom: "", bloques: Array.from({length: n}, mkBloqueBasica) });
 const mkTurnosBasica = (n = 3) => Array.from({length:3},(_,i)=>({
   id:mkId(), numero:i+1, dia:"", momento:"", ejercicios: Array.from({length:6}, () => mkEjBasica(n))
 }));
@@ -2622,6 +2622,8 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
         const newPct = value === "" ? null : Number(value);
         const autoKg = calcKgBasica(ej.ejercicio_id, newPct);
         ej.bloques[bIdx] = { ...ej.bloques[bIdx], pct: newPct, kg: autoKg };
+      } else if (field === "nota") {
+        ej.bloques[bIdx] = { ...ej.bloques[bIdx], nota: value };
       } else {
         ej.bloques[bIdx] = { ...ej.bloques[bIdx], [field]: value === "" ? null : Number(value) };
       }
@@ -2651,12 +2653,6 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
     });
   };
 
-  const setNotaEj = (ejIdx, value) => {
-    updateSemanas(ss => {
-      ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx].nota = value;
-      return ss;
-    });
-  };
 
   const addEjercicio = () => {
     updateSemanas(ss => {
@@ -2876,7 +2872,7 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                     borderRadius:5,fontSize:10,color:"var(--muted)",fontWeight:700,
                     textTransform:"uppercase",minWidth:100}}>EJERCICIO</th>
                   {Array.from({length: numBloques}).map((_, bIdx) => (
-                    <th key={bIdx} colSpan={4} style={{padding:"3px 4px",
+                    <th key={bIdx} style={{padding:"3px 4px",
                       background:"rgba(232,197,71,.08)",
                       border:"1px solid rgba(232,197,71,.3)",
                       borderRadius:5,textAlign:"center",fontSize:9,color:"var(--gold)",fontWeight:700}}>
@@ -2914,8 +2910,7 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                   const displayName = ej.nombre_custom || ejData?.nombre || "";
 
                   return (
-                    <React.Fragment key={ej.id}>
-                    <tr style={{background: eIdx%2===0 ? "var(--surface2)" : "transparent"}}>
+                    <tr key={ej.id} style={{background: eIdx%2===0 ? "var(--surface2)" : "transparent"}}>
                       {/* REF — input numérico */}
                       <td style={{padding:"3px 4px",textAlign:"center",
                         border:`1px solid ${col}40`,borderRadius:5,
@@ -2945,58 +2940,66 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                             fontFamily:"'DM Sans'"}}
                         />
                       </td>
-                      {/* Bloques: % | S | R | Kg */}
-                      {bloques.slice(0, numBloques).map((b, bIdx) => (
-                        <React.Fragment key={bIdx}>
-                          <td style={{padding:"2px 1px",textAlign:"center",
+                      {/* Bloques: % | S | R | Kg + nota */}
+                      {bloques.slice(0, numBloques).map((b, bIdx) => {
+                        const hasNota = b.nota && b.nota.trim() !== "";
+                        const hasData = b.pct || b.series || b.reps;
+                        return (
+                          <td key={bIdx} style={{padding:"2px 3px",textAlign:"center",
                             background:"rgba(232,197,71,.04)",
-                            border:"1px solid rgba(232,197,71,.15)",
-                            borderRadius:"5px 0 0 5px",width:36}}>
-                            <input type="number" className="no-spin"
-                              value={b.pct ?? ""}
-                              placeholder="%"
-                              onChange={e => updateBloque(eIdx, bIdx, "pct", e.target.value)}
-                              style={cellInput({fontSize:13,color:"var(--gold)",width:34})}
-                            />
-                          </td>
-                          <td style={{padding:"2px 1px",textAlign:"center",
-                            border:"1px solid var(--border)",width:30}}>
-                            <input type="text" className="no-spin"
-                              value={b.series ?? ""}
-                              placeholder="—"
-                              onChange={e => {
-                                const raw = e.target.value;
-                                // Allow formats like "2+2" or plain numbers
-                                updateSemanas(ss => {
-                                  const ej2 = ss[semActiva].turnos[turnoActivo].ejercicios[eIdx];
-                                  if (!ej2.bloques) ej2.bloques = Array.from({length: numBloques}, mkBloqueBasica);
-                                  ej2.bloques[bIdx] = { ...ej2.bloques[bIdx], series: raw === "" ? null : (isNaN(Number(raw)) ? raw : Number(raw)) };
-                                  return ss;
-                                });
+                            border:`1px solid ${hasNota ? "var(--muted)" : "rgba(232,197,71,.15)"}`,
+                            borderRadius:5, position:"relative"}}>
+                            <div style={{display:"grid",gridTemplateColumns:"36px 30px 30px 40px",gap:0}}>
+                              <input type="number" className="no-spin"
+                                value={b.pct ?? ""}
+                                placeholder="%"
+                                onChange={e => updateBloque(eIdx, bIdx, "pct", e.target.value)}
+                                style={cellInput({fontSize:13,color:"var(--gold)",width:34})}
+                              />
+                              <input type="text" className="no-spin"
+                                value={b.series ?? ""}
+                                placeholder="—"
+                                onChange={e => {
+                                  const raw = e.target.value;
+                                  updateSemanas(ss => {
+                                    const ej2 = ss[semActiva].turnos[turnoActivo].ejercicios[eIdx];
+                                    if (!ej2.bloques) ej2.bloques = Array.from({length: numBloques}, mkBloqueBasica);
+                                    ej2.bloques[bIdx] = { ...ej2.bloques[bIdx], series: raw === "" ? null : (isNaN(Number(raw)) ? raw : Number(raw)) };
+                                    return ss;
+                                  });
+                                }}
+                                style={cellInput({width:28})}
+                              />
+                              <input type="number" className="no-spin"
+                                value={b.reps ?? ""}
+                                placeholder="—"
+                                onChange={e => updateBloque(eIdx, bIdx, "reps", e.target.value)}
+                                style={cellInput({width:28})}
+                              />
+                              <input type="number" step="0.5" className="no-spin"
+                                value={calcKgBasica(ej.ejercicio_id, b.pct) ?? b.kg ?? ""}
+                                readOnly
+                                style={cellInput({width:38,color:"var(--muted)",fontSize:12})}
+                              />
+                            </div>
+                            <input
+                              type="text"
+                              value={b.nota || ""}
+                              placeholder="…"
+                              onChange={e => updateBloque(eIdx, bIdx, "nota", e.target.value)}
+                              title="Aclaración (ej: 2+2+2 para combinados)"
+                              style={{
+                                display: (hasData || hasNota) ? "block" : "none",
+                                width:"100%", background:"transparent", border:"none",
+                                borderTop: hasNota ? "1px solid var(--border)" : "none",
+                                color:"var(--muted)", fontSize:9, textAlign:"center",
+                                outline:"none", padding:"2px 0 0",
+                                fontFamily:"'DM Sans'", marginTop:2
                               }}
-                              style={cellInput({width:28})}
                             />
                           </td>
-                          <td style={{padding:"2px 1px",textAlign:"center",
-                            border:"1px solid var(--border)",width:30}}>
-                            <input type="number" className="no-spin"
-                              value={b.reps ?? ""}
-                              placeholder="—"
-                              onChange={e => updateBloque(eIdx, bIdx, "reps", e.target.value)}
-                              style={cellInput({width:28})}
-                            />
-                          </td>
-                          <td style={{padding:"2px 1px",textAlign:"center",
-                            border:"1px solid var(--border)",
-                            borderRadius:"0 5px 5px 0",width:40}}>
-                            <input type="number" step="0.5" className="no-spin"
-                              value={calcKgBasica(ej.ejercicio_id, b.pct) ?? b.kg ?? ""}
-                              readOnly
-                              style={cellInput({width:38,color:"var(--muted)",fontSize:12})}
-                            />
-                          </td>
-                        </React.Fragment>
-                      ))}
+                        );
+                      })}
                       {/* Spacer for the "+" column */}
                       <td style={{border:"none"}}/>
                       {/* Actions */}
@@ -3018,29 +3021,6 @@ function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm
                         </div>
                       </td>
                     </tr>
-                    {/* Fila de nota/aclaración */}
-                    <tr key={`nota-${ej.id}`} style={{background: eIdx%2===0 ? "var(--surface2)" : "transparent"}}>
-                      <td style={{border:"none",padding:0}}/>
-                      <td colSpan={4 * numBloques + 3} style={{padding:"0 4px 3px",border:"none"}}>
-                        <input
-                          type="text"
-                          value={ej.nota || ""}
-                          placeholder="Aclaración…"
-                          onChange={e => setNotaEj(eIdx, e.target.value)}
-                          title="Aclaración (ej: 2+2+2 para combinados)"
-                          style={{
-                            display: "block", width:"100%", background:"transparent",
-                            border:"none",
-                            borderTop: ej.nota ? "1px solid var(--border)" : "none",
-                            color:"var(--muted)", fontSize:9, textAlign:"center",
-                            outline:"none", padding:"2px 0 0",
-                            fontFamily:"'DM Sans'", marginTop:2
-                          }}
-                        />
-                      </td>
-                      <td style={{border:"none",padding:0}}/>
-                    </tr>
-                    </React.Fragment>
                   );
                 })}
               </tbody>
