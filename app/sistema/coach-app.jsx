@@ -10014,7 +10014,10 @@ function CoachApp({ session, profile, onLogout }) {
         ...s,
         turnos: (s.turnos||[]).map(t => t ? ({
           ...t,
-          ejercicios: (t.ejercicios||[]).filter(Boolean)
+          ejercicios: (t.ejercicios||[]).filter(Boolean),
+          // Migración: inicializar complementarios si no existen
+          complementarios_before: t.complementarios_before || [],
+          complementarios_after: t.complementarios_after || []
         }) : t)
       }) : s)
     }) : m);
