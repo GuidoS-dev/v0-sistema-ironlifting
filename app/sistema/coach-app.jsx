@@ -2463,33 +2463,39 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
               );
             })()}
 
-            {/* TABLA DE COMPLEMENTARIOS */}
+            {/* TABLA DE COMPLEMENTARIOS EDITABLE */}
             {(() => {
               const turno = semanas[semActiva]?.turnos[turnoActivo];
               if (!turno) return null;
 
-              const compsAntesCount = turno.complementarios_before?.filter(c => c.ejercicio_id)?.length || 0;
-              const compsAfterCount = turno.complementarios_after?.filter(c => c.ejercicio_id)?.length || 0;
-
-              const renderCompRow = (comp, label) => {
-                const ejData = normativos.find(e => e.id === Number(comp.ejercicio_id));
-                if (!ejData) return null;
-
-                const iRMAtleta = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
-                const kgBase = (ejData.pct_base && iRMAtleta) ? iRMAtleta * ejData.pct_base / 100 : null;
-                const kgIntens = kgBase ? Math.round(kgBase * comp.intensidad / 100) : null;
-
-                return (
-                  <tr key={comp.id} style={{borderBottom:"1px solid var(--border)"}}>
-                    <td style={{padding:"8px 12px",fontSize:12,color:"var(--text)"}}>{label}</td>
-                    <td style={{padding:"8px 12px",fontSize:12,color:"var(--text)"}}>{ejData.nombre}</td>
-                    <td style={{padding:"8px 12px",fontSize:12,textAlign:"center",color:"var(--gold)"}}>{comp.intensidad}%</td>
-                    <td style={{padding:"8px 12px",fontSize:12,textAlign:"center",color:"var(--blue)"}}>T{comp.tabla}</td>
-                    <td style={{padding:"8px 12px",fontSize:12,textAlign:"center",color:"var(--green)"}}>{comp.reps_asignadas}</td>
-                    <td style={{padding:"8px 12px",fontSize:12,textAlign:"center",color:"var(--gold)"}}>{kgIntens}kg</td>
-                    <td style={{padding:"8px 12px",fontSize:12,color:"var(--muted)"}}>{comp.aclaracion || "—"}</td>
-                  </tr>
-                );
+              const allComps = [...(turno.complementarios_before || []), ...(turno.complementarios_after || [])];
+              const updateComp = (compId, updates) => {
+                const isBefore = turno.complementarios_before?.some(c => c.id === compId);
+                if (isBefore) {
+                  const idx = turno.complementarios_before.findIndex(c => c.id === compId);
+                  const updated = [...turno.complementarios_before];
+                  updated[idx] = {...updated[idx], ...updates};
+                  onChange({...turno, complementarios_before: updated});
+                } else {
+                  const idx = turno.complementarios_after.findIndex(c => c.id === compId);
+                  const updated = [...turno.complementarios_after];
+                  updated[idx] = {...updated[idx], ...updates};
+                  onChange({...turno, complementarios_after: updated});
+                }
+              };
+              const deleteComp = (compId) => {
+                const isBefore = turno.complementarios_before?.some(c => c.id === compId);
+                if (isBefore) {
+                  const updated = turno.complementarios_before.filter(c => c.id !== compId);
+                  onChange({...turno, complementarios_before: updated});
+                } else {
+                  const updated = turno.complementarios_after.filter(c => c.id !== compId);
+                  onChange({...turno, complementarios_after: updated});
+                }
+              };
+              const addComp = () => {
+                const newComp = {id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0,aclaracion:""};
+                onChange({...turno, complementarios_after: [...(turno.complementarios_after || []), newComp]});
               };
 
               return (
@@ -2497,41 +2503,66 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                   <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:12,textTransform:"uppercase",letterSpacing:".08em"}}>
                     Ejercicios Complementarios
                   </div>
-                  {compsAntesCount === 0 && compsAfterCount === 0 ? (
-                    <div style={{padding:"12px",background:"var(--surface2)",borderRadius:"6px",color:"var(--muted)",fontSize:12,textAlign:"center"}}>
-                      Sin complementarios. Agrégatelos desde Sembrado Mensual.
-                    </div>
-                  ) : (
-                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                  <div style={{overflowX:"auto"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:"1000px"}}>
                       <thead>
                         <tr style={{background:"var(--surface2)",borderBottom:"2px solid var(--border)"}}>
-                          <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Posición</th>
-                          <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Ejercicio</th>
-                          <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Int %</th>
-                          <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Tabla</th>
-                          <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Reps</th>
-                          <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Kg</th>
-                          <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Aclaración</th>
+                          <th style={{padding:"8px 6px",width:"30px",textAlign:"center",color:"var(--muted)",fontSize:11}}></th>
+                          <th style={{padding:"8px 6px",textAlign:"left",color:"var(--muted)",fontSize:11,minWidth:"400px"}}>EJERCICIO</th>
+                          <th style={{padding:"8px 6px",width:"50px",textAlign:"center",color:"var(--muted)",fontSize:11}}>%</th>
+                          <th style={{padding:"8px 6px",width:"40px",textAlign:"center",color:"var(--muted)",fontSize:11}}>S</th>
+                          <th style={{padding:"8px 6px",width:"40px",textAlign:"center",color:"var(--muted)",fontSize:11}}>R</th>
+                          <th style={{padding:"8px 6px",width:"50px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Kg</th>
+                          <th style={{padding:"8px 6px",width:"30px",textAlign:"center",color:"var(--muted)",fontSize:11}}></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {compsAntesCount > 0 && (
-                          <>
-                            {turno.complementarios_before.filter(c => c.ejercicio_id).map((comp, idx) =>
-                              renderCompRow(comp, `ANTES ${idx+1}`)
-                            )}
-                          </>
-                        )}
-                        {compsAfterCount > 0 && (
-                          <>
-                            {turno.complementarios_after.filter(c => c.ejercicio_id).map((comp, idx) =>
-                              renderCompRow(comp, `DESPUÉS ${idx+1}`)
-                            )}
-                          </>
+                        {allComps.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" style={{padding:"12px",textAlign:"center",color:"var(--muted)",fontSize:12}}>
+                              Sin complementarios. Haz click en "+ Agregar ejercicio" para añadir uno.
+                            </td>
+                          </tr>
+                        ) : (
+                          allComps.map((comp, idx) => {
+                            const ejData = normativos.find(e => e.id === Number(comp.ejercicio_id));
+                            const iRMAtleta = ejData ? (ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env)) : 0;
+                            const kgBase = ejData && ejData.pct_base && iRMAtleta ? iRMAtleta * ejData.pct_base / 100 : 0;
+                            const kgIntens = kgBase ? Math.round(kgBase * comp.intensidad / 100) : 0;
+
+                            return (
+                              <tr key={comp.id} style={{borderBottom:"1px solid var(--border)"}}>
+                                <td style={{padding:"6px 4px",textAlign:"center",color:"var(--muted)",fontSize:11}}>{idx+1}</td>
+                                <td style={{padding:"6px 4px"}}>
+                                  <div style={{cursor:"pointer",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px 8px",color:"var(--text)",fontSize:12}}>
+                                    <EjBuscador value={comp.ejercicio_id} onChange={id=>updateComp(comp.id,{ejercicio_id:id})}/>
+                                  </div>
+                                </td>
+                                <td style={{padding:"6px 4px"}}>
+                                  <input type="number" min="40" max="110" value={comp.intensidad} onChange={e=>updateComp(comp.id,{intensidad:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--gold)",textAlign:"center",fontSize:12}}/>
+                                </td>
+                                <td style={{padding:"6px 4px"}}>
+                                  <select value={comp.tabla} onChange={e=>updateComp(comp.id,{tabla:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--text)",fontSize:12}}>
+                                    <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option>
+                                  </select>
+                                </td>
+                                <td style={{padding:"6px 4px"}}>
+                                  <input type="number" min="0" value={comp.reps_asignadas} onChange={e=>updateComp(comp.id,{reps_asignadas:Number(e.target.value)})} style={{width:"100%",background:"var(--surface3)",border:"1px solid var(--border)",borderRadius:"4px",padding:"4px",color:"var(--green)",textAlign:"center",fontSize:12}}/>
+                                </td>
+                                <td style={{padding:"6px 4px",textAlign:"center",color:"var(--gold)",fontSize:12,fontWeight:600}}>{kgIntens}</td>
+                                <td style={{padding:"6px 4px",textAlign:"center"}}>
+                                  <button onClick={()=>deleteComp(comp.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:14,padding:"2px 4px"}}>✕</button>
+                                </td>
+                              </tr>
+                            );
+                          })
                         )}
                       </tbody>
                     </table>
-                  )}
+                  </div>
+                  <div style={{marginTop:8,textAlign:"center"}}>
+                    <button onClick={addComp} style={{background:"none",border:"none",cursor:"pointer",color:"var(--gold)",fontSize:12,padding:"6px 12px",fontWeight:600}}>+ Agregar ejercicio</button>
+                  </div>
                 </div>
               );
             })()}
