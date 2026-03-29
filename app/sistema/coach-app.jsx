@@ -8449,41 +8449,8 @@ function DuplicarPlantillaModal({ plantillas, base, onSave, onClose }) {
 }
 
 
-function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
-  const [busqueda,      setBusqueda]      = useState("");
-  const [editando,      setEditando]      = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [showCrear,     setShowCrear]     = useState(false);
-  const [showNueva,     setShowNueva]     = useState(false); // modal selector crear/importar
-  const [duplicando,    setDuplicando]    = useState(null);  // plantilla base para duplicar
-  const [showImportar,  setShowImportar]  = useState(false);
-  // Colapso por sección y nivel
-  const [colapsadoEscuela, setColapsadoEscuela] = useState({});
-  const [colapsadoEscuelaMain, setColapsadoEscuelaMain] = useState(false);
-  const [colapsadoMias,    setColapsadoMias]    = useState(false);
-
-  const escuela = plantillas.filter(p => p.escuela === true || p.escuela === "true");
-  const mias    = plantillas.filter(p => !p.escuela || p.escuela === false || p.escuela === "false");
-
-  const matchBusqueda = (p) => !busqueda
-    || p.nombre.toLowerCase().includes(busqueda.toLowerCase())
-    || p.descripcion?.toLowerCase().includes(busqueda.toLowerCase());
-
-  const duplicar = (plt) => { setDuplicando(plt); };
-
-  const CardGrid = ({lista}) => (
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
-      {lista.map(plt=>(
-        <PlantillaCard key={plt.id} plt={plt}
-          onOpen={onOpen ? ()=>onOpen(plt) : undefined}
-          onDuplicate={()=>duplicar(plt)}
-          onEdit={()=>setEditando(plt)}
-          onDelete={()=>setConfirmDelete(plt)}/>
-      ))}
-    </div>
-  );
-
-  const SectionHeader = ({title, count, color="#4db6ac", badge, collapsed, onToggle, children}) => (
+function SectionHeader({title, count, color="#4db6ac", badge, collapsed, onToggle, children}) {
+  return (
     <div style={{marginBottom:collapsed?8:20}}>
       <div style={{
         display:"flex",alignItems:"center",gap:10,
@@ -8508,42 +8475,79 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
       )}
     </div>
   );
+}
 
-  const NivelSection = ({nivel, pltList}) => {
-    const filtradas = pltList.filter(matchBusqueda);
-    if (filtradas.length === 0) return null;
-    const col = colapsadoEscuela[nivel];
-    return (
-      <div style={{marginBottom:12}}>
-        <div style={{
-          display:"flex",alignItems:"center",gap:8,
-          padding:"6px 12px",borderRadius:col?"8px":"8px 8px 0 0",
-          background:"var(--surface2)",border:"1px solid var(--border)",
-          cursor:"pointer",userSelect:"none"
-        }} onClick={()=>setColapsadoEscuela(p=>({...p,[nivel]:!col}))}>
-          <div style={{
-            width:10,height:10,borderRadius:"50%",flexShrink:0,
-            background:ESCUELA_NIVEL_COLOR[nivel]
-          }}/>
-          <span style={{fontFamily:"'Bebas Neue'",fontSize:15,
-            color:ESCUELA_NIVEL_COLOR[nivel],letterSpacing:".04em"}}>
-            {ESCUELA_NIVEL_LABEL[nivel]}
-          </span>
-          <span style={{fontSize:11,color:"var(--muted)",marginLeft:2}}>
-            {filtradas.length} plantilla{filtradas.length!==1?"s":""}
-          </span>
-          <span style={{marginLeft:"auto",color:"var(--muted)",fontSize:13,
-            transform:col?"rotate(-90deg)":"rotate(0deg)",transition:"transform .2s"}}>▾</span>
-        </div>
-        {!col && (
-          <div style={{border:"1px solid var(--border)",borderTop:"none",
-            borderRadius:"0 0 8px 8px",padding:12}}>
-            <CardGrid lista={filtradas}/>
-          </div>
-        )}
+function CardGrid({ lista, onOpen, onDuplicate, onEdit, onDelete }) {
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+      {lista.map(plt=>(
+        <PlantillaCard key={plt.id} plt={plt}
+          onOpen={onOpen ? ()=>onOpen(plt) : undefined}
+          onDuplicate={()=>onDuplicate(plt)}
+          onEdit={()=>onEdit(plt)}
+          onDelete={()=>onDelete(plt)}/>
+      ))}
+    </div>
+  );
+}
+
+function NivelSection({ nivel, pltList, colapsadoEscuela, setColapsadoEscuela, matchBusqueda, onOpen, onDuplicate, onEdit, onDelete }) {
+  const filtradas = pltList.filter(matchBusqueda);
+  if (filtradas.length === 0) return null;
+  const col = colapsadoEscuela[nivel];
+  return (
+    <div style={{marginBottom:12}}>
+      <div style={{
+        display:"flex",alignItems:"center",gap:8,
+        padding:"6px 12px",borderRadius:col?"8px":"8px 8px 0 0",
+        background:"var(--surface2)",border:"1px solid var(--border)",
+        cursor:"pointer",userSelect:"none"
+      }} onClick={()=>setColapsadoEscuela(p=>({...p,[nivel]:!col}))}>
+        <div style={{width:10,height:10,borderRadius:"50%",flexShrink:0,
+          background:ESCUELA_NIVEL_COLOR[nivel]}}/>
+        <span style={{fontFamily:"'Bebas Neue'",fontSize:15,
+          color:ESCUELA_NIVEL_COLOR[nivel],letterSpacing:".04em"}}>
+          {ESCUELA_NIVEL_LABEL[nivel]}
+        </span>
+        <span style={{fontSize:11,color:"var(--muted)",marginLeft:2}}>
+          {filtradas.length} plantilla{filtradas.length!==1?"s":""}
+        </span>
+        <span style={{marginLeft:"auto",color:"var(--muted)",fontSize:13,
+          transform:col?"rotate(-90deg)":"rotate(0deg)",transition:"transform .2s"}}>▾</span>
       </div>
-    );
-  };
+      {!col && (
+        <div style={{border:"1px solid var(--border)",borderTop:"none",
+          borderRadius:"0 0 8px 8px",padding:12}}>
+          <CardGrid lista={filtradas} onOpen={onOpen} onDuplicate={onDuplicate} onEdit={onEdit} onDelete={onDelete}/>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
+  const [busqueda,      setBusqueda]      = useState("");
+  const [editando,      setEditando]      = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showCrear,     setShowCrear]     = useState(false);
+  const [showNueva,     setShowNueva]     = useState(false);
+  const [duplicando,    setDuplicando]    = useState(null);
+  const [showImportar,  setShowImportar]  = useState(false);
+  const [colapsadoEscuela, setColapsadoEscuela] = useState({});
+  const [colapsadoEscuelaMain, setColapsadoEscuelaMain] = useState(false);
+  const [colapsadoMias,    setColapsadoMias]    = useState(false);
+
+  const escuela = plantillas.filter(p => p.escuela === true || p.escuela === "true");
+  const mias    = plantillas.filter(p => !p.escuela || p.escuela === false || p.escuela === "false");
+
+  const matchBusqueda = (p) => !busqueda
+    || p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    || p.descripcion?.toLowerCase().includes(busqueda.toLowerCase());
+
+  const handleOpen      = onOpen ? (plt) => onOpen(plt) : null;
+  const handleDuplicate = (plt) => setDuplicando(plt);
+  const handleEdit      = (plt) => setEditando(plt);
+  const handleDelete    = (plt) => setConfirmDelete(plt);
 
   return (
     <div>
@@ -8672,7 +8676,14 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
               onToggle={()=>setColapsadoEscuelaMain(v=>!v)}>
               {ESCUELA_NIVELES.map(n => (
                 <NivelSection key={n} nivel={n}
-                  pltList={escuela.filter(p => p.escuela_nivel === n)}/>
+                  pltList={escuela.filter(p => p.escuela_nivel === n)}
+                  colapsadoEscuela={colapsadoEscuela}
+                  setColapsadoEscuela={setColapsadoEscuela}
+                  matchBusqueda={matchBusqueda}
+                  onOpen={handleOpen}
+                  onDuplicate={handleDuplicate}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}/>
               ))}
               {/* Plantillas de escuela sin nivel asignado */}
               {(() => {
@@ -8683,7 +8694,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
                       fontWeight:600,textTransform:"uppercase",letterSpacing:".06em"}}>
                       Sin nivel asignado
                     </div>
-                    <CardGrid lista={sinNivel}/>
+                    <CardGrid lista={sinNivel} onOpen={handleOpen} onDuplicate={handleDuplicate} onEdit={handleEdit} onDelete={handleDelete}/>
                   </div>
                 ) : null;
               })()}
@@ -8698,7 +8709,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
               color="var(--gold)"
               collapsed={colapsadoMias}
               onToggle={()=>setColapsadoMias(v=>!v)}>
-              <CardGrid lista={mias.filter(matchBusqueda)}/>
+              <CardGrid lista={mias.filter(matchBusqueda)} onOpen={handleOpen} onDuplicate={handleDuplicate} onEdit={handleEdit} onDelete={handleDelete}/>
             </SectionHeader>
           )}
 
