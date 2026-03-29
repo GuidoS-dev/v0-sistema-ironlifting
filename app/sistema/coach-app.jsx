@@ -2471,8 +2471,6 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
               const compsAntesCount = turno.complementarios_before?.filter(c => c.ejercicio_id)?.length || 0;
               const compsAfterCount = turno.complementarios_after?.filter(c => c.ejercicio_id)?.length || 0;
 
-              if (compsAntesCount === 0 && compsAfterCount === 0) return null;
-
               const renderCompRow = (comp, label) => {
                 const ejData = normativos.find(e => e.id === Number(comp.ejercicio_id));
                 if (!ejData) return null;
@@ -2499,35 +2497,41 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                   <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:12,textTransform:"uppercase",letterSpacing:".08em"}}>
                     Ejercicios Complementarios
                   </div>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                    <thead>
-                      <tr style={{background:"var(--surface2)",borderBottom:"2px solid var(--border)"}}>
-                        <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Posición</th>
-                        <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Ejercicio</th>
-                        <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Int %</th>
-                        <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Tabla</th>
-                        <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Reps</th>
-                        <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Kg</th>
-                        <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Aclaración</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {compsAntesCount > 0 && (
-                        <>
-                          {turno.complementarios_before.filter(c => c.ejercicio_id).map((comp, idx) =>
-                            renderCompRow(comp, `ANTES ${idx+1}`)
-                          )}
-                        </>
-                      )}
-                      {compsAfterCount > 0 && (
-                        <>
-                          {turno.complementarios_after.filter(c => c.ejercicio_id).map((comp, idx) =>
-                            renderCompRow(comp, `DESPUÉS ${idx+1}`)
-                          )}
-                        </>
-                      )}
-                    </tbody>
-                  </table>
+                  {compsAntesCount === 0 && compsAfterCount === 0 ? (
+                    <div style={{padding:"12px",background:"var(--surface2)",borderRadius:"6px",color:"var(--muted)",fontSize:12,textAlign:"center"}}>
+                      Sin complementarios. Agrégatelos desde Sembrado Mensual.
+                    </div>
+                  ) : (
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                      <thead>
+                        <tr style={{background:"var(--surface2)",borderBottom:"2px solid var(--border)"}}>
+                          <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Posición</th>
+                          <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Ejercicio</th>
+                          <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Int %</th>
+                          <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Tabla</th>
+                          <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Reps</th>
+                          <th style={{padding:"8px 12px",textAlign:"center",color:"var(--muted)",fontSize:11}}>Kg</th>
+                          <th style={{padding:"8px 12px",textAlign:"left",color:"var(--muted)",fontSize:11}}>Aclaración</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {compsAntesCount > 0 && (
+                          <>
+                            {turno.complementarios_before.filter(c => c.ejercicio_id).map((comp, idx) =>
+                              renderCompRow(comp, `ANTES ${idx+1}`)
+                            )}
+                          </>
+                        )}
+                        {compsAfterCount > 0 && (
+                          <>
+                            {turno.complementarios_after.filter(c => c.ejercicio_id).map((comp, idx) =>
+                              renderCompRow(comp, `DESPUÉS ${idx+1}`)
+                            )}
+                          </>
+                        )}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               );
             })()}
