@@ -1430,10 +1430,11 @@ function calcKgEj(ejercicio_id, intensidad, irm_arr, irm_env, tablas_normativos)
 }
 
 function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPctManual, turnoPctOverrides, turnoPctManual, onRequestReset, onBeforeChange, onChangeTurno, repsEdit, setRepsEdit: setRepsEditProp, manualEdit, setManualEdit: setManualEditProp, cellEdit, setCellEdit: setCellEditProp, cellManual, setCellManual: setCellManualProp, nameEdit, setNameEdit: setNameEditProp, noteEdit, setNoteEdit: setNoteEditProp }) {
-  const [semActiva,   setSemActiva]   = useState(0);
-  const [turnoActivo, setTurnoActivo] = useState(0);
-  const [tipSem,      setTipSem]      = useState(null);
-  const [tipTurno,    setTipTurno]    = useState(null);
+  const [semActiva,       setSemActiva]       = useState(0);
+  const [turnoActivo,     setTurnoActivo]     = useState(0);
+  const [tipSem,          setTipSem]          = useState(null);
+  const [tipTurno,        setTipTurno]        = useState(null);
+  const [compPickerOpen,  setCompPickerOpen]  = useState(null); // compId | null
 
   // Clave única por mesociclo para persistencia
   const _k = (type) => `liftplan_pt_${meso.id}_${type}`;
@@ -2469,7 +2470,7 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
               if (!turno) return null;
 
               const mkBloqueComp = () => ({ pct: null, series: null, reps: null, kg: null, nota: "" });
-              const normComp = (c) => ({ ...c, bloques: c.bloques || [mkBloqueComp()] });
+              const normComp = (c) => ({ nombre_custom: "", ...c, bloques: c.bloques || [mkBloqueComp()] });
               const numCompBloques = turno.num_bloques_comp || 1;
 
               const allComps = [
@@ -2565,6 +2566,29 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                 borderRadius:5,fontSize:10,color:"var(--muted)",fontWeight:700,textTransform:"uppercase",textAlign:"center"};
 
               return (
+                <div>
+                {compPickerOpen !== null && (
+                  <Modal title="Seleccionar ejercicio" onClose={() => setCompPickerOpen(null)}>
+                    <div style={{maxHeight:400,overflowY:"auto",display:"flex",flexDirection:"column",gap:2}}>
+                      {normativos.map(e => (
+                        <button key={e.id} onClick={() => {
+                          _mapComp(compPickerOpen, c => ({
+                            ...c, ejercicio_id: e.id, nombre_custom: "",
+                            bloques: c.bloques.map(b => ({...b, kg: calcKgComp(e.id, b.pct)}))
+                          }));
+                          setCompPickerOpen(null);
+                        }} style={{display:"flex",gap:8,alignItems:"center",padding:"6px 10px",
+                          background:"var(--surface2)",border:"1px solid var(--border)",
+                          borderRadius:6,cursor:"pointer",textAlign:"left",width:"100%"}}>
+                          <span style={{fontFamily:"'Bebas Neue'",fontSize:16,
+                            color:CAT_COLOR[e.categoria],minWidth:28,textAlign:"center"}}>{e.id}</span>
+                          <span style={{fontSize:12,color:"var(--text)",flex:1}}>{e.nombre}</span>
+                          <span style={{fontSize:10,color:CAT_COLOR[e.categoria]}}>{e.categoria}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </Modal>
+                )}
                 <div style={{marginTop:20, borderTop:"1px solid var(--border)", paddingTop:16}}>
                   <div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:10,textTransform:"uppercase",letterSpacing:".08em"}}>
                     Ejercicios Complementarios
@@ -2633,11 +2657,19 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                               </td>
                               {/* EJERCICIO */}
                               <td style={{padding:"3px 6px",border:`1px solid ${col}40`,borderRadius:5,background:`${col}0a`,minWidth:120}}>
-                                <EjBuscador value={comp.ejercicio_id} onChange={id => {
-                                  _mapComp(comp.id, c => ({...c, ejercicio_id: id ? Number(id) : null,
-                                    bloques: c.bloques.map(b => ({...b, kg: calcKgComp(id ? Number(id) : null, b.pct)}))
-                                  }));
-                                }}/>
+                                <div style={{display:"flex",alignItems:"center",gap:3}}>
+                                  <input
+                                    type="text"
+                                    value={comp.nombre_custom || (ejData ? ejData.nombre : "")}
+                                    placeholder="Nombre del ejercicio"
+                                    onChange={e => _mapComp(comp.id, c => ({...c, nombre_custom: e.target.value}))}
+                                    style={{flex:1,background:"transparent",border:"none",color:"var(--text)",
+                                      fontSize:11,outline:"none",padding:"2px 0",fontFamily:"'DM Sans'"}}
+                                  />
+                                  <button onClick={() => setCompPickerOpen(comp.id)} title="Buscar ejercicio"
+                                    style={{background:"none",border:"none",cursor:"pointer",
+                                      color:"var(--muted)",fontSize:10,padding:"0 2px",flexShrink:0,opacity:.6}}>↗</button>
+                                </div>
                               </td>
                               {/* Bloques */}
                               {bloques.slice(0, numCompBloques).map((b, bIdx) => {
@@ -2699,6 +2731,7 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
                       fontFamily:"'DM Sans'",fontWeight:600,width:"100%"}}>
                     + Agregar ejercicio
                   </button>
+                </div>
                 </div>
               );
             })()}
