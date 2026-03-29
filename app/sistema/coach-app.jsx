@@ -358,7 +358,10 @@ const CAT_COLOR = {
 
 const mkId = () => Math.random().toString(36).slice(2,9);
 const mkTurnos = () => Array.from({length:9},(_,i)=>({
-  id:mkId(), numero:i+1, dia:"", momento:"", ejercicios:Array.from({length:3},()=>({id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0}))
+  id:mkId(), numero:i+1, dia:"", momento:"",
+  ejercicios:Array.from({length:3},()=>({id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0})),
+  complementarios_before:Array.from({length:0}),
+  complementarios_after:Array.from({length:0})
 }));
 const mkSemanas = () => Array.from({length:4},(_,i)=>({
   id:mkId(), numero:i+1, pct_volumen:25,
@@ -505,6 +508,9 @@ const css = `
   /* EJERCICIO ROW */
   .ej-row{display:grid;grid-template-columns:28px 1fr 80px 70px 70px 80px auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
   .ej-row:last-child{border-bottom:none}
+  /* COMPLEMENTARIO ROW */
+  .comp-row{display:grid;grid-template-columns:28px 1fr 80px 70px 70px 80px 150px 20px auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+  .comp-row:last-child{border-bottom:none}
   .ej-num{font-size:11px;color:var(--muted);text-align:center}
   .ej-select{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;width:100%}
   .ej-input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center;width:100%}
@@ -1102,6 +1108,30 @@ function EjBuscador({ value, onChange }) {
   );
 }
 
+function ComplementarioRow({ comp, idx, irm_arr, irm_env, onChange, onDelete }) {
+  const ejData = comp.ejercicio_id ? getEjercicioById(comp.ejercicio_id) : null;
+  const kg = ejData ? calcKg(ejData, irm_arr, irm_env) : null;
+  const kgIntens = kg ? Math.round(kg * comp.intensidad / 100) : null;
+
+  return (
+    <div className="comp-row">
+      <div className="ej-num">{idx+1}</div>
+      <EjBuscador value={comp.ejercicio_id} onChange={id=>onChange({...comp,ejercicio_id:id})}/>
+      <input className="ej-input" type="number" min={40} max={110} value={comp.intensidad}
+        onChange={e=>onChange({...comp,intensidad:Number(e.target.value)})} title="Intensidad %"/>
+      <select className="ej-input" value={comp.tabla} onChange={e=>onChange({...comp,tabla:Number(e.target.value)})}>
+        <option value={1}>T1</option><option value={2}>T2</option><option value={3}>T3</option>
+      </select>
+      <input className="ej-input" type="number" min={0} value={comp.reps_asignadas}
+        onChange={e=>onChange({...comp,reps_asignadas:Number(e.target.value)})} title="Reps asignadas"/>
+      <div className="ej-kg">{kgIntens ? `${kgIntens}kg` : ejData ? <span className="text-muted">—</span> : ""}</div>
+      <input className="ej-input" type="text" value={comp.aclaracion||""} placeholder="Aclaración"
+        onChange={e=>onChange({...comp,aclaracion:e.target.value})} title="Aclaración"/>
+      <button onClick={onDelete} style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:14,padding:"0 4px",lineHeight:1,justifySelf:"center"}}>✕</button>
+      {ejData && <span className="ej-cat" style={{background:`${CAT_COLOR[ejData.categoria]}20`,color:CAT_COLOR[ejData.categoria]}}>{ejData.categoria.slice(0,3)}</span>}
+    </div>
+  );
+}
 
 function EjercicioRow({ ej, idx, irm_arr, irm_env, onChange }) {
   const ejData = ej.ejercicio_id ? getEjercicioById(ej.ejercicio_id) : null;
@@ -1160,6 +1190,36 @@ function TurnoCard({ turno, semana_idx, irm_arr, irm_env, onChange, clipboardTur
     onChange({...turno, ejercicios: ejs});
   };
 
+  // ── Complementarios antes/después ──
+  const normalizeComplementarios = (arr) => {
+    const filled = arr.filter(c => c?.ejercicio_id);
+    const empty  = arr.filter(c => !c?.ejercicio_id);
+    return [...filled, ...empty];
+  };
+
+  const addComplementario = (position) => {
+    const newComp = {id:mkId(),ejercicio_id:null,intensidad:75,tabla:1,reps_asignadas:0,aclaracion:""};
+    const arr = position === 'before'
+      ? [...turno.complementarios_before, newComp]
+      : [...turno.complementarios_after, newComp];
+    const key = position === 'before' ? 'complementarios_before' : 'complementarios_after';
+    onChange({...turno, [key]: arr});
+  };
+
+  const updateComplementario = (position, idx, newComp) => {
+    const arr = position === 'before' ? [...turno.complementarios_before] : [...turno.complementarios_after];
+    arr[idx] = newComp;
+    const key = position === 'before' ? 'complementarios_before' : 'complementarios_after';
+    onChange({...turno, [key]: normalizeComplementarios(arr)});
+  };
+
+  const deleteComplementario = (position, idx) => {
+    const arr = position === 'before' ? [...turno.complementarios_before] : [...turno.complementarios_after];
+    arr.splice(idx, 1);
+    const key = position === 'before' ? 'complementarios_before' : 'complementarios_after';
+    onChange({...turno, [key]: arr});
+  };
+
   return (
     <div className="turno-card">
       <div className="turno-header" onClick={()=>setOpen(o=>!o)}>
@@ -1215,32 +1275,71 @@ function TurnoCard({ turno, semana_idx, irm_arr, irm_env, onChange, clipboardTur
       </div>
       {open && (
         <div className="turno-body">
-          <div style={{display:"grid",gridTemplateColumns:"28px 1fr 80px 70px 70px 80px auto",gap:8,padding:"4px 0 8px",borderBottom:"1px solid var(--border)",marginBottom:4}}>
+          <div style={{display:"grid",gridTemplateColumns:"28px 1fr 80px 70px 70px 80px 150px 20px auto",gap:8,padding:"4px 0 8px",borderBottom:"1px solid var(--border)",marginBottom:4}}>
             <div/><div className="text-sm text-muted">Ejercicio</div>
             <div className="text-sm text-muted text-center">Int %</div>
             <div className="text-sm text-muted text-center">Tabla</div>
             <div className="text-sm text-muted text-center">Reps</div>
             <div className="text-sm text-muted text-center">Kg</div>
+            <div className="text-sm text-muted text-center">Aclaración</div>
+            <div/>
             <div/>
           </div>
-          {turno.ejercicios.filter(Boolean).map((ej,i)=>{
-            const canUp   = i>0 && !!ej.ejercicio_id && !!turno.ejercicios[i-1]?.ejercicio_id;
-            const canDown = i<turno.ejercicios.length-1 && !!ej.ejercicio_id && !!turno.ejercicios[i+1]?.ejercicio_id;
-            return (
-              <div key={ej.id} style={{display:"flex", alignItems:"center", gap:4}}>
-                <div style={{display:"flex", flexDirection:"column", gap:1, flexShrink:0}}>
-                  <button onClick={()=>moveEjTurno(i,-1)} disabled={!canUp}
-                    style={{background:"none",border:"none",cursor:canUp?"pointer":"default",
-                      color:canUp?"var(--gold)":"var(--surface3)",fontSize:10,lineHeight:1,padding:"1px 3px"}}>▲</button>
-                  <button onClick={()=>moveEjTurno(i,1)} disabled={!canDown}
-                    style={{background:"none",border:"none",cursor:canDown?"pointer":"default",
-                      color:canDown?"var(--gold)":"var(--surface3)",fontSize:10,lineHeight:1,padding:"1px 3px"}}>▼</button>
+
+          {/* COMPLEMENTARIOS ANTES */}
+          {(turno.complementarios_before?.length > 0 || true) && (
+            <div style={{marginBottom:12}}>
+              <div className="text-sm text-muted" style={{fontWeight:600,marginBottom:6,color:"var(--blue)"}}>ANTES DEL TURNO</div>
+              {turno.complementarios_before?.filter(Boolean).map((comp,i)=>(
+                <ComplementarioRow key={comp.id} comp={comp} idx={i} irm_arr={irm_arr} irm_env={irm_env}
+                  onChange={newComp=>updateComplementario('before',i,newComp)}
+                  onDelete={()=>deleteComplementario('before',i)}/>
+              ))}
+              <button onClick={()=>addComplementario('before')}
+                style={{background:"none",border:"none",cursor:"pointer",color:"var(--blue)",fontSize:12,padding:"4px 0",marginTop:4,fontWeight:500}}>
+                + Agregar complementario
+              </button>
+            </div>
+          )}
+
+          {/* EJERCICIOS PRINCIPALES */}
+          <div style={{marginBottom:12}}>
+            <div className="text-sm text-muted" style={{fontWeight:600,marginBottom:6,color:"var(--gold)"}}>TRABAJO PRINCIPAL</div>
+            {turno.ejercicios.filter(Boolean).map((ej,i)=>{
+              const canUp   = i>0 && !!ej.ejercicio_id && !!turno.ejercicios[i-1]?.ejercicio_id;
+              const canDown = i<turno.ejercicios.length-1 && !!ej.ejercicio_id && !!turno.ejercicios[i+1]?.ejercicio_id;
+              return (
+                <div key={ej.id} style={{display:"flex", alignItems:"center", gap:4}}>
+                  <div style={{display:"flex", flexDirection:"column", gap:1, flexShrink:0}}>
+                    <button onClick={()=>moveEjTurno(i,-1)} disabled={!canUp}
+                      style={{background:"none",border:"none",cursor:canUp?"pointer":"default",
+                        color:canUp?"var(--gold)":"var(--surface3)",fontSize:10,lineHeight:1,padding:"1px 3px"}}>▲</button>
+                    <button onClick={()=>moveEjTurno(i,1)} disabled={!canDown}
+                      style={{background:"none",border:"none",cursor:canDown?"pointer":"default",
+                        color:canDown?"var(--gold)":"var(--surface3)",fontSize:10,lineHeight:1,padding:"1px 3px"}}>▼</button>
+                  </div>
+                  <EjercicioRow ej={ej} idx={i} irm_arr={irm_arr} irm_env={irm_env}
+                    onChange={newEj=>updateEjTurno(i,newEj)}/>
                 </div>
-                <EjercicioRow ej={ej} idx={i} irm_arr={irm_arr} irm_env={irm_env}
-                  onChange={newEj=>updateEjTurno(i,newEj)}/>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* COMPLEMENTARIOS DESPUÉS */}
+          {(turno.complementarios_after?.length > 0 || true) && (
+            <div>
+              <div className="text-sm text-muted" style={{fontWeight:600,marginBottom:6,color:"var(--green)"}}>DESPUÉS DEL TURNO</div>
+              {turno.complementarios_after?.filter(Boolean).map((comp,i)=>(
+                <ComplementarioRow key={comp.id} comp={comp} idx={i} irm_arr={irm_arr} irm_env={irm_env}
+                  onChange={newComp=>updateComplementario('after',i,newComp)}
+                  onDelete={()=>deleteComplementario('after',i)}/>
+              ))}
+              <button onClick={()=>addComplementario('after')}
+                style={{background:"none",border:"none",cursor:"pointer",color:"var(--green)",fontSize:12,padding:"4px 0",marginTop:4,fontWeight:500}}>
+                + Agregar complementario
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -6078,33 +6177,63 @@ function PagePDF({ meso, atleta, irm_arr, irm_env }) {
     );
   };
 
+  // Helper para convertir ejercicio a row
+  const buildEjercicioRow = (ej, semIdx, tIdx, isComplementario = false) => {
+    const ejData = normativos.find(e => e.id === Number(ej.ejercicio_id));
+    if (!ejData) return null;
+    const k = `${semIdx}-${tIdx}-${ej.id}`;
+    const nameKey = `${semIdx}-${tIdx}-${ej.ejercicio_id}`;
+    const repsVal = getRepsVal(ej, semIdx, tIdx);
+    const calcs = calcSeriesRepsKg(tablas, ej, ejData, irm_arr, irm_env, meso.modo, repsVal);
+    const cols = INTENSIDADES.map((intens, iIdx) => {
+      const c = calcs ? calcs[iIdx] : null;
+      const s = getCell(k, intens, 'series', c?.series);
+      const r = getCell(k, intens, 'reps', c?.reps_serie);
+      const kg = getCell(k, intens, 'kg', c?.kg);
+      const noteKey = `${semIdx}-${tIdx}-${ej.id}-${intens}-note`;
+      const note = noteEditSaved[noteKey] || "";
+      return { intens, s, r, kg, note };
+    }).filter(c => c.s || c.r);
+    const nombre = nameEditSaved[nameKey] || ejData.nombre;
+    const aclaracion = ej.aclaracion ? ` (${ej.aclaracion})` : '';
+    return {
+      id: ej.ejercicio_id,
+      nombre: nombre + aclaracion,
+      categoria: ejData.categoria,
+      cols,
+      isComplementario
+    };
+  };
+
   const semTurnos = meso.semanas.map((sem, semIdx) => {
     const turnos = sem.turnos.map((t, tIdx) => {
+      const rows = [];
+
+      // Complementarios ANTES
+      if (t.complementarios_before?.length > 0) {
+        const compBefore = t.complementarios_before.filter(c => c.ejercicio_id);
+        compBefore.forEach(comp => {
+          const row = buildEjercicioRow(comp, semIdx, tIdx, true);
+          if (row) rows.push({ ...row, isComplementarioBefore: true });
+        });
+      }
+
+      // Ejercicios principales
       const ejs = t.ejercicios.filter(e => e.ejercicio_id);
-      if (!ejs.length) return null;
-      const rows = ejs.map(ej => {
-        const ejData = normativos.find(e => e.id === Number(ej.ejercicio_id));
-        if (!ejData) return null;
-        const k = `${semIdx}-${tIdx}-${ej.id}`;
-        const nameKey = `${semIdx}-${tIdx}-${ej.ejercicio_id}`;
-        const repsVal = getRepsVal(ej, semIdx, tIdx);
-        const calcs = calcSeriesRepsKg(tablas, ej, ejData, irm_arr, irm_env, meso.modo, repsVal);
-        const cols = INTENSIDADES.map((intens, iIdx) => {
-          const c = calcs ? calcs[iIdx] : null;
-          const s = getCell(k, intens, 'series', c?.series);
-          const r = getCell(k, intens, 'reps', c?.reps_serie);
-          const kg = getCell(k, intens, 'kg', c?.kg);
-          const noteKey = `${semIdx}-${tIdx}-${ej.id}-${intens}-note`;
-          const note = noteEditSaved[noteKey] || "";
-          return { intens, s, r, kg, note };
-        }).filter(c => c.s || c.r);
-        return {
-          id: ej.ejercicio_id,
-          nombre: nameEditSaved[nameKey] || ejData.nombre,
-          categoria: ejData.categoria,
-          cols
-        };
-      }).filter(Boolean);
+      ejs.forEach(ej => {
+        const row = buildEjercicioRow(ej, semIdx, tIdx, false);
+        if (row) rows.push(row);
+      });
+
+      // Complementarios DESPUÉS
+      if (t.complementarios_after?.length > 0) {
+        const compAfter = t.complementarios_after.filter(c => c.ejercicio_id);
+        compAfter.forEach(comp => {
+          const row = buildEjercicioRow(comp, semIdx, tIdx, true);
+          if (row) rows.push({ ...row, isComplementarioAfter: true });
+        });
+      }
+
       if (!rows.length) return null;
       return { tIdx, dia: t.dia, momento: t.momento, rows };
     }).filter(Boolean);
@@ -6532,46 +6661,77 @@ ${previewEl.outerHTML}
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((row, rIdx) => {
-                        const gc = GC[row.categoria] || "#555";
-                        const gb = GB[row.categoria] || "#fafafa";
-                        const isLast = rIdx === rows.length - 1;
-                        return (
-                          <tr key={rIdx} className={isLast ? "last-ej" : ""}>
-                            <td style={{padding:"3px 4px"}}>
-                              <span style={{
-                                background:gc,color:"#fff",fontSize:8,fontWeight:800,
-                                padding:"1px 4px",borderRadius:2,whiteSpace:"nowrap"
-                              }}>{row.id}</span>
-                            </td>
-                            <td className="left">
-                              <span className="ej-nombre">{row.nombre}</span>
-                            </td>
-                            {INTENSIDADES.map(intens => {
-                              const col = row.cols.find(c => c.intens === intens);
-                              if (!col || !col.s) {
+                      {(() => {
+                        let section = null;
+                        return rows.map((row, rIdx) => {
+                          const rowArr = [];
+
+                          // Detectar cambios de sección
+                          let newSection = null;
+                          if (row.isComplementarioBefore) newSection = 'ANTES';
+                          else if (row.isComplementarioAfter) newSection = 'DESPUÉS';
+                          else newSection = 'PRINCIPAL';
+
+                          if (newSection !== section && rIdx > 0) {
+                            section = newSection;
+                            const sectionColors = {
+                              'ANTES': { bg: '#e3f2fd', text: '#1565c0' },
+                              'PRINCIPAL': { bg: '#fff8e1', text: '#b8860b' },
+                              'DESPUÉS': { bg: '#e8f5e9', text: '#1b5e20' }
+                            };
+                            const colors = sectionColors[newSection];
+                            rowArr.push(
+                              <tr key={`sep-${rIdx}`} style={{height:2, background:'#ddd'}}>
+                                <td colSpan={2+INTENSIDADES.length}></td>
+                              </tr>
+                            );
+                          } else if (rIdx === 0) {
+                            section = newSection;
+                          }
+
+                          const gc = GC[row.categoria] || "#555";
+                          const gb = GB[row.categoria] || "#fafafa";
+                          const isLast = rIdx === rows.length - 1;
+
+                          rowArr.push(
+                            <tr key={rIdx} className={isLast ? "last-ej" : ""} style={{opacity: row.isComplementario ? 0.85 : 1}}>
+                              <td style={{padding:"3px 4px"}}>
+                                <span style={{
+                                  background:gc,color:"#fff",fontSize:8,fontWeight:800,
+                                  padding:"1px 4px",borderRadius:2,whiteSpace:"nowrap"
+                                }}>{row.id}</span>
+                              </td>
+                              <td className="left">
+                                <span className="ej-nombre" style={{fontStyle: row.isComplementario ? 'italic' : 'normal'}}>{row.nombre}</span>
+                              </td>
+                              {INTENSIDADES.map(intens => {
+                                const col = row.cols.find(c => c.intens === intens);
+                                if (!col || !col.s) {
+                                  return (
+                                    <td key={intens}>
+                                      <span className="cell-empty">–</span>
+                                    </td>
+                                  );
+                                }
                                 return (
-                                  <td key={intens}>
-                                    <span className="cell-empty">–</span>
+                                  <td key={intens} style={{background:gb}}>
+                                    <div className="cell-data">
+                                      <span className="cell-series">{col.s}</span>
+                                      <span className="cell-reps">{col.r}</span>
+                                      <span className="cell-kg">{col.kg}</span>
+                                      {col.note && (
+                                        <span className="cell-note">{col.note}</span>
+                                      )}
+                                    </div>
                                   </td>
                                 );
-                              }
-                              return (
-                                <td key={intens} style={{background:gb}}>
-                                  <div className="cell-data">
-                                    <span className="cell-series">{col.s}</span>
-                                    <span className="cell-reps">{col.r}</span>
-                                    <span className="cell-kg">{col.kg}</span>
-                                    {col.note && (
-                                      <span className="cell-note">{col.note}</span>
-                                    )}
-                                  </div>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
+                              })}
+                            </tr>
+                          );
+
+                          return rowArr;
+                        }).flat();
+                      })()}
                     </tbody>
                   </table>
                   </div>
