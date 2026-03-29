@@ -1040,6 +1040,7 @@ function EjBuscador({ value, onChange }) {
               display:"flex", alignItems:"center", gap:10}}>
               <input ref={inputRef}
                 value={query} onChange={e=>setQuery(e.target.value)}
+                onKeyDown={e=>{ if(e.key==="Enter" && results.length>0) select(results[0]); }}
                 placeholder="Número o nombre del ejercicio..."
                 style={{flex:1, background:"var(--surface2)",
                   border:"1px solid var(--border)", borderRadius:8,
