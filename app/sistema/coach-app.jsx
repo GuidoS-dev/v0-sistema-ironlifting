@@ -642,7 +642,8 @@ function calcRepsPorGrupo(reps, pctGrupos) {
   return res;
 }
 
-function getEjercicioById(id) {
+function getEjercicioById(id, normativos = null) {
+  if (normativos) return normativos.find((e) => e.id === id) || null;
   try {
     const stored = JSON.parse(localStorage.getItem('liftplan_normativos') || 'null');
     if (stored) return stored.find(e => e.id === id) || null;
@@ -650,12 +651,12 @@ function getEjercicioById(id) {
   return EJERCICIOS.find(e => e.id === id) || null;
 }
 
-function getSembradoStats(turnos) {
+function getSembradoStats(turnos, normativos = null) {
   const counts = {Arranque:0,Envion:0,Tirones:0,Piernas:0,Complementarios:0};
   let total = 0;
   turnos.forEach(t => t.ejercicios.forEach(e => {
     if (e.ejercicio_id) {
-      const ej = getEjercicioById(e.ejercicio_id);
+      const ej = getEjercicioById(e.ejercicio_id, normativos);
       if (ej) { counts[ej.categoria]++; total++; }
     }
   }));
@@ -1014,8 +1015,8 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
 }
 
 // ── Buscador de ejercicios con input de texto ────────────────────────────────
-function EjBuscador({ value, onChange }) {
-  const ejData = value ? getEjercicioById(Number(value)) : null;
+function EjBuscador({ value, onChange, normativos: normativosProp = null }) {
+  const ejData = value ? getEjercicioById(Number(value), normativosProp) : null;
   const [open,  setOpen]  = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
@@ -1151,15 +1152,15 @@ function EjBuscador({ value, onChange }) {
   );
 }
 
-function ComplementarioRow({ comp, idx, irm_arr, irm_env, onChange, onDelete }) {
-  const ejData = comp.ejercicio_id ? getEjercicioById(comp.ejercicio_id) : null;
+function ComplementarioRow({ comp, idx, irm_arr, irm_env, onChange, onDelete, normativos = null }) {
+  const ejData = comp.ejercicio_id ? getEjercicioById(comp.ejercicio_id, normativos) : null;
   const kg = ejData ? calcKg(ejData, irm_arr, irm_env) : null;
   const kgIntens = kg ? Math.round(kg * comp.intensidad / 100) : null;
 
   return (
     <div className="comp-row">
       <div className="ej-num">{idx+1}</div>
-      <EjBuscador value={comp.ejercicio_id} onChange={id=>onChange({...comp,ejercicio_id:id})}/>
+      <EjBuscador value={comp.ejercicio_id} onChange={id=>onChange({...comp,ejercicio_id:id})} normativos={normativos}/>
       <input className="ej-input" type="number" min={40} max={110} value={comp.intensidad}
         onChange={e=>onChange({...comp,intensidad:Number(e.target.value)})} title="Intensidad %"/>
       <select className="ej-input" value={comp.tabla} onChange={e=>onChange({...comp,tabla:Number(e.target.value)})}>
@@ -1176,15 +1177,15 @@ function ComplementarioRow({ comp, idx, irm_arr, irm_env, onChange, onDelete }) 
   );
 }
 
-function EjercicioRow({ ej, idx, irm_arr, irm_env, onChange }) {
-  const ejData = ej.ejercicio_id ? getEjercicioById(ej.ejercicio_id) : null;
+function EjercicioRow({ ej, idx, irm_arr, irm_env, onChange, normativos = null }) {
+  const ejData = ej.ejercicio_id ? getEjercicioById(ej.ejercicio_id, normativos) : null;
   const kg = ejData ? calcKg(ejData, irm_arr, irm_env) : null;
   const kgIntens = kg ? Math.round(kg * ej.intensidad / 100) : null;
 
   return (
     <div className="ej-row">
       <div className="ej-num">{idx+1}</div>
-      <EjBuscador value={ej.ejercicio_id} onChange={id=>onChange({...ej,ejercicio_id:id})}/>
+      <EjBuscador value={ej.ejercicio_id} onChange={id=>onChange({...ej,ejercicio_id:id})} normativos={normativos}/>
       <input className="ej-input" type="number" min={40} max={110} value={ej.intensidad}
         onChange={e=>onChange({...ej,intensidad:Number(e.target.value)})} title="Intensidad %"/>
       <select className="ej-input" value={ej.tabla} onChange={e=>onChange({...ej,tabla:Number(e.target.value)})}>
@@ -1198,9 +1199,9 @@ function EjercicioRow({ ej, idx, irm_arr, irm_env, onChange }) {
   );
 }
 
-function TurnoCard({ turno, semana_idx, irm_arr, irm_env, onChange, clipboardTurno, setClipboardTurno, onPaste }) {
+function TurnoCard({ turno, semana_idx, irm_arr, irm_env, onChange, clipboardTurno, setClipboardTurno, onPaste, normativos = null }) {
   const [open, setOpen] = useState(semana_idx===0 && turno.numero<=2);
-  const stats = getSembradoStats([turno]);
+  const stats = getSembradoStats([turno], normativos);
   const totalReps = turno.ejercicios.reduce((s,e)=>s+Number(e.reps_asignadas),0);
 
   // ── Reordenar ejercicios con flechas ──
@@ -1336,7 +1337,8 @@ function TurnoCard({ turno, semana_idx, irm_arr, irm_env, onChange, clipboardTur
               {turno.complementarios_before?.filter(Boolean).map((comp,i)=>(
                 <ComplementarioRow key={comp.id} comp={comp} idx={i} irm_arr={irm_arr} irm_env={irm_env}
                   onChange={newComp=>updateComplementario('before',i,newComp)}
-                  onDelete={()=>deleteComplementario('before',i)}/>
+                  onDelete={()=>deleteComplementario('before',i)}
+                  normativos={normativos}/>
               ))}
               <button onClick={()=>addComplementario('before')}
                 style={{background:"none",border:"none",cursor:"pointer",color:"var(--blue)",fontSize:12,padding:"4px 0",marginTop:4,fontWeight:500}}>
@@ -1362,7 +1364,8 @@ function TurnoCard({ turno, semana_idx, irm_arr, irm_env, onChange, clipboardTur
                         color:canDown?"var(--gold)":"var(--surface3)",fontSize:10,lineHeight:1,padding:"1px 3px"}}>▼</button>
                   </div>
                   <EjercicioRow ej={ej} idx={i} irm_arr={irm_arr} irm_env={irm_env}
-                    onChange={newEj=>updateEjTurno(i,newEj)}/>
+                    onChange={newEj=>updateEjTurno(i,newEj)}
+                    normativos={normativos}/>
                 </div>
               );
             })}
@@ -1375,7 +1378,8 @@ function TurnoCard({ turno, semana_idx, irm_arr, irm_env, onChange, clipboardTur
               {turno.complementarios_after?.filter(Boolean).map((comp,i)=>(
                 <ComplementarioRow key={comp.id} comp={comp} idx={i} irm_arr={irm_arr} irm_env={irm_env}
                   onChange={newComp=>updateComplementario('after',i,newComp)}
-                  onDelete={()=>deleteComplementario('after',i)}/>
+                  onDelete={()=>deleteComplementario('after',i)}
+                  normativos={normativos}/>
               ))}
               <button onClick={()=>addComplementario('after')}
                 style={{background:"none",border:"none",cursor:"pointer",color:"var(--green)",fontSize:12,padding:"4px 0",marginTop:4,fontWeight:500}}>
@@ -1472,7 +1476,7 @@ function calcKgEj(ejercicio_id, intensidad, irm_arr, irm_env, tablas_normativos)
   return Math.round(irm * ej.pct_base / 100 * intensidad / 100 * 2) / 2;
 }
 
-function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPctManual, turnoPctOverrides, turnoPctManual, onRequestReset, onBeforeChange, onChangeTurno, repsEdit, setRepsEdit: setRepsEditProp, manualEdit, setManualEdit: setManualEditProp, cellEdit, setCellEdit: setCellEditProp, cellManual, setCellManual: setCellManualProp, nameEdit, setNameEdit: setNameEditProp, noteEdit, setNoteEdit: setNoteEditProp }) {
+function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPctManual, turnoPctOverrides, turnoPctManual, onRequestReset, onBeforeChange, onChangeTurno, repsEdit, setRepsEdit: setRepsEditProp, manualEdit, setManualEdit: setManualEditProp, cellEdit, setCellEdit: setCellEditProp, cellManual, setCellManual: setCellManualProp, nameEdit, setNameEdit: setNameEditProp, noteEdit, setNoteEdit: setNoteEditProp, normativos: normativosProp = null }) {
   const [semActiva,       setSemActiva]       = useState(0);
   const [turnoActivo,     setTurnoActivo]     = useState(0);
   const [tipSem,          setTipSem]          = useState(null);
@@ -2857,12 +2861,12 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
 // Planilla simplificada sin sembrado, sin IRM, sin % semanal, sin distribución.
 // El "sembrado" se hace directamente en la planilla.
 // Cada ejercicio tiene N bloques con %, series, reps, kg editables.
-function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm_arr = 100, irm_env = 200 }) {
+function PlanillaBasica({ semanas, onChange, numBloques = 3, onBeforeChange, irm_arr = 100, irm_env = 200, normativos: normativosProp = null }) {
   const [semActiva, setSemActiva] = useState(0);
   const [turnoActivo, setTurnoActivo] = useState(0);
   const [ejPickerOpen, setEjPickerOpen] = useState(null); // ejIdx or null
 
-  const normativos = (() => {
+  const normativos = normativosProp ?? (() => {
     try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
     catch { return EJERCICIOS; }
   })();
@@ -4171,13 +4175,13 @@ const TABLA_DEFAULT = {
 };
 const DEFAULT_EJS  = 3;
 // ── Buscador compacto para EjCelda (muestra ID, abre popover al hacer click) ──
-function EjBuscadorCompacto({ value, onChange, color, title }) {
-  const ejData = value ? getEjercicioById(Number(value)) : null;
+function EjBuscadorCompacto({ value, onChange, color, title, normativos: normativosProp = null }) {
+  const ejData = value ? getEjercicioById(Number(value), normativosProp) : null;
   const [open,  setOpen]  = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
 
-  const normativos = (() => {
+  const normativos = normativosProp ?? (() => {
     try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
     catch { return EJERCICIOS; }
   })();
@@ -4330,8 +4334,8 @@ function EjBuscadorCompacto({ value, onChange, color, title }) {
 const mkEj = () => ({id:mkId(), ejercicio_id:null, intensidad:75, tabla:1, reps_asignadas:0});
 
 // Una fila de ejercicio dentro de una celda turno×semana — ultra compacta
-function EjCelda({ ej, num, onChange, onRemove, canRemove }) {
-  const ejData = ej.ejercicio_id ? getEjercicioById(ej.ejercicio_id) : null;
+function EjCelda({ ej, num, onChange, onRemove, canRemove, normativos = null }) {
+  const ejData = ej.ejercicio_id ? getEjercicioById(ej.ejercicio_id, normativos) : null;
   const col    = ejData ? CAT_COLOR[ejData.categoria] : "var(--border)";
 
   // Columnas: # | EJ(fijo) | INT | TBL | KG | ✕
@@ -4353,6 +4357,7 @@ function EjCelda({ ej, num, onChange, onRemove, canRemove }) {
         color={col}
         onChange={id=>onChange({...ej, ejercicio_id: id})}
         title={ejData ? `${ejData.id} — ${ejData.nombre}` : "Seleccionar ejercicio"}
+        normativos={normativos}
       />
 
       {/* INT */}
@@ -4398,7 +4403,7 @@ function EjCelda({ ej, num, onChange, onRemove, canRemove }) {
 // ── Hook de ordenamiento por drag (mouse + touch) ────────────────────────────
 // El drag se inicia SOLO desde el handle. Funciona en desktop y móvil.
 
-function CeldaSembrado({ ejercicios, irm_arr, irm_env, onChange }) {
+function CeldaSembrado({ ejercicios, irm_arr, irm_env, onChange, normativos = null }) {
   const addEj    = () => onChange([...ejercicios, mkEj()]);
   const removeEj = (i) => onChange(ejercicios.filter((_,idx)=>idx!==i));
 
@@ -4448,6 +4453,7 @@ function CeldaSembrado({ ejercicios, irm_arr, irm_env, onChange }) {
               onChange={newEj=>updateEj(i,newEj)}
               onRemove={()=>removeEj(i)}
               canRemove={ejercicios.length > 1}
+              normativos={normativos}
             />
           </div>
         </div>
@@ -4468,7 +4474,7 @@ function CeldaSembrado({ ejercicios, irm_arr, irm_env, onChange }) {
   );
 }
 
-function SembradoMensual({ semanas, irm_arr, irm_env, onChangeSemana, onChangeTodasSemanas, meso }) {
+function SembradoMensual({ semanas, irm_arr, irm_env, onChangeSemana, onChangeTodasSemanas, meso, normativos = null }) {
 
   const numTurnos = semanas[0].turnos.length;
 
@@ -4622,6 +4628,7 @@ function SembradoMensual({ semanas, irm_arr, irm_env, onChangeSemana, onChangeTo
                       ejercicios={getEjs(sIdx,tIdx)}
                       irm_arr={irm_arr} irm_env={irm_env}
                       onChange={newEjs=>updateEjs(sIdx,tIdx,newEjs)}
+                      normativos={normativos}
                     />
                   </td>
                 ))}
@@ -4757,6 +4764,7 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
             onChange={newT=>updateTurno(i,newT)}
             clipboardTurno={clipboardTurno}
             setClipboardTurno={setClipboardTurno}
+            normativos={normativosProp}
             onPaste={copied => {
               const newT = {
                 ...t,
@@ -5174,6 +5182,43 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
   const [showEditVol, setShowEditVol] = useState(false);
   const [mesoSelId, setMesoSelId] = useState(null);
   const [vistaActual, setVistaActual] = useState("meso");
+
+  const [atletaNormOverrides, setAtletaNormOverrides] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`liftplan_normativos_atleta_${atleta.id}`) || 'null') || {};
+    } catch { return {}; }
+  });
+
+  const globalNormativos = (() => {
+    try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
+    catch { return EJERCICIOS; }
+  })();
+
+  const atletaNormativos = globalNormativos.map(ej => {
+    const ovr = atletaNormOverrides[ej.id];
+    if (!ovr) return ej;
+    return {
+      ...ej,
+      ...(ovr.pct_base !== undefined ? { pct_base: ovr.pct_base } : {}),
+      ...(ovr.base !== undefined ? { base: ovr.base } : {}),
+    };
+  });
+
+  const getEjAtleta = (id) => getEjercicioById(id, atletaNormativos);
+
+  const saveAtletaOverrides = (updates) => {
+    setAtletaNormOverrides(prev => {
+      const next = typeof updates === 'function' ? updates(prev) : updates;
+      try { localStorage.setItem(`liftplan_normativos_atleta_${atleta.id}`, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    try {
+      setAtletaNormOverrides(JSON.parse(localStorage.getItem(`liftplan_normativos_atleta_${atleta.id}`) || 'null') || {});
+    } catch { setAtletaNormOverrides({}); }
+  }, [atleta.id]);
 
   // ── Overrides de porcentajes — persisten en localStorage por atleta ──────────
   const _pctKey = (type) => `liftplan_pct_${atleta.id}_${type}`;
@@ -5595,7 +5640,8 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
               {id:"meso", label:"Planilla"},
               {id:"resumen", label:"Resumen"},
               {id:"pdf", label:"PDF"},
-              {id:"historial", label:`Historial${mesoAtleta.length>0?` (${mesoAtleta.length})`:""}`}
+              {id:"historial", label:`Historial${mesoAtleta.length>0?` (${mesoAtleta.length})`:""}`},
+              {id:"normativos", label:"Normativos"},
             ].map(t=>(
               <button key={t.id} onClick={()=>{ console.log("[CLICK TAB]", t.id); setVistaActual(t.id); }}
                 style={{
@@ -5752,11 +5798,25 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
         </div>
       )}
 
+      {/* ════════════ NORMATIVOS ════════════ */}
+      {vistaActual==="normativos" && (
+        <PanelTabBoundary tab="Normativos atleta">
+          <PageNormativosAtleta
+            atleta={atleta}
+            globalNormativos={globalNormativos}
+            atletaNormativos={atletaNormativos}
+            atletaNormOverrides={atletaNormOverrides}
+            saveAtletaOverrides={saveAtletaOverrides}
+            getEjAtleta={getEjAtleta}
+          />
+        </PanelTabBoundary>
+      )}
+
       {/* ════════════ PDF ════════════ */}
       {vistaActual==="pdf" && (
         <PanelTabBoundary tab="PDF principal">
           {mesoVisto
-            ? <PagePDF meso={mesoVisto} atleta={atleta} irm_arr={irm_arr} irm_env={irm_env}/>
+            ? <PagePDF meso={mesoVisto} atleta={atleta} irm_arr={irm_arr} irm_env={irm_env} normativos={atletaNormativos}/>
             : <div style={{padding:40,textAlign:"center",color:"var(--muted)"}}>Sin mesociclo seleccionado</div>
           }
         </PanelTabBoundary>
@@ -5766,7 +5826,7 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
       {vistaActual==="resumen" && (
         <PanelTabBoundary tab="Resumen principal">
           {mesoVisto
-            ? <PageResumen meso={mesoVisto} atleta={atleta} irm_arr={irm_arr} irm_env={irm_env}/>
+            ? <PageResumen meso={mesoVisto} atleta={atleta} irm_arr={irm_arr} irm_env={irm_env} normativos={atletaNormativos}/>
             : <div style={{padding:40,textAlign:"center",color:"var(--muted)"}}>Sin mesociclo seleccionado</div>
           }
         </PanelTabBoundary>
@@ -5848,6 +5908,7 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
                 onBeforeChange={(forced) => pushSnap(forced)}
                 irm_arr={irm_arr}
                 irm_env={irm_env}
+                normativos={atletaNormativos}
               />
             </div>
           ) : (
@@ -5895,6 +5956,7 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
                   onChangeTodasSemanas={(newSemanas) => {
                     updateMeso({...mesoVisto, semanas: newSemanas});
                   }}
+                  normativos={atletaNormativos}
                 />
                 <ResumenGrupos semanas={mesoVisto.semanas} meso={mesoVisto}
                   onGuardarDistribucion={(dist)=>{
@@ -5943,6 +6005,7 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
                   cellManual={cellManual} setCellManual={setCellManualRaw}
                   nameEdit={nameEdit}   setNameEdit={setNameEditRaw}
                   noteEdit={noteEdit}   setNoteEdit={setNoteEditRaw}
+                  normativos={atletaNormativos}
                 />
               </div>
             </>
@@ -6010,7 +6073,7 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
 }
 
 
-function PageResumen({ meso, atleta, irm_arr, irm_env }) {
+function PageResumen({ meso, atleta, irm_arr, irm_env, normativos: normativosProp = null }) {
   const [semActiva, setSemActiva] = useState(null);
   const [turnoActivo, setTurnoActivo] = useState(null);
 
@@ -6026,7 +6089,7 @@ function PageResumen({ meso, atleta, irm_arr, irm_env }) {
     Tooltip, Legend, ResponsiveContainer, Cell } = RC;
   const hasRecharts = !!BarChart;
 
-  const normativos = (() => {
+  const normativos = normativosProp ?? (() => {
     try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
     catch { return EJERCICIOS; }
   })();
@@ -6539,8 +6602,8 @@ function PageResumen({ meso, atleta, irm_arr, irm_env }) {
 }
 
 
-function PagePDF({ meso, atleta, irm_arr, irm_env }) {
-  const normativos = (() => {
+function PagePDF({ meso, atleta, irm_arr, irm_env, normativos: normativosProp = null }) {
+  const normativos = normativosProp ?? (() => {
     try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
     catch { return EJERCICIOS; }
   })();
@@ -8977,6 +9040,184 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+// ── Normativos por atleta ────────────────────────────────────────────────────
+function PageNormativosAtleta({ atleta, globalNormativos, atletaNormativos, atletaNormOverrides, saveAtletaOverrides, getEjAtleta }) {
+  const [filtro,    setFiltro]    = useState("");
+  const [catFiltro, setCatFiltro] = useState("");
+  const [editId,    setEditId]    = useState(null);
+  const [editForm,  setEditForm]  = useState(null);
+  const [error,     setError]     = useState("");
+
+  const globalById = {};
+  globalNormativos.forEach(e => { globalById[e.id] = e; });
+
+  const startEdit = (e) => {
+    const curr = getEjAtleta(e.id) || e;
+    setEditId(e.id);
+    setEditForm({ id: e.id, pct_base: curr.pct_base ?? "", base: curr.base || "" });
+    setError("");
+  };
+
+  const cancelEdit = () => { setEditId(null); setEditForm(null); setError(""); };
+
+  const confirmEdit = () => {
+    if (!editForm) return;
+    const parsedPct = editForm.pct_base === "" ? null : Number(editForm.pct_base);
+    if (parsedPct !== null && (isNaN(parsedPct) || parsedPct < 0 || parsedPct > 200)) {
+      setError("% Base debe estar entre 0 y 200"); return;
+    }
+    const globalEj = globalById[editId];
+    if (!globalEj) { setError("No se pudo encontrar el ejercicio global"); return; }
+
+    const nextRow = {};
+    if (parsedPct !== (globalEj.pct_base ?? null)) nextRow.pct_base = parsedPct;
+    if ((editForm.base || "") !== (globalEj.base || "")) nextRow.base = editForm.base || "";
+
+    saveAtletaOverrides(prev => {
+      const next = { ...prev };
+      if (Object.keys(nextRow).length === 0) delete next[editId];
+      else next[editId] = nextRow;
+      return next;
+    });
+    setEditId(null); setEditForm(null); setError("");
+  };
+
+  const resetOverride = (id) => {
+    saveAtletaOverrides(prev => {
+      if (!prev[id]) return prev;
+      const next = { ...prev }; delete next[id]; return next;
+    });
+    if (editId === id) cancelEdit();
+  };
+
+  const filtered = atletaNormativos
+    .filter(e =>
+      (!catFiltro || e.categoria === catFiltro) &&
+      (!filtro || e.nombre.toLowerCase().includes(filtro.toLowerCase()) || String(e.id).includes(filtro))
+    )
+    .sort((a, b) => Number(a.id) - Number(b.id));
+
+  const setF = (field, val) => setEditForm(f => ({ ...f, [field]: val }));
+  const inputStyle = {
+    background: "var(--surface3)", border: "1px solid var(--gold)", borderRadius: 5,
+    color: "var(--text)", fontSize: 12, padding: "3px 6px", outline: "none", width: "100%"
+  };
+
+  return (
+    <div>
+      <div className="flex-between mb16">
+        <div>
+          <div className="page-title">Normativos · {atleta.nombre}</div>
+          <div className="page-sub">Overrides locales por atleta sobre los normativos globales</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="flex gap12 mb14" style={{ flexWrap: "wrap" }}>
+          <input className="form-input" style={{ maxWidth: 240 }} placeholder="Buscar por nombre o ID..."
+            value={filtro} onChange={e => setFiltro(e.target.value)} />
+          <select className="form-select" style={{ maxWidth: 200 }} value={catFiltro}
+            onChange={e => setCatFiltro(e.target.value)}>
+            <option value="">Todas las categorías</option>
+            {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+          </select>
+          <span className="text-sm text-muted" style={{ alignSelf: "center" }}>
+            {filtered.length} ejercicios · {Object.keys(atletaNormOverrides).length} overrides
+          </span>
+        </div>
+
+        {error && (
+          <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 8,
+            background: "rgba(232,71,71,.1)", border: "1px solid rgba(232,71,71,.3)",
+            fontSize: 12, color: "var(--red)", fontWeight: 600 }}>
+            ⚠ {error}
+          </div>
+        )}
+
+        <div className="scroll-x">
+          <table className="norm-table">
+            <thead>
+              <tr>
+                <th style={{ width: 50 }}>ID</th>
+                <th>Ejercicio</th>
+                <th style={{ width: 150 }}>Categoría</th>
+                <th style={{ width: 90, textAlign: "center" }}>% Base</th>
+                <th style={{ width: 120 }}>Base IRM</th>
+                <th style={{ width: 160, textAlign: "right" }} />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(e => {
+                const isEditing = editId === e.id;
+                const row = isEditing ? editForm : e;
+                const ovr = atletaNormOverrides[e.id] || null;
+                const hasOverride = !!ovr;
+                const pctOver  = hasOverride && Object.prototype.hasOwnProperty.call(ovr, "pct_base");
+                const baseOver = hasOverride && Object.prototype.hasOwnProperty.call(ovr, "base");
+
+                return (
+                  <tr key={e.id} style={{
+                    background: isEditing ? "rgba(232,197,71,.06)" : hasOverride ? "rgba(71,157,232,.05)" : "transparent",
+                    cursor: isEditing ? "default" : "pointer",
+                    borderLeft: hasOverride ? "3px solid var(--blue)" : "3px solid transparent"
+                  }} onClick={() => !isEditing && startEdit(e)}>
+                    <td><span style={{ fontFamily:"'Bebas Neue'", fontSize:16, color:"var(--muted)" }}>{e.id}</span></td>
+                    <td><span style={{ fontWeight:500 }}>{e.nombre}</span></td>
+                    <td>
+                      <span className="badge" style={{ background:`${CAT_COLOR[e.categoria]}20`, color:CAT_COLOR[e.categoria] }}>
+                        {e.categoria}
+                      </span>
+                    </td>
+                    <td style={{ textAlign:"center" }} onClick={ev => isEditing && ev.stopPropagation()}>
+                      {isEditing ? (
+                        <input type="number" min={0} max={200} style={{ ...inputStyle, width:70, textAlign:"center",
+                          borderColor: pctOver ? "var(--blue)" : "var(--gold)", color: pctOver ? "var(--blue)" : "var(--text)" }}
+                          value={row.pct_base} onChange={ev => setF("pct_base", ev.target.value)} />
+                      ) : (
+                        <span style={{ fontFamily:"'Bebas Neue'", fontSize:16, color: pctOver ? "var(--blue)" : "var(--gold)" }}>
+                          {e.pct_base ?? "—"}
+                        </span>
+                      )}
+                    </td>
+                    <td onClick={ev => isEditing && ev.stopPropagation()}>
+                      {isEditing ? (
+                        <select style={{ ...inputStyle, borderColor: baseOver ? "var(--blue)" : "var(--gold)",
+                          color: baseOver ? "var(--blue)" : "var(--text)" }}
+                          value={row.base || ""} onChange={ev => setF("base", ev.target.value)}>
+                          <option value="arranque">Arranque</option>
+                          <option value="envion">Envión</option>
+                          <option value="">Ninguna</option>
+                        </select>
+                      ) : (
+                        <span className="text-sm" style={{ color: baseOver ? "var(--blue)" : "var(--muted)" }}>
+                          {e.base || "—"}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ textAlign:"right" }} onClick={ev => ev.stopPropagation()}>
+                      {isEditing ? (
+                        <div className="flex gap4" style={{ justifyContent:"flex-end" }}>
+                          <button className="btn btn-ghost btn-xs" onClick={cancelEdit}>✕</button>
+                          <button className="btn btn-gold btn-xs" onClick={confirmEdit}>✓</button>
+                        </div>
+                      ) : hasOverride ? (
+                        <button className="btn btn-ghost btn-xs" style={{ color:"var(--blue)" }}
+                          onClick={() => resetOverride(e.id)}>Resetear</button>
+                      ) : (
+                        <span style={{ color:"var(--surface3)" }}>•</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
