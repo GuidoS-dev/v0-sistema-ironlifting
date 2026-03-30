@@ -10112,6 +10112,25 @@ function PanelReferencia({ atletas, mesociclos, plantillas, liveMesoData={}, onC
   const liveTurnoPctOvr = live?.turnoPctOverrides ?? lsPctGet('turnoOvr', {});
   const liveTurnoPctMan = new Set(live?.turnoPctManual ?? lsPctGet('turnoMan', []));
 
+  const globalNormativos = (() => {
+    try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
+    catch { return EJERCICIOS; }
+  })();
+  const atletaNormOverrides = (() => {
+    if (!atletaId) return {};
+    try { return JSON.parse(localStorage.getItem(`liftplan_normativos_atleta_${atletaId}`) || 'null') || {}; }
+    catch { return {}; }
+  })();
+  const atletaNormativos = globalNormativos.map(ej => {
+    const ovr = atletaNormOverrides[ej.id];
+    if (!ovr) return ej;
+    return {
+      ...ej,
+      ...(ovr.pct_base !== undefined ? { pct_base: ovr.pct_base } : {}),
+      ...(ovr.base !== undefined ? { base: ovr.base } : {}),
+    };
+  });
+
   // Force re-read on render tick using a ticker
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -10344,7 +10363,7 @@ function PanelReferencia({ atletas, mesociclos, plantillas, liveMesoData={}, onC
               {turno?.dia ? ` · ${turno.dia}` : ""}
             </div>
             {turno.ejercicios.filter(e=>e.ejercicio_id).map((ej,i) => {
-              const data   = getEjercicioById(ej.ejercicio_id);
+              const data   = getEjercicioById(ej.ejercicio_id, atletaNormativos);
               const col    = CAT_COLOR[data?.categoria]||"var(--muted)";
               const k = `${semIdx}-${turnoIdx}-${ej.id}`;
               const repsVal = getRepsVal(ej, semIdx, turnoIdx);
@@ -10588,14 +10607,14 @@ function PanelReferencia({ atletas, mesociclos, plantillas, liveMesoData={}, onC
               debug: hasDatos={String(_hasDatos)} mesoId={_mesoRef?.id||"null"} sems={_mesoRef?.semanas?.length||0}
             </div>
             {_hasDatos
-              ? <PanelTabBoundary tab="Resumen"><PageResumen key={vistaKey.resumen} meso={_mesoRef} atleta={_atletaRef} irm_arr={irm_arr} irm_env={irm_env}/></PanelTabBoundary>
+              ? <PanelTabBoundary tab="Resumen"><PageResumen key={vistaKey.resumen} meso={_mesoRef} atleta={_atletaRef} irm_arr={irm_arr} irm_env={irm_env} normativos={atletaNormativos}/></PanelTabBoundary>
               : <div style={{padding:32,textAlign:"center",color:"var(--muted)",fontSize:13}}>Sin datos — seleccioná un atleta con mesociclo</div>
             }
           </div>
         )}
 
         {vista==="pdf" && (_hasDatos
-          ? <PanelTabBoundary tab="PDF"><PagePDF key={vistaKey.pdf} meso={_mesoRef} atleta={_atletaRef} irm_arr={irm_arr} irm_env={irm_env}/></PanelTabBoundary>
+          ? <PanelTabBoundary tab="PDF"><PagePDF key={vistaKey.pdf} meso={_mesoRef} atleta={_atletaRef} irm_arr={irm_arr} irm_env={irm_env} normativos={atletaNormativos}/></PanelTabBoundary>
           : <div style={{padding:32,textAlign:"center",color:"var(--muted)",fontSize:13}}>Sin datos — seleccioná un atleta con mesociclo</div>
         )}
       </div>
