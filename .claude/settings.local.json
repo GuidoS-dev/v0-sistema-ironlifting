@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(where gh:*)",
+      "Bash(powershell -Command \"Get-Command gh -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(powershell -Command \"& ''C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe'' pr create --repo GuidoS-dev/v0-sistema-ironlifting --title ''Sincronizar atletas, mesociclos y plantillas con Supabase'' --body ''Ver PR description'' --base main --head claude/elegant-mendel\")",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr merge 2 --repo GuidoS-dev/v0-sistema-ironlifting --squash --auto)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr merge 2 --repo GuidoS-dev/v0-sistema-ironlifting --squash)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr view 2 --repo GuidoS-dev/v0-sistema-ironlifting)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr merge 2 --repo GuidoS-dev/v0-sistema-ironlifting --squash --subject \"Sincronizar base de datos: usar esquema real con app_id\")",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr view 2 --repo GuidoS-dev/v0-sistema-ironlifting --json state,mergedAt,url)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr merge 3 --repo GuidoS-dev/v0-sistema-ironlifting --squash --subject \"Restaurar autenticación real con Supabase\")",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr view 3 --repo GuidoS-dev/v0-sistema-ironlifting --json state,mergedAt)",
+      "Bash(gh pr:*)",
+      "Bash(/c/Users/guido/AppData/Local/GitHub/cli/gh.exe pr:*)",
+      "Read(//c/Users/guido/AppData/Local/**)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" pr list --head claude/elegant-mendel)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" pr view 4)"
+    ]
+  }
+}
