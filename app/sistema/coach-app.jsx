@@ -1583,6 +1583,9 @@ const mkEjBasica = (n = 3) => ({
   nombre_custom: "",
   bloques: Array.from({ length: n }, mkBloqueBasica),
 });
+const EMPTY_NAME_SENTINEL = "\u200B";
+const resolveExerciseName = (customName, fallback = "") =>
+  customName === EMPTY_NAME_SENTINEL ? "" : customName || fallback;
 const mkTurnosBasica = (n = 3) =>
   Array.from({ length: 3 }, (_, i) => ({
     id: mkId(),
@@ -6608,17 +6611,37 @@ function PlanillaTurno({
                                     >
                                       <input
                                         type="text"
-                                        value={
-                                          comp.nombre_custom ||
-                                          (ejData ? ejData.nombre : "")
-                                        }
+                                        value={resolveExerciseName(
+                                          comp.nombre_custom,
+                                          ejData ? ejData.nombre : "",
+                                        )}
                                         placeholder="Nombre del ejercicio"
-                                        onChange={(e) =>
+                                        onChange={(e) => {
+                                          const val = e.target.value;
                                           _mapComp(comp.id, (c) => ({
                                             ...c,
-                                            nombre_custom: e.target.value,
-                                          }))
-                                        }
+                                            nombre_custom:
+                                              val === ""
+                                                ? EMPTY_NAME_SENTINEL
+                                                : ejData && val === ejData.nombre
+                                                  ? ""
+                                                  : val,
+                                          }));
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (
+                                            e.key === "Backspace" &&
+                                            e.currentTarget.value === "" &&
+                                            comp.nombre_custom ===
+                                              EMPTY_NAME_SENTINEL
+                                          ) {
+                                            e.preventDefault();
+                                            _mapComp(comp.id, (c) => ({
+                                              ...c,
+                                              nombre_custom: "",
+                                            }));
+                                          }
+                                        }}
                                         style={{
                                           width: "100%",
                                           background: "transparent",
@@ -7544,7 +7567,10 @@ function PlanillaBasica({
                   const bloques =
                     ej.bloques ||
                     Array.from({ length: numBloques }, mkBloqueBasica);
-                  const displayName = ej.nombre_custom || ejData?.nombre || "";
+                  const displayName = resolveExerciseName(
+                    ej.nombre_custom,
+                    ejData?.nombre || "",
+                  );
 
                   return (
                     <tr
@@ -7595,10 +7621,25 @@ function PlanillaBasica({
                           value={displayName}
                           placeholder="Nombre del ejercicio"
                           onChange={(e) => {
-                            if (ejData && e.target.value === ejData.nombre) {
+                            const val = e.target.value;
+                            if (val === "") {
+                              setNombreCustom(eIdx, EMPTY_NAME_SENTINEL);
+                              return;
+                            }
+                            if (ejData && val === ejData.nombre) {
                               setNombreCustom(eIdx, "");
                             } else {
-                              setNombreCustom(eIdx, e.target.value);
+                              setNombreCustom(eIdx, val);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Backspace" &&
+                              e.currentTarget.value === "" &&
+                              ej.nombre_custom === EMPTY_NAME_SENTINEL
+                            ) {
+                              e.preventDefault();
+                              setNombreCustom(eIdx, "");
                             }
                           }}
                           style={{
@@ -16579,7 +16620,7 @@ function PagePDF({
       const hasCustomText = comp.nombre_custom || comp.aclaracion;
       if (!hasCustomText) return null;
       
-      const nombre = comp.nombre_custom || "";
+      const nombre = resolveExerciseName(comp.nombre_custom, "");
       const aclaracion = comp.aclaracion ? ` (${comp.aclaracion})` : "";
       
       return {
@@ -16592,7 +16633,7 @@ function PagePDF({
       };
     }
 
-    const nombre = comp.nombre_custom || ejData.nombre;
+    const nombre = resolveExerciseName(comp.nombre_custom, ejData.nombre);
     const aclaracion = comp.aclaracion ? ` (${comp.aclaracion})` : "";
 
     return {
