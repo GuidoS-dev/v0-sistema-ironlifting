@@ -378,11 +378,21 @@ function atletaToDb(a, coachId) {
     fecha_nacimiento: a.fecha_nacimiento || null,
     notas: a.notas || "",
     tipo: a.tipo || "atleta",
+    genero: a.genero || "m",
+    ciclo: a.ciclo ? JSON.stringify(a.ciclo) : null,
     pct_overrides: collectAtletaPctOverrides(a.id),
     updated_at: new Date().toISOString(),
   };
 }
 function atletaFromDb(r) {
+  let ciclo = null;
+  if (r.ciclo) {
+    try {
+      ciclo = typeof r.ciclo === "string" ? JSON.parse(r.ciclo) : r.ciclo;
+    } catch {
+      ciclo = null;
+    }
+  }
   return {
     id: r.app_id,
     nombre: r.nombre,
@@ -391,6 +401,8 @@ function atletaFromDb(r) {
     fecha_nacimiento: r.fecha_nacimiento,
     notas: r.notas,
     tipo: r.tipo,
+    genero: r.genero || "m",
+    ciclo,
   };
 }
 function mesoToDb(m, coachId) {
@@ -410,11 +422,20 @@ function mesoToDb(m, coachId) {
     duracion_mens: m.duracion_mens || null,
     ultimo_inicio: m.ultimo_inicio || null,
     semanas: m.semanas || [],
-    overrides: collectMesoOverrides(m.id),
+    overrides: {
+      ...collectMesoOverrides(m.id),
+      _meta: {
+        escuela: m.escuela ?? false,
+        escuela_nivel: m.escuela_nivel ?? "1",
+        num_bloques_basica: m.num_bloques_basica ?? 3,
+        distribucion: m.distribucion ?? null,
+      },
+    },
     updated_at: new Date().toISOString(),
   };
 }
 function mesoFromDb(r) {
+  const meta = r.overrides?._meta || {};
   return {
     id: r.app_id,
     atleta_id: r.app_atleta_id,
@@ -430,6 +451,10 @@ function mesoFromDb(r) {
     duracion_mens: r.duracion_mens,
     ultimo_inicio: r.ultimo_inicio,
     semanas: r.semanas || [],
+    escuela: meta.escuela ?? false,
+    escuela_nivel: meta.escuela_nivel ?? "1",
+    num_bloques_basica: meta.num_bloques_basica ?? 3,
+    distribucion: meta.distribucion ?? null,
   };
 }
 function plantillaToDb(p, coachId) {
@@ -11288,7 +11313,7 @@ function SembradoMensual({
   meso,
   normativos = null,
 }) {
-  const numTurnos = semanas[0].turnos.length;
+  const numTurnos = semanas[0]?.turnos?.length ?? 3;
   const [importFrom, setImportFrom] = useState("");
   const [importTo, setImportTo] = useState("");
   const [importFeedback, setImportFeedback] = useState(false);
@@ -14343,6 +14368,7 @@ function PageAtleta({
 
       {/* ════════════ PLANILLA ════════════ */}
       {vistaActual === "meso" && mesoVisto && (
+        <PanelTabBoundary tab="Planilla">
         <>
           {/* Toolbar */}
           <div
@@ -14690,6 +14716,7 @@ function PageAtleta({
             </>
           )}
         </>
+        </PanelTabBoundary>
       )}
 
       {/* ════ MODAL confirmar reset ════ */}
