@@ -8545,6 +8545,10 @@ function ResumenGrupos({
                                   flexDirection: "column",
                                   gap: 1,
                                 }}
+                                onMouseEnter={(e) => {
+                                  e.stopPropagation();
+                                  setTooltip(null);
+                                }}
                               >
                                 <button
                                   type="button"
@@ -8558,6 +8562,10 @@ function ResumenGrupos({
                                     lineHeight: 1,
                                     cursor: "pointer",
                                     padding: 0,
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.stopPropagation();
+                                    setTooltip(null);
                                   }}
                                 >
                                   ▲
@@ -8574,6 +8582,10 @@ function ResumenGrupos({
                                     lineHeight: 1,
                                     cursor: "pointer",
                                     padding: 0,
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.stopPropagation();
+                                    setTooltip(null);
                                   }}
                                 >
                                   ▼
@@ -9611,6 +9623,10 @@ function DistribucionTurnos({
                                     flexDirection: "column",
                                     gap: 1,
                                   }}
+                                  onMouseEnter={(e) => {
+                                    e.stopPropagation();
+                                    setCellTip(null);
+                                  }}
                                 >
                                   <button
                                     type="button"
@@ -9624,6 +9640,10 @@ function DistribucionTurnos({
                                       lineHeight: 1,
                                       cursor: "pointer",
                                       padding: 0,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.stopPropagation();
+                                      setCellTip(null);
                                     }}
                                   >
                                     ▲
@@ -9640,6 +9660,10 @@ function DistribucionTurnos({
                                       lineHeight: 1,
                                       cursor: "pointer",
                                       padding: 0,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.stopPropagation();
+                                      setCellTip(null);
                                     }}
                                   >
                                     ▼
@@ -12543,6 +12567,15 @@ function EditVolModal({ meso, onSave, onClose }) {
                 onChange={(e) => updatePct(i, e.target.value)}
                 style={{ width: 80 }}
               />
+              <span
+                style={{
+                  fontFamily: "'Bebas Neue'",
+                  fontSize: 20,
+                  color: totalPct === 100 ? "var(--green)" : "var(--muted)",
+                }}
+              >
+                %
+              </span>
               <div style={{ display: "flex", gap: 4 }}>
                 <button
                   type="button"
@@ -12563,15 +12596,6 @@ function EditVolModal({ meso, onSave, onClose }) {
                   ▼
                 </button>
               </div>
-              <span
-                style={{
-                  fontFamily: "'Bebas Neue'",
-                  fontSize: 20,
-                  color: totalPct === 100 ? "var(--green)" : "var(--muted)",
-                }}
-              >
-                %
-              </span>
               <span style={{ fontSize: 13, color: "var(--muted)" }}>
                 →{" "}
                 <span
