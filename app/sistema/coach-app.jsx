@@ -8087,6 +8087,26 @@ function ResumenGrupos({
     return vals;
   };
 
+  const distributeIncrease = (baseVals, keys, amount) => {
+    const vals = { ...baseVals };
+    let pending = Math.max(0, Math.round(amount));
+    while (pending > 0) {
+      const candidates = keys.filter((k) => (vals[k] || 0) < 100);
+      if (candidates.length === 0) break;
+      candidates
+        .slice()
+        .sort((a, b) => (vals[a] || 0) - (vals[b] || 0))
+        .forEach((k) => {
+          if (pending <= 0) return;
+          if ((vals[k] || 0) < 100) {
+            vals[k] += 1;
+            pending -= 1;
+          }
+        });
+    }
+    return vals;
+  };
+
   const getVal = (g, sIdx) => {
     const k = `${g}-${sIdx}`;
     const raw = semPctManual.has(k)
@@ -8150,9 +8170,39 @@ function ResumenGrupos({
       return;
     }
 
-    const k = `${g}-${sIdx}`;
-    setSemPctOverrides((prev) => ({ ...prev, [k]: current + applied }));
-    setSemPctManual((prev) => new Set([...prev, k]));
+    let dec = Math.abs(applied);
+    const otherKeys = activeGroups.filter(
+      (gx) => gx !== g && (vals[gx] || 0) > 0 && (vals[gx] || 0) < 100,
+    );
+    const capacityUp = otherKeys.reduce(
+      (acc, gx) => acc + (100 - (vals[gx] || 0)),
+      0,
+    );
+    const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
+    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const missing = Math.max(0, required - capacityUp);
+    if (missing > 0 && prevSum >= 100) {
+      dec = Math.max(0, dec - missing);
+    }
+    if (dec === 0) return;
+
+    vals[g] = current - dec;
+    const balanceAmount =
+      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+    const increased = distributeIncrease(vals, otherKeys, balanceAmount);
+
+    const updates = {};
+    const changed = [];
+    activeGroups.forEach((gx) => {
+      const nextVal = toIntPct(increased[gx] || 0);
+      if (nextVal !== toIntPct(getVal(gx, sIdx))) {
+        updates[`${gx}-${sIdx}`] = nextVal;
+        changed.push(`${gx}-${sIdx}`);
+      }
+    });
+    if (Object.keys(updates).length === 0) return;
+    setSemPctOverrides((prev) => ({ ...prev, ...updates }));
+    setSemPctManual((prev) => new Set([...prev, ...changed]));
   };
   const resetSingleVal = (g, sIdx, e) => {
     if (e.detail === 2) {
@@ -8966,6 +9016,26 @@ function DistribucionTurnos({
     return vals;
   };
 
+  const distributeIncrease = (baseVals, keys, amount) => {
+    const vals = { ...baseVals };
+    let pending = Math.max(0, Math.round(amount));
+    while (pending > 0) {
+      const candidates = keys.filter((k) => (vals[k] || 0) < 100);
+      if (candidates.length === 0) break;
+      candidates
+        .slice()
+        .sort((a, b) => (vals[a] || 0) - (vals[b] || 0))
+        .forEach((k) => {
+          if (pending <= 0) return;
+          if ((vals[k] || 0) < 100) {
+            vals[k] += 1;
+            pending -= 1;
+          }
+        });
+    }
+    return vals;
+  };
+
   const getVal = (g, tIdx) => {
     const k = `${g}-${semActiva}-${tIdx}`;
     const raw = turnoPctManual.has(k)
@@ -9035,9 +9105,39 @@ function DistribucionTurnos({
       return;
     }
 
-    const k = `${g}-${semActiva}-${tIdx}`;
-    setTurnoPctOverrides((prev) => ({ ...prev, [k]: current + applied }));
-    setTurnoPctManual((prev) => new Set([...prev, k]));
+    let dec = Math.abs(applied);
+    const otherKeys = turnKeys.filter(
+      (idx) => idx !== tIdx && (vals[idx] || 0) > 0 && (vals[idx] || 0) < 100,
+    );
+    const capacityUp = otherKeys.reduce(
+      (acc, idx) => acc + (100 - (vals[idx] || 0)),
+      0,
+    );
+    const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
+    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const missing = Math.max(0, required - capacityUp);
+    if (missing > 0 && prevSum >= 100) {
+      dec = Math.max(0, dec - missing);
+    }
+    if (dec === 0) return;
+
+    vals[tIdx] = current - dec;
+    const balanceAmount =
+      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+    const increased = distributeIncrease(vals, otherKeys, balanceAmount);
+
+    const updates = {};
+    const changed = [];
+    turnKeys.forEach((idx) => {
+      const nextVal = toIntPct(increased[idx] || 0);
+      if (nextVal !== toIntPct(getVal(g, idx))) {
+        updates[`${g}-${semActiva}-${idx}`] = nextVal;
+        changed.push(`${g}-${semActiva}-${idx}`);
+      }
+    });
+    if (Object.keys(updates).length === 0) return;
+    setTurnoPctOverrides((prev) => ({ ...prev, ...updates }));
+    setTurnoPctManual((prev) => new Set([...prev, ...changed]));
   };
   const resetSingleVal = (g, tIdx, e) => {
     if (e.detail === 2) {
@@ -12246,6 +12346,26 @@ function EditVolModal({ meso, onSave, onClose }) {
     return vals;
   };
 
+  const distributeIncrease = (baseVals, keys, amount) => {
+    const vals = { ...baseVals };
+    let pending = Math.max(0, Math.round(amount));
+    while (pending > 0) {
+      const candidates = keys.filter((k) => (vals[k] || 0) < 100);
+      if (candidates.length === 0) break;
+      candidates
+        .slice()
+        .sort((a, b) => (vals[a] || 0) - (vals[b] || 0))
+        .forEach((k) => {
+          if (pending <= 0) return;
+          if ((vals[k] || 0) < 100) {
+            vals[k] += 1;
+            pending -= 1;
+          }
+        });
+    }
+    return vals;
+  };
+
   const updatePct = (idx, val) => {
     const s = [...semanas];
     s[idx] = { ...s[idx], pct_volumen: toIntPct(val) };
@@ -12294,10 +12414,29 @@ function EditVolModal({ meso, onSave, onClose }) {
       return;
     }
 
-    vals[idx] = current + applied;
+    let dec = Math.abs(applied);
+    const otherKeys = Object.keys(vals)
+      .map(Number)
+      .filter((k) => k !== idx && (vals[k] || 0) > 0 && (vals[k] || 0) < 100);
+    const capacityUp = otherKeys.reduce(
+      (acc, k) => acc + (100 - (vals[k] || 0)),
+      0,
+    );
+    const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
+    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const missing = Math.max(0, required - capacityUp);
+    if (missing > 0 && prevSum >= 100) {
+      dec = Math.max(0, dec - missing);
+    }
+    if (dec === 0) return;
+
+    vals[idx] = current - dec;
+    const balanceAmount =
+      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+    const increased = distributeIncrease(vals, otherKeys, balanceAmount);
     const nextSemanas = semanas.map((sem, i) => ({
       ...sem,
-      pct_volumen: toIntPct(vals[i] || 0),
+      pct_volumen: toIntPct(increased[i] || 0),
     }));
     setSemanas(nextSemanas);
   };
