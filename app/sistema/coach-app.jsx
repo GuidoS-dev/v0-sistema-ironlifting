@@ -312,6 +312,55 @@ function writeLocalJson(key, value) {
   } catch {}
 }
 
+function asPlainObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value
+    : {};
+}
+
+function asArray(value) {
+  if (value instanceof Set) return [...value];
+  return Array.isArray(value) ? value : [];
+}
+
+function collectAtletaNormOverrides(atletaId) {
+  return asPlainObject(
+    readLocalJson(`liftplan_normativos_atleta_${atletaId}`, {}),
+  );
+}
+
+function restoreAtletaNormOverrides(atletaId, overrides) {
+  if (!atletaId || overrides == null) return;
+  writeLocalJson(
+    `liftplan_normativos_atleta_${atletaId}`,
+    asPlainObject(overrides),
+  );
+}
+
+function buildMesoOverridesPayload(meso, liveOverrides = null) {
+  const stored = collectMesoOverrides(meso.id);
+  return {
+    repsEdit: asPlainObject(liveOverrides?.repsEdit ?? stored.repsEdit),
+    manualEdit: asArray(liveOverrides?.manualEdit ?? stored.manualEdit),
+    cellEdit: asPlainObject(liveOverrides?.cellEdit ?? stored.cellEdit),
+    cellManual: asArray(liveOverrides?.cellManual ?? stored.cellManual),
+    nameEdit: asPlainObject(liveOverrides?.nameEdit ?? stored.nameEdit),
+    noteEdit: asPlainObject(liveOverrides?.noteEdit ?? stored.noteEdit),
+    semOvr: asPlainObject(liveOverrides?.semPctOverrides ?? stored.semOvr),
+    semMan: asArray(liveOverrides?.semPctManual ?? stored.semMan),
+    turnoOvr: asPlainObject(
+      liveOverrides?.turnoPctOverrides ?? stored.turnoOvr,
+    ),
+    turnoMan: asArray(liveOverrides?.turnoPctManual ?? stored.turnoMan),
+    _meta: {
+      escuela: meso.escuela ?? false,
+      escuela_nivel: meso.escuela_nivel ?? "1",
+      num_bloques_basica: meso.num_bloques_basica ?? 3,
+      distribucion: meso.distribucion ?? null,
+    },
+  };
+}
+
 async function loadCoachSetting(coachId, settingKey) {
   if (!coachId) return null;
   const { data, error } = await sb
@@ -419,7 +468,7 @@ function restoreAtletaPctOverrides(atletaId, overrides) {
 }
 
 // ─── MAPEOS APP ↔ DB (usan el esquema real de las tablas existentes) ─────────
-function atletaToDb(a, coachId) {
+function atletaToDb(a, coachId, options = {}) {
   return {
     coach_id: coachId,
     app_id: a.id,
@@ -431,7 +480,10 @@ function atletaToDb(a, coachId) {
     tipo: a.tipo || "atleta",
     genero: a.genero || "m",
     ciclo: a.ciclo ? JSON.stringify(a.ciclo) : null,
-    pct_overrides: collectAtletaPctOverrides(a.id),
+    pct_overrides:
+      options.pctOverrides ?? collectAtletaPctOverrides(a.id),
+    normativos_overrides:
+      options.normativosOverrides ?? collectAtletaNormOverrides(a.id),
     updated_at: new Date().toISOString(),
   };
 }
@@ -456,7 +508,7 @@ function atletaFromDb(r) {
     ciclo,
   };
 }
-function mesoToDb(m, coachId) {
+function mesoToDb(m, coachId, options = {}) {
   return {
     coach_id: coachId,
     app_id: m.id,
@@ -473,15 +525,7 @@ function mesoToDb(m, coachId) {
     duracion_mens: m.duracion_mens || null,
     ultimo_inicio: m.ultimo_inicio || null,
     semanas: m.semanas || [],
-    overrides: {
-      ...collectMesoOverrides(m.id),
-      _meta: {
-        escuela: m.escuela ?? false,
-        escuela_nivel: m.escuela_nivel ?? "1",
-        num_bloques_basica: m.num_bloques_basica ?? 3,
-        distribucion: m.distribucion ?? null,
-      },
-    },
+    overrides: options.overrides ?? buildMesoOverridesPayload(m),
     updated_at: new Date().toISOString(),
   };
 }
@@ -13502,6 +13546,7 @@ function PageAtleta({
   onBack,
   addPlantilla,
   onLiveMesoData,
+  onAtletaOverridesChange,
   openRequest,
 }) {
   const latestMesoRef = useRef(null); // always-current meso for cleanup save
@@ -13564,6 +13609,7 @@ function PageAtleta({
           JSON.stringify(next),
         );
       } catch {}
+      onAtletaOverridesChange?.(atleta.id, next);
       return next;
     });
   };
@@ -24754,6 +24800,8 @@ function CoachApp({ session, profile, onLogout }) {
     update: updatePlantilla,
     remove: removePlantilla,
   } = usePlantillas(coachId);
+  const mesoOverrideSyncTimersRef = useRef(new Map());
+  const atletaOverrideSyncTimersRef = useRef(new Map());
 
   // ── Refs para sincronización con DB ────────────────────────────────────────
   const prevAtletasRef = useRef(null); // null = DB aún no inicializada
@@ -24766,6 +24814,75 @@ function CoachApp({ session, profile, onLogout }) {
   useEffect(() => {
     mesociclosRef.current = mesociclos;
   }, [mesociclos]);
+
+  const queueMesoOverrideSync = useCallback(
+    (liveData) => {
+      if (!coachId || !liveData?.meso?.id) return;
+      const mesoId = liveData.meso.id;
+      const pending = mesoOverrideSyncTimersRef.current.get(mesoId);
+      if (pending) clearTimeout(pending);
+
+      const timer = setTimeout(async () => {
+        mesoOverrideSyncTimersRef.current.delete(mesoId);
+        const currentMeso =
+          mesociclosRef.current.find((item) => item.id === mesoId) ||
+          liveData.meso;
+        if (!currentMeso) return;
+
+        const payload = mesoToDb(currentMeso, coachId, {
+          overrides: buildMesoOverridesPayload(currentMeso, liveData),
+        });
+        const { error } = await sb.from("mesociclos").upsert([payload], {
+          onConflict: "app_id",
+        });
+        if (error)
+          console.warn("DB sync mesociclo overrides failed:", error);
+      }, 800);
+
+      mesoOverrideSyncTimersRef.current.set(mesoId, timer);
+    },
+    [coachId],
+  );
+
+  const queueAtletaOverrideSync = useCallback(
+    (atletaId, overrides) => {
+      if (!coachId || !atletaId) return;
+      const pending = atletaOverrideSyncTimersRef.current.get(atletaId);
+      if (pending) clearTimeout(pending);
+
+      const timer = setTimeout(async () => {
+        atletaOverrideSyncTimersRef.current.delete(atletaId);
+        const currentAtleta = atletasRef.current.find((item) => item.id === atletaId);
+        if (!currentAtleta) return;
+
+        const payload = atletaToDb(currentAtleta, coachId, {
+          normativosOverrides: asPlainObject(overrides),
+        });
+        const { error } = await sb.from("atletas").upsert([payload], {
+          onConflict: "app_id",
+        });
+        if (error) console.warn("DB sync atleta overrides failed:", error);
+      }, 800);
+
+      atletaOverrideSyncTimersRef.current.set(atletaId, timer);
+    },
+    [coachId],
+  );
+
+  useEffect(() => {
+    Object.values(liveMesoData).forEach(queueMesoOverrideSync);
+  }, [liveMesoData, queueMesoOverrideSync]);
+
+  useEffect(() => {
+    return () => {
+      mesoOverrideSyncTimersRef.current.forEach((timer) => clearTimeout(timer));
+      atletaOverrideSyncTimersRef.current.forEach((timer) =>
+        clearTimeout(timer),
+      );
+      mesoOverrideSyncTimersRef.current.clear();
+      atletaOverrideSyncTimersRef.current.clear();
+    };
+  }, []);
 
   // ── Carga inicial desde Supabase ───────────────────────────────────────────
   useEffect(() => {
@@ -24781,9 +24898,10 @@ function CoachApp({ session, profile, onLogout }) {
         if (!e1 && dbAtletas) {
           const appAtletas = dbAtletas.filter((r) => r.app_id);
           if (appAtletas.length > 0) {
-            appAtletas.forEach((r) =>
-              restoreAtletaPctOverrides(r.app_id, r.pct_overrides),
-            );
+            appAtletas.forEach((r) => {
+              restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
+              restoreAtletaNormOverrides(r.app_id, r.normativos_overrides);
+            });
             const loaded = appAtletas.map(atletaFromDb);
             setAtletasRaw(loaded);
             save("liftplan_atletas", loaded);
@@ -25349,6 +25467,7 @@ function CoachApp({ session, profile, onLogout }) {
                     setMesociclos={setMesociclos}
                     addPlantilla={addPlantilla}
                     onLiveMesoData={onLiveMesoDataCb}
+                    onAtletaOverridesChange={queueAtletaOverrideSync}
                     openRequest={atletaOpenRequest[aid]}
                     onBack={() => {
                       cerrarAtleta(aid, { stopPropagation: () => {} });
