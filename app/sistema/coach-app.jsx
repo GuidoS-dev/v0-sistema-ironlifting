@@ -3548,6 +3548,7 @@ function PlanillaTurno({
   onRequestReset,
   onBeforeChange,
   onChangeTurno,
+  onChangeTodasSemanas,
   repsEdit,
   setRepsEdit: setRepsEditProp,
   manualEdit,
@@ -3829,15 +3830,28 @@ function PlanillaTurno({
     if (!turno) return;
     _beforeChangeForced();
 
-    const cloneCompList = (list) =>
-      (list || []).map((c) => ({
-        ...JSON.parse(JSON.stringify(c)),
-        id: mkId(),
-      }));
+    const cloneCompList = (list) => JSON.parse(JSON.stringify(list || []));
 
     const sourceBefore = cloneCompList(turno.complementarios_before);
     const sourceAfter = cloneCompList(turno.complementarios_after);
     const sourceNumBloques = turno.num_bloques_comp || 1;
+
+    if (onChangeTodasSemanas) {
+      const nextSemanas = JSON.parse(JSON.stringify(semanas));
+
+      nextSemanas.forEach((s, sIdx) => {
+        if (sIdx === semActiva) return;
+        const targetTurno = s?.turnos?.[turnoActivo];
+        if (!targetTurno) return;
+
+        targetTurno.num_bloques_comp = sourceNumBloques;
+        targetTurno.complementarios_before = cloneCompList(sourceBefore);
+        targetTurno.complementarios_after = cloneCompList(sourceAfter);
+      });
+
+      onChangeTodasSemanas(nextSemanas);
+      return;
+    }
 
     semanas.forEach((s, sIdx) => {
       if (sIdx === semActiva) return;
@@ -13643,6 +13657,9 @@ function PageAtleta({
                   onBeforeChange={(forced) => {
                     pushSnap(forced);
                   }}
+                  onChangeTodasSemanas={(newSemanas) => {
+                    updateMeso({ ...mesoVisto, semanas: newSemanas });
+                  }}
                   onChangeTurno={(sIdx, tIdx, newTurno) => {
                     const sem = mesoVisto.semanas[sIdx];
                     const ts = [...sem.turnos];
@@ -18269,6 +18286,9 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
                     setConfirmReset({ label, onConfirm: fn })
                   }
                   onBeforeChange={(forced) => pushSnap(forced)}
+                  onChangeTodasSemanas={(newSemanas) =>
+                    set("semanas", newSemanas)
+                  }
                   onChangeTurno={(sIdx, tIdx, newTurno) => {
                     const sem = form.semanas[sIdx];
                     const ts = [...sem.turnos];
