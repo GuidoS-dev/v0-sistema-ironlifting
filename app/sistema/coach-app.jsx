@@ -8061,6 +8061,32 @@ function ResumenGrupos({
 
   if (grandTotal === 0) return null;
 
+  const toIntPct = (val) => {
+    const n = Number(val);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  };
+
+  const distributeReduction = (baseVals, keys, amount) => {
+    const vals = { ...baseVals };
+    let pending = Math.max(0, Math.round(amount));
+    while (pending > 0) {
+      const candidates = keys.filter((k) => (vals[k] || 0) > 0);
+      if (candidates.length === 0) break;
+      candidates
+        .slice()
+        .sort((a, b) => (vals[b] || 0) - (vals[a] || 0))
+        .forEach((k) => {
+          if (pending <= 0) return;
+          if ((vals[k] || 0) > 0) {
+            vals[k] -= 1;
+            pending -= 1;
+          }
+        });
+    }
+    return vals;
+  };
+
   const getVal = (g, sIdx) => {
     const k = `${g}-${sIdx}`;
     const raw = semPctManual.has(k)
@@ -8073,8 +8099,59 @@ function ResumenGrupos({
     const k = `${g}-${sIdx}`;
     setSemPctOverrides((prev) => ({
       ...prev,
-      [k]: val === "" ? "" : Number(val),
+      [k]: val === "" ? "" : toIntPct(val),
     }));
+    setSemPctManual((prev) => new Set([...prev, k]));
+  };
+  const applyStepVal = (g, sIdx, delta) => {
+    _rgBefore();
+    const activeGroups = grupos.filter(
+      (gx) => bySemana[sIdx].conteo[gx] > 0 || isManual(gx, sIdx) || gx === g,
+    );
+    const vals = {};
+    activeGroups.forEach((gx) => {
+      vals[gx] = toIntPct(getVal(gx, sIdx));
+    });
+
+    const prevSum = activeGroups.reduce((acc, gx) => acc + (vals[gx] || 0), 0);
+    const current = vals[g] || 0;
+    let applied = toIntPct(current + delta) - current;
+    if (applied === 0) return;
+
+    if (applied > 0) {
+      const otherKeys = activeGroups.filter((gx) => gx !== g && (vals[gx] || 0) > 0);
+      const capacity = otherKeys.reduce((acc, gx) => acc + (vals[gx] || 0), 0);
+      const neededWhenNormal = Math.max(0, prevSum + applied - 100);
+      const required =
+        prevSum > 100 ? Math.min(applied, capacity) : neededWhenNormal;
+      const missing = Math.max(0, required - capacity);
+      if (missing > 0 && prevSum <= 100) {
+        applied = Math.max(0, applied - missing);
+      }
+      if (applied === 0) return;
+
+      vals[g] = current + applied;
+      const balanceAmount =
+        prevSum > 100 ? Math.min(applied, capacity) : Math.max(0, prevSum + applied - 100);
+      const reduced = distributeReduction(vals, otherKeys, balanceAmount);
+
+      const updates = {};
+      const changed = [];
+      activeGroups.forEach((gx) => {
+        const nextVal = toIntPct(reduced[gx] || 0);
+        if (nextVal !== toIntPct(getVal(gx, sIdx))) {
+          updates[`${gx}-${sIdx}`] = nextVal;
+          changed.push(`${gx}-${sIdx}`);
+        }
+      });
+      if (Object.keys(updates).length === 0) return;
+      setSemPctOverrides((prev) => ({ ...prev, ...updates }));
+      setSemPctManual((prev) => new Set([...prev, ...changed]));
+      return;
+    }
+
+    const k = `${g}-${sIdx}`;
+    setSemPctOverrides((prev) => ({ ...prev, [k]: current + applied }));
     setSemPctManual((prev) => new Set([...prev, k]));
   };
   const resetSingleVal = (g, sIdx, e) => {
@@ -8396,6 +8473,46 @@ function ResumenGrupos({
                                   cursor: "text",
                                 }}
                               />
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 1,
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => applyStepVal(g, sIdx, 1)}
+                                  title="Subir 1%"
+                                  style={{
+                                    border: "none",
+                                    background: "transparent",
+                                    color: col,
+                                    fontSize: 9,
+                                    lineHeight: 1,
+                                    cursor: "pointer",
+                                    padding: 0,
+                                  }}
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => applyStepVal(g, sIdx, -1)}
+                                  title="Bajar 1%"
+                                  style={{
+                                    border: "none",
+                                    background: "transparent",
+                                    color: col,
+                                    fontSize: 9,
+                                    lineHeight: 1,
+                                    cursor: "pointer",
+                                    padding: 0,
+                                  }}
+                                >
+                                  ▼
+                                </button>
+                              </div>
                               <span
                                 style={{
                                   fontFamily: "'Bebas Neue'",
@@ -8823,6 +8940,32 @@ function DistribucionTurnos({
     return totalSem > 0 ? (porGrupo[g].total / totalSem) * 100 : 0;
   };
 
+  const toIntPct = (val) => {
+    const n = Number(val);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  };
+
+  const distributeReduction = (baseVals, keys, amount) => {
+    const vals = { ...baseVals };
+    let pending = Math.max(0, Math.round(amount));
+    while (pending > 0) {
+      const candidates = keys.filter((k) => (vals[k] || 0) > 0);
+      if (candidates.length === 0) break;
+      candidates
+        .slice()
+        .sort((a, b) => (vals[b] || 0) - (vals[a] || 0))
+        .forEach((k) => {
+          if (pending <= 0) return;
+          if ((vals[k] || 0) > 0) {
+            vals[k] -= 1;
+            pending -= 1;
+          }
+        });
+    }
+    return vals;
+  };
+
   const getVal = (g, tIdx) => {
     const k = `${g}-${semActiva}-${tIdx}`;
     const raw = turnoPctManual.has(k)
@@ -8835,8 +8978,65 @@ function DistribucionTurnos({
     const k = `${g}-${semActiva}-${tIdx}`;
     setTurnoPctOverrides((prev) => ({
       ...prev,
-      [k]: val === "" ? "" : Number(val),
+      [k]: val === "" ? "" : toIntPct(val),
     }));
+    setTurnoPctManual((prev) => new Set([...prev, k]));
+  };
+  const applyStepVal = (g, tIdx, delta) => {
+    _dtBefore();
+    const d = data[g];
+    const turnKeys = d.pctPorTurno
+      .map((_, idx) => idx)
+      .filter(
+        (idx) =>
+          d.countPorTurno[idx] > 0 ||
+          isManual(g, idx) ||
+          idx === tIdx,
+      );
+    const vals = {};
+    turnKeys.forEach((idx) => {
+      vals[idx] = toIntPct(getVal(g, idx));
+    });
+
+    const prevSum = turnKeys.reduce((acc, idx) => acc + (vals[idx] || 0), 0);
+    const current = vals[tIdx] || 0;
+    let applied = toIntPct(current + delta) - current;
+    if (applied === 0) return;
+
+    if (applied > 0) {
+      const otherKeys = turnKeys.filter((idx) => idx !== tIdx && (vals[idx] || 0) > 0);
+      const capacity = otherKeys.reduce((acc, idx) => acc + (vals[idx] || 0), 0);
+      const neededWhenNormal = Math.max(0, prevSum + applied - 100);
+      const required =
+        prevSum > 100 ? Math.min(applied, capacity) : neededWhenNormal;
+      const missing = Math.max(0, required - capacity);
+      if (missing > 0 && prevSum <= 100) {
+        applied = Math.max(0, applied - missing);
+      }
+      if (applied === 0) return;
+
+      vals[tIdx] = current + applied;
+      const balanceAmount =
+        prevSum > 100 ? Math.min(applied, capacity) : Math.max(0, prevSum + applied - 100);
+      const reduced = distributeReduction(vals, otherKeys, balanceAmount);
+
+      const updates = {};
+      const changed = [];
+      turnKeys.forEach((idx) => {
+        const nextVal = toIntPct(reduced[idx] || 0);
+        if (nextVal !== toIntPct(getVal(g, idx))) {
+          updates[`${g}-${semActiva}-${idx}`] = nextVal;
+          changed.push(`${g}-${semActiva}-${idx}`);
+        }
+      });
+      if (Object.keys(updates).length === 0) return;
+      setTurnoPctOverrides((prev) => ({ ...prev, ...updates }));
+      setTurnoPctManual((prev) => new Set([...prev, ...changed]));
+      return;
+    }
+
+    const k = `${g}-${semActiva}-${tIdx}`;
+    setTurnoPctOverrides((prev) => ({ ...prev, [k]: current + applied }));
     setTurnoPctManual((prev) => new Set([...prev, k]));
   };
   const resetSingleVal = (g, tIdx, e) => {
@@ -9273,6 +9473,46 @@ function DistribucionTurnos({
                                     cursor: "text",
                                   }}
                                 />
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => applyStepVal(g, tIdx, 1)}
+                                    title="Subir 1%"
+                                    style={{
+                                      border: "none",
+                                      background: "transparent",
+                                      color: col,
+                                      fontSize: 9,
+                                      lineHeight: 1,
+                                      cursor: "pointer",
+                                      padding: 0,
+                                    }}
+                                  >
+                                    ▲
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => applyStepVal(g, tIdx, -1)}
+                                    title="Bajar 1%"
+                                    style={{
+                                      border: "none",
+                                      background: "transparent",
+                                      color: col,
+                                      fontSize: 9,
+                                      lineHeight: 1,
+                                      cursor: "pointer",
+                                      padding: 0,
+                                    }}
+                                  >
+                                    ▼
+                                  </button>
+                                </div>
                                 <span
                                   style={{
                                     fontFamily: "'Bebas Neue'",
@@ -11980,10 +12220,86 @@ function EditVolModal({ meso, onSave, onClose }) {
 
   const totalPct = semanas.reduce((s, sem) => s + Number(sem.pct_volumen), 0);
 
+  const toIntPct = (val) => {
+    const n = Number(val);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  };
+
+  const distributeReduction = (baseVals, keys, amount) => {
+    const vals = { ...baseVals };
+    let pending = Math.max(0, Math.round(amount));
+    while (pending > 0) {
+      const candidates = keys.filter((k) => (vals[k] || 0) > 0);
+      if (candidates.length === 0) break;
+      candidates
+        .slice()
+        .sort((a, b) => (vals[b] || 0) - (vals[a] || 0))
+        .forEach((k) => {
+          if (pending <= 0) return;
+          if ((vals[k] || 0) > 0) {
+            vals[k] -= 1;
+            pending -= 1;
+          }
+        });
+    }
+    return vals;
+  };
+
   const updatePct = (idx, val) => {
     const s = [...semanas];
-    s[idx] = { ...s[idx], pct_volumen: Number(val) };
+    s[idx] = { ...s[idx], pct_volumen: toIntPct(val) };
     setSemanas(s);
+  };
+
+  const stepPct = (idx, delta) => {
+    const vals = {};
+    semanas.forEach((sem, i) => {
+      vals[i] = toIntPct(sem.pct_volumen);
+    });
+
+    const prevSum = Object.values(vals).reduce((acc, v) => acc + v, 0);
+    const current = vals[idx] || 0;
+    let applied = toIntPct(current + delta) - current;
+    if (applied === 0) return;
+
+    if (applied > 0) {
+      const otherKeys = Object.keys(vals)
+        .map(Number)
+        .filter((k) => k !== idx && (vals[k] || 0) > 0);
+      const capacity = otherKeys.reduce((acc, k) => acc + (vals[k] || 0), 0);
+      const neededWhenNormal = Math.max(0, prevSum + applied - 100);
+      const required =
+        prevSum > 100 ? Math.min(applied, capacity) : neededWhenNormal;
+      const missing = Math.max(0, required - capacity);
+
+      if (missing > 0 && prevSum <= 100) {
+        applied = Math.max(0, applied - missing);
+      }
+      if (applied === 0) return;
+
+      vals[idx] = current + applied;
+
+      const balanceAmount =
+        prevSum > 100
+          ? Math.min(applied, otherKeys.reduce((acc, k) => acc + (vals[k] || 0), 0))
+          : Math.max(0, prevSum + applied - 100);
+
+      const reduced = distributeReduction(vals, otherKeys, balanceAmount);
+      const nextSemanas = semanas.map((sem, i) => ({
+        ...sem,
+        pct_volumen: toIntPct(reduced[i] || 0),
+      }));
+      setSemanas(nextSemanas);
+      return;
+    }
+
+    vals[idx] = current + applied;
+    const nextSemanas = semanas.map((sem, i) => ({
+      ...sem,
+      pct_volumen: toIntPct(vals[i] || 0),
+    }));
+    setSemanas(nextSemanas);
   };
 
   return (
@@ -12040,6 +12356,26 @@ function EditVolModal({ meso, onSave, onClose }) {
                 onChange={(e) => updatePct(i, e.target.value)}
                 style={{ width: 80 }}
               />
+              <div style={{ display: "flex", gap: 4 }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => stepPct(i, 1)}
+                  title="Subir 1%"
+                  style={{ minWidth: 28, padding: "2px 6px", lineHeight: 1 }}
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => stepPct(i, -1)}
+                  title="Bajar 1%"
+                  style={{ minWidth: 28, padding: "2px 6px", lineHeight: 1 }}
+                >
+                  ▼
+                </button>
+              </div>
               <span
                 style={{
                   fontFamily: "'Bebas Neue'",
