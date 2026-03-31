@@ -205,6 +205,10 @@ function collectMesoOverrides(mesoId) {
     cellManual: get(`liftplan_pt_${mesoId}_cellManual`) || [],
     nameEdit:   get(`liftplan_pt_${mesoId}_nameEdit`)   || {},
     noteEdit:   get(`liftplan_pt_${mesoId}_noteEdit`)   || {},
+    semOvr:     get(`liftplan_pct_${mesoId}_semOvr`)    || {},
+    semMan:     get(`liftplan_pct_${mesoId}_semMan`)    || [],
+    turnoOvr:   get(`liftplan_pct_${mesoId}_turnoOvr`)  || {},
+    turnoMan:   get(`liftplan_pct_${mesoId}_turnoMan`)  || [],
   };
 }
 
@@ -218,6 +222,10 @@ function restoreMesoOverrides(mesoId, overrides) {
   set(`liftplan_pt_${mesoId}_cellManual`, overrides.cellManual);
   set(`liftplan_pt_${mesoId}_nameEdit`,   overrides.nameEdit);
   set(`liftplan_pt_${mesoId}_noteEdit`,   overrides.noteEdit);
+  set(`liftplan_pct_${mesoId}_semOvr`,    overrides.semOvr);
+  set(`liftplan_pct_${mesoId}_semMan`,    overrides.semMan);
+  set(`liftplan_pct_${mesoId}_turnoOvr`,  overrides.turnoOvr);
+  set(`liftplan_pct_${mesoId}_turnoMan`,  overrides.turnoMan);
 }
 
 // Recolecta los overrides de porcentajes de un atleta desde localStorage
@@ -5220,44 +5228,12 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
     } catch { setAtletaNormOverrides({}); }
   }, [atleta.id]);
 
-  // ── Overrides de porcentajes — persisten en localStorage por atleta ──────────
-  const _pctKey = (type) => `liftplan_pct_${atleta.id}_${type}`;
-
-  const [semPctOverrides, setSemPctOverridesRaw] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(_pctKey('semOvr')) || 'null') || {}; } catch { return {}; }
-  });
-  const [semPctManual, setSemPctManualRaw] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem(_pctKey('semMan')) || '[]')); } catch { return new Set(); }
-  });
-  const [turnoPctOverrides, setTurnoPctOverridesRaw] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(_pctKey('turnoOvr')) || 'null') || {}; } catch { return {}; }
-  });
-  const [turnoPctManual, setTurnoPctManualRaw] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem(_pctKey('turnoMan')) || '[]')); } catch { return new Set(); }
-  });
+  // ── Overrides de porcentajes — persisten en localStorage por mesociclo ───────
+  const [semPctOverrides, setSemPctOverridesRaw] = useState({});
+  const [semPctManual, setSemPctManualRaw] = useState(new Set());
+  const [turnoPctOverrides, setTurnoPctOverridesRaw] = useState({});
+  const [turnoPctManual, setTurnoPctManualRaw] = useState(new Set());
   const [confirmReset, setConfirmReset] = useState(null);
-
-  // Wrappers que persisten automáticamente
-  const setSemPctOverrides = (val) => setSemPctOverridesRaw(prev => {
-    const next = typeof val === 'function' ? val(prev) : val;
-    try { localStorage.setItem(_pctKey('semOvr'), JSON.stringify(next)); } catch {}
-    return next;
-  });
-  const setSemPctManual = (val) => setSemPctManualRaw(prev => {
-    const next = typeof val === 'function' ? val(prev) : val;
-    try { localStorage.setItem(_pctKey('semMan'), JSON.stringify([...next])); } catch {}
-    return next;
-  });
-  const setTurnoPctOverrides = (val) => setTurnoPctOverridesRaw(prev => {
-    const next = typeof val === 'function' ? val(prev) : val;
-    try { localStorage.setItem(_pctKey('turnoOvr'), JSON.stringify(next)); } catch {}
-    return next;
-  });
-  const setTurnoPctManual = (val) => setTurnoPctManualRaw(prev => {
-    const next = typeof val === 'function' ? val(prev) : val;
-    try { localStorage.setItem(_pctKey('turnoMan'), JSON.stringify([...next])); } catch {}
-    return next;
-  });
 
   const resetAllPcts = () => {
     setSemPctOverrides({}); setSemPctManual(new Set());
@@ -5274,6 +5250,66 @@ function PageAtleta({ atleta, mesociclos, setMesociclos, onBack, addPlantilla, o
     || mesoActivoReal
     || mesoAtleta[0]
     || null;
+
+  const _pctKey = (type) => mesoVisto ? `liftplan_pct_${mesoVisto.id}_${type}` : null;
+
+  useEffect(() => {
+    if (!mesoVisto) return;
+    const load = (type, dflt) => {
+      try {
+        const mesoKey = `liftplan_pct_${mesoVisto.id}_${type}`;
+        const mesoVal = JSON.parse(localStorage.getItem(mesoKey) || 'null');
+        if (mesoVal != null) return mesoVal;
+
+        const legacyKey = `liftplan_pct_${atleta.id}_${type}`;
+        const legacyVal = JSON.parse(localStorage.getItem(legacyKey) || 'null');
+        if (legacyVal != null) {
+          localStorage.setItem(mesoKey, JSON.stringify(legacyVal));
+          return legacyVal;
+        }
+      } catch {}
+      return dflt;
+    };
+
+    setSemPctOverridesRaw(load('semOvr', {}));
+    setSemPctManualRaw(new Set(load('semMan', [])));
+    setTurnoPctOverridesRaw(load('turnoOvr', {}));
+    setTurnoPctManualRaw(new Set(load('turnoMan', [])));
+  }, [mesoVisto?.id, atleta.id]);
+
+  // Wrappers que persisten automáticamente
+  const setSemPctOverrides = (val) => setSemPctOverridesRaw(prev => {
+    const next = typeof val === 'function' ? val(prev) : val;
+    try {
+      const key = _pctKey('semOvr');
+      if (key) localStorage.setItem(key, JSON.stringify(next));
+    } catch {}
+    return next;
+  });
+  const setSemPctManual = (val) => setSemPctManualRaw(prev => {
+    const next = typeof val === 'function' ? val(prev) : val;
+    try {
+      const key = _pctKey('semMan');
+      if (key) localStorage.setItem(key, JSON.stringify([...next]));
+    } catch {}
+    return next;
+  });
+  const setTurnoPctOverrides = (val) => setTurnoPctOverridesRaw(prev => {
+    const next = typeof val === 'function' ? val(prev) : val;
+    try {
+      const key = _pctKey('turnoOvr');
+      if (key) localStorage.setItem(key, JSON.stringify(next));
+    } catch {}
+    return next;
+  });
+  const setTurnoPctManual = (val) => setTurnoPctManualRaw(prev => {
+    const next = typeof val === 'function' ? val(prev) : val;
+    try {
+      const key = _pctKey('turnoMan');
+      if (key) localStorage.setItem(key, JSON.stringify([...next]));
+    } catch {}
+    return next;
+  });
 
   const saveMeso = (m) => {
     const updated = mesociclos.map(x => x.atleta_id === atleta.id ? {...x, activo: false} : x);
@@ -10101,9 +10137,8 @@ function PanelReferencia({ atletas, mesociclos, plantillas, liveMesoData={}, onC
   // Read overrides from localStorage — same approach as PageResumen/PagePDF
   // This always stays in sync because PageAtleta writes to localStorage on every change
   const mid = meso?.id;
-  const aid = atletaId; // pct keys use atleta.id
   const lsGet    = (key, dflt) => { try { return JSON.parse(localStorage.getItem(`liftplan_pt_${mid}_${key}`)    || 'null') ?? dflt; } catch { return dflt; } };
-  const lsPctGet = (key, dflt) => { try { return JSON.parse(localStorage.getItem(`liftplan_pct_${aid}_${key}`)  || 'null') ?? dflt; } catch { return dflt; } };
+  const lsPctGet = (key, dflt) => { try { return JSON.parse(localStorage.getItem(`liftplan_pct_${mid}_${key}`)  || 'null') ?? dflt; } catch { return dflt; } };
 
   const liveRepsEdit   = live?.repsEdit   ?? lsGet('repsEdit', {});
   const liveManualEdit = new Set(live?.manualEdit ?? lsGet('manualEdit', []));
