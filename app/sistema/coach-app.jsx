@@ -16705,6 +16705,23 @@ function PagePDF({
   const pesoMedioTotal =
     totalVolReps > 0 ? Math.round((totalVolKg / totalVolReps) * 2) / 2 : 0;
 
+  const hasBlockValue = (value) =>
+    value !== null && value !== undefined && value !== "" && !Number.isNaN(value);
+
+  const hasComplementarioBlockContent = (bloque) => {
+    if (!bloque) return false;
+    return [
+      bloque.pct,
+      bloque.series,
+      bloque.s,
+      bloque.reps,
+      bloque.r,
+      bloque.kg,
+      bloque.nota,
+      bloque.note,
+    ].some(hasBlockValue);
+  };
+
   // Bar chart SVG inline para el resumen
   const BarChartSVG = ({ data, color, width = 200, height = 50 }) => {
     const max = Math.max(...data.map((d) => d.v), 1);
@@ -16821,24 +16838,26 @@ function PagePDF({
   // Helper para convertir complementario con bloques a row
   const buildComplementarioRow = (comp, semIdx, tIdx) => {
     const ejData = normativos.find((e) => e.id === Number(comp.ejercicio_id));
-    
+
     // Los complementarios usan bloques en lugar de intensidades
-    const cols = (comp.bloques || []).map((bloque) => ({
-      pct: bloque.pct,
-      s: bloque.series,
-      r: bloque.reps,
-      kg: bloque.kg,
-      note: bloque.nota || "",
-    })).filter((c) => c.pct || c.s || c.r);
+    const cols = (comp.bloques || [])
+      .map((bloque) => ({
+        pct: bloque.pct,
+        s: bloque.series,
+        r: bloque.reps,
+        kg: bloque.kg,
+        note: bloque.nota || "",
+      }))
+      .filter(hasComplementarioBlockContent);
 
     // Si no hay ejData, permitir si hay nombre_custom o aclaracion
     if (!ejData) {
       const hasCustomText = comp.nombre_custom || comp.aclaracion;
       if (!hasCustomText) return null;
-      
+
       const nombre = resolveExerciseName(comp.nombre_custom, "");
       const aclaracion = comp.aclaracion ? ` (${comp.aclaracion})` : "";
-      
+
       return {
         id: null,
         nombre: nombre + aclaracion,
@@ -17658,7 +17677,7 @@ ${previewEl.outerHTML}
                                         length: maxBloques,
                                       }).map((_, bIdx) => {
                                         const col = row.cols[bIdx];
-                                        if (!col || !col.pct) {
+                                        if (!hasComplementarioBlockContent(col)) {
                                           return (
                                             <td key={bIdx}>
                                               <span className="cell-empty">
