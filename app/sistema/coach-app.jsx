@@ -1021,7 +1021,7 @@ function EjBuscador({ value, onChange, normativos: normativosProp = null }) {
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
 
-  const normativos = (() => {
+  const normativos = normativosProp ?? (() => {
     try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
     catch { return EJERCICIOS; }
   })();
@@ -1645,7 +1645,7 @@ function PlanillaTurno({ semanas, irm_arr, irm_env, meso, semPctOverrides, semPc
     try { return JSON.parse(localStorage.getItem('liftplan_tablas') || 'null') || TABLA_DEFAULT; }
     catch { return TABLA_DEFAULT; }
   })();
-  const normativos = (() => {
+  const normativos = normativosProp ?? (() => {
     try { return JSON.parse(localStorage.getItem('liftplan_normativos') || 'null') || EJERCICIOS; }
     catch { return EJERCICIOS; }
   })();
