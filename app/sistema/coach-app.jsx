@@ -492,8 +492,7 @@ function atletaToDb(a, coachId, options = {}) {
     tipo: a.tipo || "atleta",
     genero: a.genero || "m",
     ciclo: a.ciclo ? JSON.stringify(a.ciclo) : null,
-    pct_overrides:
-      options.pctOverrides ?? collectAtletaPctOverrides(a.id),
+    pct_overrides: options.pctOverrides ?? collectAtletaPctOverrides(a.id),
     normativos_overrides:
       options.normativosOverrides ?? collectAtletaNormOverrides(a.id),
     updated_at: new Date().toISOString(),
@@ -4172,7 +4171,10 @@ function PlanillaTurno({
 
     if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
     setCompCopyFeedback(true);
-    compCopyTimerRef.current = setTimeout(() => setCompCopyFeedback(false), 1500);
+    compCopyTimerRef.current = setTimeout(
+      () => setCompCopyFeedback(false),
+      1500,
+    );
   };
 
   const importarSemanaEnActual = () => {
@@ -6889,7 +6891,8 @@ function PlanillaTurno({
                                             nombre_custom:
                                               val === ""
                                                 ? EMPTY_NAME_SENTINEL
-                                                : ejData && val === ejData.nombre
+                                                : ejData &&
+                                                    val === ejData.nombre
                                                   ? ""
                                                   : val,
                                           }));
@@ -8700,7 +8703,9 @@ function ResumenGrupos({
     if (applied === 0) return;
 
     if (applied > 0) {
-      const otherKeys = activeGroups.filter((gx) => gx !== g && (vals[gx] || 0) > 0);
+      const otherKeys = activeGroups.filter(
+        (gx) => gx !== g && (vals[gx] || 0) > 0,
+      );
       const capacity = otherKeys.reduce((acc, gx) => acc + (vals[gx] || 0), 0);
       const neededWhenNormal = Math.max(0, prevSum + applied - 100);
       const required =
@@ -8713,7 +8718,9 @@ function ResumenGrupos({
 
       vals[g] = current + applied;
       const balanceAmount =
-        prevSum > 100 ? Math.min(applied, capacity) : Math.max(0, prevSum + applied - 100);
+        prevSum > 100
+          ? Math.min(applied, capacity)
+          : Math.max(0, prevSum + applied - 100);
       const reduced = distributeReduction(
         vals,
         otherKeys,
@@ -8745,7 +8752,8 @@ function ResumenGrupos({
       0,
     );
     const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
-    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const required =
+      prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
     const missing = Math.max(0, required - capacityUp);
     if (missing > 0 && prevSum >= 100) {
       dec = Math.max(0, dec - missing);
@@ -8754,7 +8762,9 @@ function ResumenGrupos({
 
     vals[g] = current - dec;
     const balanceAmount =
-      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+      prevSum < 100
+        ? Math.min(dec, capacityUp)
+        : Math.max(0, 100 - (prevSum - dec));
     const increased = distributeIncrease(
       vals,
       otherKeys,
@@ -9668,10 +9678,7 @@ function DistribucionTurnos({
     const turnKeys = d.pctPorTurno
       .map((_, idx) => idx)
       .filter(
-        (idx) =>
-          d.countPorTurno[idx] > 0 ||
-          isManual(g, idx) ||
-          idx === tIdx,
+        (idx) => d.countPorTurno[idx] > 0 || isManual(g, idx) || idx === tIdx,
       );
     const vals = {};
     turnKeys.forEach((idx) => {
@@ -9684,8 +9691,13 @@ function DistribucionTurnos({
     if (applied === 0) return;
 
     if (applied > 0) {
-      const otherKeys = turnKeys.filter((idx) => idx !== tIdx && (vals[idx] || 0) > 0);
-      const capacity = otherKeys.reduce((acc, idx) => acc + (vals[idx] || 0), 0);
+      const otherKeys = turnKeys.filter(
+        (idx) => idx !== tIdx && (vals[idx] || 0) > 0,
+      );
+      const capacity = otherKeys.reduce(
+        (acc, idx) => acc + (vals[idx] || 0),
+        0,
+      );
       const neededWhenNormal = Math.max(0, prevSum + applied - 100);
       const required =
         prevSum > 100 ? Math.min(applied, capacity) : neededWhenNormal;
@@ -9697,7 +9709,9 @@ function DistribucionTurnos({
 
       vals[tIdx] = current + applied;
       const balanceAmount =
-        prevSum > 100 ? Math.min(applied, capacity) : Math.max(0, prevSum + applied - 100);
+        prevSum > 100
+          ? Math.min(applied, capacity)
+          : Math.max(0, prevSum + applied - 100);
       const reduced = distributeReduction(
         vals,
         otherKeys,
@@ -9729,7 +9743,8 @@ function DistribucionTurnos({
       0,
     );
     const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
-    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const required =
+      prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
     const missing = Math.max(0, required - capacityUp);
     if (missing > 0 && prevSum >= 100) {
       dec = Math.max(0, dec - missing);
@@ -9738,7 +9753,9 @@ function DistribucionTurnos({
 
     vals[tIdx] = current - dec;
     const balanceAmount =
-      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+      prevSum < 100
+        ? Math.min(dec, capacityUp)
+        : Math.max(0, 100 - (prevSum - dec));
     const increased = distributeIncrease(
       vals,
       otherKeys,
@@ -10204,7 +10221,7 @@ function DistribucionTurnos({
                                   %
                                 </span>
                                 <div
-                                    data-no-tooltip="1"
+                                  data-no-tooltip="1"
                                   style={{
                                     display: "flex",
                                     flexDirection: "column",
@@ -10215,25 +10232,25 @@ function DistribucionTurnos({
                                     e.stopPropagation();
                                     setCellTip(null);
                                   }}
-                                    onMouseLeave={(e) => {
-                                      e.stopPropagation();
-                                      const td = e.currentTarget.closest("td");
-                                      const next = e.relatedTarget;
-                                      const isBackToValueArea =
-                                        td &&
-                                        next &&
-                                        td.contains(next) &&
-                                        !next.closest?.('[data-no-tooltip="1"]');
-                                      if (isBackToValueArea) {
-                                        const rect = td.getBoundingClientRect();
-                                        setCellTip({
-                                          g,
-                                          tIdx,
-                                          x: rect.left,
-                                          y: rect.top,
-                                        });
-                                      }
-                                    }}
+                                  onMouseLeave={(e) => {
+                                    e.stopPropagation();
+                                    const td = e.currentTarget.closest("td");
+                                    const next = e.relatedTarget;
+                                    const isBackToValueArea =
+                                      td &&
+                                      next &&
+                                      td.contains(next) &&
+                                      !next.closest?.('[data-no-tooltip="1"]');
+                                    if (isBackToValueArea) {
+                                      const rect = td.getBoundingClientRect();
+                                      setCellTip({
+                                        g,
+                                        tIdx,
+                                        x: rect.left,
+                                        y: rect.top,
+                                      });
+                                    }
+                                  }}
                                 >
                                   <button
                                     type="button"
@@ -13124,7 +13141,10 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
             </div>
           )}
           <div className="modal-footer">
-            <button className="btn btn-ghost" onClick={() => setPreviewAtleta(null)}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setPreviewAtleta(null)}
+            >
               Cerrar
             </button>
           </div>
@@ -13330,7 +13350,10 @@ function EditVolModal({ meso, onSave, onClose }) {
 
       const balanceAmount =
         prevSum > 100
-          ? Math.min(applied, otherKeys.reduce((acc, k) => acc + (vals[k] || 0), 0))
+          ? Math.min(
+              applied,
+              otherKeys.reduce((acc, k) => acc + (vals[k] || 0), 0),
+            )
           : Math.max(0, prevSum + applied - 100);
 
       const reduced = distributeReduction(
@@ -13356,7 +13379,8 @@ function EditVolModal({ meso, onSave, onClose }) {
       0,
     );
     const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
-    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const required =
+      prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
     const missing = Math.max(0, required - capacityUp);
     if (missing > 0 && prevSum >= 100) {
       dec = Math.max(0, dec - missing);
@@ -13365,7 +13389,9 @@ function EditVolModal({ meso, onSave, onClose }) {
 
     vals[idx] = current - dec;
     const balanceAmount =
-      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+      prevSum < 100
+        ? Math.min(dec, capacityUp)
+        : Math.max(0, 100 - (prevSum - dec));
     const increased = distributeIncrease(
       vals,
       otherKeys,
@@ -14817,353 +14843,355 @@ function PageAtleta({
       {/* ════════════ PLANILLA ════════════ */}
       {vistaActual === "meso" && mesoVisto && (
         <PanelTabBoundary tab="Planilla">
-        <>
-          {/* Toolbar */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 8,
-              flexWrap: "wrap",
-              gap: 8,
-              minWidth: 0,
-            }}
-          >
+          <>
+            {/* Toolbar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+                flexWrap: "wrap",
+                gap: 8,
+                minWidth: 0,
+              }}
+            >
+              {mesoVisto.escuela === true || mesoVisto.escuela === "true" ? (
+                <div style={{ fontSize: 12, color: "#4db6ac" }}>
+                  Planilla Escuela Inicial · Nivel {mesoVisto.escuela_nivel}
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                    Total:{" "}
+                    <span style={{ color: "var(--gold)", fontWeight: 700 }}>
+                      {mesoVisto.volumen_total}
+                    </span>{" "}
+                    reps
+                  </div>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setShowEditVol(true)}
+                  >
+                    <Pencil size={12} /> Editar volumen y semanas
+                  </button>
+                </>
+              )}
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowGuardarPlantilla("meso")}
+                style={{ color: "var(--muted)" }}
+              >
+                <Library size={12} /> Guardar como plantilla
+              </button>
+            </div>
+
+            {/* ── Escuela Inicial: PlanillaBasica ── */}
             {mesoVisto.escuela === true || mesoVisto.escuela === "true" ? (
-              <div style={{ fontSize: 12, color: "#4db6ac" }}>
-                Planilla Escuela Inicial · Nivel {mesoVisto.escuela_nivel}
+              <div className="card">
+                <div
+                  className="flex-between mb16"
+                  style={{ flexWrap: "wrap", gap: 10 }}
+                >
+                  <div className="card-title" style={{ marginBottom: 0 }}>
+                    Planilla Escuela Inicial
+                  </div>
+                  <div
+                    style={{ display: "flex", gap: 10, alignItems: "center" }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <label
+                        style={{
+                          fontSize: 10,
+                          color: "var(--gold)",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: ".05em",
+                        }}
+                      >
+                        IRM Arr
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={300}
+                        className="no-spin"
+                        value={mesoVisto.irm_arranque ?? ""}
+                        placeholder="kg"
+                        onChange={(e) => {
+                          pushSnap();
+                          setMesociclos((prev) =>
+                            prev.map((m) =>
+                              m.id === mesoVisto.id
+                                ? {
+                                    ...m,
+                                    irm_arranque:
+                                      e.target.value === ""
+                                        ? null
+                                        : Number(e.target.value),
+                                  }
+                                : m,
+                            ),
+                          );
+                        }}
+                        style={{
+                          width: 52,
+                          background: "var(--surface2)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          padding: "4px 6px",
+                          color: "var(--gold)",
+                          fontSize: 14,
+                          fontFamily: "'Bebas Neue'",
+                          textAlign: "center",
+                          outline: "none",
+                          MozAppearance: "textfield",
+                          appearance: "textfield",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <label
+                        style={{
+                          fontSize: 10,
+                          color: "var(--blue)",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: ".05em",
+                        }}
+                      >
+                        IRM Env
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={400}
+                        className="no-spin"
+                        value={mesoVisto.irm_envion ?? ""}
+                        placeholder="kg"
+                        onChange={(e) => {
+                          pushSnap();
+                          setMesociclos((prev) =>
+                            prev.map((m) =>
+                              m.id === mesoVisto.id
+                                ? {
+                                    ...m,
+                                    irm_envion:
+                                      e.target.value === ""
+                                        ? null
+                                        : Number(e.target.value),
+                                  }
+                                : m,
+                            ),
+                          );
+                        }}
+                        style={{
+                          width: 52,
+                          background: "var(--surface2)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          padding: "4px 6px",
+                          color: "var(--blue)",
+                          fontSize: 14,
+                          fontFamily: "'Bebas Neue'",
+                          textAlign: "center",
+                          outline: "none",
+                          MozAppearance: "textfield",
+                          appearance: "textfield",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <PlanillaBasica
+                  semanas={mesoVisto.semanas}
+                  onChange={(ss) => updateMeso({ ...mesoVisto, semanas: ss })}
+                  numBloques={mesoVisto.num_bloques_basica || 3}
+                  onBeforeChange={(forced) => pushSnap(forced)}
+                  irm_arr={irm_arr}
+                  irm_env={irm_env}
+                  normativos={atletaNormativos}
+                />
               </div>
             ) : (
               <>
-                <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                  Total:{" "}
-                  <span style={{ color: "var(--gold)", fontWeight: 700 }}>
-                    {mesoVisto.volumen_total}
-                  </span>{" "}
-                  reps
+                {/* Stats semanas */}
+                <div className="stats-row mb16">
+                  {mesoVisto.semanas.map((s, i) => {
+                    const fase =
+                      atleta.genero === "f" && atleta.ciclo?.ultimo_inicio
+                        ? getFaseCiclo(
+                            atleta.ciclo,
+                            getFechaSemana(mesoVisto.fecha_inicio, s.numero),
+                          )
+                        : null;
+                    const faseInfo = fase ? FASES_CICLO[fase] : null;
+                    return (
+                      <div
+                        key={s.id}
+                        className="stat-box"
+                        style={
+                          faseInfo
+                            ? {
+                                border: `1px solid ${faseInfo.color}60`,
+                                background: faseInfo.bg,
+                              }
+                            : {}
+                        }
+                      >
+                        <div className="stat-box-val">
+                          {s.reps_ajustadas || s.reps_calculadas || 0}
+                        </div>
+                        <div className="stat-box-lbl">
+                          Semana {s.numero} · {s.pct_volumen}%
+                        </div>
+                        {faseInfo && (
+                          <div
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: faseInfo.color,
+                              marginTop: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <faseInfo.Icon size={11} /> {faseInfo.label}
+                          </div>
+                        )}
+                        <div className="prog-bar">
+                          <div
+                            className="prog-fill"
+                            style={{
+                              width: `${s.pct_volumen}%`,
+                              background: faseInfo
+                                ? faseInfo.color
+                                : "var(--gold)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setShowEditVol(true)}
-                >
-                  <Pencil size={12} /> Editar volumen y semanas
-                </button>
+
+                {/* Sembrado mensual completo */}
+                <div className="card">
+                  <div className="flex-between mb16">
+                    <div className="card-title" style={{ marginBottom: 0 }}>
+                      Sembrado Mensual
+                    </div>
+                  </div>
+                  <SembradoMensual
+                    semanas={mesoVisto.semanas}
+                    irm_arr={irm_arr}
+                    irm_env={irm_env}
+                    meso={mesoVisto}
+                    onChangeSemana={updateSemanaH}
+                    onChangeTodasSemanas={(newSemanas) => {
+                      updateMeso({ ...mesoVisto, semanas: newSemanas });
+                    }}
+                    normativos={atletaNormativos}
+                  />
+                  <ResumenGrupos
+                    semanas={mesoVisto.semanas}
+                    meso={mesoVisto}
+                    onGuardarDistribucion={(dist) => {
+                      try {
+                        const stored = JSON.parse(
+                          localStorage.getItem("liftplan_plantillas") || "[]",
+                        );
+                        const nuevo = {
+                          id: mkId(),
+                          tipo: "distribucion",
+                          creado: new Date().toISOString().slice(0, 10),
+                          nombre: `Distribución ${mesoVisto.nombre || "Mesociclo"}`,
+                          descripcion: `${mesoVisto.semanas.length} semanas`,
+                          periodo: "general",
+                          objetivo: "mixto",
+                          nivel: "intermedio",
+                          distribucion: dist,
+                        };
+                        localStorage.setItem(
+                          "liftplan_plantillas",
+                          JSON.stringify([...stored, nuevo]),
+                        );
+                        alert("Distribución guardada como plantilla");
+                      } catch (e) {}
+                    }}
+                    semPctOverrides={semPctOverrides}
+                    semPctManual={semPctManual}
+                    setSemPctOverrides={setSemPctOverridesH}
+                    setSemPctManual={setSemPctManualH}
+                    onRequestReset={(label, fn) =>
+                      setConfirmReset({ label, onConfirm: fn })
+                    }
+                    onBeforeChange={(forced) => {
+                      if (!forced && histIdxRef.current != null) pushSnap();
+                      else pushSnap(true);
+                    }}
+                  />
+                  <DistribucionTurnos
+                    semanas={mesoVisto.semanas}
+                    meso={mesoVisto}
+                    turnoPctOverrides={turnoPctOverrides}
+                    turnoPctManual={turnoPctManual}
+                    setTurnoPctOverrides={setTurnoPctOverridesH}
+                    setTurnoPctManual={setTurnoPctManualH}
+                    semPctOverrides={semPctOverrides}
+                    semPctManual={semPctManual}
+                    onRequestReset={(label, fn) =>
+                      setConfirmReset({ label, onConfirm: fn })
+                    }
+                    onBeforeChange={(forced) => pushSnap(forced)}
+                  />
+                  <PlanillaTurno
+                    semanas={mesoVisto.semanas}
+                    irm_arr={irm_arr}
+                    irm_env={irm_env}
+                    meso={mesoVisto}
+                    semPctOverrides={semPctOverrides}
+                    semPctManual={semPctManual}
+                    turnoPctOverrides={turnoPctOverrides}
+                    turnoPctManual={turnoPctManual}
+                    onRequestReset={(label, fn) =>
+                      setConfirmReset({ label, onConfirm: fn })
+                    }
+                    onBeforeChange={(forced) => {
+                      pushSnap(forced);
+                    }}
+                    onChangeTodasSemanas={(newSemanas) => {
+                      updateMeso({ ...mesoVisto, semanas: newSemanas });
+                    }}
+                    onChangeTurno={(sIdx, tIdx, newTurno) => {
+                      const sem = mesoVisto.semanas[sIdx];
+                      const ts = [...sem.turnos];
+                      ts[tIdx] = newTurno;
+                      updateSemana(sIdx, { ...sem, turnos: ts });
+                    }}
+                    repsEdit={repsEdit}
+                    setRepsEdit={setRepsEditRaw}
+                    manualEdit={manualEdit}
+                    setManualEdit={setManualEditRaw}
+                    cellEdit={cellEdit}
+                    setCellEdit={setCellEditRaw}
+                    cellManual={cellManual}
+                    setCellManual={setCellManualRaw}
+                    nameEdit={nameEdit}
+                    setNameEdit={setNameEditRaw}
+                    noteEdit={noteEdit}
+                    setNoteEdit={setNoteEditRaw}
+                    normativos={atletaNormativos}
+                  />
+                </div>
               </>
             )}
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => setShowGuardarPlantilla("meso")}
-              style={{ color: "var(--muted)" }}
-            >
-              <Library size={12} /> Guardar como plantilla
-            </button>
-          </div>
-
-          {/* ── Escuela Inicial: PlanillaBasica ── */}
-          {mesoVisto.escuela === true || mesoVisto.escuela === "true" ? (
-            <div className="card">
-              <div
-                className="flex-between mb16"
-                style={{ flexWrap: "wrap", gap: 10 }}
-              >
-                <div className="card-title" style={{ marginBottom: 0 }}>
-                  Planilla Escuela Inicial
-                </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    <label
-                      style={{
-                        fontSize: 10,
-                        color: "var(--gold)",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: ".05em",
-                      }}
-                    >
-                      IRM Arr
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={300}
-                      className="no-spin"
-                      value={mesoVisto.irm_arranque ?? ""}
-                      placeholder="kg"
-                      onChange={(e) => {
-                        pushSnap();
-                        setMesociclos((prev) =>
-                          prev.map((m) =>
-                            m.id === mesoVisto.id
-                              ? {
-                                  ...m,
-                                  irm_arranque:
-                                    e.target.value === ""
-                                      ? null
-                                      : Number(e.target.value),
-                                }
-                              : m,
-                          ),
-                        );
-                      }}
-                      style={{
-                        width: 52,
-                        background: "var(--surface2)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 6,
-                        padding: "4px 6px",
-                        color: "var(--gold)",
-                        fontSize: 14,
-                        fontFamily: "'Bebas Neue'",
-                        textAlign: "center",
-                        outline: "none",
-                        MozAppearance: "textfield",
-                        appearance: "textfield",
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    <label
-                      style={{
-                        fontSize: 10,
-                        color: "var(--blue)",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: ".05em",
-                      }}
-                    >
-                      IRM Env
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={400}
-                      className="no-spin"
-                      value={mesoVisto.irm_envion ?? ""}
-                      placeholder="kg"
-                      onChange={(e) => {
-                        pushSnap();
-                        setMesociclos((prev) =>
-                          prev.map((m) =>
-                            m.id === mesoVisto.id
-                              ? {
-                                  ...m,
-                                  irm_envion:
-                                    e.target.value === ""
-                                      ? null
-                                      : Number(e.target.value),
-                                }
-                              : m,
-                          ),
-                        );
-                      }}
-                      style={{
-                        width: 52,
-                        background: "var(--surface2)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 6,
-                        padding: "4px 6px",
-                        color: "var(--blue)",
-                        fontSize: 14,
-                        fontFamily: "'Bebas Neue'",
-                        textAlign: "center",
-                        outline: "none",
-                        MozAppearance: "textfield",
-                        appearance: "textfield",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <PlanillaBasica
-                semanas={mesoVisto.semanas}
-                onChange={(ss) => updateMeso({ ...mesoVisto, semanas: ss })}
-                numBloques={mesoVisto.num_bloques_basica || 3}
-                onBeforeChange={(forced) => pushSnap(forced)}
-                irm_arr={irm_arr}
-                irm_env={irm_env}
-                normativos={atletaNormativos}
-              />
-            </div>
-          ) : (
-            <>
-              {/* Stats semanas */}
-              <div className="stats-row mb16">
-                {mesoVisto.semanas.map((s, i) => {
-                  const fase =
-                    atleta.genero === "f" && atleta.ciclo?.ultimo_inicio
-                      ? getFaseCiclo(
-                          atleta.ciclo,
-                          getFechaSemana(mesoVisto.fecha_inicio, s.numero),
-                        )
-                      : null;
-                  const faseInfo = fase ? FASES_CICLO[fase] : null;
-                  return (
-                    <div
-                      key={s.id}
-                      className="stat-box"
-                      style={
-                        faseInfo
-                          ? {
-                              border: `1px solid ${faseInfo.color}60`,
-                              background: faseInfo.bg,
-                            }
-                          : {}
-                      }
-                    >
-                      <div className="stat-box-val">
-                        {s.reps_ajustadas || s.reps_calculadas || 0}
-                      </div>
-                      <div className="stat-box-lbl">
-                        Semana {s.numero} · {s.pct_volumen}%
-                      </div>
-                      {faseInfo && (
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: faseInfo.color,
-                            marginTop: 4,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 3,
-                          }}
-                        >
-                          <faseInfo.Icon size={11} /> {faseInfo.label}
-                        </div>
-                      )}
-                      <div className="prog-bar">
-                        <div
-                          className="prog-fill"
-                          style={{
-                            width: `${s.pct_volumen}%`,
-                            background: faseInfo
-                              ? faseInfo.color
-                              : "var(--gold)",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Sembrado mensual completo */}
-              <div className="card">
-                <div className="flex-between mb16">
-                  <div className="card-title" style={{ marginBottom: 0 }}>
-                    Sembrado Mensual
-                  </div>
-                </div>
-                <SembradoMensual
-                  semanas={mesoVisto.semanas}
-                  irm_arr={irm_arr}
-                  irm_env={irm_env}
-                  meso={mesoVisto}
-                  onChangeSemana={updateSemanaH}
-                  onChangeTodasSemanas={(newSemanas) => {
-                    updateMeso({ ...mesoVisto, semanas: newSemanas });
-                  }}
-                  normativos={atletaNormativos}
-                />
-                <ResumenGrupos
-                  semanas={mesoVisto.semanas}
-                  meso={mesoVisto}
-                  onGuardarDistribucion={(dist) => {
-                    try {
-                      const stored = JSON.parse(
-                        localStorage.getItem("liftplan_plantillas") || "[]",
-                      );
-                      const nuevo = {
-                        id: mkId(),
-                        tipo: "distribucion",
-                        creado: new Date().toISOString().slice(0, 10),
-                        nombre: `Distribución ${mesoVisto.nombre || "Mesociclo"}`,
-                        descripcion: `${mesoVisto.semanas.length} semanas`,
-                        periodo: "general",
-                        objetivo: "mixto",
-                        nivel: "intermedio",
-                        distribucion: dist,
-                      };
-                      localStorage.setItem(
-                        "liftplan_plantillas",
-                        JSON.stringify([...stored, nuevo]),
-                      );
-                      alert("Distribución guardada como plantilla");
-                    } catch (e) {}
-                  }}
-                  semPctOverrides={semPctOverrides}
-                  semPctManual={semPctManual}
-                  setSemPctOverrides={setSemPctOverridesH}
-                  setSemPctManual={setSemPctManualH}
-                  onRequestReset={(label, fn) =>
-                    setConfirmReset({ label, onConfirm: fn })
-                  }
-                  onBeforeChange={(forced) => {
-                    if (!forced && histIdxRef.current != null) pushSnap();
-                    else pushSnap(true);
-                  }}
-                />
-                <DistribucionTurnos
-                  semanas={mesoVisto.semanas}
-                  meso={mesoVisto}
-                  turnoPctOverrides={turnoPctOverrides}
-                  turnoPctManual={turnoPctManual}
-                  setTurnoPctOverrides={setTurnoPctOverridesH}
-                  setTurnoPctManual={setTurnoPctManualH}
-                  semPctOverrides={semPctOverrides}
-                  semPctManual={semPctManual}
-                  onRequestReset={(label, fn) =>
-                    setConfirmReset({ label, onConfirm: fn })
-                  }
-                  onBeforeChange={(forced) => pushSnap(forced)}
-                />
-                <PlanillaTurno
-                  semanas={mesoVisto.semanas}
-                  irm_arr={irm_arr}
-                  irm_env={irm_env}
-                  meso={mesoVisto}
-                  semPctOverrides={semPctOverrides}
-                  semPctManual={semPctManual}
-                  turnoPctOverrides={turnoPctOverrides}
-                  turnoPctManual={turnoPctManual}
-                  onRequestReset={(label, fn) =>
-                    setConfirmReset({ label, onConfirm: fn })
-                  }
-                  onBeforeChange={(forced) => {
-                    pushSnap(forced);
-                  }}
-                  onChangeTodasSemanas={(newSemanas) => {
-                    updateMeso({ ...mesoVisto, semanas: newSemanas });
-                  }}
-                  onChangeTurno={(sIdx, tIdx, newTurno) => {
-                    const sem = mesoVisto.semanas[sIdx];
-                    const ts = [...sem.turnos];
-                    ts[tIdx] = newTurno;
-                    updateSemana(sIdx, { ...sem, turnos: ts });
-                  }}
-                  repsEdit={repsEdit}
-                  setRepsEdit={setRepsEditRaw}
-                  manualEdit={manualEdit}
-                  setManualEdit={setManualEditRaw}
-                  cellEdit={cellEdit}
-                  setCellEdit={setCellEditRaw}
-                  cellManual={cellManual}
-                  setCellManual={setCellManualRaw}
-                  nameEdit={nameEdit}
-                  setNameEdit={setNameEditRaw}
-                  noteEdit={noteEdit}
-                  setNoteEdit={setNoteEditRaw}
-                  normativos={atletaNormativos}
-                />
-              </div>
-            </>
-          )}
-        </>
+          </>
         </PanelTabBoundary>
       )}
 
@@ -16962,24 +16990,26 @@ function PagePDF({
   // Helper para convertir complementario con bloques a row
   const buildComplementarioRow = (comp, semIdx, tIdx) => {
     const ejData = normativos.find((e) => e.id === Number(comp.ejercicio_id));
-    
+
     // Los complementarios usan bloques en lugar de intensidades
-    const cols = (comp.bloques || []).map((bloque) => ({
-      pct: bloque.pct,
-      s: bloque.series,
-      r: bloque.reps,
-      kg: bloque.kg,
-      note: bloque.nota || "",
-    })).filter((c) => c.pct || c.s || c.r);
+    const cols = (comp.bloques || [])
+      .map((bloque) => ({
+        pct: bloque.pct,
+        s: bloque.series,
+        r: bloque.reps,
+        kg: bloque.kg,
+        note: bloque.nota || "",
+      }))
+      .filter((c) => c.pct || c.s || c.r);
 
     // Si no hay ejData, permitir si hay nombre_custom o aclaracion
     if (!ejData) {
       const hasCustomText = comp.nombre_custom || comp.aclaracion;
       if (!hasCustomText) return null;
-      
+
       const nombre = resolveExerciseName(comp.nombre_custom, "");
       const aclaracion = comp.aclaracion ? ` (${comp.aclaracion})` : "";
-      
+
       return {
         id: null,
         nombre: nombre + aclaracion,
@@ -17614,7 +17644,9 @@ ${previewEl.outerHTML}
                           </th>
                           {(() => {
                             // Detectar si tenemos complementarios con bloques
-                            const hasCompBloques = rows.some((r) => r.isCompBloques);
+                            const hasCompBloques = rows.some(
+                              (r) => r.isCompBloques,
+                            );
                             const hasRegularIntensidades = rows.some(
                               (r) => !r.isCompBloques,
                             );
@@ -24884,7 +24916,6 @@ function CoachApp({ session, profile, onLogout }) {
   // ── Refs para sincronización con DB ────────────────────────────────────────
   const prevAtletasRef = useRef(null); // null = DB aún no inicializada
   const prevMesociclosRef = useRef(null);
-  const remoteAtletasUpdatedAtRef = useRef(0);
   const atletasRef = useRef(atletas);
   const mesociclosRef = useRef(mesociclos);
   useEffect(() => {
@@ -24914,8 +24945,7 @@ function CoachApp({ session, profile, onLogout }) {
         const { error } = await sb.from("mesociclos").upsert([payload], {
           onConflict: "app_id",
         });
-        if (error)
-          console.warn("DB sync mesociclo overrides failed:", error);
+        if (error) console.warn("DB sync mesociclo overrides failed:", error);
       }, 800);
 
       mesoOverrideSyncTimersRef.current.set(mesoId, timer);
@@ -24931,7 +24961,9 @@ function CoachApp({ session, profile, onLogout }) {
 
       const timer = setTimeout(async () => {
         atletaOverrideSyncTimersRef.current.delete(atletaId);
-        const currentAtleta = atletasRef.current.find((item) => item.id === atletaId);
+        const currentAtleta = atletasRef.current.find(
+          (item) => item.id === atletaId,
+        );
         if (!currentAtleta) return;
 
         const payload = atletaToDb(currentAtleta, coachId, {
@@ -24976,13 +25008,6 @@ function CoachApp({ session, profile, onLogout }) {
           .exec();
         if (!e1 && dbAtletas) {
           const appAtletas = dbAtletas.filter((r) => r.app_id);
-          remoteAtletasUpdatedAtRef.current = appAtletas.reduce(
-            (maxTs, row) => {
-              const ts = Date.parse(row.updated_at || "");
-              return Number.isFinite(ts) && ts > maxTs ? ts : maxTs;
-            },
-            0,
-          );
           if (appAtletas.length > 0) {
             appAtletas.forEach((r) => {
               restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
@@ -25072,7 +25097,7 @@ function CoachApp({ session, profile, onLogout }) {
     if (!coachId) return;
     let cancelled = false;
 
-    const pullAtletas = async (force = false) => {
+    const pullAtletas = async () => {
       const { data, error } = await sb
         .from("atletas")
         .select("*")
@@ -25082,14 +25107,6 @@ function CoachApp({ session, profile, onLogout }) {
 
       const appAtletas = data.filter((r) => r.app_id);
       if (appAtletas.length === 0) return;
-
-      const latestRemoteTs = appAtletas.reduce((maxTs, row) => {
-        const ts = Date.parse(row.updated_at || "");
-        return Number.isFinite(ts) && ts > maxTs ? ts : maxTs;
-      }, 0);
-
-      if (!force && latestRemoteTs <= remoteAtletasUpdatedAtRef.current) return;
-      remoteAtletasUpdatedAtRef.current = latestRemoteTs;
 
       appAtletas.forEach((r) => {
         restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
@@ -25105,15 +25122,15 @@ function CoachApp({ session, profile, onLogout }) {
       });
     };
 
-    pullAtletas(true);
+    pullAtletas();
     const pollId = window.setInterval(() => {
       pullAtletas();
     }, 8000);
     const onFocus = () => {
-      pullAtletas(true);
+      pullAtletas();
     };
     const onVisible = () => {
-      if (document.visibilityState === "visible") pullAtletas(true);
+      if (document.visibilityState === "visible") pullAtletas();
     };
 
     window.addEventListener("focus", onFocus);
@@ -25213,14 +25230,7 @@ function CoachApp({ session, profile, onLogout }) {
           .catch(() => {});
       }
       const currAtletas = atletasRef.current;
-      if (currAtletas.length > 0) {
-        sb.from("atletas")
-          .upsert(
-            currAtletas.map((a) => atletaToDb(a, coachId)),
-            { onConflict: "app_id" },
-          )
-          .catch(() => {});
-      }
+      void currAtletas;
     };
     const interval = setInterval(syncOverrides, 60000);
     const onHide = () => {
@@ -25592,7 +25602,10 @@ function CoachApp({ session, profile, onLogout }) {
               <PageCalculadora coachId={coachId} />
             </div>
             <div style={{ display: tab === "normativos" ? "block" : "none" }}>
-              <PageNormativos coachId={coachId} isActive={tab === "normativos"} />
+              <PageNormativos
+                coachId={coachId}
+                isActive={tab === "normativos"}
+              />
             </div>
 
             {/* Pestañas de atletas — montadas mientras estén abiertas */}
