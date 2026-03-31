@@ -3569,6 +3569,8 @@ function PlanillaTurno({
   const [tipTurno, setTipTurno] = useState(null);
   const [compPickerOpen, setCompPickerOpen] = useState(null); // compId | null
   const [compPickerQuery, setCompPickerQuery] = useState("");
+  const [compCopyFeedback, setCompCopyFeedback] = useState(false);
+  const compCopyTimerRef = useRef(null);
   const compPickerListRef = useRef(null);
 
   // Clave única por mesociclo para persistencia
@@ -3850,6 +3852,12 @@ function PlanillaTurno({
       });
 
       onChangeTodasSemanas(nextSemanas);
+      if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
+      setCompCopyFeedback(true);
+      compCopyTimerRef.current = setTimeout(
+        () => setCompCopyFeedback(false),
+        1500,
+      );
       return;
     }
 
@@ -3865,6 +3873,10 @@ function PlanillaTurno({
         complementarios_after: cloneCompList(sourceAfter),
       });
     });
+
+    if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
+    setCompCopyFeedback(true);
+    compCopyTimerRef.current = setTimeout(() => setCompCopyFeedback(false), 1500);
   };
 
   return (
@@ -6144,9 +6156,15 @@ function PlanillaTurno({
                           style={{
                             padding: "4px 10px",
                             borderRadius: 6,
-                            border: "1px solid var(--border)",
-                            background: "var(--surface2)",
-                            color: "var(--muted)",
+                            border: compCopyFeedback
+                              ? "1px solid rgba(77,182,172,.45)"
+                              : "1px solid var(--border)",
+                            background: compCopyFeedback
+                              ? "rgba(77,182,172,.12)"
+                              : "var(--surface2)",
+                            color: compCopyFeedback
+                              ? "#4db6ac"
+                              : "var(--muted)",
                             cursor: "pointer",
                             fontSize: 10,
                             fontFamily: "'DM Sans'",
@@ -6154,7 +6172,9 @@ function PlanillaTurno({
                             whiteSpace: "nowrap",
                           }}
                         >
-                          Copiar a todas las semanas
+                          {compCopyFeedback
+                            ? "Copiado a todas"
+                            : "Copiar a todas las semanas"}
                         </button>
                       </div>
                       <div
