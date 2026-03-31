@@ -12216,6 +12216,7 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
   const [showForm, setShowForm] = useState(false);
   const [tipoInicial, setTipoInicial] = useState("atleta");
   const [editAtleta, setEditAtleta] = useState(null);
+  const [previewAtleta, setPreviewAtleta] = useState(null);
   const [expandedAtletas, setExpandedAtletas] = useState(false);
   const [expandedAsesorias, setExpandedAsesorias] = useState(false);
   const MAX_VISIBLE = 4;
@@ -12244,11 +12245,17 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
       key={a.id}
       a={a}
       mesociclos={mesociclos}
-      onSelect={onSelect}
+      onSelect={() => setPreviewAtleta(a)}
       onEdit={setEditAtleta}
       onDelete={deleteAtleta}
     />
   );
+
+  const previewMesos = previewAtleta
+    ? mesociclos
+        .filter((m) => m.atleta_id === previewAtleta.id)
+        .sort((x, y) => y.fecha_inicio.localeCompare(x.fecha_inicio))
+    : [];
 
   return (
     <div>
@@ -12601,6 +12608,68 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
               }}
             >
               <Trash2 size={14} /> Eliminar atleta
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {previewAtleta && (
+        <Modal
+          title={`Historial · ${previewAtleta.nombre}`}
+          onClose={() => setPreviewAtleta(null)}
+        >
+          {previewMesos.length === 0 ? (
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--muted)",
+                background: "var(--surface2)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: 12,
+              }}
+            >
+              Este atleta no tiene mesociclos todavía.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {previewMesos.map((m) => (
+                <div
+                  key={m.id}
+                  className="historial-row"
+                  style={{
+                    marginBottom: 0,
+                    alignItems: "center",
+                    gap: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div className="historial-fecha">{m.fecha_inicio}</div>
+                  <div className="historial-info">
+                    <div className="historial-name">
+                      {m.nombre || "Mesociclo sin nombre"}
+                    </div>
+                    <div className="historial-marks">
+                      {m.modo} · {m.volumen_total || 0} reps
+                      {m.activo ? " · Activo" : ""}
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-gold btn-sm"
+                    onClick={() => {
+                      onSelect(previewAtleta, { view: "meso", mesoId: m.id });
+                      setPreviewAtleta(null);
+                    }}
+                  >
+                    Abrir planilla
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="modal-footer">
+            <button className="btn btn-ghost" onClick={() => setPreviewAtleta(null)}>
+              Cerrar
             </button>
           </div>
         </Modal>
@@ -13046,6 +13115,7 @@ function PageAtleta({
   useEffect(() => {
     if (!openRequest?.view) return;
     setVistaActual(openRequest.view);
+    if (openRequest?.mesoId) setMesoSelId(openRequest.mesoId);
   }, [openRequest?.tick, openRequest?.view]);
 
   const [atletaNormOverrides, setAtletaNormOverrides] = useState(() => {
@@ -24313,11 +24383,13 @@ function CoachApp({ session, profile, onLogout }) {
     });
   };
 
-  const abrirAtleta = (a) => {
+  const abrirAtleta = (a, opts = {}) => {
+    const view = opts.view || "historial";
     setAtletaOpenRequest((prev) => ({
       ...prev,
       [a.id]: {
-        view: "historial",
+        view,
+        mesoId: opts.mesoId || null,
         tick: (prev[a.id]?.tick || 0) + 1,
       },
     }));
