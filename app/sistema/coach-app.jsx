@@ -16564,8 +16564,7 @@ function PagePDF({
   // Helper para convertir complementario con bloques a row
   const buildComplementarioRow = (comp, semIdx, tIdx) => {
     const ejData = normativos.find((e) => e.id === Number(comp.ejercicio_id));
-    if (!ejData) return null;
-
+    
     // Los complementarios usan bloques en lugar de intensidades
     const cols = (comp.bloques || []).map((bloque) => ({
       pct: bloque.pct,
@@ -16574,6 +16573,24 @@ function PagePDF({
       kg: bloque.kg,
       note: bloque.nota || "",
     })).filter((c) => c.pct || c.s || c.r);
+
+    // Si no hay ejData, permitir si hay nombre_custom o aclaracion
+    if (!ejData) {
+      const hasCustomText = comp.nombre_custom || comp.aclaracion;
+      if (!hasCustomText) return null;
+      
+      const nombre = comp.nombre_custom || "";
+      const aclaracion = comp.aclaracion ? ` (${comp.aclaracion})` : "";
+      
+      return {
+        id: null,
+        nombre: nombre + aclaracion,
+        categoria: "Complementarios",
+        cols,
+        isComplementario: true,
+        isCompBloques: true,
+      };
+    }
 
     const nombre = comp.nombre_custom || ejData.nombre;
     const aclaracion = comp.aclaracion ? ` (${comp.aclaracion})` : "";
@@ -16632,7 +16649,7 @@ function PagePDF({
         // Complementarios ANTES
         if (t.complementarios_before?.length > 0) {
           const compBefore = t.complementarios_before.filter(
-            (c) => c.ejercicio_id,
+            (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
           );
           compBefore.forEach((comp) => {
             const row = buildComplementarioRow(comp, semIdx, tIdx);
@@ -16650,7 +16667,7 @@ function PagePDF({
         // Complementarios DESPUÉS
         if (t.complementarios_after?.length > 0) {
           const compAfter = t.complementarios_after.filter(
-            (c) => c.ejercicio_id,
+            (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
           );
           compAfter.forEach((comp) => {
             const row = buildComplementarioRow(comp, semIdx, tIdx);
