@@ -8554,8 +8554,8 @@ function ResumenGrupos({
                                 style={{
                                   display: "flex",
                                   flexDirection: "column",
-                                  gap: 4,
-                                  marginLeft: 6,
+                                  gap: 1,
+                                  marginLeft: 8,
                                 }}
                                 onMouseEnter={(e) => {
                                   e.stopPropagation();
@@ -9653,8 +9653,8 @@ function DistribucionTurnos({
                                   style={{
                                     display: "flex",
                                     flexDirection: "column",
-                                    gap: 4,
-                                    marginLeft: 6,
+                                    gap: 1,
+                                    marginLeft: 8,
                                   }}
                                   onMouseEnter={(e) => {
                                     e.stopPropagation();
