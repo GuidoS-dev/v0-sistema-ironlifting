@@ -8539,6 +8539,16 @@ function ResumenGrupos({
                                   cursor: "text",
                                 }}
                               />
+                              <span
+                                style={{
+                                  fontFamily: "'Bebas Neue'",
+                                  fontSize: 13,
+                                  color: col,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                %
+                              </span>
                               <div
                                 style={{
                                   display: "flex",
@@ -8591,16 +8601,6 @@ function ResumenGrupos({
                                   ▼
                                 </button>
                               </div>
-                              <span
-                                style={{
-                                  fontFamily: "'Bebas Neue'",
-                                  fontSize: 13,
-                                  color: col,
-                                  lineHeight: 1,
-                                }}
-                              >
-                                %
-                              </span>
                             </div>
                             <div
                               style={{
@@ -9617,6 +9617,16 @@ function DistribucionTurnos({
                                     cursor: "text",
                                   }}
                                 />
+                                <span
+                                  style={{
+                                    fontFamily: "'Bebas Neue'",
+                                    fontSize: 11,
+                                    color: col,
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  %
+                                </span>
                                 <div
                                   style={{
                                     display: "flex",
@@ -9669,16 +9679,6 @@ function DistribucionTurnos({
                                     ▼
                                   </button>
                                 </div>
-                                <span
-                                  style={{
-                                    fontFamily: "'Bebas Neue'",
-                                    fontSize: 11,
-                                    color: col,
-                                    lineHeight: 1,
-                                  }}
-                                >
-                                  %
-                                </span>
                               </div>
                               {(() => {
                                 // Fix % Semanal: usa meso.semanas directo (siempre actualizado)
