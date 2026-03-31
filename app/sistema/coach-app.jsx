@@ -297,6 +297,17 @@ const COACH_SETTING_KEYS = {
   tablas: "tablas_calculadora",
 };
 
+const LIFTPLAN_LOCAL_SYNC_EVENT = "liftplan:local-sync";
+
+function emitLocalSyncEvent(key) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(LIFTPLAN_LOCAL_SYNC_EVENT, {
+      detail: { key },
+    }),
+  );
+}
+
 function readLocalJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -309,6 +320,7 @@ function readLocalJson(key, fallback) {
 function writeLocalJson(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    emitLocalSyncEvent(key);
   } catch {}
 }
 
@@ -23273,6 +23285,7 @@ const load = (key, fallback) => {
 const save = (key, val) => {
   try {
     localStorage.setItem(key, JSON.stringify(val));
+    emitLocalSyncEvent(key);
   } catch {}
 };
 
@@ -23426,22 +23439,41 @@ function PanelReferencia({
     };
   });
 
-  // Force re-read on render tick using a ticker
-  const [tick, setTick] = useState(0);
+  // Re-read local overrides only when relevant storage keys actually change.
+  const [localRevision, setLocalRevision] = useState(0);
   useEffect(() => {
-    // Poll every 300ms for localStorage changes (catches % bloques/turnos updates)
-    const id = setInterval(() => setTick((t) => t + 1), 300);
-    // Also listen to storage events (cross-tab)
-    const onStorage = () => setTick((t) => t + 1);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      clearInterval(id);
-      window.removeEventListener("storage", onStorage);
+    const bump = () => setLocalRevision((v) => v + 1);
+    const shouldRefreshForKey = (key) => {
+      if (!key) return false;
+      if (key === "liftplan_normativos") return true;
+      if (key === `liftplan_normativos_atleta_${atletaId}`) return true;
+      if (!mid) return false;
+      if (key.startsWith(`liftplan_pt_${mid}_`)) return true;
+      if (key.startsWith(`liftplan_pct_${mid}_`)) return true;
+      return false;
     };
-  }, [mid]);
 
-  // Use tick to force re-read (tick is referenced so React includes it in render)
-  void tick;
+    const onStorage = (event) => {
+      if (shouldRefreshForKey(event?.key)) bump();
+    };
+
+    const onLocalSync = (event) => {
+      const key = event?.detail?.key;
+      if (shouldRefreshForKey(key)) bump();
+    };
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(LIFTPLAN_LOCAL_SYNC_EVENT, onLocalSync);
+    window.addEventListener("liftplan:normativos-overrides-updated", bump);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(LIFTPLAN_LOCAL_SYNC_EVENT, onLocalSync);
+      window.removeEventListener("liftplan:normativos-overrides-updated", bump);
+    };
+  }, [mid, atletaId]);
+
+  void localRevision;
 
   // Mirrors PlanillaTurno getSemPct/getTurnoPct/calcTentativa exactly
   const _getSemPct = (g, sIdx) => {
