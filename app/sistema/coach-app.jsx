@@ -6628,14 +6628,11 @@ function PlanillaTurno({
                                                   : val,
                                           }));
                                         }}
-                                        onKeyDown={(e) => {
+                                        onBlur={() => {
                                           if (
-                                            e.key === "Backspace" &&
-                                            e.currentTarget.value === "" &&
                                             comp.nombre_custom ===
-                                              EMPTY_NAME_SENTINEL
+                                            EMPTY_NAME_SENTINEL
                                           ) {
-                                            e.preventDefault();
                                             _mapComp(comp.id, (c) => ({
                                               ...c,
                                               nombre_custom: "",
