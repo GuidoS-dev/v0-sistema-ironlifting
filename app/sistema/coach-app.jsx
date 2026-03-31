@@ -3193,6 +3193,21 @@ function TurnoCard({
     onChange({ ...turno, [key]: arr });
   };
 
+  const moveComplementario = (position, idx, dir) => {
+    const arr =
+      position === "before"
+        ? [...turno.complementarios_before]
+        : [...turno.complementarios_after];
+    const j = idx + dir;
+    if (j < 0 || j >= arr.length) return;
+    [arr[idx], arr[j]] = [arr[j], arr[idx]];
+    const key =
+      position === "before"
+        ? "complementarios_before"
+        : "complementarios_after";
+    onChange({ ...turno, [key]: arr });
+  };
+
   return (
     <div className="turno-card">
       <div className="turno-header" onClick={() => setOpen((o) => !o)}>
@@ -3345,20 +3360,70 @@ function TurnoCard({
               >
                 ANTES DEL TURNO
               </div>
-              {turno.complementarios_before?.filter(Boolean).map((comp, i) => (
-                <ComplementarioRow
-                  key={comp.id}
-                  comp={comp}
-                  idx={i}
-                  irm_arr={irm_arr}
-                  irm_env={irm_env}
-                  onChange={(newComp) =>
-                    updateComplementario("before", i, newComp)
-                  }
-                  onDelete={() => deleteComplementario("before", i)}
-                  normativos={normativos}
-                />
-              ))}
+              {turno.complementarios_before?.filter(Boolean).map((comp, i) => {
+                const canUp = i > 0;
+                const canDown =
+                  i < turno.complementarios_before.filter(Boolean).length - 1;
+                return (
+                  <div
+                    key={comp.id}
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 1,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <button
+                        onClick={() => moveComplementario("before", i, -1)}
+                        disabled={!canUp}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: canUp ? "pointer" : "default",
+                          color: canUp ? "var(--blue)" : "var(--surface3)",
+                          fontSize: 10,
+                          lineHeight: 1,
+                          padding: "1px 3px",
+                        }}
+                        title="Mover arriba"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => moveComplementario("before", i, 1)}
+                        disabled={!canDown}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: canDown ? "pointer" : "default",
+                          color: canDown ? "var(--blue)" : "var(--surface3)",
+                          fontSize: 10,
+                          lineHeight: 1,
+                          padding: "1px 3px",
+                        }}
+                        title="Mover abajo"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <ComplementarioRow
+                      comp={comp}
+                      idx={i}
+                      irm_arr={irm_arr}
+                      irm_env={irm_env}
+                      onChange={(newComp) =>
+                        updateComplementario("before", i, newComp)
+                      }
+                      onDelete={() => deleteComplementario("before", i)}
+                      normativos={normativos}
+                    />
+                  </div>
+                );
+              })}
               <button
                 onClick={() => addComplementario("before")}
                 style={{
@@ -3464,20 +3529,70 @@ function TurnoCard({
               >
                 DESPUÉS DEL TURNO
               </div>
-              {turno.complementarios_after?.filter(Boolean).map((comp, i) => (
-                <ComplementarioRow
-                  key={comp.id}
-                  comp={comp}
-                  idx={i}
-                  irm_arr={irm_arr}
-                  irm_env={irm_env}
-                  onChange={(newComp) =>
-                    updateComplementario("after", i, newComp)
-                  }
-                  onDelete={() => deleteComplementario("after", i)}
-                  normativos={normativos}
-                />
-              ))}
+              {turno.complementarios_after?.filter(Boolean).map((comp, i) => {
+                const canUp = i > 0;
+                const canDown =
+                  i < turno.complementarios_after.filter(Boolean).length - 1;
+                return (
+                  <div
+                    key={comp.id}
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 1,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <button
+                        onClick={() => moveComplementario("after", i, -1)}
+                        disabled={!canUp}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: canUp ? "pointer" : "default",
+                          color: canUp ? "var(--green)" : "var(--surface3)",
+                          fontSize: 10,
+                          lineHeight: 1,
+                          padding: "1px 3px",
+                        }}
+                        title="Mover arriba"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => moveComplementario("after", i, 1)}
+                        disabled={!canDown}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: canDown ? "pointer" : "default",
+                          color: canDown ? "var(--green)" : "var(--surface3)",
+                          fontSize: 10,
+                          lineHeight: 1,
+                          padding: "1px 3px",
+                        }}
+                        title="Mover abajo"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <ComplementarioRow
+                      comp={comp}
+                      idx={i}
+                      irm_arr={irm_arr}
+                      irm_env={irm_env}
+                      onChange={(newComp) =>
+                        updateComplementario("after", i, newComp)
+                      }
+                      onDelete={() => deleteComplementario("after", i)}
+                      normativos={normativos}
+                    />
+                  </div>
+                );
+              })}
               <button
                 onClick={() => addComplementario("after")}
                 style={{
