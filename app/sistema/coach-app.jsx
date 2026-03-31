@@ -6133,6 +6133,30 @@ function PlanillaTurno({
                   }
                 };
 
+                const moveComp = (compId, dir) => {
+                  const bef = turno.complementarios_before || [];
+                  const aft = turno.complementarios_after || [];
+
+                  const bIdx = bef.findIndex((c) => c.id === compId);
+                  if (bIdx >= 0) {
+                    const j = bIdx + dir;
+                    if (j < 0 || j >= bef.length) return;
+                    const next = [...bef];
+                    [next[bIdx], next[j]] = [next[j], next[bIdx]];
+                    _setTurno({ ...turno, complementarios_before: next });
+                    return;
+                  }
+
+                  const aIdx = aft.findIndex((c) => c.id === compId);
+                  if (aIdx >= 0) {
+                    const j = aIdx + dir;
+                    if (j < 0 || j >= aft.length) return;
+                    const next = [...aft];
+                    [next[aIdx], next[j]] = [next[j], next[aIdx]];
+                    _setTurno({ ...turno, complementarios_after: next });
+                  }
+                };
+
                 const addComp = () => {
                   const newComp = {
                     id: mkId(),
@@ -6617,6 +6641,7 @@ function PlanillaTurno({
                                   + %
                                 </button>
                               </th>
+                              <th style={{ ...thBase, width: 30 }}>↕</th>
                               <th style={{ width: 26 }} />
                             </tr>
                           </thead>
@@ -6640,6 +6665,16 @@ function PlanillaTurno({
                             ) : (
                               allComps.map((comp, cIdx) => {
                                 const isBefore = comp._isBefore;
+                                const sameMomentList = isBefore
+                                  ? turno.complementarios_before || []
+                                  : turno.complementarios_after || [];
+                                const orderIdx = sameMomentList.findIndex(
+                                  (c) => c.id === comp.id,
+                                );
+                                const canUp = orderIdx > 0;
+                                const canDown =
+                                  orderIdx > -1 &&
+                                  orderIdx < sameMomentList.length - 1;
                                 const ejData = comp.ejercicio_id
                                   ? normativos.find(
                                       (e) => e.id === Number(comp.ejercicio_id),
@@ -6898,7 +6933,67 @@ function PlanillaTurno({
                                           </td>
                                         );
                                       })}
-                                    <td style={{ border: "none" }} />
+                                    <td
+                                      style={{
+                                        border: "none",
+                                        textAlign: "center",
+                                        padding: 0,
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          alignItems: "center",
+                                          gap: 0,
+                                        }}
+                                      >
+                                        <button
+                                          onClick={() => moveComp(comp.id, -1)}
+                                          disabled={!canUp}
+                                          title="Mover arriba"
+                                          style={{
+                                            background: "none",
+                                            border: "none",
+                                            color: canUp
+                                              ? isBefore
+                                                ? "var(--gold)"
+                                                : "#50b4ff"
+                                              : "var(--surface3)",
+                                            cursor: canUp
+                                              ? "pointer"
+                                              : "default",
+                                            fontSize: 10,
+                                            lineHeight: 1,
+                                            padding: "1px 2px",
+                                          }}
+                                        >
+                                          ▲
+                                        </button>
+                                        <button
+                                          onClick={() => moveComp(comp.id, 1)}
+                                          disabled={!canDown}
+                                          title="Mover abajo"
+                                          style={{
+                                            background: "none",
+                                            border: "none",
+                                            color: canDown
+                                              ? isBefore
+                                                ? "var(--gold)"
+                                                : "#50b4ff"
+                                              : "var(--surface3)",
+                                            cursor: canDown
+                                              ? "pointer"
+                                              : "default",
+                                            fontSize: 10,
+                                            lineHeight: 1,
+                                            padding: "1px 2px",
+                                          }}
+                                        >
+                                          ▼
+                                        </button>
+                                      </div>
+                                    </td>
                                     <td
                                       style={{
                                         padding: 0,
