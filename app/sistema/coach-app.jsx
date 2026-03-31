@@ -11400,6 +11400,9 @@ function SembradoMensual({
 
     const newSemanas = JSON.parse(JSON.stringify(semanas));
     [newSemanas[aIdx], newSemanas[bIdx]] = [newSemanas[bIdx], newSemanas[aIdx]];
+    newSemanas.forEach((s, i) => {
+      s.numero = i + 1;
+    });
     onChangeTodasSemanas(newSemanas);
 
     const remapSel = (value) => {
