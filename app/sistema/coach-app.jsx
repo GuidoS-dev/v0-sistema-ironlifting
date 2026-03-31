@@ -8079,7 +8079,7 @@ function ResumenGrupos({
       const start = cursor % candidates.length;
       for (let i = 0; i < candidates.length; i += 1) {
         const k = candidates[(start + i) % candidates.length];
-        if (pending <= 0) return;
+        if (pending <= 0) break;
         if ((vals[k] || 0) > 0) {
           vals[k] -= 1;
           pending -= 1;
@@ -8101,7 +8101,7 @@ function ResumenGrupos({
       const start = cursor % candidates.length;
       for (let i = 0; i < candidates.length; i += 1) {
         const k = candidates[(start + i) % candidates.length];
-        if (pending <= 0) return;
+        if (pending <= 0) break;
         if ((vals[k] || 0) < 100) {
           vals[k] += 1;
           pending -= 1;
@@ -9024,7 +9024,7 @@ function DistribucionTurnos({
       const start = cursor % candidates.length;
       for (let i = 0; i < candidates.length; i += 1) {
         const k = candidates[(start + i) % candidates.length];
-        if (pending <= 0) return;
+        if (pending <= 0) break;
         if ((vals[k] || 0) > 0) {
           vals[k] -= 1;
           pending -= 1;
@@ -9046,7 +9046,7 @@ function DistribucionTurnos({
       const start = cursor % candidates.length;
       for (let i = 0; i < candidates.length; i += 1) {
         const k = candidates[(start + i) % candidates.length];
-        if (pending <= 0) return;
+        if (pending <= 0) break;
         if ((vals[k] || 0) < 100) {
           vals[k] += 1;
           pending -= 1;
@@ -12370,7 +12370,7 @@ function EditVolModal({ meso, onSave, onClose }) {
       const start = cursor % candidates.length;
       for (let i = 0; i < candidates.length; i += 1) {
         const k = candidates[(start + i) % candidates.length];
-        if (pending <= 0) return;
+        if (pending <= 0) break;
         if ((vals[k] || 0) > 0) {
           vals[k] -= 1;
           pending -= 1;
@@ -12392,7 +12392,7 @@ function EditVolModal({ meso, onSave, onClose }) {
       const start = cursor % candidates.length;
       for (let i = 0; i < candidates.length; i += 1) {
         const k = candidates[(start + i) % candidates.length];
-        if (pending <= 0) return;
+        if (pending <= 0) break;
         if ((vals[k] || 0) < 100) {
           vals[k] += 1;
           pending -= 1;
