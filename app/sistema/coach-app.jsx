@@ -1979,13 +1979,45 @@ const FASES_CICLO = {
 };
 
 // Dado el último ciclo y la fecha de inicio de semana, devuelve la fase
+function parseAppDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : new Date(value.getTime());
+  }
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const direct = new Date(raw);
+  if (!isNaN(direct.getTime())) return direct;
+
+  const match = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (!match) return null;
+
+  const [, dayStr, monthStr, yearStr] = match;
+  const day = Number(dayStr);
+  const month = Number(monthStr);
+  const year = Number(yearStr);
+  if (!day || !month || !year) return null;
+
+  const parsed = new Date(year, month - 1, day);
+  if (
+    isNaN(parsed.getTime()) ||
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return null;
+  }
+  return parsed;
+}
+
 function getFaseCiclo(ciclo, fechaSemana) {
   if (!ciclo?.ultimo_inicio || !fechaSemana) return null;
   const durCiclo = Number(ciclo.duracion_ciclo) || 28;
   const durMens = Number(ciclo.duracion_mens) || 5;
-  const inicio = new Date(ciclo.ultimo_inicio);
-  const semana = new Date(fechaSemana);
-  if (isNaN(inicio.getTime()) || isNaN(semana.getTime())) return null;
+  const inicio = parseAppDate(ciclo.ultimo_inicio);
+  const semana = parseAppDate(fechaSemana);
+  if (!inicio || !semana) return null;
   const diffDias = Math.floor((semana - inicio) / (1000 * 60 * 60 * 24));
   if (isNaN(diffDias)) return null;
   // Normalizar al ciclo actual
@@ -1999,8 +2031,8 @@ function getFaseCiclo(ciclo, fechaSemana) {
 // Para una semana del meso (por número), calcular fecha aproximada
 function getFechaSemana(mesoFechaInicio, semanaNum) {
   if (!mesoFechaInicio) return null;
-  const d = new Date(mesoFechaInicio);
-  if (isNaN(d.getTime())) return null;
+  const d = parseAppDate(mesoFechaInicio);
+  if (!d) return null;
   const num = Number(semanaNum);
   if (isNaN(num)) return null;
   d.setDate(d.getDate() + (num - 1) * 7);
@@ -12053,7 +12085,11 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
 function AtletaCardItem({ a, mesociclos, onSelect, onEdit, onDelete }) {
   const mesoAtleta = mesociclos
     .filter((m) => m.atleta_id === a.id)
-    .sort((x, y) => (y.fecha_inicio || "").localeCompare(x.fecha_inicio || ""));
+    .sort(
+      (x, y) =>
+        (parseAppDate(y.fecha_inicio)?.getTime() || 0) -
+        (parseAppDate(x.fecha_inicio)?.getTime() || 0),
+    );
   const mesoActivo = mesoAtleta.find((m) => m.activo) || mesoAtleta[0];
   const edad = a.fecha_nacimiento
     ? Math.floor(
@@ -12285,7 +12321,11 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
   const previewMesos = previewAtleta
     ? mesociclos
         .filter((m) => m.atleta_id === previewAtleta.id)
-      .sort((x, y) => (y.fecha_inicio || "").localeCompare(x.fecha_inicio || ""))
+        .sort(
+          (x, y) =>
+            (parseAppDate(y.fecha_inicio)?.getTime() || 0) -
+            (parseAppDate(x.fecha_inicio)?.getTime() || 0),
+        )
     : [];
 
   return (
@@ -13249,7 +13289,11 @@ function PageAtleta({
 
   const mesoAtleta = mesociclos
     .filter((m) => m.atleta_id === atleta.id)
-    .sort((a, b) => (b.fecha_inicio || "").localeCompare(a.fecha_inicio || ""));
+    .sort(
+      (a, b) =>
+        (parseAppDate(b.fecha_inicio)?.getTime() || 0) -
+        (parseAppDate(a.fecha_inicio)?.getTime() || 0),
+    );
 
   const mesoActivoReal = mesoAtleta.find((m) => m.activo);
 
