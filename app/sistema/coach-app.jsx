@@ -404,6 +404,19 @@ async function saveCoachSetting(coachId, settingKey, settingValue) {
     .catch(() => {});
 }
 
+async function resolveSharedCoachId(coachId) {
+  if (!coachId) return null;
+  const { data, error } = await sb
+    .from("coach_shared_workspace")
+    .select("workspace_owner_id")
+    .eq("coach_id", coachId)
+    .single()
+    .exec();
+
+  if (error || !data?.workspace_owner_id) return coachId;
+  return data.workspace_owner_id;
+}
+
 // ─── DB SYNC HELPERS ─────────────────────────────────────────────────────────
 // Recolecta los overrides de celdas de un mesociclo desde localStorage
 function collectMesoOverrides(mesoId) {
@@ -24903,7 +24916,25 @@ function CoachApp({ session, profile, onLogout }) {
   const [plantillasTabs, setPlantillasTabsRaw] = useState(() =>
     load("liftplan_plantillas_tabs", []),
   );
-  const coachId = session?.user?.id || null;
+  const authCoachId = session?.user?.id || null;
+  const [coachId, setCoachId] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!authCoachId) {
+      setCoachId(null);
+      return;
+    }
+
+    (async () => {
+      const resolved = await resolveSharedCoachId(authCoachId);
+      if (!cancelled) setCoachId(resolved || authCoachId);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authCoachId]);
+
   const {
     plantillas,
     add: addPlantillaRaw,
