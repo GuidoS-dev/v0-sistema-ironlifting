@@ -6034,8 +6034,10 @@ function PlanillaTurno({
                   })),
                 ];
 
-                const _setTurno = (newTurno) =>
+                const _setTurno = (newTurno) => {
+                  _beforeChange();
                   onChangeTurno?.(semActiva, turnoActivo, newTurno);
+                };
 
                 const calcKgComp = (ejercicio_id, pct) => {
                   if (!ejercicio_id || !pct) return null;
@@ -6099,6 +6101,7 @@ function PlanillaTurno({
                 };
 
                 const deleteComp = (compId) => {
+                  _beforeChangeForced();
                   _setTurno({
                     ...turno,
                     complementarios_before: (
@@ -6111,6 +6114,7 @@ function PlanillaTurno({
                 };
 
                 const toggleMomento = (compId) => {
+                  _beforeChangeForced();
                   const bef = turno.complementarios_before || [];
                   const aft = turno.complementarios_after || [];
                   const isBefore = bef.some((c) => c.id === compId);
@@ -6134,6 +6138,7 @@ function PlanillaTurno({
                 };
 
                 const moveComp = (compId, dir) => {
+                  _beforeChangeForced();
                   const bef = turno.complementarios_before || [];
                   const aft = turno.complementarios_after || [];
 
@@ -6158,6 +6163,7 @@ function PlanillaTurno({
                 };
 
                 const addComp = () => {
+                  _beforeChangeForced();
                   const newComp = {
                     id: mkId(),
                     ejercicio_id: null,
@@ -6176,6 +6182,7 @@ function PlanillaTurno({
                 };
 
                 const addBloqueCompCol = () => {
+                  _beforeChangeForced();
                   const upd = (list) =>
                     (list || []).map((c) => ({
                       ...normComp(c),
@@ -6191,6 +6198,7 @@ function PlanillaTurno({
 
                 const removeBloqueCompCol = (bIdx) => {
                   if (numCompBloques <= 1) return;
+                  _beforeChangeForced();
                   const upd = (list) =>
                     (list || []).map((c) => {
                       const bl = [...normComp(c).bloques];
@@ -6391,6 +6399,7 @@ function PlanillaTurno({
                                           ? { "data-firstgroup": e.categoria }
                                           : {})}
                                         onClick={() => {
+                                          _beforeChangeForced();
                                           _mapComp(compPickerOpen, (c) => ({
                                             ...c,
                                             ejercicio_id: e.id,
