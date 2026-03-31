@@ -13033,6 +13033,7 @@ function PageAtleta({
   onBack,
   addPlantilla,
   onLiveMesoData,
+  openRequest,
 }) {
   const latestMesoRef = useRef(null); // always-current meso for cleanup save
   const [showMeso, setShowMeso] = useState(false);
@@ -13040,7 +13041,12 @@ function PageAtleta({
   const [showGuardarPlantilla, setShowGuardarPlantilla] = useState(null); // null | "meso" | "semana"
   const [showEditVol, setShowEditVol] = useState(false);
   const [mesoSelId, setMesoSelId] = useState(null);
-  const [vistaActual, setVistaActual] = useState("meso");
+  const [vistaActual, setVistaActual] = useState("historial");
+
+  useEffect(() => {
+    if (!openRequest?.view) return;
+    setVistaActual(openRequest.view);
+  }, [openRequest?.tick, openRequest?.view]);
 
   const [atletaNormOverrides, setAtletaNormOverrides] = useState(() => {
     try {
@@ -24039,6 +24045,7 @@ function CoachApp({ session, profile, onLogout }) {
   const [atletasTabs, setAtletasTabsRaw] = useState(() =>
     load("liftplan_atletas_tabs", []),
   );
+  const [atletaOpenRequest, setAtletaOpenRequest] = useState({});
   const [plantillasTabs, setPlantillasTabsRaw] = useState(() =>
     load("liftplan_plantillas_tabs", []),
   );
@@ -24307,6 +24314,13 @@ function CoachApp({ session, profile, onLogout }) {
   };
 
   const abrirAtleta = (a) => {
+    setAtletaOpenRequest((prev) => ({
+      ...prev,
+      [a.id]: {
+        view: "historial",
+        tick: (prev[a.id]?.tick || 0) + 1,
+      },
+    }));
     if (!atletasTabs.includes(a.id)) {
       setAtletasTabs((prev) => [...prev, a.id]);
     }
@@ -24634,6 +24648,7 @@ function CoachApp({ session, profile, onLogout }) {
                     setMesociclos={setMesociclos}
                     addPlantilla={addPlantilla}
                     onLiveMesoData={onLiveMesoDataCb}
+                    openRequest={atletaOpenRequest[aid]}
                     onBack={() => {
                       cerrarAtleta(aid, { stopPropagation: () => {} });
                     }}
