@@ -292,6 +292,57 @@ function getSupabase() {
   return sb;
 }
 
+const COACH_SETTING_KEYS = {
+  normativos: "normativos_globales",
+  tablas: "tablas_calculadora",
+};
+
+function readLocalJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeLocalJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+async function loadCoachSetting(coachId, settingKey) {
+  if (!coachId) return null;
+  const { data, error } = await sb
+    .from("coach_settings")
+    .select("setting_value")
+    .eq("coach_id", coachId)
+    .eq("setting_key", settingKey)
+    .single()
+    .exec();
+  if (error || !data) return null;
+  return data.setting_value ?? null;
+}
+
+async function saveCoachSetting(coachId, settingKey, settingValue) {
+  if (!coachId) return;
+  await sb
+    .from("coach_settings")
+    .upsert(
+      [
+        {
+          coach_id: coachId,
+          setting_key: settingKey,
+          setting_value: settingValue,
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      { onConflict: "coach_id,setting_key" },
+    )
+    .catch(() => {});
+}
+
 // ─── DB SYNC HELPERS ─────────────────────────────────────────────────────────
 // Recolecta los overrides de celdas de un mesociclo desde localStorage
 function collectMesoOverrides(mesoId) {
@@ -21696,21 +21747,13 @@ function PlantillaPicker({ plantillas, tipo = "meso", onSelect, onClose }) {
   );
 }
 
-function PageNormativos() {
+function PageNormativos({ coachId }) {
+  const isNormativosValid = (value) =>
+    Array.isArray(value) && value.length >= EJERCICIOS.length;
+
   const [ejercicios, setEjercicios] = useState(() => {
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem("liftplan_normativos") || "null",
-      );
-      // Si la lista guardada tiene menos ejercicios que la base, usar la base
-      if (!stored || stored.length < EJERCICIOS.length) {
-        localStorage.removeItem("liftplan_normativos");
-        return EJERCICIOS;
-      }
-      return stored;
-    } catch {
-      return EJERCICIOS;
-    }
+    const stored = readLocalJson("liftplan_normativos", null);
+    return isNormativosValid(stored) ? stored : EJERCICIOS;
   });
   const [filtro, setFiltro] = useState("");
   const [catFiltro, setCatFiltro] = useState("");
@@ -21727,11 +21770,42 @@ function PageNormativos() {
   const [confirmDel, setConfirmDel] = useState(null);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!coachId) return;
+    let cancelled = false;
+
+    const syncFromDb = async () => {
+      const remote = await loadCoachSetting(coachId, COACH_SETTING_KEYS.normativos);
+      if (cancelled) return;
+
+      if (isNormativosValid(remote)) {
+        setEjercicios(remote);
+        writeLocalJson("liftplan_normativos", remote);
+        return;
+      }
+
+      const local = readLocalJson("liftplan_normativos", null);
+      const seed = isNormativosValid(local) ? local : EJERCICIOS;
+      if (!isNormativosValid(local)) {
+        writeLocalJson("liftplan_normativos", seed);
+        setEjercicios(seed);
+      }
+      await saveCoachSetting(coachId, COACH_SETTING_KEYS.normativos, seed);
+    };
+
+    syncFromDb().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coachId]);
+
   const save = (list) => {
     setEjercicios(list);
-    try {
-      localStorage.setItem("liftplan_normativos", JSON.stringify(list));
-    } catch {}
+    writeLocalJson("liftplan_normativos", list);
+    if (coachId) {
+      saveCoachSetting(coachId, COACH_SETTING_KEYS.normativos, list);
+    }
   };
 
   // Abrir edición: crea copia local del ejercicio
@@ -22326,16 +22400,19 @@ function PageNormativos() {
 }
 
 // ─── PAGE CALCULADORA ────────────────────────────────────────────────────────
-function PageCalculadora() {
+function PageCalculadora({ coachId }) {
+  const normalizeTablas = (value) => {
+    if (!value || typeof value !== "object") return TABLA_DEFAULT;
+    const merged = { ...TABLA_DEFAULT };
+    Object.keys(TABLA_DEFAULT).forEach((k) => {
+      if (Array.isArray(value[k])) merged[k] = value[k];
+    });
+    return merged;
+  };
+
   const [tablas, setTablas] = useState(() => {
-    try {
-      return (
-        JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
-        TABLA_DEFAULT
-      );
-    } catch {
-      return TABLA_DEFAULT;
-    }
+    const local = readLocalJson("liftplan_tablas", null);
+    return normalizeTablas(local);
   });
 
   // Top tabs: IRM | Series/Reps
@@ -22345,11 +22422,41 @@ function PageCalculadora() {
   const [tabSR, setTabSR] = useState("lookup_general");
   const [editCell, setEditCell] = useState(null);
 
+  useEffect(() => {
+    if (!coachId) return;
+    let cancelled = false;
+
+    const syncFromDb = async () => {
+      const remote = await loadCoachSetting(coachId, COACH_SETTING_KEYS.tablas);
+      if (cancelled) return;
+
+      if (remote && typeof remote === "object") {
+        const merged = normalizeTablas(remote);
+        setTablas(merged);
+        writeLocalJson("liftplan_tablas", merged);
+        return;
+      }
+
+      const local = readLocalJson("liftplan_tablas", null);
+      const seed = normalizeTablas(local);
+      writeLocalJson("liftplan_tablas", seed);
+      setTablas(seed);
+      await saveCoachSetting(coachId, COACH_SETTING_KEYS.tablas, seed);
+    };
+
+    syncFromDb().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coachId]);
+
   const saveTablas = (newTablas) => {
     setTablas(newTablas);
-    try {
-      localStorage.setItem("liftplan_tablas", JSON.stringify(newTablas));
-    } catch {}
+    writeLocalJson("liftplan_tablas", newTablas);
+    if (coachId) {
+      saveCoachSetting(coachId, COACH_SETTING_KEYS.tablas, newTablas);
+    }
   };
 
   const updateCell = (tablaKey, irmIdx, col, val) => {
@@ -25219,10 +25326,10 @@ function CoachApp({ session, profile, onLogout }) {
               />
             </div>
             <div style={{ display: tab === "calculadora" ? "block" : "none" }}>
-              <PageCalculadora />
+              <PageCalculadora coachId={coachId} />
             </div>
             <div style={{ display: tab === "normativos" ? "block" : "none" }}>
-              <PageNormativos />
+              <PageNormativos coachId={coachId} />
             </div>
 
             {/* Pestañas de atletas — montadas mientras estén abiertas */}
