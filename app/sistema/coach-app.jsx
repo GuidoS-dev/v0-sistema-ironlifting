@@ -4921,7 +4921,7 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
             {atletasGrupo.length === 0 ? (
               <div style={{padding:"20px",textAlign:"center",color:"var(--muted)",
                 fontSize:12,background:"var(--surface2)",borderRadius:8}}>
-                No hay atletas. <button onClick={()=>setShowForm(true)}
+                No hay atletas. <button
                   style={{background:"none",border:"none",color:"var(--gold)",
                     cursor:"pointer",textDecoration:"underline",fontSize:12}} onClick={()=>{setTipoInicial("atleta");setShowForm(true);}}>Crear uno</button>
               </div>
@@ -4974,7 +4974,7 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
             {asesorias.length === 0 ? (
               <div style={{padding:"20px",textAlign:"center",color:"var(--muted)",
                 fontSize:12,background:"var(--surface2)",borderRadius:8}}>
-                No hay asesorías. <button onClick={()=>setShowForm(true)}
+                No hay asesorías. <button
                   style={{background:"none",border:"none",color:"var(--blue)",
                     cursor:"pointer",textDecoration:"underline",fontSize:12}} onClick={()=>{setTipoInicial("asesoria");setShowForm(true);}}>Crear una</button>
               </div>
