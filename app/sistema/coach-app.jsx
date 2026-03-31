@@ -7982,6 +7982,8 @@ function ResumenGrupos({
   const grupos = ["Arranque", "Envion", "Tirones", "Piernas"];
   const [tooltip, setTooltip] = useState(null);
   const _rgLastPush = useRef(0);
+  const rrReduceRef = useRef({});
+  const rrIncreaseRef = useRef({});
   const _rgBefore = () => {
     try {
       if (onBeforeChange) {
@@ -8067,37 +8069,47 @@ function ResumenGrupos({
     return Math.max(0, Math.min(100, Math.round(n)));
   };
 
-  const distributeReduction = (baseVals, keys, amount) => {
+  const distributeReduction = (baseVals, keys, amount, rrKey = "default") => {
     const vals = { ...baseVals };
     let pending = Math.max(0, Math.round(amount));
+    let cursor = rrReduceRef.current[rrKey] || 0;
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) > 0);
       if (candidates.length === 0) break;
-      candidates.forEach((k) => {
+      const start = cursor % candidates.length;
+      for (let i = 0; i < candidates.length; i += 1) {
+        const k = candidates[(start + i) % candidates.length];
         if (pending <= 0) return;
         if ((vals[k] || 0) > 0) {
           vals[k] -= 1;
           pending -= 1;
         }
-      });
+      }
+      cursor = (start + 1) % candidates.length;
     }
+    rrReduceRef.current[rrKey] = cursor;
     return vals;
   };
 
-  const distributeIncrease = (baseVals, keys, amount) => {
+  const distributeIncrease = (baseVals, keys, amount, rrKey = "default") => {
     const vals = { ...baseVals };
     let pending = Math.max(0, Math.round(amount));
+    let cursor = rrIncreaseRef.current[rrKey] || 0;
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) < 100);
       if (candidates.length === 0) break;
-      candidates.forEach((k) => {
+      const start = cursor % candidates.length;
+      for (let i = 0; i < candidates.length; i += 1) {
+        const k = candidates[(start + i) % candidates.length];
         if (pending <= 0) return;
         if ((vals[k] || 0) < 100) {
           vals[k] += 1;
           pending -= 1;
         }
-      });
+      }
+      cursor = (start + 1) % candidates.length;
     }
+    rrIncreaseRef.current[rrKey] = cursor;
     return vals;
   };
 
@@ -8147,7 +8159,12 @@ function ResumenGrupos({
       vals[g] = current + applied;
       const balanceAmount =
         prevSum > 100 ? Math.min(applied, capacity) : Math.max(0, prevSum + applied - 100);
-      const reduced = distributeReduction(vals, otherKeys, balanceAmount);
+      const reduced = distributeReduction(
+        vals,
+        otherKeys,
+        balanceAmount,
+        `sem-${sIdx}`,
+      );
 
       const updates = {};
       const changed = [];
@@ -8183,7 +8200,12 @@ function ResumenGrupos({
     vals[g] = current - dec;
     const balanceAmount =
       prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
-    const increased = distributeIncrease(vals, otherKeys, balanceAmount);
+    const increased = distributeIncrease(
+      vals,
+      otherKeys,
+      balanceAmount,
+      `sem-${sIdx}`,
+    );
 
     const updates = {};
     const changed = [];
@@ -8896,6 +8918,8 @@ function DistribucionTurnos({
 }) {
   const [semActiva, setSemActiva] = useState(0);
   const containerRef = useRef(null);
+  const rrReduceRef = useRef({});
+  const rrIncreaseRef = useRef({});
   const _dtLastPush = useRef(0);
   const _dtBefore = () => {
     try {
@@ -8990,37 +9014,47 @@ function DistribucionTurnos({
     return Math.max(0, Math.min(100, Math.round(n)));
   };
 
-  const distributeReduction = (baseVals, keys, amount) => {
+  const distributeReduction = (baseVals, keys, amount, rrKey = "default") => {
     const vals = { ...baseVals };
     let pending = Math.max(0, Math.round(amount));
+    let cursor = rrReduceRef.current[rrKey] || 0;
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) > 0);
       if (candidates.length === 0) break;
-      candidates.forEach((k) => {
+      const start = cursor % candidates.length;
+      for (let i = 0; i < candidates.length; i += 1) {
+        const k = candidates[(start + i) % candidates.length];
         if (pending <= 0) return;
         if ((vals[k] || 0) > 0) {
           vals[k] -= 1;
           pending -= 1;
         }
-      });
+      }
+      cursor = (start + 1) % candidates.length;
     }
+    rrReduceRef.current[rrKey] = cursor;
     return vals;
   };
 
-  const distributeIncrease = (baseVals, keys, amount) => {
+  const distributeIncrease = (baseVals, keys, amount, rrKey = "default") => {
     const vals = { ...baseVals };
     let pending = Math.max(0, Math.round(amount));
+    let cursor = rrIncreaseRef.current[rrKey] || 0;
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) < 100);
       if (candidates.length === 0) break;
-      candidates.forEach((k) => {
+      const start = cursor % candidates.length;
+      for (let i = 0; i < candidates.length; i += 1) {
+        const k = candidates[(start + i) % candidates.length];
         if (pending <= 0) return;
         if ((vals[k] || 0) < 100) {
           vals[k] += 1;
           pending -= 1;
         }
-      });
+      }
+      cursor = (start + 1) % candidates.length;
     }
+    rrIncreaseRef.current[rrKey] = cursor;
     return vals;
   };
 
@@ -9076,7 +9110,12 @@ function DistribucionTurnos({
       vals[tIdx] = current + applied;
       const balanceAmount =
         prevSum > 100 ? Math.min(applied, capacity) : Math.max(0, prevSum + applied - 100);
-      const reduced = distributeReduction(vals, otherKeys, balanceAmount);
+      const reduced = distributeReduction(
+        vals,
+        otherKeys,
+        balanceAmount,
+        `sem-${semActiva}-g-${g}`,
+      );
 
       const updates = {};
       const changed = [];
@@ -9112,7 +9151,12 @@ function DistribucionTurnos({
     vals[tIdx] = current - dec;
     const balanceAmount =
       prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
-    const increased = distributeIncrease(vals, otherKeys, balanceAmount);
+    const increased = distributeIncrease(
+      vals,
+      otherKeys,
+      balanceAmount,
+      `sem-${semActiva}-g-${g}`,
+    );
 
     const updates = {};
     const changed = [];
@@ -12305,6 +12349,8 @@ function EditMesoModal({ meso, onSave, onClose }) {
 function EditVolModal({ meso, onSave, onClose }) {
   const [volTotal, setVolTotal] = useState(meso.volumen_total);
   const [semanas, setSemanas] = useState(meso.semanas.map((s) => ({ ...s })));
+  const rrReduceRef = useRef({});
+  const rrIncreaseRef = useRef({});
 
   const totalPct = semanas.reduce((s, sem) => s + Number(sem.pct_volumen), 0);
 
@@ -12314,37 +12360,47 @@ function EditVolModal({ meso, onSave, onClose }) {
     return Math.max(0, Math.min(100, Math.round(n)));
   };
 
-  const distributeReduction = (baseVals, keys, amount) => {
+  const distributeReduction = (baseVals, keys, amount, rrKey = "default") => {
     const vals = { ...baseVals };
     let pending = Math.max(0, Math.round(amount));
+    let cursor = rrReduceRef.current[rrKey] || 0;
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) > 0);
       if (candidates.length === 0) break;
-      candidates.forEach((k) => {
+      const start = cursor % candidates.length;
+      for (let i = 0; i < candidates.length; i += 1) {
+        const k = candidates[(start + i) % candidates.length];
         if (pending <= 0) return;
         if ((vals[k] || 0) > 0) {
           vals[k] -= 1;
           pending -= 1;
         }
-      });
+      }
+      cursor = (start + 1) % candidates.length;
     }
+    rrReduceRef.current[rrKey] = cursor;
     return vals;
   };
 
-  const distributeIncrease = (baseVals, keys, amount) => {
+  const distributeIncrease = (baseVals, keys, amount, rrKey = "default") => {
     const vals = { ...baseVals };
     let pending = Math.max(0, Math.round(amount));
+    let cursor = rrIncreaseRef.current[rrKey] || 0;
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) < 100);
       if (candidates.length === 0) break;
-      candidates.forEach((k) => {
+      const start = cursor % candidates.length;
+      for (let i = 0; i < candidates.length; i += 1) {
+        const k = candidates[(start + i) % candidates.length];
         if (pending <= 0) return;
         if ((vals[k] || 0) < 100) {
           vals[k] += 1;
           pending -= 1;
         }
-      });
+      }
+      cursor = (start + 1) % candidates.length;
     }
+    rrIncreaseRef.current[rrKey] = cursor;
     return vals;
   };
 
@@ -12387,7 +12443,12 @@ function EditVolModal({ meso, onSave, onClose }) {
           ? Math.min(applied, otherKeys.reduce((acc, k) => acc + (vals[k] || 0), 0))
           : Math.max(0, prevSum + applied - 100);
 
-      const reduced = distributeReduction(vals, otherKeys, balanceAmount);
+      const reduced = distributeReduction(
+        vals,
+        otherKeys,
+        balanceAmount,
+        "semanas",
+      );
       const nextSemanas = semanas.map((sem, i) => ({
         ...sem,
         pct_volumen: toIntPct(reduced[i] || 0),
@@ -12415,7 +12476,12 @@ function EditVolModal({ meso, onSave, onClose }) {
     vals[idx] = current - dec;
     const balanceAmount =
       prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
-    const increased = distributeIncrease(vals, otherKeys, balanceAmount);
+    const increased = distributeIncrease(
+      vals,
+      otherKeys,
+      balanceAmount,
+      "semanas",
+    );
     const nextSemanas = semanas.map((sem, i) => ({
       ...sem,
       pct_volumen: toIntPct(increased[i] || 0),
