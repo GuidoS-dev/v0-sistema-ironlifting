@@ -11393,6 +11393,28 @@ function SembradoMensual({
     importTimerRef.current = setTimeout(() => setImportFeedback(false), 1500);
   };
 
+  const intercambiarSemanas = (aIdx, bIdx) => {
+    if (aIdx === bIdx) return;
+    if (aIdx < 0 || bIdx < 0) return;
+    if (aIdx >= semanas.length || bIdx >= semanas.length) return;
+
+    const newSemanas = JSON.parse(JSON.stringify(semanas));
+    [newSemanas[aIdx], newSemanas[bIdx]] = [newSemanas[bIdx], newSemanas[aIdx]];
+    onChangeTodasSemanas(newSemanas);
+
+    const remapSel = (value) => {
+      if (value === "") return "";
+      const idx = Number(value);
+      if (!Number.isInteger(idx)) return "";
+      if (idx === aIdx) return String(bIdx);
+      if (idx === bIdx) return String(aIdx);
+      return value;
+    };
+
+    setImportFrom((prev) => remapSel(prev));
+    setImportTo((prev) => remapSel(prev));
+  };
+
   return (
     <div>
       {/* Controles de turnos */}
@@ -11526,7 +11548,7 @@ function SembradoMensual({
               >
                 #
               </th>
-              {semanas.map((s) => (
+              {semanas.map((s, sIdx) => (
                 <th
                   key={s.id}
                   style={{
@@ -11540,6 +11562,52 @@ function SembradoMensual({
                     textAlign: "center",
                   }}
                 >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: 4,
+                      marginBottom: 2,
+                    }}
+                  >
+                    <button
+                      onClick={() => intercambiarSemanas(sIdx, sIdx - 1)}
+                      disabled={sIdx === 0}
+                      title="Intercambiar con semana anterior"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: sIdx === 0 ? "var(--surface3)" : "var(--gold)",
+                        cursor: sIdx === 0 ? "default" : "pointer",
+                        fontSize: 10,
+                        lineHeight: 1,
+                        padding: "1px 2px",
+                      }}
+                    >
+                      ◀
+                    </button>
+                    <button
+                      onClick={() => intercambiarSemanas(sIdx, sIdx + 1)}
+                      disabled={sIdx === semanas.length - 1}
+                      title="Intercambiar con semana siguiente"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color:
+                          sIdx === semanas.length - 1
+                            ? "var(--surface3)"
+                            : "var(--gold)",
+                        cursor:
+                          sIdx === semanas.length - 1 ? "default" : "pointer",
+                        fontSize: 10,
+                        lineHeight: 1,
+                        padding: "1px 2px",
+                      }}
+                    >
+                      ▶
+                    </button>
+                  </div>
                   <div
                     style={{
                       fontFamily: "'Bebas Neue'",
