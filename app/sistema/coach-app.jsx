@@ -8073,16 +8073,13 @@ function ResumenGrupos({
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) > 0);
       if (candidates.length === 0) break;
-      candidates
-        .slice()
-        .sort((a, b) => (vals[b] || 0) - (vals[a] || 0))
-        .forEach((k) => {
-          if (pending <= 0) return;
-          if ((vals[k] || 0) > 0) {
-            vals[k] -= 1;
-            pending -= 1;
-          }
-        });
+      candidates.forEach((k) => {
+        if (pending <= 0) return;
+        if ((vals[k] || 0) > 0) {
+          vals[k] -= 1;
+          pending -= 1;
+        }
+      });
     }
     return vals;
   };
@@ -8093,16 +8090,13 @@ function ResumenGrupos({
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) < 100);
       if (candidates.length === 0) break;
-      candidates
-        .slice()
-        .sort((a, b) => (vals[a] || 0) - (vals[b] || 0))
-        .forEach((k) => {
-          if (pending <= 0) return;
-          if ((vals[k] || 0) < 100) {
-            vals[k] += 1;
-            pending -= 1;
-          }
-        });
+      candidates.forEach((k) => {
+        if (pending <= 0) return;
+        if ((vals[k] || 0) < 100) {
+          vals[k] += 1;
+          pending -= 1;
+        }
+      });
     }
     return vals;
   };
@@ -9002,16 +8996,13 @@ function DistribucionTurnos({
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) > 0);
       if (candidates.length === 0) break;
-      candidates
-        .slice()
-        .sort((a, b) => (vals[b] || 0) - (vals[a] || 0))
-        .forEach((k) => {
-          if (pending <= 0) return;
-          if ((vals[k] || 0) > 0) {
-            vals[k] -= 1;
-            pending -= 1;
-          }
-        });
+      candidates.forEach((k) => {
+        if (pending <= 0) return;
+        if ((vals[k] || 0) > 0) {
+          vals[k] -= 1;
+          pending -= 1;
+        }
+      });
     }
     return vals;
   };
@@ -9022,16 +9013,13 @@ function DistribucionTurnos({
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) < 100);
       if (candidates.length === 0) break;
-      candidates
-        .slice()
-        .sort((a, b) => (vals[a] || 0) - (vals[b] || 0))
-        .forEach((k) => {
-          if (pending <= 0) return;
-          if ((vals[k] || 0) < 100) {
-            vals[k] += 1;
-            pending -= 1;
-          }
-        });
+      candidates.forEach((k) => {
+        if (pending <= 0) return;
+        if ((vals[k] || 0) < 100) {
+          vals[k] += 1;
+          pending -= 1;
+        }
+      });
     }
     return vals;
   };
@@ -12332,16 +12320,13 @@ function EditVolModal({ meso, onSave, onClose }) {
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) > 0);
       if (candidates.length === 0) break;
-      candidates
-        .slice()
-        .sort((a, b) => (vals[b] || 0) - (vals[a] || 0))
-        .forEach((k) => {
-          if (pending <= 0) return;
-          if ((vals[k] || 0) > 0) {
-            vals[k] -= 1;
-            pending -= 1;
-          }
-        });
+      candidates.forEach((k) => {
+        if (pending <= 0) return;
+        if ((vals[k] || 0) > 0) {
+          vals[k] -= 1;
+          pending -= 1;
+        }
+      });
     }
     return vals;
   };
@@ -12352,16 +12337,13 @@ function EditVolModal({ meso, onSave, onClose }) {
     while (pending > 0) {
       const candidates = keys.filter((k) => (vals[k] || 0) < 100);
       if (candidates.length === 0) break;
-      candidates
-        .slice()
-        .sort((a, b) => (vals[a] || 0) - (vals[b] || 0))
-        .forEach((k) => {
-          if (pending <= 0) return;
-          if ((vals[k] || 0) < 100) {
-            vals[k] += 1;
-            pending -= 1;
-          }
-        });
+      candidates.forEach((k) => {
+        if (pending <= 0) return;
+        if ((vals[k] || 0) < 100) {
+          vals[k] += 1;
+          pending -= 1;
+        }
+      });
     }
     return vals;
   };
