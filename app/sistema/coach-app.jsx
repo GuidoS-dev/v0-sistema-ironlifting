@@ -362,16 +362,21 @@ function buildMesoOverridesPayload(meso, liveOverrides = null) {
 }
 
 async function loadCoachSetting(coachId, settingKey) {
+  const row = await loadCoachSettingRow(coachId, settingKey);
+  return row?.setting_value ?? null;
+}
+
+async function loadCoachSettingRow(coachId, settingKey) {
   if (!coachId) return null;
   const { data, error } = await sb
     .from("coach_settings")
-    .select("setting_value")
+    .select("setting_value,updated_at")
     .eq("coach_id", coachId)
     .eq("setting_key", settingKey)
     .single()
     .exec();
   if (error || !data) return null;
-  return data.setting_value ?? null;
+  return data;
 }
 
 async function saveCoachSetting(coachId, settingKey, settingValue) {
@@ -21793,7 +21798,7 @@ function PlantillaPicker({ plantillas, tipo = "meso", onSelect, onClose }) {
   );
 }
 
-function PageNormativos({ coachId }) {
+function PageNormativos({ coachId, isActive = false }) {
   const isNormativosValid = (value) =>
     Array.isArray(value) && value.length >= EJERCICIOS.length;
 
@@ -21815,18 +21820,25 @@ function PageNormativos({ coachId }) {
   });
   const [confirmDel, setConfirmDel] = useState(null);
   const [error, setError] = useState("");
+  const isSyncingRef = useRef(false);
 
-  useEffect(() => {
-    if (!coachId) return;
-    let cancelled = false;
-
-    const syncFromDb = async () => {
-      const remote = await loadCoachSetting(coachId, COACH_SETTING_KEYS.normativos);
-      if (cancelled) return;
+  const syncFromDb = useCallback(async () => {
+    if (!coachId || isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    try {
+      const remoteRow = await loadCoachSettingRow(
+        coachId,
+        COACH_SETTING_KEYS.normativos,
+      );
+      const remote = remoteRow?.setting_value ?? null;
 
       if (isNormativosValid(remote)) {
-        setEjercicios(remote);
-        writeLocalJson("liftplan_normativos", remote);
+        const local = readLocalJson("liftplan_normativos", null);
+        const hasChanged = JSON.stringify(local) !== JSON.stringify(remote);
+        if (hasChanged) {
+          setEjercicios(remote);
+          writeLocalJson("liftplan_normativos", remote);
+        }
         return;
       }
 
@@ -21837,14 +21849,41 @@ function PageNormativos({ coachId }) {
         setEjercicios(seed);
       }
       await saveCoachSetting(coachId, COACH_SETTING_KEYS.normativos, seed);
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [coachId]);
+
+  useEffect(() => {
+    if (!coachId) return;
+    syncFromDb().catch(() => {});
+  }, [coachId, syncFromDb]);
+
+  useEffect(() => {
+    if (!coachId || !isActive) return;
+    const pollId = window.setInterval(() => {
+      syncFromDb().catch(() => {});
+    }, 8000);
+
+    const onFocus = () => {
+      syncFromDb().catch(() => {});
     };
 
-    syncFromDb().catch(() => {});
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        syncFromDb().catch(() => {});
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
-      cancelled = true;
+      window.clearInterval(pollId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [coachId]);
+  }, [coachId, isActive, syncFromDb]);
 
   const save = (list) => {
     setEjercicios(list);
@@ -25447,7 +25486,7 @@ function CoachApp({ session, profile, onLogout }) {
               <PageCalculadora coachId={coachId} />
             </div>
             <div style={{ display: tab === "normativos" ? "block" : "none" }}>
-              <PageNormativos coachId={coachId} />
+              <PageNormativos coachId={coachId} isActive={tab === "normativos"} />
             </div>
 
             {/* Pestañas de atletas — montadas mientras estén abiertas */}
