@@ -8550,6 +8550,7 @@ function ResumenGrupos({
                                 %
                               </span>
                               <div
+                                data-no-tooltip="1"
                                 style={{
                                   display: "flex",
                                   flexDirection: "column",
@@ -8558,6 +8559,25 @@ function ResumenGrupos({
                                 onMouseEnter={(e) => {
                                   e.stopPropagation();
                                   setTooltip(null);
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.stopPropagation();
+                                  const td = e.currentTarget.closest("td");
+                                  const next = e.relatedTarget;
+                                  const isBackToValueArea =
+                                    td &&
+                                    next &&
+                                    td.contains(next) &&
+                                    !next.closest?.('[data-no-tooltip="1"]');
+                                  if (isBackToValueArea) {
+                                    const rect = td.getBoundingClientRect();
+                                    setTooltip({
+                                      g,
+                                      semIdx: sIdx,
+                                      x: rect.left,
+                                      y: rect.top,
+                                    });
+                                  }
                                 }}
                               >
                                 <button
@@ -9628,6 +9648,7 @@ function DistribucionTurnos({
                                   %
                                 </span>
                                 <div
+                                    data-no-tooltip="1"
                                   style={{
                                     display: "flex",
                                     flexDirection: "column",
@@ -9637,6 +9658,25 @@ function DistribucionTurnos({
                                     e.stopPropagation();
                                     setCellTip(null);
                                   }}
+                                    onMouseLeave={(e) => {
+                                      e.stopPropagation();
+                                      const td = e.currentTarget.closest("td");
+                                      const next = e.relatedTarget;
+                                      const isBackToValueArea =
+                                        td &&
+                                        next &&
+                                        td.contains(next) &&
+                                        !next.closest?.('[data-no-tooltip="1"]');
+                                      if (isBackToValueArea) {
+                                        const rect = td.getBoundingClientRect();
+                                        setCellTip({
+                                          g,
+                                          tIdx,
+                                          x: rect.left,
+                                          y: rect.top,
+                                        });
+                                      }
+                                    }}
                                 >
                                   <button
                                     type="button"
