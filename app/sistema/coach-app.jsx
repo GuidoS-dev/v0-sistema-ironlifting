@@ -3570,7 +3570,10 @@ function PlanillaTurno({
   const [compPickerOpen, setCompPickerOpen] = useState(null); // compId | null
   const [compPickerQuery, setCompPickerQuery] = useState("");
   const [compCopyFeedback, setCompCopyFeedback] = useState(false);
+  const [importSemOrigen, setImportSemOrigen] = useState("");
+  const [importSemFeedback, setImportSemFeedback] = useState(false);
   const compCopyTimerRef = useRef(null);
+  const importSemTimerRef = useRef(null);
   const compPickerListRef = useRef(null);
 
   // Clave única por mesociclo para persistencia
@@ -3821,6 +3824,11 @@ function PlanillaTurno({
     }, 30);
   };
 
+  useEffect(() => {
+    if (importSemOrigen === "") return;
+    if (Number(importSemOrigen) === semActiva) setImportSemOrigen("");
+  }, [importSemOrigen, semActiva]);
+
   if (
     semanas.every((s) =>
       s.turnos.every((t) => !t.ejercicios.some((e) => e.ejercicio_id)),
@@ -3877,6 +3885,65 @@ function PlanillaTurno({
     if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
     setCompCopyFeedback(true);
     compCopyTimerRef.current = setTimeout(() => setCompCopyFeedback(false), 1500);
+  };
+
+  const importarSemanaEnActual = () => {
+    const srcIdx = Number(importSemOrigen);
+    if (!Number.isInteger(srcIdx)) return;
+    if (srcIdx < 0 || srcIdx >= semanas.length || srcIdx === semActiva) return;
+
+    _beforeChangeForced();
+
+    const nextSemanas = JSON.parse(JSON.stringify(semanas));
+    const src = nextSemanas[srcIdx];
+    const dst = nextSemanas[semActiva];
+    if (!src || !dst) return;
+
+    const srcClone = JSON.parse(JSON.stringify(src));
+    srcClone.id = dst.id;
+    srcClone.numero = dst.numero;
+    nextSemanas[semActiva] = srcClone;
+    onChangeTodasSemanas?.(nextSemanas);
+
+    const srcPrefix = `${srcIdx}-`;
+    const dstPrefix = `${semActiva}-`;
+    const remapObjBySemana = (obj) => {
+      const next = {};
+      Object.entries(obj || {}).forEach(([k, v]) => {
+        if (k.startsWith(dstPrefix)) return;
+        if (k.startsWith(srcPrefix)) {
+          next[`${dstPrefix}${k.slice(srcPrefix.length)}`] = v;
+          return;
+        }
+        next[k] = v;
+      });
+      return next;
+    };
+    const remapSetBySemana = (setObj) => {
+      const next = new Set();
+      Array.from(setObj || []).forEach((k) => {
+        if (k.startsWith(dstPrefix)) return;
+        if (k.startsWith(srcPrefix)) {
+          next.add(`${dstPrefix}${k.slice(srcPrefix.length)}`);
+          return;
+        }
+        next.add(k);
+      });
+      return next;
+    };
+
+    setRepsEdit(remapObjBySemana);
+    setManualEdit(remapSetBySemana);
+    setCellEdit(remapObjBySemana);
+    setCellManual(remapSetBySemana);
+    setNameEdit(remapObjBySemana);
+    setNoteEdit(remapObjBySemana);
+
+    if (importSemTimerRef.current) clearTimeout(importSemTimerRef.current);
+    setImportSemFeedback(true);
+    importSemTimerRef.current = setTimeout(() => {
+      setImportSemFeedback(false);
+    }, 1500);
   };
 
   return (
@@ -4054,6 +4121,67 @@ function PlanillaTurno({
             </div>
           );
         })}
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <select
+            value={importSemOrigen}
+            onChange={(e) => setImportSemOrigen(e.target.value)}
+            disabled={semanas.length <= 1}
+            style={{
+              background: "var(--surface2)",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              color: "var(--text)",
+              fontSize: 11,
+              padding: "4px 8px",
+              outline: "none",
+              minWidth: 150,
+            }}
+            title="Selecciona una semana para importarla sobre la semana activa"
+          >
+            <option value="">Importar semana...</option>
+            {semanas.map((s, i) =>
+              i === semActiva ? null : (
+                <option key={`imp-${s.id}`} value={i}>
+                  Semana {s.numero}
+                </option>
+              ),
+            )}
+          </select>
+          <button
+            onClick={importarSemanaEnActual}
+            disabled={importSemOrigen === "" || semanas.length <= 1}
+            title="Importar el sembrado completo de la semana seleccionada en esta semana"
+            style={{
+              padding: "4px 10px",
+              borderRadius: 6,
+              border: importSemFeedback
+                ? "1px solid rgba(77,182,172,.45)"
+                : "1px solid var(--border)",
+              background: importSemFeedback
+                ? "rgba(77,182,172,.12)"
+                : "var(--surface2)",
+              color: importSemFeedback ? "#4db6ac" : "var(--muted)",
+              cursor:
+                importSemOrigen === "" || semanas.length <= 1
+                  ? "not-allowed"
+                  : "pointer",
+              fontSize: 10,
+              fontFamily: "'DM Sans'",
+              fontWeight: 600,
+              opacity: importSemOrigen === "" || semanas.length <= 1 ? 0.65 : 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {importSemFeedback ? "Semana importada" : "Importar"}
+          </button>
+        </div>
       </div>
 
       {/* Turno tabs */}
