@@ -335,6 +335,13 @@ function restoreAtletaNormOverrides(atletaId, overrides) {
     `liftplan_normativos_atleta_${atletaId}`,
     asPlainObject(overrides),
   );
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("liftplan:normativos-overrides-updated", {
+        detail: { atletaId },
+      }),
+    );
+  }
 }
 
 function buildMesoOverridesPayload(meso, liveOverrides = null) {
@@ -13613,6 +13620,11 @@ function PageAtleta({
           `liftplan_normativos_atleta_${atleta.id}`,
           JSON.stringify(next),
         );
+        window.dispatchEvent(
+          new CustomEvent("liftplan:normativos-overrides-updated", {
+            detail: { atletaId: atleta.id },
+          }),
+        );
       } catch {}
       onAtletaOverridesChange?.(atleta.id, next);
       return next;
@@ -13630,6 +13642,33 @@ function PageAtleta({
     } catch {
       setAtletaNormOverrides({});
     }
+  }, [atleta.id]);
+
+  useEffect(() => {
+    const onOverridesUpdated = (event) => {
+      if (event?.detail?.atletaId !== atleta.id) return;
+      try {
+        setAtletaNormOverrides(
+          JSON.parse(
+            localStorage.getItem(`liftplan_normativos_atleta_${atleta.id}`) ||
+              "null",
+          ) || {},
+        );
+      } catch {
+        setAtletaNormOverrides({});
+      }
+    };
+
+    window.addEventListener(
+      "liftplan:normativos-overrides-updated",
+      onOverridesUpdated,
+    );
+    return () => {
+      window.removeEventListener(
+        "liftplan:normativos-overrides-updated",
+        onOverridesUpdated,
+      );
+    };
   }, [atleta.id]);
 
   // ── Overrides de porcentajes — persisten en localStorage por mesociclo ───────
@@ -24845,6 +24884,7 @@ function CoachApp({ session, profile, onLogout }) {
   // ── Refs para sincronización con DB ────────────────────────────────────────
   const prevAtletasRef = useRef(null); // null = DB aún no inicializada
   const prevMesociclosRef = useRef(null);
+  const remoteAtletasUpdatedAtRef = useRef(0);
   const atletasRef = useRef(atletas);
   const mesociclosRef = useRef(mesociclos);
   useEffect(() => {
@@ -24936,6 +24976,13 @@ function CoachApp({ session, profile, onLogout }) {
           .exec();
         if (!e1 && dbAtletas) {
           const appAtletas = dbAtletas.filter((r) => r.app_id);
+          remoteAtletasUpdatedAtRef.current = appAtletas.reduce(
+            (maxTs, row) => {
+              const ts = Date.parse(row.updated_at || "");
+              return Number.isFinite(ts) && ts > maxTs ? ts : maxTs;
+            },
+            0,
+          );
           if (appAtletas.length > 0) {
             appAtletas.forEach((r) => {
               restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
@@ -25018,6 +25065,65 @@ function CoachApp({ session, profile, onLogout }) {
           prevMesociclosRef.current = mesociclosRef.current;
       }
     })();
+  }, [coachId]);
+
+  // ── Pull remoto de atletas (incluye overrides normativos) ─────────────────
+  useEffect(() => {
+    if (!coachId) return;
+    let cancelled = false;
+
+    const pullAtletas = async (force = false) => {
+      const { data, error } = await sb
+        .from("atletas")
+        .select("*")
+        .eq("coach_id", coachId)
+        .exec();
+      if (cancelled || error || !data) return;
+
+      const appAtletas = data.filter((r) => r.app_id);
+      if (appAtletas.length === 0) return;
+
+      const latestRemoteTs = appAtletas.reduce((maxTs, row) => {
+        const ts = Date.parse(row.updated_at || "");
+        return Number.isFinite(ts) && ts > maxTs ? ts : maxTs;
+      }, 0);
+
+      if (!force && latestRemoteTs <= remoteAtletasUpdatedAtRef.current) return;
+      remoteAtletasUpdatedAtRef.current = latestRemoteTs;
+
+      appAtletas.forEach((r) => {
+        restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
+        restoreAtletaNormOverrides(r.app_id, r.normativos_overrides);
+      });
+
+      const loaded = appAtletas.map(atletaFromDb);
+      setAtletasRaw((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(loaded)) return prev;
+        save("liftplan_atletas", loaded);
+        prevAtletasRef.current = loaded;
+        return loaded;
+      });
+    };
+
+    pullAtletas(true);
+    const pollId = window.setInterval(() => {
+      pullAtletas();
+    }, 8000);
+    const onFocus = () => {
+      pullAtletas(true);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") pullAtletas(true);
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [coachId]);
 
   // ── Sincronizar atletas con DB cuando cambian ──────────────────────────────
