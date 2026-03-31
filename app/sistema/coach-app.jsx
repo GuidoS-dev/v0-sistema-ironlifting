@@ -11289,6 +11289,10 @@ function SembradoMensual({
   normativos = null,
 }) {
   const numTurnos = semanas[0].turnos.length;
+  const [importFrom, setImportFrom] = useState("");
+  const [importTo, setImportTo] = useState("");
+  const [importFeedback, setImportFeedback] = useState(false);
+  const importTimerRef = useRef(null);
 
   const getEjs = (semIdx, tIdx) => {
     const ejs = (semanas[semIdx]?.turnos[tIdx]?.ejercicios || []).filter(
@@ -11363,6 +11367,32 @@ function SembradoMensual({
     onChangeTodasSemanas(newSemanas);
   };
 
+  const importarSemanaSembrado = () => {
+    const src = Number(importFrom);
+    const dst = Number(importTo);
+    if (!Number.isInteger(src) || !Number.isInteger(dst)) return;
+    if (src < 0 || src >= semanas.length) return;
+    if (dst < 0 || dst >= semanas.length) return;
+    if (src === dst) return;
+
+    const newSemanas = JSON.parse(JSON.stringify(semanas));
+    const sourceTurnos = newSemanas[src]?.turnos || [];
+    const targetTurnos = newSemanas[dst]?.turnos || [];
+
+    newSemanas[dst].turnos = sourceTurnos.map((t, i) => ({
+      ...t,
+      id: targetTurnos[i]?.id || mkId(),
+      numero: targetTurnos[i]?.numero || i + 1,
+      ejercicios: (t.ejercicios || []).map((e) => ({ ...e })),
+    }));
+
+    onChangeTodasSemanas(newSemanas);
+
+    if (importTimerRef.current) clearTimeout(importTimerRef.current);
+    setImportFeedback(true);
+    importTimerRef.current = setTimeout(() => setImportFeedback(false), 1500);
+  };
+
   return (
     <div>
       {/* Controles de turnos */}
@@ -11395,6 +11425,76 @@ function SembradoMensual({
             − Turno
           </button>
         )}
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontSize: 10, color: "var(--muted)" }}>
+            Importar sembrado
+          </span>
+          <select
+            value={importFrom}
+            onChange={(e) => setImportFrom(e.target.value)}
+            style={{
+              background: "var(--surface2)",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              color: "var(--text)",
+              fontSize: 11,
+              padding: "4px 8px",
+              outline: "none",
+            }}
+          >
+            <option value="">Semana origen</option>
+            {semanas.map((s, i) => (
+              <option key={`src-${s.id}`} value={i}>
+                Semana {s.numero}
+              </option>
+            ))}
+          </select>
+          <span style={{ fontSize: 10, color: "var(--muted)" }}>→</span>
+          <select
+            value={importTo}
+            onChange={(e) => setImportTo(e.target.value)}
+            style={{
+              background: "var(--surface2)",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              color: "var(--text)",
+              fontSize: 11,
+              padding: "4px 8px",
+              outline: "none",
+            }}
+          >
+            <option value="">Semana destino</option>
+            {semanas.map((s, i) => (
+              <option key={`dst-${s.id}`} value={i}>
+                Semana {s.numero}
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={importarSemanaSembrado}
+            disabled={
+              importFrom === "" || importTo === "" || importFrom === importTo
+            }
+            style={{
+              border: importFeedback
+                ? "1px solid rgba(77,182,172,.45)"
+                : undefined,
+              color: importFeedback ? "#4db6ac" : undefined,
+            }}
+            title="Copia toda la semana origen en la semana destino (ejercicios, %, tabla, día y turno)"
+          >
+            {importFeedback ? "Importado" : "Importar"}
+          </button>
+        </div>
       </div>
 
       <div style={{ overflowX: "auto" }}>
