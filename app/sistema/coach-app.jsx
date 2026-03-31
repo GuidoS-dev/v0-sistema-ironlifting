@@ -12618,6 +12618,27 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
           title={`Historial · ${previewAtleta.nombre}`}
           onClose={() => setPreviewAtleta(null)}
         >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: 10,
+            }}
+          >
+            <button
+              className="btn btn-gold btn-sm"
+              onClick={() => {
+                onSelect(previewAtleta, {
+                  view: "historial",
+                  openNewMeso: true,
+                });
+                setPreviewAtleta(null);
+              }}
+            >
+              <Plus size={13} /> Nuevo mesociclo
+            </button>
+          </div>
+
           {previewMesos.length === 0 ? (
             <div
               style={{
@@ -13116,6 +13137,7 @@ function PageAtleta({
     if (!openRequest?.view) return;
     setVistaActual(openRequest.view);
     if (openRequest?.mesoId) setMesoSelId(openRequest.mesoId);
+    if (openRequest?.openNewMeso) setShowMeso(true);
   }, [openRequest?.tick, openRequest?.view]);
 
   const [atletaNormOverrides, setAtletaNormOverrides] = useState(() => {
@@ -24390,6 +24412,7 @@ function CoachApp({ session, profile, onLogout }) {
       [a.id]: {
         view,
         mesoId: opts.mesoId || null,
+        openNewMeso: !!opts.openNewMeso,
         tick: (prev[a.id]?.tick || 0) + 1,
       },
     }));
