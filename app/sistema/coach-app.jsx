@@ -16561,6 +16561,33 @@ function PagePDF({
     );
   };
 
+  // Helper para convertir complementario con bloques a row
+  const buildComplementarioRow = (comp, semIdx, tIdx) => {
+    const ejData = normativos.find((e) => e.id === Number(comp.ejercicio_id));
+    if (!ejData) return null;
+
+    // Los complementarios usan bloques en lugar de intensidades
+    const cols = (comp.bloques || []).map((bloque) => ({
+      pct: bloque.pct,
+      s: bloque.series,
+      r: bloque.reps,
+      kg: bloque.kg,
+      note: bloque.nota || "",
+    })).filter((c) => c.pct || c.s || c.r);
+
+    const nombre = comp.nombre_custom || ejData.nombre;
+    const aclaracion = comp.aclaracion ? ` (${comp.aclaracion})` : "";
+
+    return {
+      id: comp.ejercicio_id,
+      nombre: nombre + aclaracion,
+      categoria: ejData.categoria,
+      cols,
+      isComplementario: true,
+      isCompBloques: true, // Flag para indicar que usa bloques en lugar de intensidades
+    };
+  };
+
   // Helper para convertir ejercicio a row
   const buildEjercicioRow = (ej, semIdx, tIdx, isComplementario = false) => {
     const ejData = normativos.find((e) => e.id === Number(ej.ejercicio_id));
@@ -16608,7 +16635,7 @@ function PagePDF({
             (c) => c.ejercicio_id,
           );
           compBefore.forEach((comp) => {
-            const row = buildEjercicioRow(comp, semIdx, tIdx, true);
+            const row = buildComplementarioRow(comp, semIdx, tIdx);
             if (row) rows.push({ ...row, isComplementarioBefore: true });
           });
         }
@@ -16626,7 +16653,7 @@ function PagePDF({
             (c) => c.ejercicio_id,
           );
           compAfter.forEach((comp) => {
-            const row = buildEjercicioRow(comp, semIdx, tIdx, true);
+            const row = buildComplementarioRow(comp, semIdx, tIdx);
             if (row) rows.push({ ...row, isComplementarioAfter: true });
           });
         }
@@ -17170,40 +17197,111 @@ ${previewEl.outerHTML}
                           <th className="left" style={{ minWidth: 130 }}>
                             Ejercicio
                           </th>
-                          {INTENSIDADES.map((v) => (
-                            <th
-                              key={v}
-                              className="intens-header"
-                              style={{ width: 58 }}
-                            >
-                              {v}%
-                            </th>
-                          ))}
+                          {(() => {
+                            // Detectar si tenemos complementarios con bloques
+                            const hasCompBloques = rows.some((r) => r.isCompBloques);
+                            const hasRegularIntensidades = rows.some(
+                              (r) => !r.isCompBloques,
+                            );
+
+                            if (hasCompBloques && !hasRegularIntensidades) {
+                              // Solo complementarios con bloques - mostrar headers dinámicos
+                              const maxBloques = Math.max(
+                                ...rows.map((r) => r.cols?.length || 0),
+                              );
+                              return Array.from({ length: maxBloques }).map(
+                                (_, bIdx) => (
+                                  <th
+                                    key={bIdx}
+                                    className="intens-header"
+                                    style={{ width: 58 }}
+                                  >
+                                    Bloque{bIdx + 1}
+                                  </th>
+                                ),
+                              );
+                            }
+                            // Regular con intensidades
+                            return INTENSIDADES.map((v) => (
+                              <th
+                                key={v}
+                                className="intens-header"
+                                style={{ width: 58 }}
+                              >
+                                {v}%
+                              </th>
+                            ));
+                          })()}
                         </tr>
                         <tr>
                           <th />
                           <th />
-                          {INTENSIDADES.map((v) => (
-                            <th key={v} className="sub-header">
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns: "1fr 1fr 1fr",
-                                  gap: 0,
-                                  fontSize: 6.5,
-                                }}
-                              >
-                                <span>Ser</span>
-                                <span>Rep</span>
-                                <span>Kg</span>
-                              </div>
-                            </th>
-                          ))}
+                          {(() => {
+                            const hasCompBloques = rows.some(
+                              (r) => r.isCompBloques,
+                            );
+                            const hasRegularIntensidades = rows.some(
+                              (r) => !r.isCompBloques,
+                            );
+
+                            if (hasCompBloques && !hasRegularIntensidades) {
+                              // Solo complementarios - mostrar headers de bloque
+                              const maxBloques = Math.max(
+                                ...rows.map((r) => r.cols?.length || 0),
+                              );
+                              return Array.from({ length: maxBloques }).map(
+                                (_, bIdx) => (
+                                  <th key={bIdx} className="sub-header">
+                                    <div
+                                      style={{
+                                        display: "grid",
+                                        gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                                        gap: 0,
+                                        fontSize: 6.5,
+                                      }}
+                                    >
+                                      <span>%</span>
+                                      <span>Ser</span>
+                                      <span>Rep</span>
+                                      <span>Kg</span>
+                                    </div>
+                                  </th>
+                                ),
+                              );
+                            }
+                            // Regular con intensidades
+                            return INTENSIDADES.map((v) => (
+                              <th key={v} className="sub-header">
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr 1fr",
+                                    gap: 0,
+                                    fontSize: 6.5,
+                                  }}
+                                >
+                                  <span>Ser</span>
+                                  <span>Rep</span>
+                                  <span>Kg</span>
+                                </div>
+                              </th>
+                            ));
+                          })()}
                         </tr>
                       </thead>
                       <tbody>
                         {(() => {
                           let section = null;
+                          const hasCompBloques = rows.some(
+                            (r) => r.isCompBloques,
+                          );
+                          const hasRegularIntensidades = rows.some(
+                            (r) => !r.isCompBloques,
+                          );
+                          const maxBloques = hasCompBloques
+                            ? Math.max(...rows.map((r) => r.cols?.length || 0))
+                            : 0;
+
                           return rows
                             .map((row, rIdx) => {
                               const rowArr = [];
@@ -17224,12 +17322,17 @@ ${previewEl.outerHTML}
                                   DESPUÉS: { bg: "#e8f5e9", text: "#1b5e20" },
                                 };
                                 const colors = sectionColors[newSection];
+                                const colSpan =
+                                  2 +
+                                  (hasCompBloques && !hasRegularIntensidades
+                                    ? maxBloques
+                                    : INTENSIDADES.length);
                                 rowArr.push(
                                   <tr
                                     key={`sep-${rIdx}`}
                                     style={{ height: 2, background: "#ddd" }}
                                   >
-                                    <td colSpan={2 + INTENSIDADES.length}></td>
+                                    <td colSpan={colSpan}></td>
                                   </tr>,
                                 );
                               } else if (rIdx === 0) {
@@ -17275,41 +17378,90 @@ ${previewEl.outerHTML}
                                       {row.nombre}
                                     </span>
                                   </td>
-                                  {INTENSIDADES.map((intens) => {
-                                    const col = row.cols.find(
-                                      (c) => c.intens === intens,
-                                    );
-                                    if (!col || !col.s) {
+                                  {(() => {
+                                    // Si es complementario con bloques
+                                    if (row.isCompBloques) {
+                                      return Array.from({
+                                        length: maxBloques,
+                                      }).map((_, bIdx) => {
+                                        const col = row.cols[bIdx];
+                                        if (!col || !col.pct) {
+                                          return (
+                                            <td key={bIdx}>
+                                              <span className="cell-empty">
+                                                –
+                                              </span>
+                                            </td>
+                                          );
+                                        }
+                                        return (
+                                          <td
+                                            key={bIdx}
+                                            style={{ background: gb }}
+                                          >
+                                            <div className="cell-data">
+                                              <span className="cell-pct">
+                                                {col.pct}
+                                              </span>
+                                              <span className="cell-series">
+                                                {col.s}
+                                              </span>
+                                              <span className="cell-reps">
+                                                {col.r}
+                                              </span>
+                                              <span className="cell-kg">
+                                                {col.kg}
+                                              </span>
+                                              {col.note && (
+                                                <span className="cell-note">
+                                                  {col.note}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </td>
+                                        );
+                                      });
+                                    }
+
+                                    // Regular con intensidades
+                                    return INTENSIDADES.map((intens) => {
+                                      const col = row.cols.find(
+                                        (c) => c.intens === intens,
+                                      );
+                                      if (!col || !col.s) {
+                                        return (
+                                          <td key={intens}>
+                                            <span className="cell-empty">
+                                              –
+                                            </span>
+                                          </td>
+                                        );
+                                      }
                                       return (
-                                        <td key={intens}>
-                                          <span className="cell-empty">–</span>
+                                        <td
+                                          key={intens}
+                                          style={{ background: gb }}
+                                        >
+                                          <div className="cell-data">
+                                            <span className="cell-series">
+                                              {col.s}
+                                            </span>
+                                            <span className="cell-reps">
+                                              {col.r}
+                                            </span>
+                                            <span className="cell-kg">
+                                              {col.kg}
+                                            </span>
+                                            {col.note && (
+                                              <span className="cell-note">
+                                                {col.note}
+                                              </span>
+                                            )}
+                                          </div>
                                         </td>
                                       );
-                                    }
-                                    return (
-                                      <td
-                                        key={intens}
-                                        style={{ background: gb }}
-                                      >
-                                        <div className="cell-data">
-                                          <span className="cell-series">
-                                            {col.s}
-                                          </span>
-                                          <span className="cell-reps">
-                                            {col.r}
-                                          </span>
-                                          <span className="cell-kg">
-                                            {col.kg}
-                                          </span>
-                                          {col.note && (
-                                            <span className="cell-note">
-                                              {col.note}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                    );
-                                  })}
+                                    });
+                                  })()}
                                 </tr>,
                               );
 
