@@ -17255,12 +17255,11 @@ ${previewEl.outerHTML}
                                     <div
                                       style={{
                                         display: "grid",
-                                        gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                                        gridTemplateColumns: "1fr 1fr 1fr",
                                         gap: 0,
                                         fontSize: 6.5,
                                       }}
                                     >
-                                      <span>%</span>
                                       <span>Ser</span>
                                       <span>Rep</span>
                                       <span>Kg</span>
@@ -17400,9 +17399,6 @@ ${previewEl.outerHTML}
                                             style={{ background: gb }}
                                           >
                                             <div className="cell-data">
-                                              <span className="cell-pct">
-                                                {col.pct}
-                                              </span>
                                               <span className="cell-series">
                                                 {col.s}
                                               </span>
