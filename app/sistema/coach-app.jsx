@@ -1985,7 +1985,9 @@ function getFaseCiclo(ciclo, fechaSemana) {
   const durMens = Number(ciclo.duracion_mens) || 5;
   const inicio = new Date(ciclo.ultimo_inicio);
   const semana = new Date(fechaSemana);
+  if (isNaN(inicio.getTime()) || isNaN(semana.getTime())) return null;
   const diffDias = Math.floor((semana - inicio) / (1000 * 60 * 60 * 24));
+  if (isNaN(diffDias)) return null;
   // Normalizar al ciclo actual
   const diaEnCiclo = (((diffDias % durCiclo) + durCiclo) % durCiclo) + 1;
   if (diaEnCiclo <= durMens) return "menstruacion";
@@ -1998,7 +2000,11 @@ function getFaseCiclo(ciclo, fechaSemana) {
 function getFechaSemana(mesoFechaInicio, semanaNum) {
   if (!mesoFechaInicio) return null;
   const d = new Date(mesoFechaInicio);
-  d.setDate(d.getDate() + (semanaNum - 1) * 7);
+  if (isNaN(d.getTime())) return null;
+  const num = Number(semanaNum);
+  if (isNaN(num)) return null;
+  d.setDate(d.getDate() + (num - 1) * 7);
+  if (isNaN(d.getTime())) return null;
   return d.toISOString().slice(0, 10);
 }
 
@@ -12047,7 +12053,7 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
 function AtletaCardItem({ a, mesociclos, onSelect, onEdit, onDelete }) {
   const mesoAtleta = mesociclos
     .filter((m) => m.atleta_id === a.id)
-    .sort((x, y) => y.fecha_inicio.localeCompare(x.fecha_inicio));
+    .sort((x, y) => (y.fecha_inicio || "").localeCompare(x.fecha_inicio || ""));
   const mesoActivo = mesoAtleta.find((m) => m.activo) || mesoAtleta[0];
   const edad = a.fecha_nacimiento
     ? Math.floor(
@@ -12279,7 +12285,7 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
   const previewMesos = previewAtleta
     ? mesociclos
         .filter((m) => m.atleta_id === previewAtleta.id)
-        .sort((x, y) => y.fecha_inicio.localeCompare(x.fecha_inicio))
+      .sort((x, y) => (y.fecha_inicio || "").localeCompare(x.fecha_inicio || ""))
     : [];
 
   return (
@@ -13243,7 +13249,7 @@ function PageAtleta({
 
   const mesoAtleta = mesociclos
     .filter((m) => m.atleta_id === atleta.id)
-    .sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio));
+    .sort((a, b) => (b.fecha_inicio || "").localeCompare(a.fecha_inicio || ""));
 
   const mesoActivoReal = mesoAtleta.find((m) => m.activo);
 
