@@ -13751,7 +13751,7 @@ function PageAtleta({
   const [showGuardarPlantilla, setShowGuardarPlantilla] = useState(null); // null | "meso" | "semana"
   const [showEditVol, setShowEditVol] = useState(false);
   const [mesoSelId, setMesoSelId] = useState(null);
-  const [vistaActual, setVistaActual] = useState("historial");
+  const [vistaActual, setVistaActual] = useState("plantilla");
 
   useEffect(() => {
     if (!openRequest?.view) return;
@@ -14327,7 +14327,9 @@ function PageAtleta({
 
   const handleSwapSemanasOverrides = (aIdx, bIdx) => {
     setSemPctOverrides((prev) =>
-      remapOverrideObjectKeys(prev, (k) => remapSemPctKeyForSwap(k, aIdx, bIdx)),
+      remapOverrideObjectKeys(prev, (k) =>
+        remapSemPctKeyForSwap(k, aIdx, bIdx),
+      ),
     );
     setSemPctManual((prev) =>
       remapOverrideSetKeys(prev, (k) => remapSemPctKeyForSwap(k, aIdx, bIdx)),
@@ -14338,9 +14340,7 @@ function PageAtleta({
       ),
     );
     setTurnoPctManual((prev) =>
-      remapOverrideSetKeys(prev, (k) =>
-        remapTurnoPctKeyForSwap(k, aIdx, bIdx),
-      ),
+      remapOverrideSetKeys(prev, (k) => remapTurnoPctKeyForSwap(k, aIdx, bIdx)),
     );
   };
 
@@ -25431,13 +25431,18 @@ function CoachApp({ session, profile, onLogout }) {
         const merged = loaded.map((dbItem) => {
           const local = prev.find((p) => p.id === dbItem.id);
           if (!local) return dbItem; // nuevo en DB
-          const dbTs = dbItem._updated_at ? new Date(dbItem._updated_at).getTime() : 0;
-          const localTs = local._updated_at ? new Date(local._updated_at).getTime() : 0;
+          const dbTs = dbItem._updated_at
+            ? new Date(dbItem._updated_at).getTime()
+            : 0;
+          const localTs = local._updated_at
+            ? new Date(local._updated_at).getTime()
+            : 0;
           return dbTs >= localTs ? dbItem : local;
         });
         // agregar items locales que aún no están en DB
         prev.forEach((localItem) => {
-          if (!merged.find((m) => m.id === localItem.id)) merged.push(localItem);
+          if (!merged.find((m) => m.id === localItem.id))
+            merged.push(localItem);
         });
         if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
         save("liftplan_atletas", merged);
@@ -25491,12 +25496,17 @@ function CoachApp({ session, profile, onLogout }) {
         const merged = loaded.map((dbItem) => {
           const local = prev.find((p) => p.id === dbItem.id);
           if (!local) return dbItem;
-          const dbTs = dbItem._updated_at ? new Date(dbItem._updated_at).getTime() : 0;
-          const localTs = local._updated_at ? new Date(local._updated_at).getTime() : 0;
+          const dbTs = dbItem._updated_at
+            ? new Date(dbItem._updated_at).getTime()
+            : 0;
+          const localTs = local._updated_at
+            ? new Date(local._updated_at).getTime()
+            : 0;
           return dbTs >= localTs ? dbItem : local;
         });
         prev.forEach((localItem) => {
-          if (!merged.find((m) => m.id === localItem.id)) merged.push(localItem);
+          if (!merged.find((m) => m.id === localItem.id))
+            merged.push(localItem);
         });
         if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
         save("liftplan_mesociclos", merged);
@@ -25684,7 +25694,7 @@ function CoachApp({ session, profile, onLogout }) {
   };
 
   const abrirAtleta = (a, opts = {}) => {
-    const view = opts.view || "historial";
+    const view = opts.view || "plantilla";
     setAtletaOpenRequest((prev) => ({
       ...prev,
       [a.id]: {
