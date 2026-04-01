@@ -20,6 +20,7 @@ import {
   Sprout,
   Zap,
   CloudMoon,
+  X,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
