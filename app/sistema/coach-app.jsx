@@ -25329,15 +25329,11 @@ function CoachApp({ session, profile, onLogout }) {
 
       const loaded = appAtletas.map(atletaFromDb);
       setAtletasRaw((prev) => {
-        // LWW: solo actualizar items donde DB es más reciente que local
+        // TEMP: local siempre gana — no pisar datos locales con DB
         const merged = loaded.map((dbItem) => {
           const local = prev.find((p) => p.id === dbItem.id);
-          if (!local) return dbItem; // nuevo en DB
-          const dbTs = dbItem._updated_at ? new Date(dbItem._updated_at).getTime() : 0;
-          const localTs = local._updated_at ? new Date(local._updated_at).getTime() : 0;
-          return dbTs >= localTs ? dbItem : local;
+          return local ?? dbItem; // si existe local, lo conserva
         });
-        // agregar items locales que aún no están en DB
         prev.forEach((localItem) => {
           if (!merged.find((m) => m.id === localItem.id)) merged.push(localItem);
         });
@@ -25389,13 +25385,10 @@ function CoachApp({ session, profile, onLogout }) {
 
       const loaded = appMesos.map(mesoFromDb);
       setMesociclosRaw((prev) => {
-        // LWW: solo actualizar items donde DB es más reciente que local
+        // TEMP: local siempre gana — no pisar datos locales con DB
         const merged = loaded.map((dbItem) => {
           const local = prev.find((p) => p.id === dbItem.id);
-          if (!local) return dbItem;
-          const dbTs = dbItem._updated_at ? new Date(dbItem._updated_at).getTime() : 0;
-          const localTs = local._updated_at ? new Date(local._updated_at).getTime() : 0;
-          return dbTs >= localTs ? dbItem : local;
+          return local ?? dbItem;
         });
         prev.forEach((localItem) => {
           if (!merged.find((m) => m.id === localItem.id)) merged.push(localItem);
