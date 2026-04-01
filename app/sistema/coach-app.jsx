@@ -14570,7 +14570,7 @@ function PageAtleta({
                 id: "historial",
                 label: `Historial${mesoAtleta.length > 0 ? ` (${mesoAtleta.length})` : ""}`,
               },
-              { id: "normativos", label: "Normativos" },
+              { id: "normativos", label: "Normativos G" },
             ].map((t) => (
               <button
                 key={t.id}
@@ -14956,7 +14956,7 @@ function PageAtleta({
 
       {/* ════════════ NORMATIVOS ════════════ */}
       {vistaActual === "normativos" && (
-        <PanelTabBoundary tab="Normativos atleta">
+        <PanelTabBoundary tab="Normativos A">
           <PageNormativosAtleta
             atleta={atleta}
             globalNormativos={globalNormativos}
