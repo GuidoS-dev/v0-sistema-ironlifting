@@ -14565,6 +14565,22 @@ function PageAtleta({
             </div>
 
             <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setVistaActual("historial")}
+              style={{
+                flexShrink: 0,
+                fontSize: 11,
+                padding: "5px 10px",
+                whiteSpace: "nowrap",
+                borderColor:
+                  vistaActual === "historial" ? "var(--gold)" : undefined,
+                color: vistaActual === "historial" ? "var(--gold)" : undefined,
+              }}
+            >
+              Historial{mesoAtleta.length > 0 ? ` (${mesoAtleta.length})` : ""}
+            </button>
+
+            <button
               className="btn btn-gold btn-sm"
               onClick={() => setShowMeso(true)}
               style={{
@@ -14708,10 +14724,6 @@ function PageAtleta({
               { id: "meso", label: "Planilla" },
               { id: "resumen", label: "Resumen" },
               { id: "pdf", label: "PDF" },
-              {
-                id: "historial",
-                label: `Historial${mesoAtleta.length > 0 ? ` (${mesoAtleta.length})` : ""}`,
-              },
               { id: "normativos", label: "Normativos A" },
             ].map((t) => (
               <button
