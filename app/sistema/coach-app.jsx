@@ -2188,6 +2188,24 @@ function parseAppDate(value) {
   return parsed;
 }
 
+function getAgeFromBirthDate(value, referenceDate = new Date()) {
+  const birthDate = parseAppDate(value);
+  if (!birthDate) return null;
+
+  const ref = parseAppDate(referenceDate);
+  if (!ref) return null;
+
+  let age = ref.getFullYear() - birthDate.getFullYear();
+  const hasNotHadBirthdayYet =
+    ref.getMonth() < birthDate.getMonth() ||
+    (ref.getMonth() === birthDate.getMonth() &&
+      ref.getDate() < birthDate.getDate());
+
+  if (hasNotHadBirthdayYet) age -= 1;
+  if (!Number.isFinite(age) || age < 0) return null;
+  return age;
+}
+
 function getFaseCiclo(ciclo, fechaSemana) {
   if (!ciclo?.ultimo_inicio || !fechaSemana) return null;
   const durCiclo = Number(ciclo.duracion_ciclo) || 28;
@@ -12609,12 +12627,7 @@ function AtletaCardItem({ a, mesociclos, onSelect, onEdit, onDelete }) {
         (parseAppDate(x.fecha_inicio)?.getTime() || 0),
     );
   const mesoActivo = mesoAtleta.find((m) => m.activo) || mesoAtleta[0];
-  const edad = a.fecha_nacimiento
-    ? Math.floor(
-        (Date.now() - new Date(a.fecha_nacimiento)) /
-          (1000 * 60 * 60 * 24 * 365),
-      )
-    : null;
+  const edad = getAgeFromBirthDate(a.fecha_nacimiento);
   return (
     <div className="atleta-card" onClick={() => onSelect(a)}>
       <div
@@ -12632,7 +12645,7 @@ function AtletaCardItem({ a, mesociclos, onSelect, onEdit, onDelete }) {
         <div className="atleta-meta">
           {a.email}
           {a.telefono && ` · ${a.telefono}`}
-          {edad && ` · ${edad} años`}
+          {edad !== null && ` · ${edad} años`}
         </div>
         {mesoActivo ? (
           <div className="flex gap8 mt8" style={{ flexWrap: "wrap" }}>
