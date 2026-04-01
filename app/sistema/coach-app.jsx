@@ -292,6 +292,143 @@ function getSupabase() {
   return sb;
 }
 
+const COACH_SETTING_KEYS = {
+  normativos: "normativos_globales",
+  tablas: "tablas_calculadora",
+};
+
+const LIFTPLAN_LOCAL_SYNC_EVENT = "liftplan:local-sync";
+
+function emitLocalSyncEvent(key) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(LIFTPLAN_LOCAL_SYNC_EVENT, {
+      detail: { key },
+    }),
+  );
+}
+
+function readLocalJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeLocalJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    emitLocalSyncEvent(key);
+  } catch {}
+}
+
+function asPlainObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value
+    : {};
+}
+
+function asArray(value) {
+  if (value instanceof Set) return [...value];
+  return Array.isArray(value) ? value : [];
+}
+
+function collectAtletaNormOverrides(atletaId) {
+  return asPlainObject(
+    readLocalJson(`liftplan_normativos_atleta_${atletaId}`, {}),
+  );
+}
+
+function restoreAtletaNormOverrides(atletaId, overrides) {
+  if (!atletaId || overrides == null) return;
+  writeLocalJson(
+    `liftplan_normativos_atleta_${atletaId}`,
+    asPlainObject(overrides),
+  );
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("liftplan:normativos-overrides-updated", {
+        detail: { atletaId },
+      }),
+    );
+  }
+}
+
+function buildMesoOverridesPayload(meso, liveOverrides = null) {
+  const stored = collectMesoOverrides(meso.id);
+  return {
+    repsEdit: asPlainObject(liveOverrides?.repsEdit ?? stored.repsEdit),
+    manualEdit: asArray(liveOverrides?.manualEdit ?? stored.manualEdit),
+    cellEdit: asPlainObject(liveOverrides?.cellEdit ?? stored.cellEdit),
+    cellManual: asArray(liveOverrides?.cellManual ?? stored.cellManual),
+    nameEdit: asPlainObject(liveOverrides?.nameEdit ?? stored.nameEdit),
+    noteEdit: asPlainObject(liveOverrides?.noteEdit ?? stored.noteEdit),
+    semOvr: asPlainObject(liveOverrides?.semPctOverrides ?? stored.semOvr),
+    semMan: asArray(liveOverrides?.semPctManual ?? stored.semMan),
+    turnoOvr: asPlainObject(
+      liveOverrides?.turnoPctOverrides ?? stored.turnoOvr,
+    ),
+    turnoMan: asArray(liveOverrides?.turnoPctManual ?? stored.turnoMan),
+    _meta: {
+      escuela: meso.escuela ?? false,
+      escuela_nivel: meso.escuela_nivel ?? "1",
+      num_bloques_basica: meso.num_bloques_basica ?? 3,
+      distribucion: meso.distribucion ?? null,
+    },
+  };
+}
+
+async function loadCoachSetting(coachId, settingKey) {
+  const row = await loadCoachSettingRow(coachId, settingKey);
+  return row?.setting_value ?? null;
+}
+
+async function loadCoachSettingRow(coachId, settingKey) {
+  if (!coachId) return null;
+  const { data, error } = await sb
+    .from("coach_settings")
+    .select("setting_value,updated_at")
+    .eq("coach_id", coachId)
+    .eq("setting_key", settingKey)
+    .single()
+    .exec();
+  if (error || !data) return null;
+  return data;
+}
+
+async function saveCoachSetting(coachId, settingKey, settingValue) {
+  if (!coachId) return;
+  await sb
+    .from("coach_settings")
+    .upsert(
+      [
+        {
+          coach_id: coachId,
+          setting_key: settingKey,
+          setting_value: settingValue,
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      { onConflict: "coach_id,setting_key" },
+    )
+    .catch(() => {});
+}
+
+async function resolveSharedCoachId(coachId) {
+  if (!coachId) return null;
+  const { data, error } = await sb
+    .from("coach_shared_workspace")
+    .select("workspace_owner_id")
+    .eq("coach_id", coachId)
+    .single()
+    .exec();
+
+  if (error || !data?.workspace_owner_id) return coachId;
+  return data.workspace_owner_id;
+}
+
 // ─── DB SYNC HELPERS ─────────────────────────────────────────────────────────
 // Recolecta los overrides de celdas de un mesociclo desde localStorage
 function collectMesoOverrides(mesoId) {
@@ -368,7 +505,7 @@ function restoreAtletaPctOverrides(atletaId, overrides) {
 }
 
 // ─── MAPEOS APP ↔ DB (usan el esquema real de las tablas existentes) ─────────
-function atletaToDb(a, coachId) {
+function atletaToDb(a, coachId, options = {}) {
   return {
     coach_id: coachId,
     app_id: a.id,
@@ -380,7 +517,9 @@ function atletaToDb(a, coachId) {
     tipo: a.tipo || "atleta",
     genero: a.genero || "m",
     ciclo: a.ciclo ? JSON.stringify(a.ciclo) : null,
-    pct_overrides: collectAtletaPctOverrides(a.id),
+    pct_overrides: options.pctOverrides ?? collectAtletaPctOverrides(a.id),
+    normativos_overrides:
+      options.normativosOverrides ?? collectAtletaNormOverrides(a.id),
     updated_at: new Date().toISOString(),
   };
 }
@@ -405,7 +544,7 @@ function atletaFromDb(r) {
     ciclo,
   };
 }
-function mesoToDb(m, coachId) {
+function mesoToDb(m, coachId, options = {}) {
   return {
     coach_id: coachId,
     app_id: m.id,
@@ -422,15 +561,7 @@ function mesoToDb(m, coachId) {
     duracion_mens: m.duracion_mens || null,
     ultimo_inicio: m.ultimo_inicio || null,
     semanas: m.semanas || [],
-    overrides: {
-      ...collectMesoOverrides(m.id),
-      _meta: {
-        escuela: m.escuela ?? false,
-        escuela_nivel: m.escuela_nivel ?? "1",
-        num_bloques_basica: m.num_bloques_basica ?? 3,
-        distribucion: m.distribucion ?? null,
-      },
-    },
+    overrides: options.overrides ?? buildMesoOverridesPayload(m),
     updated_at: new Date().toISOString(),
   };
 }
@@ -4065,7 +4196,10 @@ function PlanillaTurno({
 
     if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
     setCompCopyFeedback(true);
-    compCopyTimerRef.current = setTimeout(() => setCompCopyFeedback(false), 1500);
+    compCopyTimerRef.current = setTimeout(
+      () => setCompCopyFeedback(false),
+      1500,
+    );
   };
 
   const importarSemanaEnActual = () => {
@@ -6782,7 +6916,8 @@ function PlanillaTurno({
                                             nombre_custom:
                                               val === ""
                                                 ? EMPTY_NAME_SENTINEL
-                                                : ejData && val === ejData.nombre
+                                                : ejData &&
+                                                    val === ejData.nombre
                                                   ? ""
                                                   : val,
                                           }));
@@ -8593,7 +8728,9 @@ function ResumenGrupos({
     if (applied === 0) return;
 
     if (applied > 0) {
-      const otherKeys = activeGroups.filter((gx) => gx !== g && (vals[gx] || 0) > 0);
+      const otherKeys = activeGroups.filter(
+        (gx) => gx !== g && (vals[gx] || 0) > 0,
+      );
       const capacity = otherKeys.reduce((acc, gx) => acc + (vals[gx] || 0), 0);
       const neededWhenNormal = Math.max(0, prevSum + applied - 100);
       const required =
@@ -8606,7 +8743,9 @@ function ResumenGrupos({
 
       vals[g] = current + applied;
       const balanceAmount =
-        prevSum > 100 ? Math.min(applied, capacity) : Math.max(0, prevSum + applied - 100);
+        prevSum > 100
+          ? Math.min(applied, capacity)
+          : Math.max(0, prevSum + applied - 100);
       const reduced = distributeReduction(
         vals,
         otherKeys,
@@ -8638,7 +8777,8 @@ function ResumenGrupos({
       0,
     );
     const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
-    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const required =
+      prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
     const missing = Math.max(0, required - capacityUp);
     if (missing > 0 && prevSum >= 100) {
       dec = Math.max(0, dec - missing);
@@ -8647,7 +8787,9 @@ function ResumenGrupos({
 
     vals[g] = current - dec;
     const balanceAmount =
-      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+      prevSum < 100
+        ? Math.min(dec, capacityUp)
+        : Math.max(0, 100 - (prevSum - dec));
     const increased = distributeIncrease(
       vals,
       otherKeys,
@@ -9561,10 +9703,7 @@ function DistribucionTurnos({
     const turnKeys = d.pctPorTurno
       .map((_, idx) => idx)
       .filter(
-        (idx) =>
-          d.countPorTurno[idx] > 0 ||
-          isManual(g, idx) ||
-          idx === tIdx,
+        (idx) => d.countPorTurno[idx] > 0 || isManual(g, idx) || idx === tIdx,
       );
     const vals = {};
     turnKeys.forEach((idx) => {
@@ -9577,8 +9716,13 @@ function DistribucionTurnos({
     if (applied === 0) return;
 
     if (applied > 0) {
-      const otherKeys = turnKeys.filter((idx) => idx !== tIdx && (vals[idx] || 0) > 0);
-      const capacity = otherKeys.reduce((acc, idx) => acc + (vals[idx] || 0), 0);
+      const otherKeys = turnKeys.filter(
+        (idx) => idx !== tIdx && (vals[idx] || 0) > 0,
+      );
+      const capacity = otherKeys.reduce(
+        (acc, idx) => acc + (vals[idx] || 0),
+        0,
+      );
       const neededWhenNormal = Math.max(0, prevSum + applied - 100);
       const required =
         prevSum > 100 ? Math.min(applied, capacity) : neededWhenNormal;
@@ -9590,7 +9734,9 @@ function DistribucionTurnos({
 
       vals[tIdx] = current + applied;
       const balanceAmount =
-        prevSum > 100 ? Math.min(applied, capacity) : Math.max(0, prevSum + applied - 100);
+        prevSum > 100
+          ? Math.min(applied, capacity)
+          : Math.max(0, prevSum + applied - 100);
       const reduced = distributeReduction(
         vals,
         otherKeys,
@@ -9622,7 +9768,8 @@ function DistribucionTurnos({
       0,
     );
     const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
-    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const required =
+      prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
     const missing = Math.max(0, required - capacityUp);
     if (missing > 0 && prevSum >= 100) {
       dec = Math.max(0, dec - missing);
@@ -9631,7 +9778,9 @@ function DistribucionTurnos({
 
     vals[tIdx] = current - dec;
     const balanceAmount =
-      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+      prevSum < 100
+        ? Math.min(dec, capacityUp)
+        : Math.max(0, 100 - (prevSum - dec));
     const increased = distributeIncrease(
       vals,
       otherKeys,
@@ -10097,7 +10246,7 @@ function DistribucionTurnos({
                                   %
                                 </span>
                                 <div
-                                    data-no-tooltip="1"
+                                  data-no-tooltip="1"
                                   style={{
                                     display: "flex",
                                     flexDirection: "column",
@@ -10108,25 +10257,25 @@ function DistribucionTurnos({
                                     e.stopPropagation();
                                     setCellTip(null);
                                   }}
-                                    onMouseLeave={(e) => {
-                                      e.stopPropagation();
-                                      const td = e.currentTarget.closest("td");
-                                      const next = e.relatedTarget;
-                                      const isBackToValueArea =
-                                        td &&
-                                        next &&
-                                        td.contains(next) &&
-                                        !next.closest?.('[data-no-tooltip="1"]');
-                                      if (isBackToValueArea) {
-                                        const rect = td.getBoundingClientRect();
-                                        setCellTip({
-                                          g,
-                                          tIdx,
-                                          x: rect.left,
-                                          y: rect.top,
-                                        });
-                                      }
-                                    }}
+                                  onMouseLeave={(e) => {
+                                    e.stopPropagation();
+                                    const td = e.currentTarget.closest("td");
+                                    const next = e.relatedTarget;
+                                    const isBackToValueArea =
+                                      td &&
+                                      next &&
+                                      td.contains(next) &&
+                                      !next.closest?.('[data-no-tooltip="1"]');
+                                    if (isBackToValueArea) {
+                                      const rect = td.getBoundingClientRect();
+                                      setCellTip({
+                                        g,
+                                        tIdx,
+                                        x: rect.left,
+                                        y: rect.top,
+                                      });
+                                    }
+                                  }}
                                 >
                                   <button
                                     type="button"
@@ -13017,7 +13166,10 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
             </div>
           )}
           <div className="modal-footer">
-            <button className="btn btn-ghost" onClick={() => setPreviewAtleta(null)}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setPreviewAtleta(null)}
+            >
               Cerrar
             </button>
           </div>
@@ -13223,7 +13375,10 @@ function EditVolModal({ meso, onSave, onClose }) {
 
       const balanceAmount =
         prevSum > 100
-          ? Math.min(applied, otherKeys.reduce((acc, k) => acc + (vals[k] || 0), 0))
+          ? Math.min(
+              applied,
+              otherKeys.reduce((acc, k) => acc + (vals[k] || 0), 0),
+            )
           : Math.max(0, prevSum + applied - 100);
 
       const reduced = distributeReduction(
@@ -13249,7 +13404,8 @@ function EditVolModal({ meso, onSave, onClose }) {
       0,
     );
     const neededWhenNormal = Math.max(0, 100 - (prevSum - dec));
-    const required = prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
+    const required =
+      prevSum < 100 ? Math.min(dec, capacityUp) : neededWhenNormal;
     const missing = Math.max(0, required - capacityUp);
     if (missing > 0 && prevSum >= 100) {
       dec = Math.max(0, dec - missing);
@@ -13258,7 +13414,9 @@ function EditVolModal({ meso, onSave, onClose }) {
 
     vals[idx] = current - dec;
     const balanceAmount =
-      prevSum < 100 ? Math.min(dec, capacityUp) : Math.max(0, 100 - (prevSum - dec));
+      prevSum < 100
+        ? Math.min(dec, capacityUp)
+        : Math.max(0, 100 - (prevSum - dec));
     const increased = distributeIncrease(
       vals,
       otherKeys,
@@ -13451,6 +13609,7 @@ function PageAtleta({
   onBack,
   addPlantilla,
   onLiveMesoData,
+  onAtletaOverridesChange,
   openRequest,
 }) {
   const latestMesoRef = useRef(null); // always-current meso for cleanup save
@@ -13512,7 +13671,13 @@ function PageAtleta({
           `liftplan_normativos_atleta_${atleta.id}`,
           JSON.stringify(next),
         );
+        window.dispatchEvent(
+          new CustomEvent("liftplan:normativos-overrides-updated", {
+            detail: { atletaId: atleta.id },
+          }),
+        );
       } catch {}
+      onAtletaOverridesChange?.(atleta.id, next);
       return next;
     });
   };
@@ -13528,6 +13693,33 @@ function PageAtleta({
     } catch {
       setAtletaNormOverrides({});
     }
+  }, [atleta.id]);
+
+  useEffect(() => {
+    const onOverridesUpdated = (event) => {
+      if (event?.detail?.atletaId !== atleta.id) return;
+      try {
+        setAtletaNormOverrides(
+          JSON.parse(
+            localStorage.getItem(`liftplan_normativos_atleta_${atleta.id}`) ||
+              "null",
+          ) || {},
+        );
+      } catch {
+        setAtletaNormOverrides({});
+      }
+    };
+
+    window.addEventListener(
+      "liftplan:normativos-overrides-updated",
+      onOverridesUpdated,
+    );
+    return () => {
+      window.removeEventListener(
+        "liftplan:normativos-overrides-updated",
+        onOverridesUpdated,
+      );
+    };
   }, [atleta.id]);
 
   // ── Overrides de porcentajes — persisten en localStorage por mesociclo ───────
@@ -14676,353 +14868,355 @@ function PageAtleta({
       {/* ════════════ PLANILLA ════════════ */}
       {vistaActual === "meso" && mesoVisto && (
         <PanelTabBoundary tab="Planilla">
-        <>
-          {/* Toolbar */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 8,
-              flexWrap: "wrap",
-              gap: 8,
-              minWidth: 0,
-            }}
-          >
+          <>
+            {/* Toolbar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+                flexWrap: "wrap",
+                gap: 8,
+                minWidth: 0,
+              }}
+            >
+              {mesoVisto.escuela === true || mesoVisto.escuela === "true" ? (
+                <div style={{ fontSize: 12, color: "#4db6ac" }}>
+                  Planilla Escuela Inicial · Nivel {mesoVisto.escuela_nivel}
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                    Total:{" "}
+                    <span style={{ color: "var(--gold)", fontWeight: 700 }}>
+                      {mesoVisto.volumen_total}
+                    </span>{" "}
+                    reps
+                  </div>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setShowEditVol(true)}
+                  >
+                    <Pencil size={12} /> Editar volumen y semanas
+                  </button>
+                </>
+              )}
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowGuardarPlantilla("meso")}
+                style={{ color: "var(--muted)" }}
+              >
+                <Library size={12} /> Guardar como plantilla
+              </button>
+            </div>
+
+            {/* ── Escuela Inicial: PlanillaBasica ── */}
             {mesoVisto.escuela === true || mesoVisto.escuela === "true" ? (
-              <div style={{ fontSize: 12, color: "#4db6ac" }}>
-                Planilla Escuela Inicial · Nivel {mesoVisto.escuela_nivel}
+              <div className="card">
+                <div
+                  className="flex-between mb16"
+                  style={{ flexWrap: "wrap", gap: 10 }}
+                >
+                  <div className="card-title" style={{ marginBottom: 0 }}>
+                    Planilla Escuela Inicial
+                  </div>
+                  <div
+                    style={{ display: "flex", gap: 10, alignItems: "center" }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <label
+                        style={{
+                          fontSize: 10,
+                          color: "var(--gold)",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: ".05em",
+                        }}
+                      >
+                        IRM Arr
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={300}
+                        className="no-spin"
+                        value={mesoVisto.irm_arranque ?? ""}
+                        placeholder="kg"
+                        onChange={(e) => {
+                          pushSnap();
+                          setMesociclos((prev) =>
+                            prev.map((m) =>
+                              m.id === mesoVisto.id
+                                ? {
+                                    ...m,
+                                    irm_arranque:
+                                      e.target.value === ""
+                                        ? null
+                                        : Number(e.target.value),
+                                  }
+                                : m,
+                            ),
+                          );
+                        }}
+                        style={{
+                          width: 52,
+                          background: "var(--surface2)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          padding: "4px 6px",
+                          color: "var(--gold)",
+                          fontSize: 14,
+                          fontFamily: "'Bebas Neue'",
+                          textAlign: "center",
+                          outline: "none",
+                          MozAppearance: "textfield",
+                          appearance: "textfield",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <label
+                        style={{
+                          fontSize: 10,
+                          color: "var(--blue)",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: ".05em",
+                        }}
+                      >
+                        IRM Env
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={400}
+                        className="no-spin"
+                        value={mesoVisto.irm_envion ?? ""}
+                        placeholder="kg"
+                        onChange={(e) => {
+                          pushSnap();
+                          setMesociclos((prev) =>
+                            prev.map((m) =>
+                              m.id === mesoVisto.id
+                                ? {
+                                    ...m,
+                                    irm_envion:
+                                      e.target.value === ""
+                                        ? null
+                                        : Number(e.target.value),
+                                  }
+                                : m,
+                            ),
+                          );
+                        }}
+                        style={{
+                          width: 52,
+                          background: "var(--surface2)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          padding: "4px 6px",
+                          color: "var(--blue)",
+                          fontSize: 14,
+                          fontFamily: "'Bebas Neue'",
+                          textAlign: "center",
+                          outline: "none",
+                          MozAppearance: "textfield",
+                          appearance: "textfield",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <PlanillaBasica
+                  semanas={mesoVisto.semanas}
+                  onChange={(ss) => updateMeso({ ...mesoVisto, semanas: ss })}
+                  numBloques={mesoVisto.num_bloques_basica || 3}
+                  onBeforeChange={(forced) => pushSnap(forced)}
+                  irm_arr={irm_arr}
+                  irm_env={irm_env}
+                  normativos={atletaNormativos}
+                />
               </div>
             ) : (
               <>
-                <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                  Total:{" "}
-                  <span style={{ color: "var(--gold)", fontWeight: 700 }}>
-                    {mesoVisto.volumen_total}
-                  </span>{" "}
-                  reps
+                {/* Stats semanas */}
+                <div className="stats-row mb16">
+                  {mesoVisto.semanas.map((s, i) => {
+                    const fase =
+                      atleta.genero === "f" && atleta.ciclo?.ultimo_inicio
+                        ? getFaseCiclo(
+                            atleta.ciclo,
+                            getFechaSemana(mesoVisto.fecha_inicio, s.numero),
+                          )
+                        : null;
+                    const faseInfo = fase ? FASES_CICLO[fase] : null;
+                    return (
+                      <div
+                        key={s.id}
+                        className="stat-box"
+                        style={
+                          faseInfo
+                            ? {
+                                border: `1px solid ${faseInfo.color}60`,
+                                background: faseInfo.bg,
+                              }
+                            : {}
+                        }
+                      >
+                        <div className="stat-box-val">
+                          {s.reps_ajustadas || s.reps_calculadas || 0}
+                        </div>
+                        <div className="stat-box-lbl">
+                          Semana {s.numero} · {s.pct_volumen}%
+                        </div>
+                        {faseInfo && (
+                          <div
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: faseInfo.color,
+                              marginTop: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <faseInfo.Icon size={11} /> {faseInfo.label}
+                          </div>
+                        )}
+                        <div className="prog-bar">
+                          <div
+                            className="prog-fill"
+                            style={{
+                              width: `${s.pct_volumen}%`,
+                              background: faseInfo
+                                ? faseInfo.color
+                                : "var(--gold)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setShowEditVol(true)}
-                >
-                  <Pencil size={12} /> Editar volumen y semanas
-                </button>
+
+                {/* Sembrado mensual completo */}
+                <div className="card">
+                  <div className="flex-between mb16">
+                    <div className="card-title" style={{ marginBottom: 0 }}>
+                      Sembrado Mensual
+                    </div>
+                  </div>
+                  <SembradoMensual
+                    semanas={mesoVisto.semanas}
+                    irm_arr={irm_arr}
+                    irm_env={irm_env}
+                    meso={mesoVisto}
+                    onChangeSemana={updateSemanaH}
+                    onChangeTodasSemanas={(newSemanas) => {
+                      updateMeso({ ...mesoVisto, semanas: newSemanas });
+                    }}
+                    normativos={atletaNormativos}
+                  />
+                  <ResumenGrupos
+                    semanas={mesoVisto.semanas}
+                    meso={mesoVisto}
+                    onGuardarDistribucion={(dist) => {
+                      try {
+                        const stored = JSON.parse(
+                          localStorage.getItem("liftplan_plantillas") || "[]",
+                        );
+                        const nuevo = {
+                          id: mkId(),
+                          tipo: "distribucion",
+                          creado: new Date().toISOString().slice(0, 10),
+                          nombre: `Distribución ${mesoVisto.nombre || "Mesociclo"}`,
+                          descripcion: `${mesoVisto.semanas.length} semanas`,
+                          periodo: "general",
+                          objetivo: "mixto",
+                          nivel: "intermedio",
+                          distribucion: dist,
+                        };
+                        localStorage.setItem(
+                          "liftplan_plantillas",
+                          JSON.stringify([...stored, nuevo]),
+                        );
+                        alert("Distribución guardada como plantilla");
+                      } catch (e) {}
+                    }}
+                    semPctOverrides={semPctOverrides}
+                    semPctManual={semPctManual}
+                    setSemPctOverrides={setSemPctOverridesH}
+                    setSemPctManual={setSemPctManualH}
+                    onRequestReset={(label, fn) =>
+                      setConfirmReset({ label, onConfirm: fn })
+                    }
+                    onBeforeChange={(forced) => {
+                      if (!forced && histIdxRef.current != null) pushSnap();
+                      else pushSnap(true);
+                    }}
+                  />
+                  <DistribucionTurnos
+                    semanas={mesoVisto.semanas}
+                    meso={mesoVisto}
+                    turnoPctOverrides={turnoPctOverrides}
+                    turnoPctManual={turnoPctManual}
+                    setTurnoPctOverrides={setTurnoPctOverridesH}
+                    setTurnoPctManual={setTurnoPctManualH}
+                    semPctOverrides={semPctOverrides}
+                    semPctManual={semPctManual}
+                    onRequestReset={(label, fn) =>
+                      setConfirmReset({ label, onConfirm: fn })
+                    }
+                    onBeforeChange={(forced) => pushSnap(forced)}
+                  />
+                  <PlanillaTurno
+                    semanas={mesoVisto.semanas}
+                    irm_arr={irm_arr}
+                    irm_env={irm_env}
+                    meso={mesoVisto}
+                    semPctOverrides={semPctOverrides}
+                    semPctManual={semPctManual}
+                    turnoPctOverrides={turnoPctOverrides}
+                    turnoPctManual={turnoPctManual}
+                    onRequestReset={(label, fn) =>
+                      setConfirmReset({ label, onConfirm: fn })
+                    }
+                    onBeforeChange={(forced) => {
+                      pushSnap(forced);
+                    }}
+                    onChangeTodasSemanas={(newSemanas) => {
+                      updateMeso({ ...mesoVisto, semanas: newSemanas });
+                    }}
+                    onChangeTurno={(sIdx, tIdx, newTurno) => {
+                      const sem = mesoVisto.semanas[sIdx];
+                      const ts = [...sem.turnos];
+                      ts[tIdx] = newTurno;
+                      updateSemana(sIdx, { ...sem, turnos: ts });
+                    }}
+                    repsEdit={repsEdit}
+                    setRepsEdit={setRepsEditRaw}
+                    manualEdit={manualEdit}
+                    setManualEdit={setManualEditRaw}
+                    cellEdit={cellEdit}
+                    setCellEdit={setCellEditRaw}
+                    cellManual={cellManual}
+                    setCellManual={setCellManualRaw}
+                    nameEdit={nameEdit}
+                    setNameEdit={setNameEditRaw}
+                    noteEdit={noteEdit}
+                    setNoteEdit={setNoteEditRaw}
+                    normativos={atletaNormativos}
+                  />
+                </div>
               </>
             )}
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => setShowGuardarPlantilla("meso")}
-              style={{ color: "var(--muted)" }}
-            >
-              <Library size={12} /> Guardar como plantilla
-            </button>
-          </div>
-
-          {/* ── Escuela Inicial: PlanillaBasica ── */}
-          {mesoVisto.escuela === true || mesoVisto.escuela === "true" ? (
-            <div className="card">
-              <div
-                className="flex-between mb16"
-                style={{ flexWrap: "wrap", gap: 10 }}
-              >
-                <div className="card-title" style={{ marginBottom: 0 }}>
-                  Planilla Escuela Inicial
-                </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    <label
-                      style={{
-                        fontSize: 10,
-                        color: "var(--gold)",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: ".05em",
-                      }}
-                    >
-                      IRM Arr
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={300}
-                      className="no-spin"
-                      value={mesoVisto.irm_arranque ?? ""}
-                      placeholder="kg"
-                      onChange={(e) => {
-                        pushSnap();
-                        setMesociclos((prev) =>
-                          prev.map((m) =>
-                            m.id === mesoVisto.id
-                              ? {
-                                  ...m,
-                                  irm_arranque:
-                                    e.target.value === ""
-                                      ? null
-                                      : Number(e.target.value),
-                                }
-                              : m,
-                          ),
-                        );
-                      }}
-                      style={{
-                        width: 52,
-                        background: "var(--surface2)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 6,
-                        padding: "4px 6px",
-                        color: "var(--gold)",
-                        fontSize: 14,
-                        fontFamily: "'Bebas Neue'",
-                        textAlign: "center",
-                        outline: "none",
-                        MozAppearance: "textfield",
-                        appearance: "textfield",
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    <label
-                      style={{
-                        fontSize: 10,
-                        color: "var(--blue)",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: ".05em",
-                      }}
-                    >
-                      IRM Env
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={400}
-                      className="no-spin"
-                      value={mesoVisto.irm_envion ?? ""}
-                      placeholder="kg"
-                      onChange={(e) => {
-                        pushSnap();
-                        setMesociclos((prev) =>
-                          prev.map((m) =>
-                            m.id === mesoVisto.id
-                              ? {
-                                  ...m,
-                                  irm_envion:
-                                    e.target.value === ""
-                                      ? null
-                                      : Number(e.target.value),
-                                }
-                              : m,
-                          ),
-                        );
-                      }}
-                      style={{
-                        width: 52,
-                        background: "var(--surface2)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 6,
-                        padding: "4px 6px",
-                        color: "var(--blue)",
-                        fontSize: 14,
-                        fontFamily: "'Bebas Neue'",
-                        textAlign: "center",
-                        outline: "none",
-                        MozAppearance: "textfield",
-                        appearance: "textfield",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <PlanillaBasica
-                semanas={mesoVisto.semanas}
-                onChange={(ss) => updateMeso({ ...mesoVisto, semanas: ss })}
-                numBloques={mesoVisto.num_bloques_basica || 3}
-                onBeforeChange={(forced) => pushSnap(forced)}
-                irm_arr={irm_arr}
-                irm_env={irm_env}
-                normativos={atletaNormativos}
-              />
-            </div>
-          ) : (
-            <>
-              {/* Stats semanas */}
-              <div className="stats-row mb16">
-                {mesoVisto.semanas.map((s, i) => {
-                  const fase =
-                    atleta.genero === "f" && atleta.ciclo?.ultimo_inicio
-                      ? getFaseCiclo(
-                          atleta.ciclo,
-                          getFechaSemana(mesoVisto.fecha_inicio, s.numero),
-                        )
-                      : null;
-                  const faseInfo = fase ? FASES_CICLO[fase] : null;
-                  return (
-                    <div
-                      key={s.id}
-                      className="stat-box"
-                      style={
-                        faseInfo
-                          ? {
-                              border: `1px solid ${faseInfo.color}60`,
-                              background: faseInfo.bg,
-                            }
-                          : {}
-                      }
-                    >
-                      <div className="stat-box-val">
-                        {s.reps_ajustadas || s.reps_calculadas || 0}
-                      </div>
-                      <div className="stat-box-lbl">
-                        Semana {s.numero} · {s.pct_volumen}%
-                      </div>
-                      {faseInfo && (
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: faseInfo.color,
-                            marginTop: 4,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 3,
-                          }}
-                        >
-                          <faseInfo.Icon size={11} /> {faseInfo.label}
-                        </div>
-                      )}
-                      <div className="prog-bar">
-                        <div
-                          className="prog-fill"
-                          style={{
-                            width: `${s.pct_volumen}%`,
-                            background: faseInfo
-                              ? faseInfo.color
-                              : "var(--gold)",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Sembrado mensual completo */}
-              <div className="card">
-                <div className="flex-between mb16">
-                  <div className="card-title" style={{ marginBottom: 0 }}>
-                    Sembrado Mensual
-                  </div>
-                </div>
-                <SembradoMensual
-                  semanas={mesoVisto.semanas}
-                  irm_arr={irm_arr}
-                  irm_env={irm_env}
-                  meso={mesoVisto}
-                  onChangeSemana={updateSemanaH}
-                  onChangeTodasSemanas={(newSemanas) => {
-                    updateMeso({ ...mesoVisto, semanas: newSemanas });
-                  }}
-                  normativos={atletaNormativos}
-                />
-                <ResumenGrupos
-                  semanas={mesoVisto.semanas}
-                  meso={mesoVisto}
-                  onGuardarDistribucion={(dist) => {
-                    try {
-                      const stored = JSON.parse(
-                        localStorage.getItem("liftplan_plantillas") || "[]",
-                      );
-                      const nuevo = {
-                        id: mkId(),
-                        tipo: "distribucion",
-                        creado: new Date().toISOString().slice(0, 10),
-                        nombre: `Distribución ${mesoVisto.nombre || "Mesociclo"}`,
-                        descripcion: `${mesoVisto.semanas.length} semanas`,
-                        periodo: "general",
-                        objetivo: "mixto",
-                        nivel: "intermedio",
-                        distribucion: dist,
-                      };
-                      localStorage.setItem(
-                        "liftplan_plantillas",
-                        JSON.stringify([...stored, nuevo]),
-                      );
-                      alert("Distribución guardada como plantilla");
-                    } catch (e) {}
-                  }}
-                  semPctOverrides={semPctOverrides}
-                  semPctManual={semPctManual}
-                  setSemPctOverrides={setSemPctOverridesH}
-                  setSemPctManual={setSemPctManualH}
-                  onRequestReset={(label, fn) =>
-                    setConfirmReset({ label, onConfirm: fn })
-                  }
-                  onBeforeChange={(forced) => {
-                    if (!forced && histIdxRef.current != null) pushSnap();
-                    else pushSnap(true);
-                  }}
-                />
-                <DistribucionTurnos
-                  semanas={mesoVisto.semanas}
-                  meso={mesoVisto}
-                  turnoPctOverrides={turnoPctOverrides}
-                  turnoPctManual={turnoPctManual}
-                  setTurnoPctOverrides={setTurnoPctOverridesH}
-                  setTurnoPctManual={setTurnoPctManualH}
-                  semPctOverrides={semPctOverrides}
-                  semPctManual={semPctManual}
-                  onRequestReset={(label, fn) =>
-                    setConfirmReset({ label, onConfirm: fn })
-                  }
-                  onBeforeChange={(forced) => pushSnap(forced)}
-                />
-                <PlanillaTurno
-                  semanas={mesoVisto.semanas}
-                  irm_arr={irm_arr}
-                  irm_env={irm_env}
-                  meso={mesoVisto}
-                  semPctOverrides={semPctOverrides}
-                  semPctManual={semPctManual}
-                  turnoPctOverrides={turnoPctOverrides}
-                  turnoPctManual={turnoPctManual}
-                  onRequestReset={(label, fn) =>
-                    setConfirmReset({ label, onConfirm: fn })
-                  }
-                  onBeforeChange={(forced) => {
-                    pushSnap(forced);
-                  }}
-                  onChangeTodasSemanas={(newSemanas) => {
-                    updateMeso({ ...mesoVisto, semanas: newSemanas });
-                  }}
-                  onChangeTurno={(sIdx, tIdx, newTurno) => {
-                    const sem = mesoVisto.semanas[sIdx];
-                    const ts = [...sem.turnos];
-                    ts[tIdx] = newTurno;
-                    updateSemana(sIdx, { ...sem, turnos: ts });
-                  }}
-                  repsEdit={repsEdit}
-                  setRepsEdit={setRepsEditRaw}
-                  manualEdit={manualEdit}
-                  setManualEdit={setManualEditRaw}
-                  cellEdit={cellEdit}
-                  setCellEdit={setCellEditRaw}
-                  cellManual={cellManual}
-                  setCellManual={setCellManualRaw}
-                  nameEdit={nameEdit}
-                  setNameEdit={setNameEditRaw}
-                  noteEdit={noteEdit}
-                  setNoteEdit={setNoteEditRaw}
-                  normativos={atletaNormativos}
-                />
-              </div>
-            </>
-          )}
-        </>
+          </>
         </PanelTabBoundary>
       )}
 
@@ -17492,7 +17686,9 @@ ${previewEl.outerHTML}
                           </th>
                           {(() => {
                             // Detectar si tenemos complementarios con bloques
-                            const hasCompBloques = rows.some((r) => r.isCompBloques);
+                            const hasCompBloques = rows.some(
+                              (r) => r.isCompBloques,
+                            );
                             const hasRegularIntensidades = rows.some(
                               (r) => !r.isCompBloques,
                             );
@@ -21715,21 +21911,13 @@ function PlantillaPicker({ plantillas, tipo = "meso", onSelect, onClose }) {
   );
 }
 
-function PageNormativos({ coachId = null }) {
+function PageNormativos({ coachId, isActive = false }) {
+  const isNormativosValid = (value) =>
+    Array.isArray(value) && value.length >= EJERCICIOS.length;
+
   const [ejercicios, setEjercicios] = useState(() => {
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem("liftplan_normativos") || "null",
-      );
-      // Si la lista guardada tiene menos ejercicios que la base, usar la base
-      if (!stored || stored.length < EJERCICIOS.length) {
-        localStorage.removeItem("liftplan_normativos");
-        return EJERCICIOS;
-      }
-      return stored;
-    } catch {
-      return EJERCICIOS;
-    }
+    const stored = readLocalJson("liftplan_normativos", null);
+    return isNormativosValid(stored) ? stored : EJERCICIOS;
   });
   const [filtro, setFiltro] = useState("");
   const [catFiltro, setCatFiltro] = useState("");
@@ -21745,38 +21933,76 @@ function PageNormativos({ coachId = null }) {
   });
   const [confirmDel, setConfirmDel] = useState(null);
   const [error, setError] = useState("");
+  const isSyncingRef = useRef(false);
 
-  // Cargar normativos desde Supabase al montar
+  const syncFromDb = useCallback(async () => {
+    if (!coachId || isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    try {
+      const remoteRow = await loadCoachSettingRow(
+        coachId,
+        COACH_SETTING_KEYS.normativos,
+      );
+      const remote = remoteRow?.setting_value ?? null;
+
+      if (isNormativosValid(remote)) {
+        const local = readLocalJson("liftplan_normativos", null);
+        const hasChanged = JSON.stringify(local) !== JSON.stringify(remote);
+        if (hasChanged) {
+          setEjercicios(remote);
+          writeLocalJson("liftplan_normativos", remote);
+        }
+        return;
+      }
+
+      const local = readLocalJson("liftplan_normativos", null);
+      const seed = isNormativosValid(local) ? local : EJERCICIOS;
+      if (!isNormativosValid(local)) {
+        writeLocalJson("liftplan_normativos", seed);
+        setEjercicios(seed);
+      }
+      await saveCoachSetting(coachId, COACH_SETTING_KEYS.normativos, seed);
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [coachId]);
+
   useEffect(() => {
     if (!coachId) return;
-    sb.from("profiles")
-      .select("normativos")
-      .eq("id", coachId)
-      .single()
-      .exec()
-      .then(({ data }) => {
-        if (!data?.normativos) return;
-        const fromDb = Array.isArray(data.normativos) ? data.normativos : null;
-        if (!fromDb || fromDb.length < EJERCICIOS.length) return;
-        setEjercicios(fromDb);
-        try {
-          localStorage.setItem("liftplan_normativos", JSON.stringify(fromDb));
-        } catch {}
-      })
-      .catch(() => {});
-  }, [coachId]);
+    syncFromDb().catch(() => {});
+  }, [coachId, syncFromDb]);
+
+  useEffect(() => {
+    if (!coachId || !isActive) return;
+    const pollId = window.setInterval(() => {
+      syncFromDb().catch(() => {});
+    }, 8000);
+
+    const onFocus = () => {
+      syncFromDb().catch(() => {});
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        syncFromDb().catch(() => {});
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.clearInterval(pollId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [coachId, isActive, syncFromDb]);
 
   const save = (list) => {
     setEjercicios(list);
-    try {
-      localStorage.setItem("liftplan_normativos", JSON.stringify(list));
-    } catch {}
+    writeLocalJson("liftplan_normativos", list);
     if (coachId) {
-      sb.from("profiles")
-        .update({ normativos: list })
-        .eq("id", coachId)
-        .exec()
-        .catch(() => {});
+      saveCoachSetting(coachId, COACH_SETTING_KEYS.normativos, list);
     }
   };
 
@@ -22372,16 +22598,19 @@ function PageNormativos({ coachId = null }) {
 }
 
 // ─── PAGE CALCULADORA ────────────────────────────────────────────────────────
-function PageCalculadora() {
+function PageCalculadora({ coachId }) {
+  const normalizeTablas = (value) => {
+    if (!value || typeof value !== "object") return TABLA_DEFAULT;
+    const merged = { ...TABLA_DEFAULT };
+    Object.keys(TABLA_DEFAULT).forEach((k) => {
+      if (Array.isArray(value[k])) merged[k] = value[k];
+    });
+    return merged;
+  };
+
   const [tablas, setTablas] = useState(() => {
-    try {
-      return (
-        JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
-        TABLA_DEFAULT
-      );
-    } catch {
-      return TABLA_DEFAULT;
-    }
+    const local = readLocalJson("liftplan_tablas", null);
+    return normalizeTablas(local);
   });
 
   // Top tabs: IRM | Series/Reps
@@ -22391,11 +22620,41 @@ function PageCalculadora() {
   const [tabSR, setTabSR] = useState("lookup_general");
   const [editCell, setEditCell] = useState(null);
 
+  useEffect(() => {
+    if (!coachId) return;
+    let cancelled = false;
+
+    const syncFromDb = async () => {
+      const remote = await loadCoachSetting(coachId, COACH_SETTING_KEYS.tablas);
+      if (cancelled) return;
+
+      if (remote && typeof remote === "object") {
+        const merged = normalizeTablas(remote);
+        setTablas(merged);
+        writeLocalJson("liftplan_tablas", merged);
+        return;
+      }
+
+      const local = readLocalJson("liftplan_tablas", null);
+      const seed = normalizeTablas(local);
+      writeLocalJson("liftplan_tablas", seed);
+      setTablas(seed);
+      await saveCoachSetting(coachId, COACH_SETTING_KEYS.tablas, seed);
+    };
+
+    syncFromDb().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coachId]);
+
   const saveTablas = (newTablas) => {
     setTablas(newTablas);
-    try {
-      localStorage.setItem("liftplan_tablas", JSON.stringify(newTablas));
-    } catch {}
+    writeLocalJson("liftplan_tablas", newTablas);
+    if (coachId) {
+      saveCoachSetting(coachId, COACH_SETTING_KEYS.tablas, newTablas);
+    }
   };
 
   const updateCell = (tablaKey, irmIdx, col, val) => {
@@ -23043,6 +23302,7 @@ const load = (key, fallback) => {
 const save = (key, val) => {
   try {
     localStorage.setItem(key, JSON.stringify(val));
+    emitLocalSyncEvent(key);
   } catch {}
 };
 
@@ -23196,22 +23456,41 @@ function PanelReferencia({
     };
   });
 
-  // Force re-read on render tick using a ticker
-  const [tick, setTick] = useState(0);
+  // Re-read local overrides only when relevant storage keys actually change.
+  const [localRevision, setLocalRevision] = useState(0);
   useEffect(() => {
-    // Poll every 300ms for localStorage changes (catches % bloques/turnos updates)
-    const id = setInterval(() => setTick((t) => t + 1), 300);
-    // Also listen to storage events (cross-tab)
-    const onStorage = () => setTick((t) => t + 1);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      clearInterval(id);
-      window.removeEventListener("storage", onStorage);
+    const bump = () => setLocalRevision((v) => v + 1);
+    const shouldRefreshForKey = (key) => {
+      if (!key) return false;
+      if (key === "liftplan_normativos") return true;
+      if (key === `liftplan_normativos_atleta_${atletaId}`) return true;
+      if (!mid) return false;
+      if (key.startsWith(`liftplan_pt_${mid}_`)) return true;
+      if (key.startsWith(`liftplan_pct_${mid}_`)) return true;
+      return false;
     };
-  }, [mid]);
 
-  // Use tick to force re-read (tick is referenced so React includes it in render)
-  void tick;
+    const onStorage = (event) => {
+      if (shouldRefreshForKey(event?.key)) bump();
+    };
+
+    const onLocalSync = (event) => {
+      const key = event?.detail?.key;
+      if (shouldRefreshForKey(key)) bump();
+    };
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(LIFTPLAN_LOCAL_SYNC_EVENT, onLocalSync);
+    window.addEventListener("liftplan:normativos-overrides-updated", bump);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(LIFTPLAN_LOCAL_SYNC_EVENT, onLocalSync);
+      window.removeEventListener("liftplan:normativos-overrides-updated", bump);
+    };
+  }, [mid, atletaId]);
+
+  void localRevision;
 
   // Mirrors PlanillaTurno getSemPct/getTurnoPct/calcTentativa exactly
   const _getSemPct = (g, sIdx) => {
@@ -24686,13 +24965,33 @@ function CoachApp({ session, profile, onLogout }) {
   const [plantillasTabs, setPlantillasTabsRaw] = useState(() =>
     load("liftplan_plantillas_tabs", []),
   );
-  const coachId = session?.user?.id || null;
+  const authCoachId = session?.user?.id || null;
+  const [coachId, setCoachId] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!authCoachId) {
+      setCoachId(null);
+      return;
+    }
+
+    (async () => {
+      const resolved = await resolveSharedCoachId(authCoachId);
+      if (!cancelled) setCoachId(resolved || authCoachId);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authCoachId]);
+
   const {
     plantillas,
     add: addPlantillaRaw,
     update: updatePlantilla,
     remove: removePlantilla,
   } = usePlantillas(coachId);
+  const mesoOverrideSyncTimersRef = useRef(new Map());
+  const atletaOverrideSyncTimersRef = useRef(new Map());
 
   // ── Refs para sincronización con DB ────────────────────────────────────────
   const prevAtletasRef = useRef(null); // null = DB aún no inicializada
@@ -24705,6 +25004,76 @@ function CoachApp({ session, profile, onLogout }) {
   useEffect(() => {
     mesociclosRef.current = mesociclos;
   }, [mesociclos]);
+
+  const queueMesoOverrideSync = useCallback(
+    (liveData) => {
+      if (!coachId || !liveData?.meso?.id) return;
+      const mesoId = liveData.meso.id;
+      const pending = mesoOverrideSyncTimersRef.current.get(mesoId);
+      if (pending) clearTimeout(pending);
+
+      const timer = setTimeout(async () => {
+        mesoOverrideSyncTimersRef.current.delete(mesoId);
+        const currentMeso =
+          mesociclosRef.current.find((item) => item.id === mesoId) ||
+          liveData.meso;
+        if (!currentMeso) return;
+
+        const payload = mesoToDb(currentMeso, coachId, {
+          overrides: buildMesoOverridesPayload(currentMeso, liveData),
+        });
+        const { error } = await sb.from("mesociclos").upsert([payload], {
+          onConflict: "app_id",
+        });
+        if (error) console.warn("DB sync mesociclo overrides failed:", error);
+      }, 800);
+
+      mesoOverrideSyncTimersRef.current.set(mesoId, timer);
+    },
+    [coachId],
+  );
+
+  const queueAtletaOverrideSync = useCallback(
+    (atletaId, overrides) => {
+      if (!coachId || !atletaId) return;
+      const pending = atletaOverrideSyncTimersRef.current.get(atletaId);
+      if (pending) clearTimeout(pending);
+
+      const timer = setTimeout(async () => {
+        atletaOverrideSyncTimersRef.current.delete(atletaId);
+        const currentAtleta = atletasRef.current.find(
+          (item) => item.id === atletaId,
+        );
+        if (!currentAtleta) return;
+
+        const payload = atletaToDb(currentAtleta, coachId, {
+          normativosOverrides: asPlainObject(overrides),
+        });
+        const { error } = await sb.from("atletas").upsert([payload], {
+          onConflict: "app_id",
+        });
+        if (error) console.warn("DB sync atleta overrides failed:", error);
+      }, 800);
+
+      atletaOverrideSyncTimersRef.current.set(atletaId, timer);
+    },
+    [coachId],
+  );
+
+  useEffect(() => {
+    Object.values(liveMesoData).forEach(queueMesoOverrideSync);
+  }, [liveMesoData, queueMesoOverrideSync]);
+
+  useEffect(() => {
+    return () => {
+      mesoOverrideSyncTimersRef.current.forEach((timer) => clearTimeout(timer));
+      atletaOverrideSyncTimersRef.current.forEach((timer) =>
+        clearTimeout(timer),
+      );
+      mesoOverrideSyncTimersRef.current.clear();
+      atletaOverrideSyncTimersRef.current.clear();
+    };
+  }, []);
 
   // ── Carga inicial desde Supabase ───────────────────────────────────────────
   useEffect(() => {
@@ -24720,9 +25089,10 @@ function CoachApp({ session, profile, onLogout }) {
         if (!e1 && dbAtletas) {
           const appAtletas = dbAtletas.filter((r) => r.app_id);
           if (appAtletas.length > 0) {
-            appAtletas.forEach((r) =>
-              restoreAtletaPctOverrides(r.app_id, r.pct_overrides),
-            );
+            appAtletas.forEach((r) => {
+              restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
+              restoreAtletaNormOverrides(r.app_id, r.normativos_overrides);
+            });
             const loaded = appAtletas.map(atletaFromDb);
             setAtletasRaw(loaded);
             save("liftplan_atletas", loaded);
@@ -24800,6 +25170,57 @@ function CoachApp({ session, profile, onLogout }) {
           prevMesociclosRef.current = mesociclosRef.current;
       }
     })();
+  }, [coachId]);
+
+  // ── Pull remoto de atletas (incluye overrides normativos) ─────────────────
+  useEffect(() => {
+    if (!coachId) return;
+    let cancelled = false;
+
+    const pullAtletas = async () => {
+      const { data, error } = await sb
+        .from("atletas")
+        .select("*")
+        .eq("coach_id", coachId)
+        .exec();
+      if (cancelled || error || !data) return;
+
+      const appAtletas = data.filter((r) => r.app_id);
+      if (appAtletas.length === 0) return;
+
+      appAtletas.forEach((r) => {
+        restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
+        restoreAtletaNormOverrides(r.app_id, r.normativos_overrides);
+      });
+
+      const loaded = appAtletas.map(atletaFromDb);
+      setAtletasRaw((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(loaded)) return prev;
+        save("liftplan_atletas", loaded);
+        prevAtletasRef.current = loaded;
+        return loaded;
+      });
+    };
+
+    pullAtletas();
+    const pollId = window.setInterval(() => {
+      pullAtletas();
+    }, 8000);
+    const onFocus = () => {
+      pullAtletas();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") pullAtletas();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [coachId]);
 
   // ── Sincronizar atletas con DB cuando cambian ──────────────────────────────
@@ -24889,14 +25310,7 @@ function CoachApp({ session, profile, onLogout }) {
           .catch(() => {});
       }
       const currAtletas = atletasRef.current;
-      if (currAtletas.length > 0) {
-        sb.from("atletas")
-          .upsert(
-            currAtletas.map((a) => atletaToDb(a, coachId)),
-            { onConflict: "app_id" },
-          )
-          .catch(() => {});
-      }
+      void currAtletas;
     };
     const interval = setInterval(syncOverrides, 60000);
     const onHide = () => {
@@ -25265,10 +25679,13 @@ function CoachApp({ session, profile, onLogout }) {
               />
             </div>
             <div style={{ display: tab === "calculadora" ? "block" : "none" }}>
-              <PageCalculadora />
+              <PageCalculadora coachId={coachId} />
             </div>
             <div style={{ display: tab === "normativos" ? "block" : "none" }}>
-              <PageNormativos coachId={coachId} />
+              <PageNormativos
+                coachId={coachId}
+                isActive={tab === "normativos"}
+              />
             </div>
 
             {/* Pestañas de atletas — montadas mientras estén abiertas */}
@@ -25288,6 +25705,7 @@ function CoachApp({ session, profile, onLogout }) {
                     setMesociclos={setMesociclos}
                     addPlantilla={addPlantilla}
                     onLiveMesoData={onLiveMesoDataCb}
+                    onAtletaOverridesChange={queueAtletaOverrideSync}
                     openRequest={atletaOpenRequest[aid]}
                     onBack={() => {
                       cerrarAtleta(aid, { stopPropagation: () => {} });
