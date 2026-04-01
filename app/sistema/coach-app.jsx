@@ -1998,6 +1998,47 @@ function calcRepsPorGrupo(reps, pctGrupos) {
   return res;
 }
 
+const remapSemanaIdx = (idx, aIdx, bIdx) => {
+  if (idx === aIdx) return bIdx;
+  if (idx === bIdx) return aIdx;
+  return idx;
+};
+
+const remapSemPctKeyForSwap = (key, aIdx, bIdx) => {
+  const match = /^(.*)-(\d+)$/.exec(String(key));
+  if (!match) return String(key);
+  const grupo = match[1];
+  const semIdx = Number(match[2]);
+  if (!Number.isInteger(semIdx)) return String(key);
+  return `${grupo}-${remapSemanaIdx(semIdx, aIdx, bIdx)}`;
+};
+
+const remapTurnoPctKeyForSwap = (key, aIdx, bIdx) => {
+  const match = /^(.*)-(\d+)-(\d+)$/.exec(String(key));
+  if (!match) return String(key);
+  const grupo = match[1];
+  const semIdx = Number(match[2]);
+  const turnoIdx = Number(match[3]);
+  if (!Number.isInteger(semIdx) || !Number.isInteger(turnoIdx)) {
+    return String(key);
+  }
+  return `${grupo}-${remapSemanaIdx(semIdx, aIdx, bIdx)}-${turnoIdx}`;
+};
+
+const remapOverrideObjectKeys = (obj, keyMapper) => {
+  const source = obj && typeof obj === "object" ? obj : {};
+  const next = {};
+  Object.entries(source).forEach(([k, v]) => {
+    next[keyMapper(k)] = v;
+  });
+  return next;
+};
+
+const remapOverrideSetKeys = (setLike, keyMapper) => {
+  const source = setLike instanceof Set ? setLike : new Set(setLike || []);
+  return new Set([...source].map((k) => keyMapper(k)));
+};
+
 function getEjercicioById(id, normativos = null) {
   if (normativos) return normativos.find((e) => e.id === id) || null;
   try {
@@ -11809,6 +11850,7 @@ function SembradoMensual({
   irm_env,
   onChangeSemana,
   onChangeTodasSemanas,
+  onSwapSemanas,
   meso,
   normativos = null,
 }) {
@@ -11936,6 +11978,7 @@ function SembradoMensual({
       s.numero = i + 1;
     });
     onChangeTodasSemanas(newSemanas);
+    if (onSwapSemanas) onSwapSemanas(aIdx, bIdx);
 
     const remapSel = (value) => {
       if (value === "") return "";
@@ -14269,6 +14312,25 @@ function PageAtleta({
     setTurnoPctManual(val);
   };
 
+  const handleSwapSemanasOverrides = (aIdx, bIdx) => {
+    setSemPctOverrides((prev) =>
+      remapOverrideObjectKeys(prev, (k) => remapSemPctKeyForSwap(k, aIdx, bIdx)),
+    );
+    setSemPctManual((prev) =>
+      remapOverrideSetKeys(prev, (k) => remapSemPctKeyForSwap(k, aIdx, bIdx)),
+    );
+    setTurnoPctOverrides((prev) =>
+      remapOverrideObjectKeys(prev, (k) =>
+        remapTurnoPctKeyForSwap(k, aIdx, bIdx),
+      ),
+    );
+    setTurnoPctManual((prev) =>
+      remapOverrideSetKeys(prev, (k) =>
+        remapTurnoPctKeyForSwap(k, aIdx, bIdx),
+      ),
+    );
+  };
+
   return (
     <div>
       {/* ══════════════════════════════════════════
@@ -15201,6 +15263,7 @@ function PageAtleta({
                     onChangeTodasSemanas={(newSemanas) => {
                       updateMeso({ ...mesoVisto, semanas: newSemanas });
                     }}
+                    onSwapSemanas={handleSwapSemanasOverrides}
                     normativos={atletaNormativos}
                   />
                   <ResumenGrupos
@@ -20060,6 +20123,28 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
                   meso={mesoFake}
                   onChangeSemana={updateSemana}
                   onChangeTodasSemanas={(ss) => set("semanas", ss)}
+                  onSwapSemanas={(aIdx, bIdx) => {
+                    setSemPctOverrides((prev) =>
+                      remapOverrideObjectKeys(prev, (k) =>
+                        remapSemPctKeyForSwap(k, aIdx, bIdx),
+                      ),
+                    );
+                    setSemPctManual((prev) =>
+                      remapOverrideSetKeys(prev, (k) =>
+                        remapSemPctKeyForSwap(k, aIdx, bIdx),
+                      ),
+                    );
+                    setTurnoPctOverrides((prev) =>
+                      remapOverrideObjectKeys(prev, (k) =>
+                        remapTurnoPctKeyForSwap(k, aIdx, bIdx),
+                      ),
+                    );
+                    setTurnoPctManual((prev) =>
+                      remapOverrideSetKeys(prev, (k) =>
+                        remapTurnoPctKeyForSwap(k, aIdx, bIdx),
+                      ),
+                    );
+                  }}
                 />
                 <ResumenGrupos
                   semanas={form.semanas}
