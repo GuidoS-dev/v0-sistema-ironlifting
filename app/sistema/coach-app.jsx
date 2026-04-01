@@ -11600,7 +11600,9 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
   const listRef = useRef(null);
 
   useEffect(() => {
-    const el = listRef.current?.querySelector(`[data-intensity="${value}"]`);
+    const el =
+      listRef.current?.querySelector('[data-intensity="80"]') ||
+      listRef.current?.querySelector(`[data-intensity="${value}"]`);
     if (el) el.scrollIntoView({ block: "center" });
   }, [value]);
 
