@@ -542,6 +542,7 @@ function atletaFromDb(r) {
     tipo: r.tipo,
     genero: r.genero || "m",
     ciclo,
+    _updated_at: r.updated_at || null,
   };
 }
 function mesoToDb(m, coachId, options = {}) {
@@ -586,6 +587,7 @@ function mesoFromDb(r) {
     escuela_nivel: meta.escuela_nivel ?? "1",
     num_bloques_basica: meta.num_bloques_basica ?? 3,
     distribucion: meta.distribucion ?? null,
+    _updated_at: r.updated_at || null,
   };
 }
 function plantillaToDb(p, coachId) {
@@ -25327,10 +25329,22 @@ function CoachApp({ session, profile, onLogout }) {
 
       const loaded = appAtletas.map(atletaFromDb);
       setAtletasRaw((prev) => {
-        if (JSON.stringify(prev) === JSON.stringify(loaded)) return prev;
-        save("liftplan_atletas", loaded);
-        prevAtletasRef.current = loaded;
-        return loaded;
+        // LWW: solo actualizar items donde DB es más reciente que local
+        const merged = loaded.map((dbItem) => {
+          const local = prev.find((p) => p.id === dbItem.id);
+          if (!local) return dbItem; // nuevo en DB
+          const dbTs = dbItem._updated_at ? new Date(dbItem._updated_at).getTime() : 0;
+          const localTs = local._updated_at ? new Date(local._updated_at).getTime() : 0;
+          return dbTs >= localTs ? dbItem : local;
+        });
+        // agregar items locales que aún no están en DB
+        prev.forEach((localItem) => {
+          if (!merged.find((m) => m.id === localItem.id)) merged.push(localItem);
+        });
+        if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
+        save("liftplan_atletas", merged);
+        prevAtletasRef.current = merged;
+        return merged;
       });
     };
 
@@ -25355,6 +25369,61 @@ function CoachApp({ session, profile, onLogout }) {
     };
   }, [coachId]);
 
+  // ── Pull remoto de mesociclos (LWW) ───────────────────────────────────────
+  useEffect(() => {
+    if (!coachId) return;
+    let cancelled = false;
+
+    const pullMesociclos = async () => {
+      const { data, error } = await sb
+        .from("mesociclos")
+        .select("*")
+        .eq("coach_id", coachId)
+        .exec();
+      if (cancelled || error || !data) return;
+
+      const appMesos = data.filter((r) => r.app_id);
+      if (appMesos.length === 0) return;
+
+      appMesos.forEach((r) => restoreMesoOverrides(r.app_id, r.overrides));
+
+      const loaded = appMesos.map(mesoFromDb);
+      setMesociclosRaw((prev) => {
+        // LWW: solo actualizar items donde DB es más reciente que local
+        const merged = loaded.map((dbItem) => {
+          const local = prev.find((p) => p.id === dbItem.id);
+          if (!local) return dbItem;
+          const dbTs = dbItem._updated_at ? new Date(dbItem._updated_at).getTime() : 0;
+          const localTs = local._updated_at ? new Date(local._updated_at).getTime() : 0;
+          return dbTs >= localTs ? dbItem : local;
+        });
+        prev.forEach((localItem) => {
+          if (!merged.find((m) => m.id === localItem.id)) merged.push(localItem);
+        });
+        if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
+        save("liftplan_mesociclos", merged);
+        prevMesociclosRef.current = merged;
+        return merged;
+      });
+    };
+
+    pullMesociclos();
+    const pollId = window.setInterval(pullMesociclos, 8000);
+    const onFocus = () => pullMesociclos();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") pullMesociclos();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [coachId]);
+
   // ── Sincronizar atletas con DB cuando cambian ──────────────────────────────
   useEffect(() => {
     if (!coachId || prevAtletasRef.current === null) return;
@@ -25365,11 +25434,21 @@ function CoachApp({ session, profile, onLogout }) {
     const deletedIds = prev
       .filter((p) => !curr.find((a) => a.id === p.id))
       .map((p) => p.id);
+    const now = new Date().toISOString();
     const toUpsert = curr.filter((a) => {
       const old = prev.find((p) => p.id === a.id);
       return !old || JSON.stringify(old) !== JSON.stringify(a);
     });
     if (deletedIds.length === 0 && toUpsert.length === 0) return;
+
+    // Marcar _updated_at local antes de escribir a DB
+    if (toUpsert.length > 0) {
+      setAtletasRaw((s) =>
+        s.map((a) =>
+          toUpsert.find((u) => u.id === a.id) ? { ...a, _updated_at: now } : a,
+        ),
+      );
+    }
 
     (async () => {
       for (const id of deletedIds) {
@@ -25401,11 +25480,21 @@ function CoachApp({ session, profile, onLogout }) {
     const deletedIds = prev
       .filter((p) => !curr.find((m) => m.id === p.id))
       .map((p) => p.id);
+    const nowM = new Date().toISOString();
     const toUpsert = curr.filter((m) => {
       const old = prev.find((p) => p.id === m.id);
       return !old || JSON.stringify(old) !== JSON.stringify(m);
     });
     if (deletedIds.length === 0 && toUpsert.length === 0) return;
+
+    // Marcar _updated_at local antes de escribir a DB
+    if (toUpsert.length > 0) {
+      setMesociclosRaw((s) =>
+        s.map((m) =>
+          toUpsert.find((u) => u.id === m.id) ? { ...m, _updated_at: nowM } : m,
+        ),
+      );
+    }
 
     (async () => {
       for (const id of deletedIds) {
