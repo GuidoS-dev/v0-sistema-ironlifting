@@ -16,7 +16,6 @@ import {
   Briefcase,
   LogOut,
   Shield,
-  Droplets,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
