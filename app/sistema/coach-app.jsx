@@ -2221,7 +2221,7 @@ function getFasePorDia(diaEnCiclo, durCiclo, durMens) {
   return "lutea";
 }
 
-function getFaseCiclo(ciclo, fechaSemana, ventanaDias = 1) {
+function getFasesVentanaCiclo(ciclo, fechaSemana, ventanaDias = 1) {
   if (!ciclo?.ultimo_inicio || !fechaSemana) return null;
   const durCiclo = Number(ciclo.duracion_ciclo) || 28;
   const durMens = Number(ciclo.duracion_mens) || 5;
@@ -2234,13 +2234,16 @@ function getFaseCiclo(ciclo, fechaSemana, ventanaDias = 1) {
   const diaInicio = (((diffDias % durCiclo) + durCiclo) % durCiclo) + 1;
 
   const windowSize = Math.max(1, Number(ventanaDias) || 1);
-  if (windowSize === 1) return getFasePorDia(diaInicio, durCiclo, durMens);
-
   const fasesSemana = [];
   for (let i = 0; i < windowSize; i += 1) {
     const dia = (((diaInicio - 1 + i) % durCiclo) + durCiclo) % durCiclo + 1;
     fasesSemana.push(getFasePorDia(dia, durCiclo, durMens));
   }
+  return fasesSemana;
+}
+
+function getFaseDominante(fasesSemana) {
+  if (!Array.isArray(fasesSemana) || !fasesSemana.length) return null;
 
   // Si la ovulación cae dentro de la semana, priorizar esa fase para visibilidad.
   if (fasesSemana.includes("ovulacion")) return "ovulacion";
@@ -2261,6 +2264,27 @@ function getFaseCiclo(ciclo, fechaSemana, ventanaDias = 1) {
     }
   });
   return faseDominante;
+}
+
+function getFaseCiclo(ciclo, fechaSemana, ventanaDias = 1) {
+  const fasesSemana = getFasesVentanaCiclo(ciclo, fechaSemana, ventanaDias);
+  return getFaseDominante(fasesSemana);
+}
+
+function getDetalleFaseCiclo(ciclo, fechaSemana, ventanaDias = 1) {
+  const fasesSemana = getFasesVentanaCiclo(ciclo, fechaSemana, ventanaDias);
+  if (!fasesSemana?.length) return null;
+
+  const fase = getFaseDominante(fasesSemana);
+  const segmentos = fasesSemana.filter((f, i) => i === 0 || f !== fasesSemana[i - 1]);
+  const transicion =
+    segmentos.length > 1
+      ? segmentos
+          .map((f) => FASES_CICLO[f]?.label || f)
+          .join(" -> ")
+      : null;
+
+  return { fase, transicion };
 }
 
 // Para una semana del meso (por número), calcular fecha aproximada
@@ -15430,14 +15454,15 @@ function PageAtleta({
                 {/* Stats semanas */}
                 <div className="stats-row mb16">
                   {mesoVisto.semanas.map((s, i) => {
-                    const fase =
+                    const faseDetalle =
                       atleta.genero === "f" && atleta.ciclo?.ultimo_inicio
-                        ? getFaseCiclo(
+                        ? getDetalleFaseCiclo(
                             atleta.ciclo,
                             getFechaSemana(mesoVisto.fecha_inicio, s.numero),
                             7,
                           )
                         : null;
+                    const fase = faseDetalle?.fase || null;
                     const faseInfo = fase ? FASES_CICLO[fase] : null;
                     return (
                       <div
@@ -15471,6 +15496,19 @@ function PageAtleta({
                             }}
                           >
                             <faseInfo.Icon size={11} /> {faseInfo.label}
+                          </div>
+                        )}
+                        {faseDetalle?.transicion && (
+                          <div
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 600,
+                              color: "var(--muted)",
+                              marginTop: 2,
+                              lineHeight: 1.15,
+                            }}
+                          >
+                            Transicion: {faseDetalle.transicion}
                           </div>
                         )}
                         <div className="prog-bar">
