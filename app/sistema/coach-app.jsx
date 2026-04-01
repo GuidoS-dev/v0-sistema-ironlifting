@@ -11262,6 +11262,7 @@ function EjBuscadorCompacto({
           borderRadius: 3,
           cursor: "pointer",
           userSelect: "none",
+          touchAction: "manipulation",
           width: "100%",
           padding: "2px 4px",
           display: "flex",
@@ -11784,15 +11785,23 @@ function SembradoMensual({
   const [importFeedback, setImportFeedback] = useState(false);
   const importTimerRef = useRef(null);
 
+  const emptySlotCache = useRef({});
+
   const getEjs = (semIdx, tIdx) => {
     const ejs = (semanas[semIdx]?.turnos[tIdx]?.ejercicios || []).filter(
       Boolean,
     );
     if (ejs.length < DEFAULT_EJS) {
-      return [
-        ...ejs,
-        ...Array.from({ length: DEFAULT_EJS - ejs.length }, mkEj),
-      ];
+      const cacheKey = `${semIdx}-${tIdx}`;
+      if (!emptySlotCache.current[cacheKey]) {
+        emptySlotCache.current[cacheKey] = [];
+      }
+      const cache = emptySlotCache.current[cacheKey];
+      const needed = DEFAULT_EJS - ejs.length;
+      while (cache.length < needed) {
+        cache.push(mkEj());
+      }
+      return [...ejs, ...cache.slice(0, needed)];
     }
     return ejs;
   };
