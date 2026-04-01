@@ -21715,7 +21715,7 @@ function PlantillaPicker({ plantillas, tipo = "meso", onSelect, onClose }) {
   );
 }
 
-function PageNormativos() {
+function PageNormativos({ coachId = null }) {
   const [ejercicios, setEjercicios] = useState(() => {
     try {
       const stored = JSON.parse(
@@ -21746,11 +21746,38 @@ function PageNormativos() {
   const [confirmDel, setConfirmDel] = useState(null);
   const [error, setError] = useState("");
 
+  // Cargar normativos desde Supabase al montar
+  useEffect(() => {
+    if (!coachId) return;
+    sb.from("profiles")
+      .select("normativos")
+      .eq("id", coachId)
+      .single()
+      .exec()
+      .then(({ data }) => {
+        if (!data?.normativos) return;
+        const fromDb = Array.isArray(data.normativos) ? data.normativos : null;
+        if (!fromDb || fromDb.length < EJERCICIOS.length) return;
+        setEjercicios(fromDb);
+        try {
+          localStorage.setItem("liftplan_normativos", JSON.stringify(fromDb));
+        } catch {}
+      })
+      .catch(() => {});
+  }, [coachId]);
+
   const save = (list) => {
     setEjercicios(list);
     try {
       localStorage.setItem("liftplan_normativos", JSON.stringify(list));
     } catch {}
+    if (coachId) {
+      sb.from("profiles")
+        .update({ normativos: list })
+        .eq("id", coachId)
+        .exec()
+        .catch(() => {});
+    }
   };
 
   // Abrir edición: crea copia local del ejercicio
@@ -25241,7 +25268,7 @@ function CoachApp({ session, profile, onLogout }) {
               <PageCalculadora />
             </div>
             <div style={{ display: tab === "normativos" ? "block" : "none" }}>
-              <PageNormativos />
+              <PageNormativos coachId={coachId} />
             </div>
 
             {/* Pestañas de atletas — montadas mientras estén abiertas */}
