@@ -3190,7 +3190,7 @@ function EjercicioRow({
         onChange={(id) => onChange({ ...ej, ejercicio_id: id })}
         normativos={normativos}
       />
-      <input
+      <input autoComplete="off"
         className="ej-input"
         type="number"
         min={40}
@@ -3201,7 +3201,7 @@ function EjercicioRow({
         }
         title="Intensidad %"
       />
-      <select
+      <select autoComplete="off"
         className="ej-input"
         value={ej.tabla}
         onChange={(e) => onChange({ ...ej, tabla: Number(e.target.value) })}
@@ -3210,7 +3210,7 @@ function EjercicioRow({
         <option value={2}>Tabla 2</option>
         <option value={3}>Tabla 3</option>
       </select>
-      <input
+      <input autoComplete="off"
         className="ej-input"
         type="number"
         min={0}
@@ -3365,7 +3365,7 @@ function TurnoCard({
       <div className="turno-header" onClick={() => setOpen((o) => !o)}>
         <div className="turno-num">T{turno.numero}</div>
         <div className="turno-dia">
-          <select
+          <select autoComplete="off"
             value={turno.dia}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
@@ -3378,7 +3378,7 @@ function TurnoCard({
               <option key={d}>{d}</option>
             ))}
           </select>
-          <select
+          <select autoComplete="off"
             value={turno.momento}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
@@ -4465,7 +4465,7 @@ function PlanillaTurno({
             gap: 6,
           }}
         >
-          <select
+          <select autoComplete="off"
             value={importSemOrigen}
             onChange={(e) => setImportSemOrigen(e.target.value)}
             disabled={semanas.length <= 1}
@@ -5171,7 +5171,7 @@ function PlanillaTurno({
                                   />
                                 )}
                                 {nameEditing === nk ? (
-                                  <input
+                                  <input autoComplete="off"
                                     autoFocus
                                     type="text"
                                     defaultValue={
@@ -5289,7 +5289,7 @@ function PlanillaTurno({
                                     }}
                                   />
                                 )}
-                                <input
+                                <input autoComplete="off"
                                   type="number"
                                   min={0}
                                   className="no-spin"
@@ -5541,7 +5541,7 @@ function PlanillaTurno({
                                     }}
                                   >
                                     {fields3.map(({ field, calc }) => (
-                                      <input
+                                      <input autoComplete="off"
                                         key={field}
                                         type="number"
                                         className="no-spin"
@@ -5562,7 +5562,7 @@ function PlanillaTurno({
                                     ))}
                                   </div>
                                   {/* Campo nota combinado — aparece si tiene contenido o al hacer click */}
-                                  <input
+                                  <input autoComplete="off"
                                     type="text"
                                     value={noteVal}
                                     placeholder={
@@ -6468,7 +6468,7 @@ function PlanillaTurno({
                                   gap: 10,
                                 }}
                               >
-                                <input
+                                <input autoComplete="off"
                                   autoFocus
                                   value={compPickerQuery}
                                   onChange={(e) =>
@@ -6923,7 +6923,7 @@ function PlanillaTurno({
                                         minWidth: 120,
                                       }}
                                     >
-                                      <input
+                                      <input autoComplete="off"
                                         type="text"
                                         value={resolveExerciseName(
                                           comp.nombre_custom,
@@ -6995,7 +6995,7 @@ function PlanillaTurno({
                                                 gap: 0,
                                               }}
                                             >
-                                              <input
+                                              <input autoComplete="off"
                                                 type="number"
                                                 className="no-spin"
                                                 value={b.pct ?? ""}
@@ -7013,7 +7013,7 @@ function PlanillaTurno({
                                                   color: "var(--gold)",
                                                 })}
                                               />
-                                              <input
+                                              <input autoComplete="off"
                                                 type="text"
                                                 className="no-spin"
                                                 value={b.series ?? ""}
@@ -7028,7 +7028,7 @@ function PlanillaTurno({
                                                 }
                                                 style={cellInputComp()}
                                               />
-                                              <input
+                                              <input autoComplete="off"
                                                 type="number"
                                                 className="no-spin"
                                                 value={b.reps ?? ""}
@@ -7043,7 +7043,7 @@ function PlanillaTurno({
                                                 }
                                                 style={cellInputComp()}
                                               />
-                                              <input
+                                              <input autoComplete="off"
                                                 type="number"
                                                 step="0.5"
                                                 className="no-spin"
@@ -7062,7 +7062,7 @@ function PlanillaTurno({
                                                 })}
                                               />
                                             </div>
-                                            <input
+                                            <input autoComplete="off"
                                               type="text"
                                               value={b.nota || ""}
                                               placeholder="…"
@@ -7664,7 +7664,7 @@ function PlanillaBasica({
               Semana {sem.numero} — Turno {turnoActivo + 1}
             </div>
             {/* Day/Moment inline selectors */}
-            <select
+            <select autoComplete="off"
               value={turno.dia || ""}
               onChange={(e) => {
                 updateSemanas((ss) => {
@@ -7697,7 +7697,7 @@ function PlanillaBasica({
                 </option>
               ))}
             </select>
-            <select
+            <select autoComplete="off"
               value={turno.momento || ""}
               onChange={(e) => {
                 updateSemanas((ss) => {
@@ -7962,7 +7962,7 @@ function PlanillaBasica({
                           background: `${col}0a`,
                         }}
                       >
-                        <input
+                        <input autoComplete="off"
                           type="number"
                           min={1}
                           max={200}
@@ -7988,7 +7988,7 @@ function PlanillaBasica({
                           minWidth: 100,
                         }}
                       >
-                        <input
+                        <input autoComplete="off"
                           type="text"
                           value={displayName}
                           placeholder="Nombre del ejercicio"
@@ -8049,7 +8049,7 @@ function PlanillaBasica({
                                 gap: 0,
                               }}
                             >
-                              <input
+                              <input autoComplete="off"
                                 type="number"
                                 className="no-spin"
                                 value={b.pct ?? ""}
@@ -8067,7 +8067,7 @@ function PlanillaBasica({
                                   color: "var(--gold)",
                                 })}
                               />
-                              <input
+                              <input autoComplete="off"
                                 type="text"
                                 className="no-spin"
                                 value={b.series ?? ""}
@@ -8097,7 +8097,7 @@ function PlanillaBasica({
                                 }}
                                 style={cellInput()}
                               />
-                              <input
+                              <input autoComplete="off"
                                 type="number"
                                 className="no-spin"
                                 value={b.reps ?? ""}
@@ -8112,7 +8112,7 @@ function PlanillaBasica({
                                 }
                                 style={cellInput()}
                               />
-                              <input
+                              <input autoComplete="off"
                                 type="number"
                                 step="0.5"
                                 className="no-spin"
@@ -8128,7 +8128,7 @@ function PlanillaBasica({
                                 })}
                               />
                             </div>
-                            <input
+                            <input autoComplete="off"
                               type="text"
                               value={b.nota || ""}
                               placeholder="…"
@@ -9119,7 +9119,7 @@ function ResumenGrupos({
                                 gap: 1,
                               }}
                             >
-                              <input
+                              <input autoComplete="off"
                                 type="number"
                                 className="no-spin"
                                 value={val ?? ""}
@@ -10225,7 +10225,7 @@ function DistribucionTurnos({
                                   gap: 1,
                                 }}
                               >
-                                <input
+                                <input autoComplete="off"
                                   type="number"
                                   className="no-spin"
                                   value={val ?? ""}
@@ -11329,7 +11329,7 @@ function EjBuscadorCompacto({
                 gap: 10,
               }}
             >
-              <input
+              <input autoComplete="off"
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -11535,7 +11535,7 @@ function EjCelda({
       />
 
       {/* INT */}
-      <select
+      <select autoComplete="off"
         value={ej.intensidad}
         onChange={(e) =>
           onChange({ ...ej, intensidad: Number(e.target.value) })
@@ -11560,7 +11560,7 @@ function EjCelda({
       </select>
 
       {/* TBL */}
-      <select
+      <select autoComplete="off"
         value={ej.tabla}
         onChange={(e) => onChange({ ...ej, tabla: Number(e.target.value) })}
         style={{
@@ -11952,7 +11952,7 @@ function SembradoMensual({
           <span style={{ fontSize: 10, color: "var(--muted)" }}>
             Importar sembrado
           </span>
-          <select
+          <select autoComplete="off"
             value={importFrom}
             onChange={(e) => setImportFrom(e.target.value)}
             style={{
@@ -11973,7 +11973,7 @@ function SembradoMensual({
             ))}
           </select>
           <span style={{ fontSize: 10, color: "var(--muted)" }}>→</span>
-          <select
+          <select autoComplete="off"
             value={importTo}
             onChange={(e) => setImportTo(e.target.value)}
             style={{
@@ -12191,7 +12191,7 @@ function SembradoMensual({
                   >
                     {/* Día y momento por semana */}
                     <div style={{ display: "flex", gap: 3, marginBottom: 4 }}>
-                      <select
+                      <select autoComplete="off"
                         value={s.turnos[tIdx]?.dia || ""}
                         onChange={(e) =>
                           updateDiaSemana(
@@ -12220,7 +12220,7 @@ function SembradoMensual({
                           <option key={d}>{d}</option>
                         ))}
                       </select>
-                      <select
+                      <select autoComplete="off"
                         value={s.turnos[tIdx]?.momento || ""}
                         onChange={(e) =>
                           updateDiaSemana(
@@ -12313,7 +12313,7 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
           </div>
           <div className="vol-item">
             <div className="vol-label">Reps ajustadas</div>
-            <input
+            <input autoComplete="off"
               className="form-input"
               type="number"
               value={repsAjust}
@@ -12358,7 +12358,7 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
                 {g}
               </div>
               <div className="grupo-pct">
-                <input
+                <input autoComplete="off"
                   type="number"
                   min={0}
                   max={100}
@@ -13215,7 +13215,7 @@ function EditMesoModal({ meso, onSave, onClose }) {
     <Modal title="Editar Mesociclo" onClose={onClose}>
       <div className="form-group">
         <label className="form-label">Nombre</label>
-        <input
+        <input autoComplete="off"
           className="form-input"
           value={form.nombre}
           onChange={(e) => set("nombre", e.target.value)}
@@ -13224,7 +13224,7 @@ function EditMesoModal({ meso, onSave, onClose }) {
       </div>
       <div className="form-group">
         <label className="form-label">Descripción / Objetivos</label>
-        <textarea
+        <textarea autoComplete="off"
           className="form-input"
           value={form.descripcion}
           onChange={(e) => set("descripcion", e.target.value)}
@@ -13236,7 +13236,7 @@ function EditMesoModal({ meso, onSave, onClose }) {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Fecha inicio</label>
-          <input
+          <input autoComplete="off"
             className="form-input"
             type="text"
             value={form.fecha_inicio}
@@ -13458,7 +13458,7 @@ function EditVolModal({ meso, onSave, onClose }) {
     <Modal title="Editar Volumen y Semanas" onClose={onClose}>
       <div className="form-group">
         <label className="form-label">Repeticiones totales del mesociclo</label>
-        <input
+        <input autoComplete="off"
           className="form-input"
           type="number"
           value={volTotal}
@@ -13499,7 +13499,7 @@ function EditVolModal({ meso, onSave, onClose }) {
                 flexWrap: "wrap",
               }}
             >
-              <input
+              <input autoComplete="off"
                 className="form-input"
                 type="number"
                 min={0}
@@ -14537,7 +14537,7 @@ function PageAtleta({
             >
               Ciclo:
             </span>
-            <select
+            <select autoComplete="off"
               className="form-select"
               style={{
                 maxWidth: "min(320px,100%)",
@@ -14962,7 +14962,7 @@ function PageAtleta({
                       >
                         IRM Arr
                       </label>
-                      <input
+                      <input autoComplete="off"
                         type="number"
                         min={0}
                         max={300}
@@ -15015,7 +15015,7 @@ function PageAtleta({
                       >
                         IRM Env
                       </label>
-                      <input
+                      <input autoComplete="off"
                         type="number"
                         min={0}
                         max={400}
@@ -18885,7 +18885,7 @@ function GuardarPlantillaModal({
     <Modal title={`Guardar como plantilla — ${tipoLabel}`} onClose={onClose}>
       <div className="form-group">
         <label className="form-label">Nombre de la plantilla *</label>
-        <input
+        <input autoComplete="off"
           className="form-input"
           value={form.nombre}
           onChange={(e) => set("nombre", e.target.value)}
@@ -18898,7 +18898,7 @@ function GuardarPlantillaModal({
       </div>
       <div className="form-group">
         <label className="form-label">Descripción</label>
-        <textarea
+        <textarea autoComplete="off"
           className="form-input"
           value={form.descripcion}
           onChange={(e) => set("descripcion", e.target.value)}
@@ -18910,7 +18910,7 @@ function GuardarPlantillaModal({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div className="form-group">
           <label className="form-label">Período</label>
-          <select
+          <select autoComplete="off"
             className="form-select"
             value={form.periodo}
             onChange={(e) => set("periodo", e.target.value)}
@@ -18924,7 +18924,7 @@ function GuardarPlantillaModal({
         </div>
         <div className="form-group">
           <label className="form-label">Objetivo</label>
-          <select
+          <select autoComplete="off"
             className="form-select"
             value={form.objetivo}
             onChange={(e) => set("objetivo", e.target.value)}
@@ -18938,7 +18938,7 @@ function GuardarPlantillaModal({
         </div>
         <div className="form-group">
           <label className="form-label">Nivel atleta</label>
-          <select
+          <select autoComplete="off"
             className="form-select"
             value={form.nivel}
             onChange={(e) => set("nivel", e.target.value)}
@@ -18953,7 +18953,7 @@ function GuardarPlantillaModal({
         {tipo === "meso" && (
           <div className="form-group">
             <label className="form-label">Modo</label>
-            <select
+            <select autoComplete="off"
               className="form-select"
               value={form.modo}
               onChange={(e) => set("modo", e.target.value)}
@@ -19841,7 +19841,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
                 >
                   IRM Arr
                 </label>
-                <input
+                <input autoComplete="off"
                   type="number"
                   min={0}
                   max={300}
@@ -19882,7 +19882,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
                 >
                   IRM Env
                 </label>
-                <input
+                <input autoComplete="off"
                   type="number"
                   min={0}
                   max={400}
@@ -20186,7 +20186,7 @@ function CrearPlantillaModal({ onSave, onClose }) {
         )}
         <div className="form-group">
           <label className="form-label">Nombre *</label>
-          <input
+          <input autoComplete="off"
             className="form-input"
             value={form.nombre}
             onChange={(e) => set("nombre", e.target.value)}
@@ -20195,7 +20195,7 @@ function CrearPlantillaModal({ onSave, onClose }) {
         </div>
         <div className="form-group">
           <label className="form-label">Descripción</label>
-          <textarea
+          <textarea autoComplete="off"
             className="form-input"
             value={form.descripcion}
             onChange={(e) => set("descripcion", e.target.value)}
@@ -20329,7 +20329,7 @@ function CrearPlantillaModal({ onSave, onClose }) {
               ].map(([k, lbl, opts]) => (
                 <div key={k} className="form-group">
                   <label className="form-label">{lbl}</label>
-                  <select
+                  <select autoComplete="off"
                     className="form-select"
                     value={form[k]}
                     onChange={(e) => set(k, e.target.value)}
@@ -20344,7 +20344,7 @@ function CrearPlantillaModal({ onSave, onClose }) {
               ))}
               <div className="form-group">
                 <label className="form-label">Modo</label>
-                <select
+                <select autoComplete="off"
                   className="form-select"
                   value={form.modo}
                   onChange={(e) => set("modo", e.target.value)}
@@ -20367,7 +20367,7 @@ function CrearPlantillaModal({ onSave, onClose }) {
               >
                 <div className="form-group">
                   <label className="form-label">Semanas</label>
-                  <select
+                  <select autoComplete="off"
                     className="form-select"
                     value={form.semanas.length}
                     onChange={(e) => {
@@ -20396,7 +20396,7 @@ function CrearPlantillaModal({ onSave, onClose }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Volumen total (reps)</label>
-                  <input
+                  <input autoComplete="off"
                     className="form-input"
                     type="number"
                     min={100}
@@ -20468,7 +20468,7 @@ function DuplicarPlantillaModal({ plantillas, base, onSave, onClose }) {
         {/* Nombre */}
         <div className="form-group">
           <label className="form-label">Nombre de la nueva plantilla *</label>
-          <input
+          <input autoComplete="off"
             className="form-input"
             value={nombre}
             onChange={(e) => {
@@ -20481,7 +20481,7 @@ function DuplicarPlantillaModal({ plantillas, base, onSave, onClose }) {
 
         <div className="form-group">
           <label className="form-label">Descripción</label>
-          <textarea
+          <textarea autoComplete="off"
             className="form-input"
             value={descripcion}
             rows={2}
@@ -20495,7 +20495,7 @@ function DuplicarPlantillaModal({ plantillas, base, onSave, onClose }) {
         {!base && (
           <div className="form-group">
             <label className="form-label">Plantilla base</label>
-            <input
+            <input autoComplete="off"
               className="form-input"
               value={busq}
               onChange={(e) => setBusq(e.target.value)}
@@ -20999,7 +20999,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
             marginBottom: 20,
           }}
         >
-          <input
+          <input autoComplete="off"
             style={{
               flex: 1,
               background: "var(--surface2)",
@@ -21171,7 +21171,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
         <Modal title="Editar plantilla" onClose={() => setEditando(null)}>
           <div className="form-group">
             <label className="form-label">Nombre</label>
-            <input
+            <input autoComplete="off"
               className="form-input"
               value={editando.nombre}
               onChange={(e) =>
@@ -21181,7 +21181,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
           </div>
           <div className="form-group">
             <label className="form-label">Descripción</label>
-            <textarea
+            <textarea autoComplete="off"
               className="form-input"
               value={editando.descripcion || ""}
               onChange={(e) =>
@@ -21306,7 +21306,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
               ].map(([k, lbl, opts]) => (
                 <div key={k} className="form-group">
                   <label className="form-label">{lbl}</label>
-                  <select
+                  <select autoComplete="off"
                     className="form-select"
                     value={editando[k]}
                     onChange={(e) =>
@@ -21491,14 +21491,14 @@ function PageNormativosAtleta({
 
       <div className="card">
         <div className="flex gap12 mb14" style={{ flexWrap: "wrap" }}>
-          <input
+          <input autoComplete="off"
             className="form-input"
             style={{ maxWidth: 240 }}
             placeholder="Buscar por nombre o ID..."
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
           />
-          <select
+          <select autoComplete="off"
             className="form-select"
             style={{ maxWidth: 200 }}
             value={catFiltro}
@@ -21603,7 +21603,7 @@ function PageNormativosAtleta({
                       onClick={(ev) => isEditing && ev.stopPropagation()}
                     >
                       {isEditing ? (
-                        <input
+                        <input autoComplete="off"
                           type="number"
                           min={0}
                           max={200}
@@ -21633,7 +21633,7 @@ function PageNormativosAtleta({
                     </td>
                     <td onClick={(ev) => isEditing && ev.stopPropagation()}>
                       {isEditing ? (
-                        <select
+                        <select autoComplete="off"
                           style={{
                             ...inputStyle,
                             borderColor: baseOver
@@ -21827,7 +21827,7 @@ function PlantillaPicker({ plantillas, tipo = "meso", onSelect, onClose }) {
                   opacity: always ? 0.7 : 1,
                 }}
               >
-                <input
+                <input autoComplete="off"
                   type="checkbox"
                   checked={always || opts[k]}
                   disabled={always}
@@ -21885,7 +21885,7 @@ function PlantillaPicker({ plantillas, tipo = "meso", onSelect, onClose }) {
 
   return (
     <Modal title="Importar plantilla" onClose={onClose}>
-      <input
+      <input autoComplete="off"
         style={{
           width: "100%",
           background: "var(--surface2)",
@@ -22189,7 +22189,7 @@ function PageNormativos({ coachId, isActive = false }) {
           >
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">ID</label>
-              <input
+              <input autoComplete="off"
                 className="form-input"
                 type="number"
                 placeholder="auto"
@@ -22201,7 +22201,7 @@ function PageNormativos({ coachId, isActive = false }) {
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Nombre</label>
-              <input
+              <input autoComplete="off"
                 className="form-input"
                 placeholder="Nombre del ejercicio"
                 value={newEj.nombre}
@@ -22212,7 +22212,7 @@ function PageNormativos({ coachId, isActive = false }) {
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Categoría</label>
-              <select
+              <select autoComplete="off"
                 className="form-select"
                 value={newEj.categoria}
                 onChange={(e) =>
@@ -22226,7 +22226,7 @@ function PageNormativos({ coachId, isActive = false }) {
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">% Base</label>
-              <input
+              <input autoComplete="off"
                 className="form-input"
                 type="number"
                 min={0}
@@ -22240,7 +22240,7 @@ function PageNormativos({ coachId, isActive = false }) {
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Referencia</label>
-              <select
+              <select autoComplete="off"
                 className="form-select"
                 value={newEj.base}
                 onChange={(e) =>
@@ -22292,14 +22292,14 @@ function PageNormativos({ coachId, isActive = false }) {
       {/* Filtros */}
       <div className="card">
         <div className="flex gap12 mb14" style={{ flexWrap: "wrap" }}>
-          <input
+          <input autoComplete="off"
             className="form-input"
             style={{ maxWidth: 240 }}
             placeholder="Buscar por nombre o ID..."
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
           />
-          <select
+          <select autoComplete="off"
             className="form-select"
             style={{ maxWidth: 200 }}
             value={catFiltro}
@@ -22363,7 +22363,7 @@ function PageNormativos({ coachId, isActive = false }) {
                     {/* ID */}
                     <td onClick={(ev) => isEditing && ev.stopPropagation()}>
                       {isEditing ? (
-                        <input
+                        <input autoComplete="off"
                           style={{
                             ...inputStyle,
                             width: 60,
@@ -22412,7 +22412,7 @@ function PageNormativos({ coachId, isActive = false }) {
                     {/* Nombre */}
                     <td onClick={(ev) => isEditing && ev.stopPropagation()}>
                       {isEditing ? (
-                        <input
+                        <input autoComplete="off"
                           style={{ ...inputStyle, minWidth: 250 }}
                           value={row.nombre}
                           onChange={(ev) => setF("nombre", ev.target.value)}
@@ -22425,7 +22425,7 @@ function PageNormativos({ coachId, isActive = false }) {
                     {/* Categoría */}
                     <td onClick={(ev) => isEditing && ev.stopPropagation()}>
                       {isEditing ? (
-                        <select
+                        <select autoComplete="off"
                           style={inputStyle}
                           value={row.categoria}
                           onChange={(ev) => setF("categoria", ev.target.value)}
@@ -22453,7 +22453,7 @@ function PageNormativos({ coachId, isActive = false }) {
                       onClick={(ev) => isEditing && ev.stopPropagation()}
                     >
                       {isEditing ? (
-                        <input
+                        <input autoComplete="off"
                           type="number"
                           min={0}
                           max={200}
@@ -22481,7 +22481,7 @@ function PageNormativos({ coachId, isActive = false }) {
                     {/* Referencia */}
                     <td onClick={(ev) => isEditing && ev.stopPropagation()}>
                       {isEditing ? (
-                        <select
+                        <select autoComplete="off"
                           style={inputStyle}
                           value={row.base || ""}
                           onChange={(ev) => setF("base", ev.target.value)}
@@ -22844,7 +22844,7 @@ function PageCalculadora({ coachId }) {
                         style={{ textAlign: "center", padding: "3px 4px" }}
                       >
                         {isEditing ? (
-                          <input
+                          <input autoComplete="off"
                             autoFocus
                             type="number"
                             min={0}
@@ -23145,7 +23145,7 @@ function PageCalculadora({ coachId }) {
                   {row.reps}
                 </td>
                 <td style={{ textAlign: "center" }}>
-                  <input
+                  <input autoComplete="off"
                     type="number"
                     min={1}
                     value={row.series || 1}
@@ -23166,7 +23166,7 @@ function PageCalculadora({ coachId }) {
                   />
                 </td>
                 <td style={{ textAlign: "center" }}>
-                  <input
+                  <input autoComplete="off"
                     type="number"
                     min={1}
                     value={row.reps_serie || 1}
@@ -24420,7 +24420,7 @@ function PanelReferencia({
       >
         {modo === "atleta" ? (
           <>
-            <select
+            <select autoComplete="off"
               className="form-select"
               value={atletaId || ""}
               onChange={(e) => setAtletaId(e.target.value)}
@@ -24432,7 +24432,7 @@ function PanelReferencia({
                 </option>
               ))}
             </select>
-            <select
+            <select autoComplete="off"
               className="form-select"
               value={mesoId || misMesos[0]?.id || ""}
               onChange={(e) => setMesoId(e.target.value)}
@@ -24450,7 +24450,7 @@ function PanelReferencia({
             </select>
           </>
         ) : (
-          <select
+          <select autoComplete="off"
             className="form-select"
             value={pltId || ""}
             onChange={(e) => setPltId(e.target.value)}
@@ -24813,7 +24813,7 @@ function LoginScreen({ onAuth }) {
             {mode === "register" && (
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Nombre completo</label>
-                <input
+                <input autoComplete="off"
                   className="form-input"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
@@ -24824,7 +24824,7 @@ function LoginScreen({ onAuth }) {
 
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Email</label>
-              <input
+              <input autoComplete="off"
                 className="form-input"
                 type="email"
                 value={email}
@@ -24839,7 +24839,7 @@ function LoginScreen({ onAuth }) {
 
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Contraseña</label>
-              <input
+              <input autoComplete="off"
                 className="form-input"
                 type="password"
                 value={password}
