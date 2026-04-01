@@ -9047,7 +9047,15 @@ function ResumenGrupos({
           </button>
         </div>
       )}
-      <div style={{ overflowX: "auto" }}>
+      <div
+        style={{
+          overflowX: "auto",
+          overflowY: "auto",
+          maxHeight: "52vh",
+          overscrollBehavior: "contain",
+        }}
+        onWheel={(e) => e.stopPropagation()}
+      >
         <table
           style={{
             borderCollapse: "separate",
@@ -10180,7 +10188,15 @@ function DistribucionTurnos({
           Sin ejercicios sembrados en esta semana
         </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
+        <div
+          style={{
+            overflowX: "auto",
+            overflowY: "auto",
+            maxHeight: "52vh",
+            overscrollBehavior: "contain",
+          }}
+          onWheel={(e) => e.stopPropagation()}
+        >
           <table
             style={{
               borderCollapse: "separate",
