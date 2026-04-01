@@ -14570,7 +14570,7 @@ function PageAtleta({
                 id: "historial",
                 label: `Historial${mesoAtleta.length > 0 ? ` (${mesoAtleta.length})` : ""}`,
               },
-              { id: "normativos", label: "Normativos G" },
+              { id: "normativos", label: "Normativos A" },
             ].map((t) => (
               <button
                 key={t.id}
@@ -21657,7 +21657,7 @@ function PageNormativosAtleta({
     <div>
       <div className="flex-between mb16">
         <div>
-          <div className="page-title">Normativos · {atleta.nombre}</div>
+          <div className="page-title">Normativos A · {atleta.nombre}</div>
           <div className="page-sub">
             Overrides locales por atleta sobre los normativos globales
           </div>
@@ -22332,7 +22332,7 @@ function PageNormativos({ coachId, isActive = false }) {
     <div>
       <div className="flex-between mb16">
         <div>
-          <div className="page-title">Normativos</div>
+          <div className="page-title">Normativos G</div>
           <div className="page-sub">
             Ejercicios y porcentajes de referencia — editables globalmente
           </div>
@@ -25721,7 +25721,7 @@ function CoachApp({ session, profile, onLogout }) {
   const fixedTabs = [
     { id: "atletas", label: "Atletas" },
     { id: "plantillas", label: "Plantillas" },
-    { id: "normativos", label: "Normativos" },
+    { id: "normativos", label: "Normativos G" },
     { id: "calculadora", label: "Tablas" },
   ];
 
