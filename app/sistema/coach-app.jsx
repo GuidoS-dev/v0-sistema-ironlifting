@@ -2231,6 +2231,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
         <label className="form-label">Nombre completo</label>
         <input
           className="form-input"
+          name="nombre"
           value={form.nombre}
           onChange={(e) => set("nombre", e.target.value)}
           placeholder="Ej: Juan Pérez"
@@ -2241,6 +2242,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
           <label className="form-label">Email</label>
           <input
             className="form-input"
+            name="email"
             value={form.email}
             onChange={(e) => set("email", e.target.value)}
             type="email"
@@ -2251,6 +2253,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
           <label className="form-label">Teléfono</label>
           <input
             className="form-input"
+            name="telefono"
             value={form.telefono}
             onChange={(e) => set("telefono", e.target.value)}
             placeholder="+54 341..."
@@ -2261,6 +2264,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
         <label className="form-label">Fecha de nacimiento</label>
         <input
           className="form-input"
+          name="fecha_nacimiento"
           value={form.fecha_nacimiento}
           onChange={(e) => set("fecha_nacimiento", e.target.value)}
           type="text"
@@ -2331,6 +2335,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
               <label className="form-label">Último inicio</label>
               <input
                 className="form-input"
+                name="ciclo_ultimo_inicio"
                 type="date"
                 value={form.ciclo?.ultimo_inicio || ""}
                 onChange={(e) =>
@@ -2342,6 +2347,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
               <label className="form-label">Duración ciclo (días)</label>
               <input
                 className="form-input"
+                name="ciclo_duracion_ciclo"
                 type="number"
                 min={21}
                 max={40}
@@ -2358,6 +2364,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
               <label className="form-label">Duración menstruación (días)</label>
               <input
                 className="form-input"
+                name="ciclo_duracion_mens"
                 type="number"
                 min={2}
                 max={10}
@@ -2378,6 +2385,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
         <label className="form-label">Notas</label>
         <textarea
           className="form-input"
+          name="notas"
           value={form.notas}
           onChange={(e) => set("notas", e.target.value)}
           placeholder="Observaciones, lesiones, objetivos..."
@@ -2588,6 +2596,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
         <label className="form-label">Nombre del mesociclo</label>
         <input
           className="form-input"
+          name="meso_nombre"
           value={form.nombre}
           onChange={(e) => set("nombre", e.target.value)}
           placeholder="Ej: Pretemporada 2025, Base Fuerza, etc."
@@ -2597,6 +2606,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
         <label className="form-label">Descripción / Objetivos</label>
         <textarea
           className="form-input"
+          name="meso_descripcion"
           value={form.descripcion}
           onChange={(e) => set("descripcion", e.target.value)}
           placeholder="Objetivos del ciclo, observaciones..."
@@ -2609,6 +2619,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           <label className="form-label">Fecha inicio</label>
           <input
             className="form-input"
+            name="meso_fecha_inicio"
             type="text"
             value={form.fecha_inicio}
             onChange={(e) => set("fecha_inicio", e.target.value)}
@@ -2619,6 +2630,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           <label className="form-label">Modo</label>
           <select
             className="form-select"
+            name="meso_modo"
             value={form.modo}
             onChange={(e) => set("modo", e.target.value)}
           >
@@ -2632,6 +2644,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           <label className="form-label">IRM Arranque (kg)</label>
           <input
             className="form-input"
+            name="irm_arranque"
             type="number"
             min={65}
             max={95}
@@ -2645,6 +2658,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           <label className="form-label">IRM Envión (kg)</label>
           <input
             className="form-input"
+            name="irm_envion"
             type="number"
             min={65}
             max={95}
@@ -2680,6 +2694,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
             <label className="form-label">Volumen total de repeticiones</label>
             <input
               className="form-input"
+              name="volumen_total"
               type="number"
               value={form.volumen_total}
               onChange={(e) => set("volumen_total", Number(e.target.value))}
@@ -2710,6 +2725,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
                 <div className="flex gap8" style={{ alignItems: "center" }}>
                   <input
                     className="form-input"
+                    name={`semana_pct_${i}`}
                     type="number"
                     min={0}
                     max={100}
@@ -2904,6 +2920,7 @@ function EjBuscador({ value, onChange, normativos: normativosProp = null }) {
             >
               <input
                 ref={inputRef}
+                name="ejercicio_query"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Número o nombre del ejercicio..."
@@ -3072,6 +3089,7 @@ function ComplementarioRow({
       />
       <input
         className="ej-input"
+        name="comp_intensidad"
         type="number"
         min={40}
         max={110}
@@ -3083,6 +3101,7 @@ function ComplementarioRow({
       />
       <select
         className="ej-input"
+        name="comp_tabla"
         value={comp.tabla}
         onChange={(e) => onChange({ ...comp, tabla: Number(e.target.value) })}
       >
@@ -3092,6 +3111,7 @@ function ComplementarioRow({
       </select>
       <input
         className="ej-input"
+        name="comp_reps_asignadas"
         type="number"
         min={0}
         value={comp.reps_asignadas}
@@ -3111,6 +3131,7 @@ function ComplementarioRow({
       </div>
       <input
         className="ej-input"
+        name="comp_aclaracion"
         type="text"
         value={comp.aclaracion || ""}
         placeholder="Aclaración"
@@ -13227,6 +13248,7 @@ function EditMesoModal({ meso, onSave, onClose }) {
           <label className="form-label">Modo</label>
           <select
             className="form-select"
+            name="meso_modo"
             value={form.modo}
             onChange={(e) => set("modo", e.target.value)}
           >
@@ -13240,6 +13262,7 @@ function EditMesoModal({ meso, onSave, onClose }) {
           <label className="form-label">IRM Arranque (kg)</label>
           <input
             className="form-input"
+            name="irm_arranque"
             type="number"
             min={65}
             max={95}
@@ -13253,6 +13276,7 @@ function EditMesoModal({ meso, onSave, onClose }) {
           <label className="form-label">IRM Envión (kg)</label>
           <input
             className="form-input"
+            name="irm_envion"
             type="number"
             min={65}
             max={95}
@@ -16900,7 +16924,10 @@ function PagePDF({
     totalVolReps > 0 ? Math.round((totalVolKg / totalVolReps) * 2) / 2 : 0;
 
   const hasBlockValue = (value) =>
-    value !== null && value !== undefined && value !== "" && !Number.isNaN(value);
+    value !== null &&
+    value !== undefined &&
+    value !== "" &&
+    !Number.isNaN(value);
 
   const hasComplementarioBlockContent = (bloque) => {
     if (!bloque) return false;
@@ -17873,7 +17900,9 @@ ${previewEl.outerHTML}
                                         length: maxBloques,
                                       }).map((_, bIdx) => {
                                         const col = row.cols[bIdx];
-                                        if (!hasComplementarioBlockContent(col)) {
+                                        if (
+                                          !hasComplementarioBlockContent(col)
+                                        ) {
                                           return (
                                             <td key={bIdx}>
                                               <span className="cell-empty">
