@@ -2,11 +2,16 @@ const fs = require("fs");
 const path = "app/sistema/coach-app.jsx";
 let src = fs.readFileSync(path, "utf8");
 
+// Step 1: Remove any autoComplete="off" we previously added
+src = src.replace(/ autoComplete="off"/g, "");
+
+// Step 2: Add name="field_N" to every <input|select|textarea missing name= and id=
 const tagRe = /<(input|select|textarea)(\b)/g;
 let m;
 const chunks = [];
 let lastEnd = 0;
 let count = 0;
+let fieldNum = 1;
 
 while ((m = tagRe.exec(src)) !== null) {
   const start = m.index;
@@ -26,12 +31,10 @@ while ((m = tagRe.exec(src)) !== null) {
 
   const hasName = /\bname=/.test(fullTag);
   const hasId = /\bid=/.test(fullTag);
-  const hasAutoComplete = /\bautoComplete=|\bautocomplete=/.test(fullTag);
 
-  if (!hasName && !hasId && !hasAutoComplete) {
-    // Push everything up to just before the \b boundary after the tag name
+  if (!hasName && !hasId) {
     chunks.push(src.slice(lastEnd, start + m[0].length - m[2].length));
-    chunks.push(` autoComplete="off"${m[2]}`);
+    chunks.push(` name="field_${fieldNum++}"${m[2]}`);
     lastEnd = start + m[0].length;
     count++;
   }
@@ -39,4 +42,4 @@ while ((m = tagRe.exec(src)) !== null) {
 
 chunks.push(src.slice(lastEnd));
 fs.writeFileSync(path, chunks.join(""));
-console.log(`Added autoComplete="off" to ${count} fields`);
+console.log(`Added name="field_N" to ${count} fields`);
