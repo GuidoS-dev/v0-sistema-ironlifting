@@ -17,9 +17,6 @@ import {
   LogOut,
   Shield,
   Droplets,
-  Sprout,
-  Zap,
-  CloudMoon,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
