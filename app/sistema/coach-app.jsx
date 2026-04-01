@@ -11597,46 +11597,10 @@ function EjCelda({
   canRemove,
   normativos = null,
 }) {
-  const [intSelectFocused, setIntSelectFocused] = useState(false);
   const ejData = ej.ejercicio_id
     ? getEjercicioById(ej.ejercicio_id, normativos)
     : null;
   const col = ejData ? CAT_COLOR[ejData.categoria] : "var(--border)";
-
-  useEffect(() => {
-    if (!intSelectFocused) return;
-
-    const handleWheel = (ev) => {
-      const current = Number(ej.intensidad) || IRM_VALUES[0];
-      const currentIdx = IRM_VALUES.indexOf(current);
-      if (currentIdx < 0) return;
-
-      const step = ev.deltaY > 0 ? 1 : ev.deltaY < 0 ? -1 : 0;
-      if (!step) return;
-
-      const nextIdx = Math.max(
-        0,
-        Math.min(IRM_VALUES.length - 1, currentIdx + step),
-      );
-      const next = IRM_VALUES[nextIdx];
-
-      if (next !== current) {
-        onChange({ ...ej, intensidad: next });
-      }
-
-      ev.preventDefault();
-      ev.stopPropagation();
-    };
-
-    window.addEventListener("wheel", handleWheel, {
-      passive: false,
-      capture: true,
-    });
-
-    return () => {
-      window.removeEventListener("wheel", handleWheel, { capture: true });
-    };
-  }, [intSelectFocused, ej, onChange]);
 
   // Columnas: # | EJ(fijo) | INT | TBL | KG | ✕
   return (
@@ -11681,8 +11645,6 @@ function EjCelda({
       <select
         name="field_30"
         value={ej.intensidad}
-        onFocus={() => setIntSelectFocused(true)}
-        onBlur={() => setIntSelectFocused(false)}
         onChange={(e) =>
           onChange({ ...ej, intensidad: Number(e.target.value) })
         }
