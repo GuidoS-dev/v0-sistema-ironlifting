@@ -2214,7 +2214,14 @@ function getAgeFromBirthDate(value, referenceDate = new Date()) {
   return age;
 }
 
-function getFaseCiclo(ciclo, fechaSemana) {
+function getFasePorDia(diaEnCiclo, durCiclo, durMens) {
+  if (diaEnCiclo <= durMens) return "menstruacion";
+  if (diaEnCiclo <= durCiclo * 0.5) return "folicular";
+  if (diaEnCiclo <= durCiclo * 0.5 + 2) return "ovulacion";
+  return "lutea";
+}
+
+function getFaseCiclo(ciclo, fechaSemana, ventanaDias = 1) {
   if (!ciclo?.ultimo_inicio || !fechaSemana) return null;
   const durCiclo = Number(ciclo.duracion_ciclo) || 28;
   const durMens = Number(ciclo.duracion_mens) || 5;
@@ -2224,11 +2231,36 @@ function getFaseCiclo(ciclo, fechaSemana) {
   const diffDias = Math.floor((semana - inicio) / (1000 * 60 * 60 * 24));
   if (isNaN(diffDias)) return null;
   // Normalizar al ciclo actual
-  const diaEnCiclo = (((diffDias % durCiclo) + durCiclo) % durCiclo) + 1;
-  if (diaEnCiclo <= durMens) return "menstruacion";
-  if (diaEnCiclo <= durCiclo * 0.5) return "folicular";
-  if (diaEnCiclo <= durCiclo * 0.5 + 2) return "ovulacion";
-  return "lutea";
+  const diaInicio = (((diffDias % durCiclo) + durCiclo) % durCiclo) + 1;
+
+  const windowSize = Math.max(1, Number(ventanaDias) || 1);
+  if (windowSize === 1) return getFasePorDia(diaInicio, durCiclo, durMens);
+
+  const fasesSemana = [];
+  for (let i = 0; i < windowSize; i += 1) {
+    const dia = (((diaInicio - 1 + i) % durCiclo) + durCiclo) % durCiclo + 1;
+    fasesSemana.push(getFasePorDia(dia, durCiclo, durMens));
+  }
+
+  // Si la ovulación cae dentro de la semana, priorizar esa fase para visibilidad.
+  if (fasesSemana.includes("ovulacion")) return "ovulacion";
+
+  const prioridad = ["menstruacion", "folicular", "lutea"];
+  const conteo = fasesSemana.reduce((acc, fase) => {
+    acc[fase] = (acc[fase] || 0) + 1;
+    return acc;
+  }, {});
+
+  let faseDominante = "lutea";
+  let max = -1;
+  prioridad.forEach((fase) => {
+    const n = conteo[fase] || 0;
+    if (n > max) {
+      max = n;
+      faseDominante = fase;
+    }
+  });
+  return faseDominante;
 }
 
 // Para una semana del meso (por número), calcular fecha aproximada
@@ -15403,6 +15435,7 @@ function PageAtleta({
                         ? getFaseCiclo(
                             atleta.ciclo,
                             getFechaSemana(mesoVisto.fecha_inicio, s.numero),
+                            7,
                           )
                         : null;
                     const faseInfo = fase ? FASES_CICLO[fase] : null;
