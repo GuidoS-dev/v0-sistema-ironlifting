@@ -11588,6 +11588,101 @@ const mkEj = () => ({
   reps_asignadas: 0,
 });
 
+function IntensityPickerModal({ value, onSelect, onClose }) {
+  const listRef = useRef(null);
+
+  useEffect(() => {
+    const el = listRef.current?.querySelector(`[data-intensity="${value}"]`);
+    if (el) el.scrollIntoView({ block: "center" });
+  }, [value]);
+
+  useEffect(() => {
+    const onWheel = (ev) => {
+      const list = listRef.current;
+      if (!list) return;
+
+      const maxScroll = list.scrollHeight - list.clientHeight;
+      if (maxScroll <= 0) return;
+
+      const delta = ev.deltaY;
+      if (!delta) return;
+
+      const next = Math.max(0, Math.min(maxScroll, list.scrollTop + delta));
+      if (next !== list.scrollTop) {
+        list.scrollTop = next;
+      }
+
+      ev.preventDefault();
+      ev.stopPropagation();
+    };
+
+    window.addEventListener("wheel", onWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.removeEventListener("wheel", onWheel, { capture: true });
+    };
+  }, []);
+
+  return (
+    <Modal title="Seleccionar intensidad" onClose={onClose}>
+      <div
+        style={{
+          fontSize: 12,
+          color: "var(--muted)",
+          marginBottom: 8,
+        }}
+      >
+        Elegi el porcentaje de intensidad para este ejercicio.
+      </div>
+      <div
+        ref={listRef}
+        style={{
+          maxHeight: "45vh",
+          overflowY: "auto",
+          border: "1px solid var(--border)",
+          borderRadius: 8,
+          background: "var(--surface2)",
+          padding: 4,
+        }}
+      >
+        {IRM_VALUES.map((v) => {
+          const active = v === value;
+          return (
+            <button
+              key={v}
+              data-intensity={v}
+              type="button"
+              onClick={() => {
+                onSelect(v);
+                onClose();
+              }}
+              style={{
+                width: "100%",
+                textAlign: "center",
+                border: "none",
+                borderRadius: 6,
+                marginBottom: 2,
+                background: active ? "rgba(71,180,232,.2)" : "transparent",
+                color: active ? "var(--blue)" : "var(--text)",
+                fontFamily: "'Bebas Neue'",
+                fontSize: 20,
+                lineHeight: 1,
+                padding: "6px 8px",
+                cursor: "pointer",
+              }}
+            >
+              {v}%
+            </button>
+          );
+        })}
+      </div>
+    </Modal>
+  );
+}
+
 // Una fila de ejercicio dentro de una celda turno×semana — ultra compacta
 function EjCelda({
   ej,
@@ -11597,6 +11692,7 @@ function EjCelda({
   canRemove,
   normativos = null,
 }) {
+  const [showIntModal, setShowIntModal] = useState(false);
   const ejData = ej.ejercicio_id
     ? getEjercicioById(ej.ejercicio_id, normativos)
     : null;
@@ -11642,12 +11738,9 @@ function EjCelda({
       />
 
       {/* INT */}
-      <select
-        name="field_30"
-        value={ej.intensidad}
-        onChange={(e) =>
-          onChange({ ...ej, intensidad: Number(e.target.value) })
-        }
+      <button
+        type="button"
+        onClick={() => setShowIntModal(true)}
         style={{
           background: "var(--surface3)",
           border: "none",
@@ -11655,17 +11748,17 @@ function EjCelda({
           color: "var(--text)",
           fontSize: 11,
           padding: "1px 0",
-          outline: "none",
           cursor: "pointer",
           width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
         }}
       >
-        {IRM_VALUES.map((v) => (
-          <option key={v} value={v}>
-            {v}%
-          </option>
-        ))}
-      </select>
+        <span>{ej.intensidad}%</span>
+        <span style={{ color: "var(--muted)", fontSize: 9 }}>▼</span>
+      </button>
 
       {/* TBL */}
       <select
@@ -11709,6 +11802,14 @@ function EjCelda({
         </button>
       ) : (
         <span />
+      )}
+
+      {showIntModal && (
+        <IntensityPickerModal
+          value={Number(ej.intensidad) || IRM_VALUES[0]}
+          onSelect={(next) => onChange({ ...ej, intensidad: Number(next) })}
+          onClose={() => setShowIntModal(false)}
+        />
       )}
     </div>
   );
