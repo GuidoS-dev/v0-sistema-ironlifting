@@ -2079,7 +2079,7 @@ function getSembradoStats(turnos, normativos = null) {
 
 // ─── COMPONENTS ──────────────────────────────────────────────────────────────
 
-function Modal({ title, onClose, children }) {
+function Modal({ title, onClose, children, maxWidth = null }) {
   const mdTarget = useRef(null);
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -2112,6 +2112,14 @@ function Modal({ title, onClose, children }) {
     >
       <div
         className="modal"
+        style={
+          maxWidth
+            ? {
+                maxWidth,
+                width: "min(96vw, 100%)",
+              }
+            : undefined
+        }
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
       >
@@ -11627,7 +11635,7 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
   }, []);
 
   return (
-    <Modal title="Seleccionar intensidad" onClose={onClose}>
+    <Modal title="Seleccionar intensidad" onClose={onClose} maxWidth="760px">
       <div
         style={{
           fontSize: 12,
@@ -11640,7 +11648,7 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
       <div
         ref={listRef}
         style={{
-          maxHeight: "45vh",
+          maxHeight: "min(72vh, 760px)",
           overflowY: "auto",
           border: "1px solid var(--border)",
           borderRadius: 8,
