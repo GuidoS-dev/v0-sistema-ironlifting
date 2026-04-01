@@ -3944,6 +3944,7 @@ function calcKgEj(
 }
 
 function PlanillaTurno({
+  scrollIdPrefix = "planilla",
   semanas,
   irm_arr,
   irm_env,
@@ -4357,7 +4358,11 @@ function PlanillaTurno({
   };
 
   return (
-    <div ref={turnoRef} style={{ marginTop: 16 }}>
+    <div
+      id={`${scrollIdPrefix}-dias`}
+      ref={turnoRef}
+      style={{ marginTop: 16, scrollMarginTop: 110 }}
+    >
       {/* Semana tabs */}
       <div
         className="semana-tabs"
@@ -6701,10 +6706,12 @@ function PlanillaTurno({
                         );
                       })()}
                     <div
+                      id={`${scrollIdPrefix}-complementarios`}
                       style={{
                         marginTop: 20,
                         borderTop: "1px solid var(--border)",
                         paddingTop: 16,
+                        scrollMarginTop: 110,
                       }}
                     >
                       <div
@@ -14141,6 +14148,15 @@ function PageAtleta({
 
   const irm_arr = mesoVisto ? Number(mesoVisto.irm_arranque) : 0;
   const irm_env = mesoVisto ? Number(mesoVisto.irm_envion) : 0;
+  const planillaScrollPrefix = mesoVisto
+    ? `planilla-${atleta.id}-${mesoVisto.id}`
+    : `planilla-${atleta.id}`;
+
+  const scrollToPlanillaSection = (section) => {
+    const el = document.getElementById(`${planillaScrollPrefix}-${section}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Guardar en cleanup al desmontar (cambio de pestaña)
   useEffect(() => {
@@ -14728,6 +14744,48 @@ function PageAtleta({
               </button>
             ))}
           </div>
+          {vistaActual === "meso" &&
+            mesoVisto &&
+            !(mesoVisto.escuela === true || mesoVisto.escuela === "true") && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  marginLeft: 10,
+                  minWidth: 0,
+                  overflowX: "auto",
+                  padding: "0 8px",
+                  scrollbarWidth: "none",
+                }}
+              >
+                {[
+                  { id: "sembrado", label: "Sembrado" },
+                  { id: "semanas", label: "Semanas" },
+                  { id: "dias", label: "Dias" },
+                  { id: "complementarios", label: "Complementarios" },
+                ].map((nav) => (
+                  <button
+                    key={nav.id}
+                    onClick={() => scrollToPlanillaSection(nav.id)}
+                    style={{
+                      padding: "4px 11px",
+                      borderRadius: 10,
+                      border: "1px solid var(--border)",
+                      background: "var(--surface2)",
+                      color: "var(--muted)",
+                      fontFamily: "'DM Sans'",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {nav.label}
+                  </button>
+                ))}
+              </div>
+            )}
           <div style={{ flex: 1 }} />
           {mesoVisto && (
             <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
@@ -15327,7 +15385,11 @@ function PageAtleta({
             ) : (
               <>
                 {/* Stats semanas */}
-                <div className="stats-row mb16">
+                <div
+                  id={`${planillaScrollPrefix}-semanas`}
+                  className="stats-row mb16"
+                  style={{ scrollMarginTop: 110 }}
+                >
                   {mesoVisto.semanas.map((s, i) => {
                     const fase =
                       atleta.genero === "f" && atleta.ciclo?.ultimo_inicio
@@ -15388,7 +15450,11 @@ function PageAtleta({
                 </div>
 
                 {/* Sembrado mensual completo */}
-                <div className="card">
+                <div
+                  id={`${planillaScrollPrefix}-sembrado`}
+                  className="card"
+                  style={{ scrollMarginTop: 110 }}
+                >
                   <div className="flex-between mb16">
                     <div className="card-title" style={{ marginBottom: 0 }}>
                       Sembrado Mensual
@@ -15459,6 +15525,7 @@ function PageAtleta({
                     onBeforeChange={(forced) => pushSnap(forced)}
                   />
                   <PlanillaTurno
+                    scrollIdPrefix={planillaScrollPrefix}
                     semanas={mesoVisto.semanas}
                     irm_arr={irm_arr}
                     irm_env={irm_env}
