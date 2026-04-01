@@ -11588,132 +11588,6 @@ const mkEj = () => ({
   reps_asignadas: 0,
 });
 
-function CompactIrmSelect({ value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const closeOnOutside = (ev) => {
-      if (!wrapRef.current?.contains(ev.target)) setOpen(false);
-    };
-    const closeOnEsc = (ev) => {
-      if (ev.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", closeOnOutside);
-    document.addEventListener("keydown", closeOnEsc);
-    return () => {
-      document.removeEventListener("mousedown", closeOnOutside);
-      document.removeEventListener("keydown", closeOnEsc);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onGlobalWheel = (ev) => {
-      const menu = menuRef.current;
-      if (!menu) return;
-
-      const delta = ev.deltaY;
-      if (!delta) return;
-
-      const maxScroll = menu.scrollHeight - menu.clientHeight;
-      if (maxScroll <= 0) return;
-
-      const next = Math.max(0, Math.min(maxScroll, menu.scrollTop + delta));
-      if (next !== menu.scrollTop) {
-        menu.scrollTop = next;
-      }
-
-      ev.preventDefault();
-      ev.stopPropagation();
-    };
-
-    window.addEventListener("wheel", onGlobalWheel, {
-      passive: false,
-      capture: true,
-    });
-
-    return () => {
-      window.removeEventListener("wheel", onGlobalWheel, {
-        capture: true,
-      });
-    };
-  }, [open]);
-
-  return (
-    <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((s) => !s)}
-        style={{
-          background: "var(--surface3)",
-          border: "none",
-          borderRadius: 3,
-          color: "var(--text)",
-          fontSize: 11,
-          padding: "1px 0",
-          width: "100%",
-          cursor: "pointer",
-          lineHeight: 1.15,
-          minHeight: 18,
-        }}
-        title="Intensidad"
-      >
-        {value}%
-      </button>
-
-      {open && (
-        <div
-          ref={menuRef}
-          onWheel={(e) => e.stopPropagation()}
-          style={{
-            position: "absolute",
-            top: "calc(100% + 2px)",
-            left: 0,
-            width: 84,
-            minWidth: "100%",
-            maxHeight: 220,
-            overflowY: "auto",
-            overscrollBehavior: "contain",
-            background: "var(--surface2)",
-            border: "1px solid var(--border)",
-            borderRadius: 4,
-            boxShadow: "0 8px 20px rgba(0,0,0,.45)",
-            zIndex: 120,
-          }}
-        >
-          {IRM_VALUES.map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => {
-                onChange(v);
-                setOpen(false);
-              }}
-              style={{
-                display: "block",
-                width: "100%",
-                background: v === value ? "rgba(71,180,232,.2)" : "none",
-                border: "none",
-                color: v === value ? "var(--blue)" : "var(--text)",
-                fontSize: 12,
-                textAlign: "center",
-                padding: "5px 2px",
-                cursor: "pointer",
-              }}
-            >
-              {v}%
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // Una fila de ejercicio dentro de una celda turno×semana — ultra compacta
 function EjCelda({
   ej,
@@ -11723,10 +11597,46 @@ function EjCelda({
   canRemove,
   normativos = null,
 }) {
+  const [intSelectFocused, setIntSelectFocused] = useState(false);
   const ejData = ej.ejercicio_id
     ? getEjercicioById(ej.ejercicio_id, normativos)
     : null;
   const col = ejData ? CAT_COLOR[ejData.categoria] : "var(--border)";
+
+  useEffect(() => {
+    if (!intSelectFocused) return;
+
+    const handleWheel = (ev) => {
+      const current = Number(ej.intensidad) || IRM_VALUES[0];
+      const currentIdx = IRM_VALUES.indexOf(current);
+      if (currentIdx < 0) return;
+
+      const step = ev.deltaY > 0 ? 1 : ev.deltaY < 0 ? -1 : 0;
+      if (!step) return;
+
+      const nextIdx = Math.max(
+        0,
+        Math.min(IRM_VALUES.length - 1, currentIdx + step),
+      );
+      const next = IRM_VALUES[nextIdx];
+
+      if (next !== current) {
+        onChange({ ...ej, intensidad: next });
+      }
+
+      ev.preventDefault();
+      ev.stopPropagation();
+    };
+
+    window.addEventListener("wheel", handleWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel, { capture: true });
+    };
+  }, [intSelectFocused, ej, onChange]);
 
   // Columnas: # | EJ(fijo) | INT | TBL | KG | ✕
   return (
@@ -11768,10 +11678,32 @@ function EjCelda({
       />
 
       {/* INT */}
-      <CompactIrmSelect
-        value={Number(ej.intensidad) || IRM_VALUES[0]}
-        onChange={(next) => onChange({ ...ej, intensidad: Number(next) })}
-      />
+      <select
+        name="field_30"
+        value={ej.intensidad}
+        onFocus={() => setIntSelectFocused(true)}
+        onBlur={() => setIntSelectFocused(false)}
+        onChange={(e) =>
+          onChange({ ...ej, intensidad: Number(e.target.value) })
+        }
+        style={{
+          background: "var(--surface3)",
+          border: "none",
+          borderRadius: 3,
+          color: "var(--text)",
+          fontSize: 11,
+          padding: "1px 0",
+          outline: "none",
+          cursor: "pointer",
+          width: "100%",
+        }}
+      >
+        {IRM_VALUES.map((v) => (
+          <option key={v} value={v}>
+            {v}%
+          </option>
+        ))}
+      </select>
 
       {/* TBL */}
       <select
