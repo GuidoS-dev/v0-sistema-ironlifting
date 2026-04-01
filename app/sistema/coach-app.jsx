@@ -4237,13 +4237,6 @@ function PlanillaTurno({
     if (Number(importSemOrigen) === semActiva) setImportSemOrigen("");
   }, [importSemOrigen, semActiva]);
 
-  if (
-    semanas.every((s) =>
-      s.turnos.every((t) => !t.ejercicios.some((e) => e.ejercicio_id)),
-    )
-  )
-    return null;
-
   const copiarComplementariosATodasSemanas = () => {
     if (!turno) return;
     _beforeChangeForced();
@@ -4909,16 +4902,22 @@ function PlanillaTurno({
 
           {/* Tabla de ejercicios */}
           {ejs.length === 0 ? (
-            <div
-              style={{
-                padding: "20px",
-                textAlign: "center",
-                color: "var(--muted)",
-                fontSize: 12,
-              }}
-            >
-              Sin ejercicios sembrados en este turno
-            </div>
+            <>
+              <div
+                id={`${scrollIdPrefix}-complementarios`}
+                style={{ scrollMarginTop: 110, height: 0 }}
+              />
+              <div
+                style={{
+                  padding: "20px",
+                  textAlign: "center",
+                  color: "var(--muted)",
+                  fontSize: 12,
+                }}
+              >
+                Sin ejercicios sembrados en este turno
+              </div>
+            </>
           ) : (
             <div>
               {/* Hint + reset */}
@@ -15385,11 +15384,7 @@ function PageAtleta({
             ) : (
               <>
                 {/* Stats semanas */}
-                <div
-                  id={`${planillaScrollPrefix}-semanas`}
-                  className="stats-row mb16"
-                  style={{ scrollMarginTop: 110 }}
-                >
+                <div className="stats-row mb16">
                   {mesoVisto.semanas.map((s, i) => {
                     const fase =
                       atleta.genero === "f" && atleta.ciclo?.ultimo_inicio
@@ -15472,7 +15467,11 @@ function PageAtleta({
                     onSwapSemanas={handleSwapSemanasOverrides}
                     normativos={atletaNormativos}
                   />
-                  <ResumenGrupos
+                  <div
+                    id={`${planillaScrollPrefix}-semanas`}
+                    style={{ scrollMarginTop: 110 }}
+                  >
+                    <ResumenGrupos
                     semanas={mesoVisto.semanas}
                     meso={mesoVisto}
                     onGuardarDistribucion={(dist) => {
@@ -15509,7 +15508,8 @@ function PageAtleta({
                       if (!forced && histIdxRef.current != null) pushSnap();
                       else pushSnap(true);
                     }}
-                  />
+                    />
+                  </div>
                   <DistribucionTurnos
                     semanas={mesoVisto.semanas}
                     meso={mesoVisto}
