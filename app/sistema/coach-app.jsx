@@ -11591,6 +11591,7 @@ const mkEj = () => ({
 function CompactIrmSelect({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -11605,6 +11606,40 @@ function CompactIrmSelect({ value, onChange }) {
     return () => {
       document.removeEventListener("mousedown", closeOnOutside);
       document.removeEventListener("keydown", closeOnEsc);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onGlobalWheel = (ev) => {
+      const menu = menuRef.current;
+      if (!menu) return;
+
+      const delta = ev.deltaY;
+      if (!delta) return;
+
+      const maxScroll = menu.scrollHeight - menu.clientHeight;
+      if (maxScroll <= 0) return;
+
+      const next = Math.max(0, Math.min(maxScroll, menu.scrollTop + delta));
+      if (next !== menu.scrollTop) {
+        menu.scrollTop = next;
+      }
+
+      ev.preventDefault();
+      ev.stopPropagation();
+    };
+
+    window.addEventListener("wheel", onGlobalWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.removeEventListener("wheel", onGlobalWheel, {
+        capture: true,
+      });
     };
   }, [open]);
 
@@ -11632,13 +11667,15 @@ function CompactIrmSelect({ value, onChange }) {
 
       {open && (
         <div
+          ref={menuRef}
           onWheel={(e) => e.stopPropagation()}
           style={{
             position: "absolute",
             top: "calc(100% + 2px)",
             left: 0,
-            width: "100%",
-            maxHeight: 150,
+            width: 84,
+            minWidth: "100%",
+            maxHeight: 220,
             overflowY: "auto",
             overscrollBehavior: "contain",
             background: "var(--surface2)",
@@ -11662,9 +11699,9 @@ function CompactIrmSelect({ value, onChange }) {
                 background: v === value ? "rgba(71,180,232,.2)" : "none",
                 border: "none",
                 color: v === value ? "var(--blue)" : "var(--text)",
-                fontSize: 11,
+                fontSize: 12,
                 textAlign: "center",
-                padding: "3px 2px",
+                padding: "5px 2px",
                 cursor: "pointer",
               }}
             >
