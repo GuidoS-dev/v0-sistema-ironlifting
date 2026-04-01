@@ -14,13 +14,6 @@ import {
   Clipboard,
   User,
   Briefcase,
-  X,
-  Undo2,
-  Redo2,
-  Droplets,
-  Sprout,
-  Zap,
-  CloudMoon,
   LogOut,
   Shield,
 } from "lucide-react";
@@ -15385,11 +15378,7 @@ function PageAtleta({
             ) : (
               <>
                 {/* Stats semanas */}
-                <div
-                  id={`${planillaScrollPrefix}-semanas`}
-                  className="stats-row mb16"
-                  style={{ scrollMarginTop: 110 }}
-                >
+                <div className="stats-row mb16">
                   {mesoVisto.semanas.map((s, i) => {
                     const fase =
                       atleta.genero === "f" && atleta.ciclo?.ultimo_inicio
@@ -15472,7 +15461,11 @@ function PageAtleta({
                     onSwapSemanas={handleSwapSemanasOverrides}
                     normativos={atletaNormativos}
                   />
-                  <ResumenGrupos
+                  <div
+                    id={`${planillaScrollPrefix}-semanas`}
+                    style={{ scrollMarginTop: 110 }}
+                  >
+                    <ResumenGrupos
                     semanas={mesoVisto.semanas}
                     meso={mesoVisto}
                     onGuardarDistribucion={(dist) => {
@@ -15509,7 +15502,8 @@ function PageAtleta({
                       if (!forced && histIdxRef.current != null) pushSnap();
                       else pushSnap(true);
                     }}
-                  />
+                    />
+                  </div>
                   <DistribucionTurnos
                     semanas={mesoVisto.semanas}
                     meso={mesoVisto}
