@@ -13884,7 +13884,7 @@ function PageAtleta({
   const [showGuardarPlantilla, setShowGuardarPlantilla] = useState(null); // null | "meso" | "semana"
   const [showEditVol, setShowEditVol] = useState(false);
   const [mesoSelId, setMesoSelId] = useState(null);
-  const [vistaActual, setVistaActual] = useState("plantilla");
+  const [vistaActual, setVistaActual] = useState("meso");
 
   useEffect(() => {
     if (!openRequest?.view) return;
@@ -25888,7 +25888,7 @@ function CoachApp({ session, profile, onLogout }) {
   };
 
   const abrirAtleta = (a, opts = {}) => {
-    const view = opts.view || "plantilla";
+    const view = opts.view || "meso";
     setAtletaOpenRequest((prev) => ({
       ...prev,
       [a.id]: {
