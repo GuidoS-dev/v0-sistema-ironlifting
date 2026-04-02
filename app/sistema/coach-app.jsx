@@ -3920,7 +3920,7 @@ function TurnoCard({
 // 3) Series y reps/serie (fórmula G/H del Excel):
 //    - Si repsInter = 0  → vacío
 //    - Si repsInter > 8  → series=1, reps_serie=repsInter
-//    - Si no → XLOOKUP en lookup_tirones (id 49-68) o lookup_general
+//    - Si no → XLOOKUP en lookup_tirones (categoria Tirones) o lookup_general
 //              usando (intens%, modo Comp/Prep, repsInter)
 
 function calcSeriesRepsKg(
@@ -3934,8 +3934,7 @@ function calcSeriesRepsKg(
 ) {
   if (!ejData || !ej.ejercicio_id) return null;
 
-  const id = Number(ej.ejercicio_id);
-  const isTiron = id >= 49 && id <= 68;
+  const isTiron = String(ejData?.categoria || "").trim() === "Tirones";
   const modoKey = modo === "Competitivo" ? "Comp" : "Prep";
 
   // Kg base del ejercicio = IRM_atleta × pct_base / 100
@@ -8765,13 +8764,6 @@ function ResumenGrupos({
     } catch {}
   };
 
-  const RANGES = {
-    Arranque: [1, 19],
-    Envion: [20, 48],
-    Tirones: [49, 68],
-    Piernas: [69, 78],
-  };
-
   const bySemana = semanas.map((sem) => {
     const { porGrupo, totalSem: total } = calcSembradoSemana(sem);
     const conteo = {};
@@ -9761,22 +9753,14 @@ function DistribucionTurnos({
     }, 30);
   };
   const grupos = ["Arranque", "Envion", "Tirones", "Piernas"];
-  const RANGES = {
-    Arranque: [1, 19],
-    Envion: [20, 48],
-    Tirones: [49, 68],
-    Piernas: [69, 78],
-  };
 
   const calcSemana = (sem) => {
     const result = {};
     grupos.forEach((g) => {
-      const [lo, hi] = RANGES[g];
       const countPorTurno = sem.turnos.map(
         (turno) =>
           turno.ejercicios.filter((ej) => {
-            const id = Number(ej.ejercicio_id);
-            return ej.ejercicio_id && id >= lo && id <= hi;
+            return ej.ejercicio_id && getGrupo(ej.ejercicio_id) === g;
           }).length,
       );
       const totalGrupo = countPorTurno.reduce((s, v) => s + v, 0);
@@ -9794,10 +9778,7 @@ function DistribucionTurnos({
       })();
       const idsPorTurno = sem.turnos.map((turno) =>
         turno.ejercicios
-          .filter((ej) => {
-            const id = Number(ej.ejercicio_id);
-            return ej.ejercicio_id && id >= lo && id <= hi;
-          })
+          .filter((ej) => ej.ejercicio_id && getGrupo(ej.ejercicio_id) === g)
           .map((ej) => Number(ej.ejercicio_id)),
       );
       result[g] = { countPorTurno, totalGrupo, pctPorTurno, idsPorTurno };
@@ -10805,6 +10786,12 @@ const GRUPO_RANGES = {
 const GRUPOS_KEYS = ["Arranque", "Envion", "Tirones", "Piernas"];
 
 function getGrupo(ejercicio_id) {
+  // Prioriza categoria del normativo para permitir IDs fuera de los rangos legacy.
+  const ej = getEjercicioById(ejercicio_id);
+  const categoria = String(ej?.categoria || "").trim();
+  if (GRUPOS_KEYS.includes(categoria)) return categoria;
+
+  // Fallback legacy por rango para datos antiguos sin categoria consistente.
   const id = Number(ejercicio_id);
   for (const [g, [lo, hi]] of Object.entries(GRUPO_RANGES)) {
     if (id >= lo && id <= hi) return g;
