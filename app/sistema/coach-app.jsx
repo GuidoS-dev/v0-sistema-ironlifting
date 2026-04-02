@@ -2236,7 +2236,7 @@ function getFasesVentanaCiclo(ciclo, fechaSemana, ventanaDias = 1) {
   const windowSize = Math.max(1, Number(ventanaDias) || 1);
   const fasesSemana = [];
   for (let i = 0; i < windowSize; i += 1) {
-    const dia = (((diaInicio - 1 + i) % durCiclo) + durCiclo) % durCiclo + 1;
+    const dia = ((((diaInicio - 1 + i) % durCiclo) + durCiclo) % durCiclo) + 1;
     fasesSemana.push(getFasePorDia(dia, durCiclo, durMens));
   }
   return fasesSemana;
@@ -2276,12 +2276,12 @@ function getDetalleFaseCiclo(ciclo, fechaSemana, ventanaDias = 1) {
   if (!fasesSemana?.length) return null;
 
   const fase = getFaseDominante(fasesSemana);
-  const segmentos = fasesSemana.filter((f, i) => i === 0 || f !== fasesSemana[i - 1]);
+  const segmentos = fasesSemana.filter(
+    (f, i) => i === 0 || f !== fasesSemana[i - 1],
+  );
   const transicion =
     segmentos.length > 1
-      ? segmentos
-          .map((f) => FASES_CICLO[f]?.label || f)
-          .join(" -> ")
+      ? segmentos.map((f) => FASES_CICLO[f]?.label || f).join(" -> ")
       : null;
 
   return { fase, transicion };
@@ -4259,12 +4259,8 @@ function PlanillaTurno({
 
   // Reps ya asignadas a los ejercicios de cada grupo en este turno
   const repsUsadas = (g) => {
-    const [lo, hi] = GRUPO_RANGES[g];
     return ejs
-      .filter((e) => {
-        const id = Number(e.ejercicio_id);
-        return id >= lo && id <= hi;
-      })
+      .filter((e) => getGrupo(e.ejercicio_id) === g)
       .reduce((s, e) => {
         const k = `${semActiva}-${turnoActivo}-${e.id}`;
         // If manually edited → use that value
@@ -15536,42 +15532,42 @@ function PageAtleta({
                     style={{ scrollMarginTop: 110 }}
                   >
                     <ResumenGrupos
-                    semanas={mesoVisto.semanas}
-                    meso={mesoVisto}
-                    onGuardarDistribucion={(dist) => {
-                      try {
-                        const stored = JSON.parse(
-                          localStorage.getItem("liftplan_plantillas") || "[]",
-                        );
-                        const nuevo = {
-                          id: mkId(),
-                          tipo: "distribucion",
-                          creado: new Date().toISOString().slice(0, 10),
-                          nombre: `Distribución ${mesoVisto.nombre || "Mesociclo"}`,
-                          descripcion: `${mesoVisto.semanas.length} semanas`,
-                          periodo: "general",
-                          objetivo: "mixto",
-                          nivel: "intermedio",
-                          distribucion: dist,
-                        };
-                        localStorage.setItem(
-                          "liftplan_plantillas",
-                          JSON.stringify([...stored, nuevo]),
-                        );
-                        alert("Distribución guardada como plantilla");
-                      } catch (e) {}
-                    }}
-                    semPctOverrides={semPctOverrides}
-                    semPctManual={semPctManual}
-                    setSemPctOverrides={setSemPctOverridesH}
-                    setSemPctManual={setSemPctManualH}
-                    onRequestReset={(label, fn) =>
-                      setConfirmReset({ label, onConfirm: fn })
-                    }
-                    onBeforeChange={(forced) => {
-                      if (!forced && histIdxRef.current != null) pushSnap();
-                      else pushSnap(true);
-                    }}
+                      semanas={mesoVisto.semanas}
+                      meso={mesoVisto}
+                      onGuardarDistribucion={(dist) => {
+                        try {
+                          const stored = JSON.parse(
+                            localStorage.getItem("liftplan_plantillas") || "[]",
+                          );
+                          const nuevo = {
+                            id: mkId(),
+                            tipo: "distribucion",
+                            creado: new Date().toISOString().slice(0, 10),
+                            nombre: `Distribución ${mesoVisto.nombre || "Mesociclo"}`,
+                            descripcion: `${mesoVisto.semanas.length} semanas`,
+                            periodo: "general",
+                            objetivo: "mixto",
+                            nivel: "intermedio",
+                            distribucion: dist,
+                          };
+                          localStorage.setItem(
+                            "liftplan_plantillas",
+                            JSON.stringify([...stored, nuevo]),
+                          );
+                          alert("Distribución guardada como plantilla");
+                        } catch (e) {}
+                      }}
+                      semPctOverrides={semPctOverrides}
+                      semPctManual={semPctManual}
+                      setSemPctOverrides={setSemPctOverridesH}
+                      setSemPctManual={setSemPctManualH}
+                      onRequestReset={(label, fn) =>
+                        setConfirmReset({ label, onConfirm: fn })
+                      }
+                      onBeforeChange={(forced) => {
+                        if (!forced && histIdxRef.current != null) pushSnap();
+                        else pushSnap(true);
+                      }}
                     />
                   </div>
                   <DistribucionTurnos
