@@ -9011,17 +9011,11 @@ function ResumenGrupos({
   });
 
   const buildDetalle = (g, semIdx) => {
-    const [lo, hi] = RANGES[g];
     const sem = semanas[semIdx];
     const rows = [];
     sem.turnos.forEach((t, tIdx) => {
       const ids = t.ejercicios
-        .filter(
-          (e) =>
-            e.ejercicio_id &&
-            Number(e.ejercicio_id) >= lo &&
-            Number(e.ejercicio_id) <= hi,
-        )
+        .filter((e) => e.ejercicio_id && getGrupo(e.ejercicio_id) === g)
         .map((e) => Number(e.ejercicio_id));
       if (ids.length > 0)
         rows.push({ turno: tIdx + 1, dia: t.dia, momento: t.momento, ids });
