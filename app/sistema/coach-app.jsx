@@ -6539,7 +6539,7 @@ function PlanillaTurno({
                             e.nombre.toLowerCase().includes(q),
                         );
                         const results = q ? [...byId, ...byName] : normativos;
-                        const compActiveIdx =
+                        const activeIdx =
                           results.length === 0
                             ? -1
                             : Math.min(compPickerActiveIdx, results.length - 1);
@@ -6648,9 +6648,9 @@ function PlanillaTurno({
                                       e.preventDefault();
                                       if (!results.length) return;
                                       const next =
-                                        compActiveIdx < 0
+                                        activeIdx < 0
                                           ? 0
-                                          : (compActiveIdx + 1) % results.length;
+                                          : (activeIdx + 1) % results.length;
                                       setCompPickerActiveIdx(next);
                                       scrollToCompIndex(next);
                                       return;
@@ -6659,9 +6659,9 @@ function PlanillaTurno({
                                       e.preventDefault();
                                       if (!results.length) return;
                                       const next =
-                                        compActiveIdx < 0
+                                        activeIdx < 0
                                           ? results.length - 1
-                                          : (compActiveIdx - 1 + results.length) %
+                                          : (activeIdx - 1 + results.length) %
                                             results.length;
                                       setCompPickerActiveIdx(next);
                                       scrollToCompIndex(next);
@@ -6676,9 +6676,7 @@ function PlanillaTurno({
                                         )
                                       : null;
                                     const highlighted =
-                                      compActiveIdx >= 0
-                                        ? results[compActiveIdx]
-                                        : null;
+                                      activeIdx >= 0 ? results[activeIdx] : null;
                                     applyCompSelection(
                                       exactById || highlighted || results[0],
                                     );
@@ -6777,7 +6775,7 @@ function PlanillaTurno({
                                             "1px solid var(--border)",
                                           cursor: "pointer",
                                           background:
-                                            idx === compActiveIdx
+                                            idx === activeIdx
                                               ? "rgba(80,180,255,.12)"
                                               : "transparent",
                                         }}
@@ -11463,7 +11461,7 @@ function EjBuscadorCompacto({
     const el = listRef2.current?.querySelector(`[data-firstgroup="${g}"]`);
     if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
   };
-  const activeResultIdx =
+  const clampedActiveIdx =
     results.length === 0 ? -1 : Math.min(activeIdx, results.length - 1);
   const scrollToResult = (idx) => {
     const el = listRef2.current?.querySelector(`[data-ej-index="${idx}"]`);
@@ -11569,9 +11567,9 @@ function EjBuscadorCompacto({
                     e.preventDefault();
                     if (!results.length) return;
                     const next =
-                        activeResultIdx < 0
+                      clampedActiveIdx < 0
                         ? 0
-                          : (activeResultIdx + 1) % results.length;
+                        : (clampedActiveIdx + 1) % results.length;
                     setActiveIdx(next);
                     scrollToResult(next);
                     return;
@@ -11580,9 +11578,9 @@ function EjBuscadorCompacto({
                     e.preventDefault();
                     if (!results.length) return;
                     const next =
-                        activeResultIdx < 0
+                      clampedActiveIdx < 0
                         ? results.length - 1
-                          : (activeResultIdx - 1 + results.length) %
+                        : (clampedActiveIdx - 1 + results.length) %
                           results.length;
                     setActiveIdx(next);
                     scrollToResult(next);
@@ -11595,7 +11593,7 @@ function EjBuscadorCompacto({
                     ? normativos.find((item) => String(item.id) === typed)
                     : null;
                   const highlighted =
-                      activeResultIdx >= 0 ? results[activeResultIdx] : null;
+                    clampedActiveIdx >= 0 ? results[clampedActiveIdx] : null;
                   select(exactById || highlighted || results[0]);
                 }}
                 placeholder="Número o nombre..."
@@ -11697,7 +11695,7 @@ function EjBuscadorCompacto({
                         borderBottom: "1px solid var(--border)",
                         cursor: "pointer",
                         background:
-                          idx === activeResultIdx
+                          idx === clampedActiveIdx
                             ? "rgba(80,180,255,.12)"
                             : sel
                               ? `${col}18`
