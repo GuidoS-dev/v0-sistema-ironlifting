@@ -19902,22 +19902,37 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   const pendingSaveRef = useRef(false);
 
   const setForm = (updater) => {
-    const next = typeof updater === "function" ? updater(form) : updater;
-    latestFormRef.current = next;
-    setFormState(next);
-    pendingSaveRef.current = true;
-    // Guardar borrador directo siempre
-    try {
-      localStorage.setItem(
-        `liftplan_plt_draft_${plt.id}`,
-        JSON.stringify(next),
-      );
-    } catch {}
-    // Intentar guardar en el store
-    try {
-      onUpdate(next);
-      pendingSaveRef.current = false;
-    } catch {}
+    setFormState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      latestFormRef.current = next;
+      pendingSaveRef.current = true;
+      // Guardar borrador directo siempre
+      try {
+        localStorage.setItem(
+          `liftplan_plt_draft_${plt.id}`,
+          JSON.stringify(next),
+        );
+      } catch {}
+      // Intentar guardar en el store
+      try {
+        onUpdate(next);
+        pendingSaveRef.current = false;
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleClose = () => {
+    const next = latestFormRef.current || form;
+    if (next) {
+      try {
+        localStorage.setItem(`liftplan_plt_draft_${plt.id}`, JSON.stringify(next));
+      } catch {}
+      try {
+        onUpdate(next);
+      } catch {}
+    }
+    onClose();
   };
 
   // Auto-guardado: cada 1s si hay cambios pendientes
@@ -20048,7 +20063,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
               className="btn btn-ghost btn-sm"
-              onClick={onClose}
+              onClick={handleClose}
               style={{ padding: "5px 10px", fontSize: 12, flexShrink: 0 }}
             >
               <ChevronLeft size={14} /> Plantillas
@@ -21582,7 +21597,13 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
 
       {/* Modal editar metadatos */}
       {editando && (
-        <Modal title="Editar plantilla" onClose={() => setEditando(null)}>
+        <Modal
+          title="Editar plantilla"
+          onClose={() => {
+            onUpdate(editando);
+            setEditando(null);
+          }}
+        >
           <div className="form-group">
             <label className="form-label">Nombre</label>
             <input
