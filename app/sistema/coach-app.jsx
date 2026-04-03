@@ -6537,6 +6537,21 @@ function PlanillaTurno({
                             e.nombre.toLowerCase().includes(q),
                         );
                         const results = q ? [...byId, ...byName] : normativos;
+                        const applyCompSelection = (ejercicio) => {
+                          if (!ejercicio || compPickerOpen === null) return;
+                          _beforeChangeForced();
+                          _mapComp(compPickerOpen, (c) => ({
+                            ...c,
+                            ejercicio_id: ejercicio.id,
+                            nombre_custom: "",
+                            bloques: c.bloques.map((b) => ({
+                              ...b,
+                              kg: calcKgComp(ejercicio.id, b.pct),
+                            })),
+                          }));
+                          setCompPickerOpen(null);
+                          setCompPickerQuery("");
+                        };
                         const GRUPOS = [
                           "Arranque",
                           "Envion",
@@ -6602,6 +6617,16 @@ function PlanillaTurno({
                                   onChange={(e) =>
                                     setCompPickerQuery(e.target.value)
                                   }
+                                  onKeyDown={(e) => {
+                                    if (e.key !== "Enter") return;
+                                    e.preventDefault();
+                                    const typed = compPickerQuery.trim();
+                                    if (!typed) return;
+                                    const exactById = normativos.find(
+                                      (item) => String(item.id) === typed,
+                                    );
+                                    applyCompSelection(exactById || results[0]);
+                                  }}
                                   placeholder="Número o nombre del ejercicio..."
                                   style={{
                                     flex: 1,
@@ -6681,20 +6706,7 @@ function PlanillaTurno({
                                         {...(isFirst
                                           ? { "data-firstgroup": e.categoria }
                                           : {})}
-                                        onClick={() => {
-                                          _beforeChangeForced();
-                                          _mapComp(compPickerOpen, (c) => ({
-                                            ...c,
-                                            ejercicio_id: e.id,
-                                            nombre_custom: "",
-                                            bloques: c.bloques.map((b) => ({
-                                              ...b,
-                                              kg: calcKgComp(e.id, b.pct),
-                                            })),
-                                          }));
-                                          setCompPickerOpen(null);
-                                          setCompPickerQuery("");
-                                        }}
+                                        onClick={() => applyCompSelection(e)}
                                         style={{
                                           padding: "10px 16px",
                                           display: "flex",
