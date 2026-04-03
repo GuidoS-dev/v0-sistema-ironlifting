@@ -19099,7 +19099,9 @@ function usePlantillas(coachId) {
   const update = (p) => {
     setPlantillas((prev) => {
       const exists = prev.some((x) => x.id === p.id);
-      const next = exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
+      const next = exists
+        ? prev.map((x) => (x.id === p.id ? p : x))
+        : [...prev, p];
       try {
         localStorage.setItem(`liftplan_plt_draft_${p.id}`, JSON.stringify(p));
       } catch {}
@@ -19866,15 +19868,15 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
     }
   }
 
-  const [form, setFormState] = useState(() => {
-    const snap = pHistRef.current[pIdxRef.current];
-    // Handle both new format {form:{...}, repsEdit:...} and old format {semanas:..., volumen_total:...}
-    if (!snap) return initialForm;
-    if (snap.form) return snap.form;
-    // Old format: snapshot IS the form directly
-    if (snap.semanas) return snap;
-    return initialForm;
-  });
+  // IMPORTANT: Always initialize form from plt (the most recently persisted state via onUpdate),
+  // NOT from the undo history. The history snapshots are taken BEFORE each change, so reading
+  // from history on mount would restore a state one step behind the last saved value.
+  // Initialize latestFormRef synchronously so setForm never reads a null prev.
+  if (latestFormRef.current === null) {
+    latestFormRef.current = initialForm;
+  }
+
+  const [form, setFormState] = useState(() => initialForm);
   const [pHistState, setPHistState] = useState({
     canUndo: pIdxRef.current > 0,
     canRedo: pIdxRef.current < (pHistRef.current?.length || 0) - 1,
@@ -19913,9 +19915,8 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   const pendingSaveRef = useRef(false);
 
   const setForm = (updater) => {
-    // Usar latestFormRef como "prev" para evitar stale closure, y actualizar
-    // la ref de forma SÍNCRONA para que handleClose siempre lea el valor actual.
-    const prev = latestFormRef.current !== null ? latestFormRef.current : form;
+    // latestFormRef is always initialized (never null), use it as prev to avoid stale closures.
+    const prev = latestFormRef.current;
     const next = typeof updater === "function" ? updater(prev) : updater;
     latestFormRef.current = next;
     pendingSaveRef.current = true;
@@ -19939,7 +19940,10 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
     const next = latestFormRef.current || form;
     if (next) {
       try {
-        localStorage.setItem(`liftplan_plt_draft_${plt.id}`, JSON.stringify(next));
+        localStorage.setItem(
+          `liftplan_plt_draft_${plt.id}`,
+          JSON.stringify(next),
+        );
       } catch {}
       try {
         onUpdate(next);
@@ -20034,7 +20038,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   // Usa latestFormRef como prev para evitar stale closure
   const setFormWithHist = (updater) => {
     pushSnap();
-    const prev = latestFormRef.current !== null ? latestFormRef.current : form;
+    const prev = latestFormRef.current;
     const next = typeof updater === "function" ? updater(prev) : updater;
     setForm(next);
   };
@@ -20042,7 +20046,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
 
   const updateSemana = (sIdx, newSem) => {
     pushSnap();
-    const prev = latestFormRef.current !== null ? latestFormRef.current : form;
+    const prev = latestFormRef.current;
     const ss = [...prev.semanas];
     ss[sIdx] = newSem;
     setForm({ ...prev, semanas: ss });
@@ -25604,7 +25608,8 @@ function CoachApp({ session, profile, onLogout }) {
       el.dispatchEvent(new Event("input", { bubbles: true }));
     }
     document.addEventListener("keydown", handleNumericBackspace);
-    return () => document.removeEventListener("keydown", handleNumericBackspace);
+    return () =>
+      document.removeEventListener("keydown", handleNumericBackspace);
   }, []);
 
   // ── Carga inicial desde Supabase ───────────────────────────────────────────
