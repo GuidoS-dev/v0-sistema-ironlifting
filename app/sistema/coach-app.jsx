@@ -17098,6 +17098,7 @@ function PagePDF({
   irm_env,
   normativos: normativosProp = null,
 }) {
+  const previewRef = React.useRef(null);
   const normativos =
     normativosProp ??
     (() => {
@@ -17786,7 +17787,7 @@ function PagePDF({
   const handleDownload = () => {
     setDownloading(true);
     try {
-      const previewEl = document.getElementById("pdf-preview");
+      const previewEl = previewRef.current;
       if (!previewEl) return;
       // Construir HTML con estilos completos
       const style = Array.from(document.querySelectorAll("style"))
@@ -17937,6 +17938,7 @@ ${previewEl.outerHTML}
 
       {/* Preview */}
       <div
+        ref={previewRef}
         id="pdf-preview"
         style={{
           background: "#fff",
