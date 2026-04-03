@@ -19913,24 +19913,26 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   const pendingSaveRef = useRef(false);
 
   const setForm = (updater) => {
-    setFormState((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      latestFormRef.current = next;
-      pendingSaveRef.current = true;
-      // Guardar borrador directo siempre
-      try {
-        localStorage.setItem(
-          `liftplan_plt_draft_${plt.id}`,
-          JSON.stringify(next),
-        );
-      } catch {}
-      // Intentar guardar en el store
-      try {
-        onUpdate(next);
-        pendingSaveRef.current = false;
-      } catch {}
-      return next;
-    });
+    // Usar latestFormRef como "prev" para evitar stale closure, y actualizar
+    // la ref de forma SÍNCRONA para que handleClose siempre lea el valor actual.
+    const prev = latestFormRef.current !== null ? latestFormRef.current : form;
+    const next = typeof updater === "function" ? updater(prev) : updater;
+    latestFormRef.current = next;
+    pendingSaveRef.current = true;
+    // Guardar borrador directo siempre (síncrono)
+    try {
+      localStorage.setItem(
+        `liftplan_plt_draft_${plt.id}`,
+        JSON.stringify(next),
+      );
+    } catch {}
+    // Propagar al store (síncrono)
+    try {
+      onUpdate(next);
+      pendingSaveRef.current = false;
+    } catch {}
+    // Actualizar estado React (puede ser batched pero ya guardamos todo arriba)
+    setFormState(next);
   };
 
   const handleClose = () => {
@@ -20029,18 +20031,21 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   }, [pHistState]);
 
   // setForm: pushea snapshot ANTES de cambiar, luego actualiza
+  // Usa latestFormRef como prev para evitar stale closure
   const setFormWithHist = (updater) => {
     pushSnap();
-    const next = typeof updater === "function" ? updater(form) : updater;
+    const prev = latestFormRef.current !== null ? latestFormRef.current : form;
+    const next = typeof updater === "function" ? updater(prev) : updater;
     setForm(next);
   };
   const set = (k, v) => setFormWithHist((f) => ({ ...f, [k]: v }));
 
   const updateSemana = (sIdx, newSem) => {
     pushSnap();
-    const ss = [...form.semanas];
+    const prev = latestFormRef.current !== null ? latestFormRef.current : form;
+    const ss = [...prev.semanas];
     ss[sIdx] = newSem;
-    setForm((f) => ({ ...f, semanas: ss }));
+    setForm({ ...prev, semanas: ss });
   };
 
   const mesoFake = {
