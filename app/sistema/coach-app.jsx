@@ -4268,11 +4268,18 @@ function PlanillaTurno({
       }, 0);
   };
 
-  const cambiarSem = (i) => {
+  const cambiarSem = (i, opts = {}) => {
+    const { scroll = true } = opts;
+
     setSemActiva(i);
     setTurnoActivo(0);
     setTimeout(() => {
-      turnoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (scroll) {
+        turnoRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
       setTurnoConTentativa(i, 0);
     }, 30);
   };
@@ -6821,6 +6828,78 @@ function PlanillaTurno({
                           </div>
                         );
                       })()}
+                    <div
+                      style={{
+                        marginTop: 20,
+                        paddingTop: 8,
+                        borderTop: "1px solid var(--border)",
+                        borderBottom: "1px solid var(--border)",
+                        marginBottom: 14,
+                      }}
+                    >
+                      <div
+                        className="semana-tabs"
+                        style={{ marginBottom: 8, minWidth: 0 }}
+                      >
+                        {semanas.map((s, i) => (
+                          <button
+                            key={`comp-nav-sem-${s.id}`}
+                            className={`semana-tab${semActiva === i ? " active" : ""}`}
+                            onClick={() => cambiarSem(i, { scroll: false })}
+                          >
+                            Semana {s.numero}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 4,
+                          flexWrap: "wrap",
+                          minWidth: 0,
+                          paddingBottom: 8,
+                        }}
+                      >
+                        {sem.turnos.map((t, i) => {
+                          const hasEjs = t.ejercicios.some((e) => e.ejercicio_id);
+                          return (
+                            <button
+                              key={`comp-nav-turno-${t.id}`}
+                              onClick={() => {
+                                setTurnoActivo(i);
+                                setTurnoConTentativa(semActiva, i);
+                              }}
+                              style={{
+                                padding: "4px 10px",
+                                borderRadius: 6,
+                                border: "none",
+                                background:
+                                  turnoActivo === i
+                                    ? "var(--gold)"
+                                    : hasEjs
+                                      ? "var(--surface3)"
+                                      : "var(--surface2)",
+                                color:
+                                  turnoActivo === i
+                                    ? "#000"
+                                    : hasEjs
+                                      ? "var(--text)"
+                                      : "var(--muted)",
+                                fontFamily: "'Bebas Neue'",
+                                fontSize: 14,
+                                cursor: "pointer",
+                                letterSpacing: ".04em",
+                              }}
+                            >
+                              T{i + 1}
+                              {t.dia ? ` · ${t.dia.slice(0, 3)}` : ""}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     <div
                       id={`${scrollIdPrefix}-complementarios`}
                       style={{
