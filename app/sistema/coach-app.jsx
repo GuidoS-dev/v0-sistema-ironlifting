@@ -4025,6 +4025,7 @@ function PlanillaTurno({
   const [tipTurno, setTipTurno] = useState(null);
   const [compPickerOpen, setCompPickerOpen] = useState(null); // compId | null
   const [compPickerQuery, setCompPickerQuery] = useState("");
+  const [compPickerActiveIdx, setCompPickerActiveIdx] = useState(0);
   const [compCopyFeedback, setCompCopyFeedback] = useState(false);
   const [importSemOrigen, setImportSemOrigen] = useState("");
   const [importSemFeedback, setImportSemFeedback] = useState(false);
@@ -6537,6 +6538,20 @@ function PlanillaTurno({
                             e.nombre.toLowerCase().includes(q),
                         );
                         const results = q ? [...byId, ...byName] : normativos;
+                        const activeIdx =
+                          results.length === 0
+                            ? -1
+                            : Math.min(compPickerActiveIdx, results.length - 1);
+                        const scrollToCompIndex = (idx) => {
+                          const el = compPickerListRef.current?.querySelector(
+                            `[data-comp-index="${idx}"]`,
+                          );
+                          if (el)
+                            el.scrollIntoView({
+                              block: "nearest",
+                              behavior: "smooth",
+                            });
+                        };
                         const applyCompSelection = (ejercicio) => {
                           if (!ejercicio || compPickerOpen === null) return;
                           _beforeChangeForced();
@@ -6551,6 +6566,7 @@ function PlanillaTurno({
                           }));
                           setCompPickerOpen(null);
                           setCompPickerQuery("");
+                          setCompPickerActiveIdx(0);
                         };
                         const GRUPOS = [
                           "Arranque",
@@ -6585,6 +6601,7 @@ function PlanillaTurno({
                               if (e.target === e.currentTarget) {
                                 setCompPickerOpen(null);
                                 setCompPickerQuery("");
+                                setCompPickerActiveIdx(0);
                               }
                             }}
                           >
@@ -6614,18 +6631,54 @@ function PlanillaTurno({
                                   name="field_11"
                                   autoFocus
                                   value={compPickerQuery}
-                                  onChange={(e) =>
-                                    setCompPickerQuery(e.target.value)
-                                  }
+                                  onChange={(e) => {
+                                    setCompPickerQuery(e.target.value);
+                                    setCompPickerActiveIdx(0);
+                                  }}
                                   onKeyDown={(e) => {
+                                    if (e.key === "Escape") {
+                                      e.preventDefault();
+                                      setCompPickerOpen(null);
+                                      setCompPickerQuery("");
+                                      setCompPickerActiveIdx(0);
+                                      return;
+                                    }
+                                    if (e.key === "ArrowDown") {
+                                      e.preventDefault();
+                                      if (!results.length) return;
+                                      const next =
+                                        activeIdx < 0
+                                          ? 0
+                                          : (activeIdx + 1) % results.length;
+                                      setCompPickerActiveIdx(next);
+                                      scrollToCompIndex(next);
+                                      return;
+                                    }
+                                    if (e.key === "ArrowUp") {
+                                      e.preventDefault();
+                                      if (!results.length) return;
+                                      const next =
+                                        activeIdx < 0
+                                          ? results.length - 1
+                                          : (activeIdx - 1 + results.length) %
+                                            results.length;
+                                      setCompPickerActiveIdx(next);
+                                      scrollToCompIndex(next);
+                                      return;
+                                    }
                                     if (e.key !== "Enter") return;
                                     e.preventDefault();
                                     const typed = compPickerQuery.trim();
-                                    if (!typed) return;
-                                    const exactById = normativos.find(
-                                      (item) => String(item.id) === typed,
+                                    const exactById = typed
+                                      ? normativos.find(
+                                          (item) => String(item.id) === typed,
+                                        )
+                                      : null;
+                                    const highlighted =
+                                      activeIdx >= 0 ? results[activeIdx] : null;
+                                    applyCompSelection(
+                                      exactById || highlighted || results[0],
                                     );
-                                    applyCompSelection(exactById || results[0]);
                                   }}
                                   placeholder="Número o nombre del ejercicio..."
                                   style={{
@@ -6644,6 +6697,7 @@ function PlanillaTurno({
                                   onClick={() => {
                                     setCompPickerOpen(null);
                                     setCompPickerQuery("");
+                                    setCompPickerActiveIdx(0);
                                   }}
                                   style={{
                                     background: "none",
@@ -6694,7 +6748,7 @@ function PlanillaTurno({
                               >
                                 {(() => {
                                   const seen = new Set();
-                                  return results.map((e) => {
+                                  return results.map((e, idx) => {
                                     const col =
                                       CAT_COLOR[e.categoria] || "var(--muted)";
                                     const isFirst =
@@ -6706,7 +6760,11 @@ function PlanillaTurno({
                                         {...(isFirst
                                           ? { "data-firstgroup": e.categoria }
                                           : {})}
+                                        data-comp-index={idx}
                                         onClick={() => applyCompSelection(e)}
+                                        onMouseEnter={() =>
+                                          setCompPickerActiveIdx(idx)
+                                        }
                                         style={{
                                           padding: "10px 16px",
                                           display: "flex",
@@ -6715,7 +6773,10 @@ function PlanillaTurno({
                                           borderBottom:
                                             "1px solid var(--border)",
                                           cursor: "pointer",
-                                          background: "transparent",
+                                          background:
+                                            idx === activeIdx
+                                              ? "rgba(80,180,255,.12)"
+                                              : "transparent",
                                         }}
                                       >
                                         <span
@@ -7034,7 +7095,10 @@ function PlanillaTurno({
                                     </td>
                                     {/* ID — click abre picker */}
                                     <td
-                                      onClick={() => setCompPickerOpen(comp.id)}
+                                      onClick={() => {
+                                        setCompPickerOpen(comp.id);
+                                        setCompPickerActiveIdx(0);
+                                      }}
                                       style={{
                                         padding: "3px 4px",
                                         textAlign: "center",
