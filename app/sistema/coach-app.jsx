@@ -12048,7 +12048,11 @@ function SembradoMensual({
       if (!emptySlotCache.current[cacheKey]) {
         emptySlotCache.current[cacheKey] = [];
       }
-      const cache = emptySlotCache.current[cacheKey];
+      const usedIds = new Set(ejs.map((e) => e?.id).filter(Boolean));
+      const cache = emptySlotCache.current[cacheKey].filter(
+        (slot) => !usedIds.has(slot?.id),
+      );
+      emptySlotCache.current[cacheKey] = cache;
       const needed = DEFAULT_EJS - ejs.length;
       while (cache.length < needed) {
         cache.push(mkEj());
@@ -12059,9 +12063,31 @@ function SembradoMensual({
   };
 
   const updateEjs = (semIdx, tIdx, newEjs) => {
+    const seenIds = new Set();
+    const cleanEjs = (newEjs || [])
+      .filter(Boolean)
+      .map((ej) => {
+        if (!ej?.id) {
+          return { ...ej, id: mkId() };
+        }
+        if (seenIds.has(ej.id)) {
+          return { ...ej, id: mkId() };
+        }
+        seenIds.add(ej.id);
+        return ej;
+      });
+
+    const cacheKey = `${semIdx}-${tIdx}`;
+    if (emptySlotCache.current[cacheKey]) {
+      const usedIds = new Set(cleanEjs.map((e) => e?.id).filter(Boolean));
+      emptySlotCache.current[cacheKey] = emptySlotCache.current[cacheKey].filter(
+        (slot) => !usedIds.has(slot?.id),
+      );
+    }
+
     const semana = { ...semanas[semIdx] };
     const turnos = [...semana.turnos];
-    turnos[tIdx] = { ...turnos[tIdx], ejercicios: newEjs };
+    turnos[tIdx] = { ...turnos[tIdx], ejercicios: cleanEjs };
     semana.turnos = turnos;
     onChangeSemana(semIdx, semana);
   };
