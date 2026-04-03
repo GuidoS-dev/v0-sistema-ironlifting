@@ -2773,7 +2773,6 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
             type="number"
             min={65}
             max={95}
-            list="irm-values"
             value={form.irm_arranque}
             onChange={(e) => set("irm_arranque", Number(e.target.value))}
             placeholder="ej: 80"
@@ -2787,18 +2786,12 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
             type="number"
             min={65}
             max={95}
-            list="irm-values"
             value={form.irm_envion}
             onChange={(e) => set("irm_envion", Number(e.target.value))}
             placeholder="ej: 80"
           />
         </div>
       </div>
-      <datalist id="irm-values">
-        {IRM_VALUES.map((v) => (
-          <option key={v} value={v} />
-        ))}
-      </datalist>
       {esEscuela ? (
         <div
           style={{
@@ -13539,7 +13532,6 @@ function EditMesoModal({ meso, onSave, onClose }) {
             type="number"
             min={65}
             max={95}
-            list="irm-values"
             value={form.irm_arranque}
             onChange={(e) => set("irm_arranque", Number(e.target.value))}
             placeholder="ej: 80"
@@ -13553,18 +13545,12 @@ function EditMesoModal({ meso, onSave, onClose }) {
             type="number"
             min={65}
             max={95}
-            list="irm-values"
             value={form.irm_envion}
             onChange={(e) => set("irm_envion", Number(e.target.value))}
             placeholder="ej: 80"
           />
         </div>
       </div>
-      <datalist id="irm-values">
-        {IRM_VALUES.map((v) => (
-          <option key={v} value={v} />
-        ))}
-      </datalist>
       <div className="modal-footer">
         <button className="btn btn-ghost" onClick={onClose}>
           Cancelar
