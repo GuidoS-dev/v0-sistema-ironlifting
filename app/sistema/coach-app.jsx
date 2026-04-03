@@ -2914,6 +2914,7 @@ function EjBuscador({ value, onChange, normativos: normativosProp = null }) {
   const ejData = value ? getEjercicioById(Number(value), normativosProp) : null;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef(null);
 
   const normativos =
@@ -11423,26 +11424,14 @@ function EjBuscadorCompacto({
     onChange(ej ? ej.id : null);
     setQuery("");
     setOpen(false);
+    setActiveIdx(0);
   };
 
-  // Refs para acceso fresco en event listeners
-  const resultsRef = useRef(results);
-  resultsRef.current = results;
-  const selectRef = useRef(select);
-  selectRef.current = select;
-
-  // Enter key para seleccionar primer resultado
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => {
-      if (e.key === "Enter" && resultsRef.current.length > 0) {
-        e.preventDefault();
-        selectRef.current(resultsRef.current[0]);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open]);
+  const closePicker = () => {
+    setOpen(false);
+    setQuery("");
+    setActiveIdx(0);
+  };
 
   // Block body scroll when open
   useEffect(() => {
@@ -11472,11 +11461,20 @@ function EjBuscadorCompacto({
     const el = listRef2.current?.querySelector(`[data-firstgroup="${g}"]`);
     if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
   };
+  const clampedActiveIdx =
+    results.length === 0 ? -1 : Math.min(activeIdx, results.length - 1);
+  const scrollToResult = (idx) => {
+    const el = listRef2.current?.querySelector(`[data-ej-index="${idx}"]`);
+    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
 
   return (
     <>
       <div
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          setActiveIdx(0);
+        }}
         title={title}
         style={{
           background: "var(--surface3)",
@@ -11526,7 +11524,7 @@ function EjBuscadorCompacto({
             padding: "20px",
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
+            if (e.target === e.currentTarget) closePicker();
           }}
         >
           <div
@@ -11555,7 +11553,49 @@ function EjBuscadorCompacto({
                 name="field_29"
                 ref={inputRef}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActiveIdx(0);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    closePicker();
+                    return;
+                  }
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    if (!results.length) return;
+                    const next =
+                      clampedActiveIdx < 0
+                        ? 0
+                        : (clampedActiveIdx + 1) % results.length;
+                    setActiveIdx(next);
+                    scrollToResult(next);
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    if (!results.length) return;
+                    const next =
+                      clampedActiveIdx < 0
+                        ? results.length - 1
+                        : (clampedActiveIdx - 1 + results.length) %
+                          results.length;
+                    setActiveIdx(next);
+                    scrollToResult(next);
+                    return;
+                  }
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  const typed = query.trim();
+                  const exactById = typed
+                    ? normativos.find((item) => String(item.id) === typed)
+                    : null;
+                  const highlighted =
+                    clampedActiveIdx >= 0 ? results[clampedActiveIdx] : null;
+                  select(exactById || highlighted || results[0]);
+                }}
                 placeholder="Número o nombre..."
                 style={{
                   flex: 1,
@@ -11570,7 +11610,7 @@ function EjBuscadorCompacto({
                 }}
               />
               <button
-                onClick={() => setOpen(false)}
+                onClick={closePicker}
                 style={{
                   background: "none",
                   border: "none",
@@ -11635,7 +11675,7 @@ function EjBuscadorCompacto({
               )}
               {(() => {
                 const seen2 = new Set();
-                return results.map((e) => {
+                return results.map((e, idx) => {
                   const col = CAT_COLOR[e.categoria] || "var(--muted)";
                   const sel = e.id === Number(value);
                   const isFirst =
@@ -11644,6 +11684,8 @@ function EjBuscadorCompacto({
                     <div
                       key={e.id}
                       onClick={() => select(e)}
+                      onMouseEnter={() => setActiveIdx(idx)}
+                      data-ej-index={idx}
                       {...(isFirst ? { "data-firstgroup": e.categoria } : {})}
                       style={{
                         padding: "10px 16px",
@@ -11652,7 +11694,12 @@ function EjBuscadorCompacto({
                         gap: 10,
                         borderBottom: "1px solid var(--border)",
                         cursor: "pointer",
-                        background: sel ? `${col}18` : "transparent",
+                        background:
+                          idx === clampedActiveIdx
+                            ? "rgba(80,180,255,.12)"
+                            : sel
+                              ? `${col}18`
+                              : "transparent",
                       }}
                     >
                       <span
