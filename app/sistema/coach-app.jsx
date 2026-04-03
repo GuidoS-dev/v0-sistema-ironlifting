@@ -11630,13 +11630,29 @@ const mkEj = () => ({
 
 function IntensityPickerModal({ value, onSelect, onClose }) {
   const listRef = useRef(null);
+  const typedBufferResetRef = useRef(null);
+  const [typedBuffer, setTypedBuffer] = useState("");
+  const [activeValue, setActiveValue] = useState(value);
+
+  const scrollToIntensity = useCallback((target) => {
+    const el = listRef.current?.querySelector(`[data-intensity="${target}"]`);
+    if (el) el.scrollIntoView({ block: "center" });
+  }, []);
 
   useEffect(() => {
-    const el =
-      listRef.current?.querySelector('[data-intensity="80"]') ||
-      listRef.current?.querySelector(`[data-intensity="${value}"]`);
-    if (el) el.scrollIntoView({ block: "center" });
-  }, [value]);
+    setActiveValue(value);
+    setTypedBuffer("");
+    listRef.current?.focus({ preventScroll: true });
+    scrollToIntensity(value);
+  }, [value, scrollToIntensity]);
+
+  useEffect(() => {
+    return () => {
+      if (typedBufferResetRef.current) {
+        clearTimeout(typedBufferResetRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const onWheel = (ev) => {
@@ -11668,6 +11684,66 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
     };
   }, []);
 
+  const commitSelection = useCallback(() => {
+    onSelect(activeValue);
+    onClose();
+  }, [activeValue, onClose, onSelect]);
+
+  const resetTypedBufferSoon = useCallback(() => {
+    if (typedBufferResetRef.current) {
+      clearTimeout(typedBufferResetRef.current);
+    }
+    typedBufferResetRef.current = setTimeout(() => {
+      setTypedBuffer("");
+    }, 900);
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        commitSelection();
+        return;
+      }
+
+      if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+        ev.preventDefault();
+        const idx = IRM_VALUES.indexOf(activeValue);
+        if (idx === -1) return;
+        const nextIdx =
+          ev.key === "ArrowDown"
+            ? Math.min(IRM_VALUES.length - 1, idx + 1)
+            : Math.max(0, idx - 1);
+        const nextValue = IRM_VALUES[nextIdx];
+        setActiveValue(nextValue);
+        scrollToIntensity(nextValue);
+        return;
+      }
+
+      if (ev.key === "Backspace") {
+        ev.preventDefault();
+        setTypedBuffer((prev) => prev.slice(0, -1));
+        resetTypedBufferSoon();
+        return;
+      }
+
+      if (!/^\d$/.test(ev.key)) return;
+
+      ev.preventDefault();
+      setTypedBuffer((prev) => {
+        const nextBuffer = `${prev}${ev.key}`.slice(-2);
+        const nextValue = Number(nextBuffer);
+        if (IRM_VALUES.includes(nextValue)) {
+          setActiveValue(nextValue);
+          scrollToIntensity(nextValue);
+        }
+        return nextBuffer;
+      });
+      resetTypedBufferSoon();
+    },
+    [activeValue, commitSelection, resetTypedBufferSoon, scrollToIntensity]
+  );
+
   return (
     <Modal title="Seleccionar intensidad" onClose={onClose} maxWidth="760px">
       <div
@@ -11681,6 +11757,8 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
       </div>
       <div
         ref={listRef}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
         style={{
           maxHeight: "min(72vh, 760px)",
           overflowY: "auto",
@@ -11691,7 +11769,7 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
         }}
       >
         {IRM_VALUES.map((v) => {
-          const active = v === value;
+          const active = v === activeValue;
           return (
             <button
               key={v}
