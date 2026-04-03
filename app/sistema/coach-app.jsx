@@ -19074,21 +19074,21 @@ function usePlantillas(coachId) {
       .catch(() => {});
   }, [coachId]);
 
-  const _saveLocal = (ps) => {
-    setPlantillas(ps);
-    try {
-      localStorage.setItem("liftplan_plantillas", JSON.stringify(ps));
-    } catch (e) {
-      console.warn("localStorage save failed:", e);
-    }
-  };
   const add = (p) => {
     const item = {
       id: mkId(),
       creado: new Date().toISOString().slice(0, 10),
       ...p,
     };
-    _saveLocal([...plantillas, item]);
+    setPlantillas((prev) => {
+      const next = [...prev, item];
+      try {
+        localStorage.setItem("liftplan_plantillas", JSON.stringify(next));
+      } catch (e) {
+        console.warn("localStorage save failed:", e);
+      }
+      return next;
+    });
     if (coachId) {
       sb.from("plantillas")
         .upsert([plantillaToDb(item, coachId)], { onConflict: "app_id" })
@@ -19097,16 +19097,19 @@ function usePlantillas(coachId) {
     return item;
   };
   const update = (p) => {
-    const next = plantillas.map((x) => (x.id === p.id ? p : x));
-    setPlantillas(next);
-    try {
-      localStorage.setItem(`liftplan_plt_draft_${p.id}`, JSON.stringify(p));
-    } catch {}
-    try {
-      localStorage.setItem("liftplan_plantillas", JSON.stringify(next));
-    } catch (e) {
-      console.warn("localStorage save failed:", e);
-    }
+    setPlantillas((prev) => {
+      const exists = prev.some((x) => x.id === p.id);
+      const next = exists ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p];
+      try {
+        localStorage.setItem(`liftplan_plt_draft_${p.id}`, JSON.stringify(p));
+      } catch {}
+      try {
+        localStorage.setItem("liftplan_plantillas", JSON.stringify(next));
+      } catch (e) {
+        console.warn("localStorage save failed:", e);
+      }
+      return next;
+    });
     if (coachId) {
       sb.from("plantillas")
         .upsert([plantillaToDb(p, coachId)], { onConflict: "app_id" })
@@ -19114,7 +19117,15 @@ function usePlantillas(coachId) {
     }
   };
   const remove = (id) => {
-    _saveLocal(plantillas.filter((x) => x.id !== id));
+    setPlantillas((prev) => {
+      const next = prev.filter((x) => x.id !== id);
+      try {
+        localStorage.setItem("liftplan_plantillas", JSON.stringify(next));
+      } catch (e) {
+        console.warn("localStorage save failed:", e);
+      }
+      return next;
+    });
     try {
       localStorage.removeItem(`liftplan_plt_draft_${id}`);
     } catch {}
