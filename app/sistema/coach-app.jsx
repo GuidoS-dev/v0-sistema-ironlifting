@@ -4027,9 +4027,15 @@ function PlanillaTurno({
   const [compPickerQuery, setCompPickerQuery] = useState("");
   const [compPickerActiveIdx, setCompPickerActiveIdx] = useState(0);
   const [compCopyFeedback, setCompCopyFeedback] = useState(false);
+  const [compPasteFeedback, setCompPasteFeedback] = useState(false);
+  const [compPasteSourceSem, setCompPasteSourceSem] = useState("");
+  const [compPasteSourceTurno, setCompPasteSourceTurno] = useState("");
+  const [compPasteTargetSemanas, setCompPasteTargetSemanas] = useState([]);
+  const [compPasteTargetTurnos, setCompPasteTargetTurnos] = useState([]);
   const [importSemOrigen, setImportSemOrigen] = useState("");
   const [importSemFeedback, setImportSemFeedback] = useState(false);
   const compCopyTimerRef = useRef(null);
+  const compPasteTimerRef = useRef(null);
   const importSemTimerRef = useRef(null);
   const compPickerListRef = useRef(null);
 
@@ -4289,6 +4295,64 @@ function PlanillaTurno({
     if (Number(importSemOrigen) === semActiva) setImportSemOrigen("");
   }, [importSemOrigen, semActiva]);
 
+  useEffect(() => {
+    setCompPasteSourceSem((prev) => {
+      if (prev === "") return String(semActiva);
+      const idx = Number(prev);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= semanas.length) {
+        return String(semActiva);
+      }
+      return prev;
+    });
+  }, [semActiva, semanas.length]);
+
+  useEffect(() => {
+    const turnosCount = sem?.turnos?.length || 0;
+    setCompPasteSourceTurno((prev) => {
+      if (turnosCount <= 0) return "";
+      if (prev === "") return String(turnoActivo);
+      const idx = Number(prev);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= turnosCount) {
+        return String(turnoActivo);
+      }
+      return prev;
+    });
+  }, [turnoActivo, sem]);
+
+  useEffect(() => {
+    setCompPasteTargetSemanas((prev) => {
+      const valid = (prev || []).filter((v) => {
+        const idx = Number(v);
+        return Number.isInteger(idx) && idx >= 0 && idx < semanas.length;
+      });
+      if (valid.length > 0) return Array.from(new Set(valid));
+      return semanas
+        .map((_, i) => i)
+        .filter((i) => i !== semActiva)
+        .map(String);
+    });
+  }, [semanas.length, semActiva]);
+
+  useEffect(() => {
+    const turnosCount = sem?.turnos?.length || 0;
+    setCompPasteTargetTurnos((prev) => {
+      const valid = (prev || []).filter((v) => {
+        const idx = Number(v);
+        return Number.isInteger(idx) && idx >= 0 && idx < turnosCount;
+      });
+      if (valid.length > 0) return Array.from(new Set(valid));
+      if (turnosCount <= 0) return [];
+      return [String(turnoActivo)];
+    });
+  }, [sem, turnoActivo]);
+
+  useEffect(
+    () => () => {
+      if (compPasteTimerRef.current) clearTimeout(compPasteTimerRef.current);
+    },
+    [],
+  );
+
   const copiarComplementariosATodasSemanas = () => {
     if (!turno) return;
     _beforeChangeForced();
@@ -4341,6 +4405,99 @@ function PlanillaTurno({
       () => setCompCopyFeedback(false),
       1500,
     );
+  };
+
+  const toggleCompPasteSemanaTarget = (semIdx) => {
+    setCompPasteTargetSemanas((prev) => {
+      const k = String(semIdx);
+      if (prev.includes(k)) return prev.filter((v) => v !== k);
+      return [...prev, k];
+    });
+  };
+
+  const toggleCompPasteTurnoTarget = (tIdx) => {
+    setCompPasteTargetTurnos((prev) => {
+      const k = String(tIdx);
+      if (prev.includes(k)) return prev.filter((v) => v !== k);
+      return [...prev, k];
+    });
+  };
+
+  const pegarComplementariosSeleccionados = () => {
+    const srcSemIdx = Number(compPasteSourceSem);
+    const srcTurnoIdx = Number(compPasteSourceTurno);
+    if (!Number.isInteger(srcSemIdx) || !Number.isInteger(srcTurnoIdx)) return;
+
+    const sourceTurno = semanas[srcSemIdx]?.turnos?.[srcTurnoIdx];
+    if (!sourceTurno) return;
+
+    const targetSemanas = Array.from(
+      new Set(
+        (compPasteTargetSemanas || [])
+          .map((v) => Number(v))
+          .filter(
+            (idx) =>
+              Number.isInteger(idx) && idx >= 0 && idx < (semanas?.length || 0),
+          ),
+      ),
+    );
+    const turnosCount = sem?.turnos?.length || 0;
+    const targetTurnos = Array.from(
+      new Set(
+        (compPasteTargetTurnos || [])
+          .map((v) => Number(v))
+          .filter(
+            (idx) => Number.isInteger(idx) && idx >= 0 && idx < turnosCount,
+          ),
+      ),
+    );
+    if (targetSemanas.length === 0 || targetTurnos.length === 0) return;
+
+    _beforeChangeForced();
+
+    const cloneCompList = (list) => JSON.parse(JSON.stringify(list || []));
+    const sourceBefore = cloneCompList(sourceTurno.complementarios_before);
+    const sourceAfter = cloneCompList(sourceTurno.complementarios_after);
+    const sourceNumBloques = sourceTurno.num_bloques_comp || 1;
+
+    if (onChangeTodasSemanas) {
+      const nextSemanas = JSON.parse(JSON.stringify(semanas));
+
+      targetSemanas.forEach((sIdx) => {
+        targetTurnos.forEach((tIdx) => {
+          if (sIdx === srcSemIdx && tIdx === srcTurnoIdx) return;
+          const targetTurno = nextSemanas[sIdx]?.turnos?.[tIdx];
+          if (!targetTurno) return;
+
+          targetTurno.num_bloques_comp = sourceNumBloques;
+          targetTurno.complementarios_before = cloneCompList(sourceBefore);
+          targetTurno.complementarios_after = cloneCompList(sourceAfter);
+        });
+      });
+
+      onChangeTodasSemanas(nextSemanas);
+    } else {
+      targetSemanas.forEach((sIdx) => {
+        targetTurnos.forEach((tIdx) => {
+          if (sIdx === srcSemIdx && tIdx === srcTurnoIdx) return;
+          const targetTurno = semanas[sIdx]?.turnos?.[tIdx];
+          if (!targetTurno) return;
+
+          onChangeTurno?.(sIdx, tIdx, {
+            ...targetTurno,
+            num_bloques_comp: sourceNumBloques,
+            complementarios_before: cloneCompList(sourceBefore),
+            complementarios_after: cloneCompList(sourceAfter),
+          });
+        });
+      });
+    }
+
+    if (compPasteTimerRef.current) clearTimeout(compPasteTimerRef.current);
+    setCompPasteFeedback(true);
+    compPasteTimerRef.current = setTimeout(() => {
+      setCompPasteFeedback(false);
+    }, 1500);
   };
 
   const importarSemanaEnActual = () => {
@@ -6966,6 +7123,217 @@ function PlanillaTurno({
                         Copia los complementarios de este turno a la misma
                         posición en todas las semanas.
                       </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 8,
+                          marginBottom: 10,
+                          padding: "10px",
+                          border: "1px solid var(--border)",
+                          borderRadius: 8,
+                          background: "var(--surface2)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 10,
+                              color: "var(--muted)",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: ".08em",
+                            }}
+                          >
+                            Pegado de complementarios
+                          </span>
+                          <select
+                            name="field_73"
+                            value={compPasteSourceSem}
+                            onChange={(e) => setCompPasteSourceSem(e.target.value)}
+                            style={{
+                              background: "var(--surface3)",
+                              border: "1px solid var(--border)",
+                              borderRadius: 6,
+                              color: "var(--text)",
+                              fontSize: 11,
+                              padding: "4px 8px",
+                              outline: "none",
+                            }}
+                          >
+                            {semanas.map((s, i) => (
+                              <option key={`comp-paste-src-sem-${s.id}`} value={i}>
+                                Semana {s.numero}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            name="field_74"
+                            value={compPasteSourceTurno}
+                            onChange={(e) =>
+                              setCompPasteSourceTurno(e.target.value)
+                            }
+                            style={{
+                              background: "var(--surface3)",
+                              border: "1px solid var(--border)",
+                              borderRadius: 6,
+                              color: "var(--text)",
+                              fontSize: 11,
+                              padding: "4px 8px",
+                              outline: "none",
+                            }}
+                          >
+                            {(sem?.turnos || []).map((t, i) => (
+                              <option key={`comp-paste-src-turno-${t.id}`} value={i}>
+                                T{i + 1}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={pegarComplementariosSeleccionados}
+                            disabled={
+                              compPasteSourceSem === "" ||
+                              compPasteSourceTurno === "" ||
+                              compPasteTargetSemanas.length === 0 ||
+                              compPasteTargetTurnos.length === 0
+                            }
+                            style={{
+                              marginLeft: "auto",
+                              padding: "4px 10px",
+                              borderRadius: 6,
+                              border: compPasteFeedback
+                                ? "1px solid rgba(77,182,172,.45)"
+                                : "1px solid var(--border)",
+                              background: compPasteFeedback
+                                ? "rgba(77,182,172,.12)"
+                                : "var(--surface3)",
+                              color: compPasteFeedback
+                                ? "#4db6ac"
+                                : "var(--text)",
+                              cursor: "pointer",
+                              fontSize: 11,
+                              fontFamily: "'DM Sans'",
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                            }}
+                            title="Pegar complementarios del origen en las semanas y turnos tildados"
+                          >
+                            {compPasteFeedback ? "Pegado" : "Pegar seleccionados"}
+                          </button>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: "var(--muted)",
+                              textTransform: "uppercase",
+                              letterSpacing: ".08em",
+                              fontWeight: 700,
+                            }}
+                          >
+                            Semanas destino (tildes)
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {semanas.map((s, i) => {
+                              const val = String(i);
+                              const checked = compPasteTargetSemanas.includes(val);
+                              return (
+                                <label
+                                  key={`comp-paste-sem-check-${s.id}`}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    fontSize: 11,
+                                    color: checked ? "var(--text)" : "var(--muted)",
+                                  }}
+                                >
+                                  <input
+                                    name="field_75"
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleCompPasteSemanaTarget(i)}
+                                    style={{ accentColor: "var(--gold)" }}
+                                  />
+                                  Semana {s.numero}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: "var(--muted)",
+                              textTransform: "uppercase",
+                              letterSpacing: ".08em",
+                              fontWeight: 700,
+                            }}
+                          >
+                            Turnos destino (tildes)
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {(sem?.turnos || []).map((t, i) => {
+                              const val = String(i);
+                              const checked = compPasteTargetTurnos.includes(val);
+                              return (
+                                <label
+                                  key={`comp-paste-turno-check-${t.id}`}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    fontSize: 11,
+                                    color: checked ? "var(--text)" : "var(--muted)",
+                                  }}
+                                >
+                                  <input
+                                    name="field_76"
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleCompPasteTurnoTarget(i)}
+                                    style={{ accentColor: "var(--gold)" }}
+                                  />
+                                  T{i + 1}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
                       <div style={{ overflowX: "auto" }}>
                         <table
                           className="planilla-tabla"
