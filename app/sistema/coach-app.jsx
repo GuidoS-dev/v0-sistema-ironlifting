@@ -25548,6 +25548,28 @@ function CoachApp({ session, profile, onLogout }) {
     };
   }, []);
 
+  // ── Backspace siempre borra el último dígito en inputs numéricos ───────────
+  useEffect(() => {
+    function handleNumericBackspace(e) {
+      if (e.key !== "Backspace") return;
+      const el = e.target;
+      if (el.tagName !== "INPUT" || el.type !== "number") return;
+      e.preventDefault();
+      const cur = el.value;
+      if (cur.length === 0) return;
+      const next = cur.slice(0, -1);
+      // Disparar evento nativo para que React detecte el cambio
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      ).set;
+      nativeInputValueSetter.call(el, next);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    document.addEventListener("keydown", handleNumericBackspace);
+    return () => document.removeEventListener("keydown", handleNumericBackspace);
+  }, []);
+
   // ── Carga inicial desde Supabase ───────────────────────────────────────────
   useEffect(() => {
     if (!coachId) return;
