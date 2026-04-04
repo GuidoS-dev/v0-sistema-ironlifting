@@ -27609,6 +27609,8 @@ function CoachApp({ session, profile, onLogout }) {
   } = usePlantillas(coachId);
   const mesoOverrideSyncTimersRef = useRef(new Map());
   const atletaOverrideSyncTimersRef = useRef(new Map());
+  const atletaSyncTimerRef = useRef(null);
+  const mesoSyncTimerRef = useRef(null);
 
   // ── Refs para sincronización con DB ────────────────────────────────────────
   const prevAtletasRef = useRef(null); // null = DB aún no inicializada
@@ -27939,39 +27941,37 @@ function CoachApp({ session, profile, onLogout }) {
     };
   }, [coachId]);
 
-  // ── Sincronizar atletas con DB cuando cambian ──────────────────────────────
+  // ── Sincronizar atletas con DB cuando cambian (debounce 1.5s) ───────────
   useEffect(() => {
     if (!coachId || prevAtletasRef.current === null) return;
-    const prev = prevAtletasRef.current;
     const curr = atletas;
-    prevAtletasRef.current = curr;
 
-    const deletedIds = prev
-      .filter((p) => !curr.find((a) => a.id === p.id))
-      .map((p) => p.id);
-    const now = new Date().toISOString();
-    const toUpsert = curr.filter((a) => {
-      const old = prev.find((p) => p.id === a.id);
-      return !old || JSON.stringify(old) !== JSON.stringify(a);
-    });
-    if (deletedIds.length === 0 && toUpsert.length === 0) return;
+    if (atletaSyncTimerRef.current) clearTimeout(atletaSyncTimerRef.current);
+    atletaSyncTimerRef.current = setTimeout(async () => {
+      atletaSyncTimerRef.current = null;
+      const prev = prevAtletasRef.current;
+      prevAtletasRef.current = curr;
 
-    // Marcar _updated_at local antes de escribir a DB
-    if (toUpsert.length > 0) {
-      setAtletasRaw((s) =>
-        s.map((a) =>
-          toUpsert.find((u) => u.id === a.id) ? { ...a, _updated_at: now } : a,
-        ),
-      );
-    }
+      const deletedIds = prev
+        .filter((p) => !curr.find((a) => a.id === p.id))
+        .map((p) => p.id);
+      const now = new Date().toISOString();
+      const toUpsert = curr.filter((a) => {
+        const old = prev.find((p) => p.id === a.id);
+        return !old || JSON.stringify(old) !== JSON.stringify(a);
+      });
+      if (deletedIds.length === 0 && toUpsert.length === 0) return;
 
-    (async () => {
+      if (toUpsert.length > 0) {
+        setAtletasRaw((s) =>
+          s.map((a) =>
+            toUpsert.find((u) => u.id === a.id) ? { ...a, _updated_at: now } : a,
+          ),
+        );
+      }
+
       for (const id of deletedIds) {
-        await sb
-          .from("atletas")
-          .eq("app_id", id)
-          .delete()
-          .catch(() => {});
+        await sb.from("atletas").eq("app_id", id).delete().catch(() => {});
       }
       if (toUpsert.length > 0) {
         await sb
@@ -27982,42 +27982,40 @@ function CoachApp({ session, profile, onLogout }) {
           )
           .catch((e) => console.warn("DB sync atletas failed:", e));
       }
-    })();
+    }, 1500);
   }, [atletas]);
 
-  // ── Sincronizar mesociclos con DB cuando cambian ───────────────────────────
+  // ── Sincronizar mesociclos con DB cuando cambian (debounce 1.5s) ──────────
   useEffect(() => {
     if (!coachId || prevMesociclosRef.current === null) return;
-    const prev = prevMesociclosRef.current;
     const curr = mesociclos;
-    prevMesociclosRef.current = curr;
 
-    const deletedIds = prev
-      .filter((p) => !curr.find((m) => m.id === p.id))
-      .map((p) => p.id);
-    const nowM = new Date().toISOString();
-    const toUpsert = curr.filter((m) => {
-      const old = prev.find((p) => p.id === m.id);
-      return !old || JSON.stringify(old) !== JSON.stringify(m);
-    });
-    if (deletedIds.length === 0 && toUpsert.length === 0) return;
+    if (mesoSyncTimerRef.current) clearTimeout(mesoSyncTimerRef.current);
+    mesoSyncTimerRef.current = setTimeout(async () => {
+      mesoSyncTimerRef.current = null;
+      const prev = prevMesociclosRef.current;
+      prevMesociclosRef.current = curr;
 
-    // Marcar _updated_at local antes de escribir a DB
-    if (toUpsert.length > 0) {
-      setMesociclosRaw((s) =>
-        s.map((m) =>
-          toUpsert.find((u) => u.id === m.id) ? { ...m, _updated_at: nowM } : m,
-        ),
-      );
-    }
+      const deletedIds = prev
+        .filter((p) => !curr.find((m) => m.id === p.id))
+        .map((p) => p.id);
+      const nowM = new Date().toISOString();
+      const toUpsert = curr.filter((m) => {
+        const old = prev.find((p) => p.id === m.id);
+        return !old || JSON.stringify(old) !== JSON.stringify(m);
+      });
+      if (deletedIds.length === 0 && toUpsert.length === 0) return;
 
-    (async () => {
+      if (toUpsert.length > 0) {
+        setMesociclosRaw((s) =>
+          s.map((m) =>
+            toUpsert.find((u) => u.id === m.id) ? { ...m, _updated_at: nowM } : m,
+          ),
+        );
+      }
+
       for (const id of deletedIds) {
-        await sb
-          .from("mesociclos")
-          .eq("app_id", id)
-          .delete()
-          .catch(() => {});
+        await sb.from("mesociclos").eq("app_id", id).delete().catch(() => {});
       }
       if (toUpsert.length > 0) {
         await sb
@@ -28028,7 +28026,7 @@ function CoachApp({ session, profile, onLogout }) {
           )
           .catch((e) => console.warn("DB sync mesociclos failed:", e));
       }
-    })();
+    }, 1500);
   }, [mesociclos, coachId]);
 
   // ── Sincronizar overrides al ocultar/cerrar (sin polling periódico) ───────
@@ -28050,10 +28048,23 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     const onHide = () => {
-      if (document.visibilityState === "hidden") syncOverrides();
+      if (document.visibilityState === "hidden") {
+        // Flush debounce timers antes de sincronizar
+        if (atletaSyncTimerRef.current) {
+          clearTimeout(atletaSyncTimerRef.current);
+          atletaSyncTimerRef.current = null;
+        }
+        if (mesoSyncTimerRef.current) {
+          clearTimeout(mesoSyncTimerRef.current);
+          mesoSyncTimerRef.current = null;
+        }
+        syncOverrides();
+      }
     };
 
     const onBeforeUnload = () => {
+      if (atletaSyncTimerRef.current) clearTimeout(atletaSyncTimerRef.current);
+      if (mesoSyncTimerRef.current) clearTimeout(mesoSyncTimerRef.current);
       syncOverrides();
     };
 
