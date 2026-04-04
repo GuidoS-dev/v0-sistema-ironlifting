@@ -12664,14 +12664,23 @@ function EjCelda({
       </button>
 
       {/* TBL */}
-      <select
-        name="field_31"
-        value={ej.tabla}
-        onChange={(e) => onChange({ ...ej, tabla: Number(e.target.value) })}
+      <button
+        type="button"
+        onClick={() => onChange({ ...ej, tabla: ej.tabla >= 3 ? 1 : ej.tabla + 1 })}
         onKeyDown={(e) => {
-          if (e.key !== "1" && e.key !== "2" && e.key !== "3") return;
+          const byCode =
+            e.code === "Digit1" || e.code === "Numpad1"
+              ? 1
+              : e.code === "Digit2" || e.code === "Numpad2"
+                ? 2
+                : e.code === "Digit3" || e.code === "Numpad3"
+                  ? 3
+                  : null;
+          const byKey = e.key === "1" ? 1 : e.key === "2" ? 2 : e.key === "3" ? 3 : null;
+          const picked = byCode || byKey;
+          if (!picked) return;
           e.preventDefault();
-          onChange({ ...ej, tabla: Number(e.key) });
+          onChange({ ...ej, tabla: picked });
         }}
         data-sembrado-nav="true"
         data-role="tabla"
@@ -12686,15 +12695,18 @@ function EjCelda({
           color: "var(--muted)",
           fontSize: 11,
           padding: "1px 0",
-          outline: "none",
           cursor: "pointer",
           width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
         }}
+        title="Tabla (click para alternar, teclas 1/2/3 para seleccionar)"
       >
-        <option value={1}>T1</option>
-        <option value={2}>T2</option>
-        <option value={3}>T3</option>
-      </select>
+        <span>{`T${Math.min(3, Math.max(1, Number(ej.tabla) || 1))}`}</span>
+        <span style={{ color: "var(--muted)", fontSize: 9 }}>▼</span>
+      </button>
 
       {/* Borrar */}
       {canRemove && ej.ejercicio_id ? (
