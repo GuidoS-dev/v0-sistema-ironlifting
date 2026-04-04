@@ -358,6 +358,20 @@ const COACH_SETTING_KEYS = {
 
 const LIFTPLAN_LOCAL_SYNC_EVENT = "liftplan:local-sync";
 
+// BroadcastChannel — notifica a otras pestañas cuando hay un write a DB
+const _bc = (() => {
+  if (typeof window === "undefined") return null;
+  try {
+    return new BroadcastChannel("liftplan:db-sync");
+  } catch {
+    return null;
+  }
+})();
+
+function broadcastDbWrite(type) {
+  try { _bc?.postMessage({ type }); } catch {}
+}
+
 function emitLocalSyncEvent(key) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(
@@ -21150,7 +21164,7 @@ function usePlantillas(coachId) {
     };
 
     pullPlantillas().catch(() => {});
-    const pollInterval = setInterval(() => pullPlantillas().catch(() => {}), 10000);
+    const pollInterval = setInterval(() => pullPlantillas().catch(() => {}), 60000);
     const onFocus = () => pullPlantillas().catch(() => {});
     const onVisible = () => {
       if (document.visibilityState === "visible") pullPlantillas().catch(() => {});
@@ -24568,7 +24582,7 @@ function PageNormativos({ coachId, isActive = false }) {
       }
     };
 
-    const pollInterval = setInterval(() => syncFromDb().catch(() => {}), 10000);
+    const pollInterval = setInterval(() => syncFromDb().catch(() => {}), 60000);
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
 
@@ -25236,7 +25250,7 @@ function PageCalculadora({ coachId }) {
     };
 
     syncFromDb().catch(() => {});
-    const pollInterval = setInterval(() => syncFromDb().catch(() => {}), 10000);
+    const pollInterval = setInterval(() => syncFromDb().catch(() => {}), 60000);
     const onFocus = () => syncFromDb().catch(() => {});
     const onVisible = () => {
       if (document.visibilityState === "visible") syncFromDb().catch(() => {});
@@ -27863,21 +27877,24 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullAtletas();
-    const pollInterval = setInterval(() => pullAtletas(), 10000);
-    const onFocus = () => {
-      pullAtletas();
-    };
+    const pollInterval = setInterval(() => pullAtletas(), 60000);
+    const onFocus = () => { pullAtletas(); };
     const onVisible = () => {
       if (document.visibilityState === "visible") pullAtletas();
+    };
+    const onBc = (e) => {
+      if (e.data?.type === "atletas" || e.data?.type === "all") pullAtletas();
     };
 
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
+    _bc?.addEventListener("message", onBc);
     return () => {
       cancelled = true;
       clearInterval(pollInterval);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
+      _bc?.removeEventListener("message", onBc);
     };
   }, [coachId]);
 
@@ -27925,19 +27942,24 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullMesociclos();
-    const pollInterval = setInterval(() => pullMesociclos(), 10000);
+    const pollInterval = setInterval(() => pullMesociclos(), 60000);
     const onFocus = () => pullMesociclos();
     const onVisible = () => {
       if (document.visibilityState === "visible") pullMesociclos();
     };
+    const onBc = (e) => {
+      if (e.data?.type === "mesociclos" || e.data?.type === "all") pullMesociclos();
+    };
 
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
+    _bc?.addEventListener("message", onBc);
     return () => {
       cancelled = true;
       clearInterval(pollInterval);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
+      _bc?.removeEventListener("message", onBc);
     };
   }, [coachId]);
 
@@ -27981,6 +28003,7 @@ function CoachApp({ session, profile, onLogout }) {
             { onConflict: "app_id" },
           )
           .catch((e) => console.warn("DB sync atletas failed:", e));
+        broadcastDbWrite("atletas");
       }
     }, 1500);
   }, [atletas]);
@@ -28025,6 +28048,7 @@ function CoachApp({ session, profile, onLogout }) {
             { onConflict: "app_id" },
           )
           .catch((e) => console.warn("DB sync mesociclos failed:", e));
+        broadcastDbWrite("mesociclos");
       }
     }, 1500);
   }, [mesociclos, coachId]);
@@ -28225,6 +28249,7 @@ function CoachApp({ session, profile, onLogout }) {
       }
 
       await Promise.all(writes);
+      broadcastDbWrite("all");
     } catch (e) {
       console.warn("Manual save all failed:", e);
     } finally {
