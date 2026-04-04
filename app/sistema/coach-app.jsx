@@ -2092,6 +2092,8 @@ function Modal({
   fitContent = false,
   compact = false,
   overlayPadding = null,
+  scrollable = false,
+  maxHeight = null,
 }) {
   const mdTarget = useRef(null);
   const modalRef = useRef(null);
@@ -2188,15 +2190,22 @@ function Modal({
         ref={modalRef}
         className="modal"
         tabIndex={-1}
-        style={
-          maxWidth || fitContent
+        style={{
+          ...(maxWidth || fitContent
             ? {
                 width: fitContent ? "fit-content" : "min(96vw, 100%)",
                 maxWidth: maxWidth || "96vw",
-                padding: compact ? "12px" : undefined,
               }
-            : undefined
-        }
+            : {}),
+          ...(compact ? { padding: "12px" } : {}),
+          ...(scrollable
+            ? {
+                overflow: "auto",
+                overscrollBehavior: "contain",
+              }
+            : {}),
+          ...(maxHeight ? { maxHeight } : {}),
+        }}
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
       >
@@ -17055,6 +17064,8 @@ function PageAtleta({
           fitContent
           compact
           overlayPadding="6px"
+          scrollable
+          maxHeight="calc(100vh - 12px)"
         >
           <div
             style={{
@@ -17253,12 +17264,11 @@ function PageAtleta({
             <div
               ref={fullTableViewportRef}
               style={{
-                maxHeight: "calc(100vh - 170px)",
-                width: "fit-content",
-                maxWidth: "100%",
+                width: "max-content",
+                maxWidth: "none",
                 marginRight: "auto",
-                overflowY: "auto",
-                overflowX: "auto",
+                overflowY: "visible",
+                overflowX: "visible",
                 border: "1px solid var(--border)",
                 borderRadius: 10,
                 background:
