@@ -2084,7 +2084,15 @@ function getSembradoStats(turnos, normativos = null) {
 
 // ─── COMPONENTS ──────────────────────────────────────────────────────────────
 
-function Modal({ title, onClose, children, maxWidth = null, fitContent = false }) {
+function Modal({
+  title,
+  onClose,
+  children,
+  maxWidth = null,
+  fitContent = false,
+  compact = false,
+  overlayPadding = null,
+}) {
   const mdTarget = useRef(null);
   const modalRef = useRef(null);
   useEffect(() => {
@@ -2163,6 +2171,7 @@ function Modal({ title, onClose, children, maxWidth = null, fitContent = false }
   return (
     <div
       className="modal-overlay"
+      style={overlayPadding ? { padding: overlayPadding } : undefined}
       onMouseDown={(e) => {
         mdTarget.current = e.target;
       }}
@@ -2184,6 +2193,7 @@ function Modal({ title, onClose, children, maxWidth = null, fitContent = false }
             ? {
                 width: fitContent ? "fit-content" : "min(96vw, 100%)",
                 maxWidth: maxWidth || "96vw",
+                padding: compact ? "12px" : undefined,
               }
             : undefined
         }
@@ -17041,16 +17051,18 @@ function PageAtleta({
         <Modal
           title="Sembrado Completo"
           onClose={() => setShowFullSembrado(false)}
-          maxWidth="calc(100vw - 40px)"
+          maxWidth="calc(100vw - 12px)"
           fitContent
+          compact
+          overlayPadding="6px"
         >
           <div
             style={{
               display: "flex",
               alignItems: "flex-start",
               justifyContent: "space-between",
-              gap: 10,
-              marginBottom: 10,
+              gap: 8,
+              marginBottom: 8,
               flexWrap: "wrap",
             }}
           >
@@ -17099,7 +17111,7 @@ function PageAtleta({
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: 6, marginBottom: 10 }}>
+          <div style={{ display: "grid", gap: 5, marginBottom: 8 }}>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
               <span
                 style={{
@@ -17241,7 +17253,7 @@ function PageAtleta({
             <div
               ref={fullTableViewportRef}
               style={{
-                maxHeight: "80vh",
+                maxHeight: "calc(100vh - 170px)",
                 width: "fit-content",
                 maxWidth: "100%",
                 marginRight: "auto",
@@ -17277,13 +17289,13 @@ function PageAtleta({
                 <tr>
                   <th
                     style={{
-                      padding: "8px 8px",
+                      padding: "6px 6px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "2px solid var(--gold)",
                       fontWeight: 700,
                       color: "var(--gold)",
-                      width: 70,
+                      width: 58,
                       fontFamily: "'Bebas Neue'",
                       fontSize: 14,
                       letterSpacing: ".06em",
@@ -17293,13 +17305,13 @@ function PageAtleta({
                   </th>
                   <th
                     style={{
-                      padding: "8px 8px",
+                      padding: "6px 6px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "2px solid var(--gold)",
                       fontWeight: 700,
                       color: "var(--gold)",
-                      width: 56,
+                      width: 48,
                       fontFamily: "'Bebas Neue'",
                       fontSize: 14,
                       letterSpacing: ".06em",
@@ -17312,7 +17324,7 @@ function PageAtleta({
                       key={`header-${sem.id}`}
                       colSpan={semanaColsMap.get(sem.id) || 1}
                       style={{
-                        padding: "8px 8px",
+                        padding: "6px 6px",
                         textAlign: "center",
                         borderRight: "1px solid var(--border)",
                         borderBottom: "2px solid var(--gold)",
@@ -17331,7 +17343,7 @@ function PageAtleta({
                 <tr>
                   <th
                     style={{
-                      padding: "5px 6px",
+                      padding: "3px 5px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "1px solid var(--border)",
@@ -17346,7 +17358,7 @@ function PageAtleta({
                   </th>
                   <th
                     style={{
-                      padding: "5px 6px",
+                      padding: "3px 5px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "1px solid var(--border)",
@@ -17365,14 +17377,14 @@ function PageAtleta({
                         <th
                           key={`subheader-${sem.id}-${slotIdx}`}
                           style={{
-                            padding: "5px 4px",
+                            padding: "3px 3px",
                             textAlign: "center",
                             borderRight: "1px solid var(--border)",
                             borderBottom: "1px solid var(--border)",
                             fontWeight: 600,
                             color: "var(--muted)",
                             fontSize: 8,
-                            width: 35,
+                            width: 28,
                             letterSpacing: ".04em",
                           }}
                         >
@@ -17392,7 +17404,7 @@ function PageAtleta({
                   );
 
                   const rowCellBase = {
-                    padding: "5px 4px",
+                    padding: "3px 3px",
                     textAlign: "center",
                     borderRight: "1px solid var(--border)",
                     borderBottom: "1px solid var(--border)",
@@ -17449,7 +17461,7 @@ function PageAtleta({
                     const turnoGlobalIdx = turnosConDatos[rowTurnoIdx];
                     const isLastTurno = rowTurnoIdx === maxTurnos - 1;
                     const baseTurnoCell = {
-                      padding: "7px 8px",
+                      padding: "5px 6px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       fontWeight: 700,
@@ -17538,7 +17550,7 @@ function PageAtleta({
                           <td
                             colSpan={2 + totalCols}
                             style={{
-                              height: 6,
+                              height: 3,
                               border: "none",
                               background: "rgba(255,255,255,.02)",
                               padding: 0,
@@ -17551,7 +17563,7 @@ function PageAtleta({
                           <td
                             colSpan={2 + totalCols}
                             style={{
-                              height: 6,
+                              height: 3,
                               border: "none",
                               background: "rgba(0,0,0,.22)",
                               padding: 0,
