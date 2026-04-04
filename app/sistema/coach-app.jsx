@@ -12038,18 +12038,18 @@ function EjBuscadorCompacto({
 
   const select = (ej) => {
     onChange(ej ? ej.id : null);
-    setQuery("");
-    setOpen(false);
-    setActiveSearchIdx(0);
-    setTimeout(() => {
-      triggerRef.current?.focus({ preventScroll: true });
-    }, 0);
+    closePicker();
   };
 
-  const closePicker = () => {
+  const closePicker = (restoreFocus = true) => {
     setOpen(false);
     setQuery("");
     setActiveSearchIdx(0);
+    if (restoreFocus) {
+      setTimeout(() => {
+        triggerRef.current?.focus({ preventScroll: true });
+      }, 0);
+    }
   };
 
   // Block body scroll when open
