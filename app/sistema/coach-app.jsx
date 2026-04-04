@@ -19586,8 +19586,15 @@ function PagePDF({
       .map((t, tIdx) => {
         const rows = [];
 
-        // Complementarios ANTES
-        if (t.complementarios_before?.length > 0) {
+        // Ejercicios principales (primero, para saber si mostrar complementarios)
+        const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
+        ejs.forEach((ej) => {
+          const row = buildEjercicioRow(ej, semIdx, tIdx, false);
+          if (row) rows.push(row);
+        });
+
+        // Complementarios ANTES (solo si hay ejercicios principales)
+        if (ejs.length > 0 && t.complementarios_before?.length > 0) {
           const compBefore = t.complementarios_before.filter(
             (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
           );
@@ -19597,15 +19604,8 @@ function PagePDF({
           });
         }
 
-        // Ejercicios principales
-        const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
-        ejs.forEach((ej) => {
-          const row = buildEjercicioRow(ej, semIdx, tIdx, false);
-          if (row) rows.push(row);
-        });
-
-        // Complementarios DESPUÉS
-        if (t.complementarios_after?.length > 0) {
+        // Complementarios DESPUÉS (solo si hay ejercicios principales)
+        if (ejs.length > 0 && t.complementarios_after?.length > 0) {
           const compAfter = t.complementarios_after.filter(
             (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
           );
