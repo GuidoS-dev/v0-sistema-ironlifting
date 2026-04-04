@@ -28117,6 +28117,69 @@ function CoachApp({ session, profile, onLogout }) {
     { id: "calculadora", label: "Tablas" },
   ];
 
+  const [isManualSaving, setIsManualSaving] = useState(false);
+
+  const forceSaveAllToDb = useCallback(async () => {
+    if (!coachId || isManualSaving) return;
+
+    setIsManualSaving(true);
+    try {
+      const atletasPayload = atletasRef.current.map((a) => atletaToDb(a, coachId));
+      const mesociclosPayload = mesociclosRef.current.map((m) =>
+        mesoToDb(m, coachId),
+      );
+      const plantillasPayload = (plantillas || []).map((p) =>
+        plantillaToDb(p, coachId),
+      );
+
+      const writes = [];
+
+      if (atletasPayload.length > 0) {
+        writes.push(
+          sb.from("atletas").upsert(atletasPayload, { onConflict: "app_id" }),
+        );
+      }
+      if (mesociclosPayload.length > 0) {
+        writes.push(
+          sb
+            .from("mesociclos")
+            .upsert(mesociclosPayload, { onConflict: "app_id" }),
+        );
+      }
+      if (plantillasPayload.length > 0) {
+        writes.push(
+          sb
+            .from("plantillas")
+            .upsert(plantillasPayload, { onConflict: "app_id" }),
+        );
+      }
+
+      const normativosLocal = readLocalJson("liftplan_normativos", null);
+      const tablasLocal = readLocalJson("liftplan_tablas", null);
+
+      if (normativosLocal) {
+        writes.push(
+          saveCoachSetting(
+            coachId,
+            COACH_SETTING_KEYS.normativos,
+            normativosLocal,
+          ),
+        );
+      }
+      if (tablasLocal) {
+        writes.push(
+          saveCoachSetting(coachId, COACH_SETTING_KEYS.tablas, tablasLocal),
+        );
+      }
+
+      await Promise.all(writes);
+    } catch (e) {
+      console.warn("Manual save all failed:", e);
+    } finally {
+      setIsManualSaving(false);
+    }
+  }, [coachId, isManualSaving, plantillas]);
+
   return (
     <>
       <style>{css}</style>
@@ -28292,6 +28355,33 @@ function CoachApp({ session, profile, onLogout }) {
             }}
           >
             <Copy size={13} /> Ref
+          </button>
+
+          <button
+            onClick={forceSaveAllToDb}
+            title="Guardar todo en la base"
+            disabled={!coachId || isManualSaving}
+            style={{
+              flexShrink: 0,
+              marginLeft: 6,
+              padding: "0 12px",
+              height: 36,
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "var(--surface2)",
+              color: isManualSaving ? "var(--gold)" : "var(--muted)",
+              cursor: !coachId || isManualSaving ? "not-allowed" : "pointer",
+              opacity: !coachId ? 0.6 : 1,
+              fontSize: 12,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              transition: "all .2s",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Send size={13} /> {isManualSaving ? "Guardando..." : "Guardar"}
           </button>
 
           {/* Usuario logueado */}
