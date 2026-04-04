@@ -15068,6 +15068,12 @@ function PageAtleta({
   const [mesoSelId, setMesoSelId] = useState(null);
   const [vistaActual, setVistaActual] = useState("meso");
   const [showFullSembrado, setShowFullSembrado] = useState(false);
+  const [filtroGrupos, setFiltroGrupos] = useState([]);
+  const [filtroIntensidades, setFiltroIntensidades] = useState([]);
+  const [filtroTablas, setFiltroTablas] = useState([]);
+  const [fullTableZoom, setFullTableZoom] = useState(1);
+  const fullTableViewportRef = useRef(null);
+  const fullTableRef = useRef(null);
 
   useEffect(() => {
     if (!openRequest?.view) return;
@@ -15201,7 +15207,7 @@ function PageAtleta({
     mesoAtleta[0] ||
     null;
 
-  const semanasConDatos = (mesoVisto?.semanas || [])
+  const semanasConDatosBase = (mesoVisto?.semanas || [])
     .map((sem, semIdxOriginal) => ({ sem, semIdxOriginal }))
     .filter(({ sem }) =>
       (sem.turnos || []).some((turno) =>
@@ -15209,13 +15215,120 @@ function PageAtleta({
       ),
     );
 
-  const turnosConDatos = (() => {
+  const turnosConDatosBase = (() => {
     const idxs = new Set();
-    semanasConDatos.forEach(({ sem }) => {
+    semanasConDatosBase.forEach(({ sem }) => {
       (sem.turnos || []).forEach((turno, tIdx) => {
         if ((turno?.ejercicios || []).some((ej) => !!ej?.ejercicio_id)) {
           idxs.add(tIdx);
         }
+      });
+    });
+    return [...idxs].sort((a, b) => a - b);
+  })();
+
+  const gruposUsados = (() => {
+    const used = new Set();
+    semanasConDatosBase.forEach(({ sem }) => {
+      turnosConDatosBase.forEach((tIdx) => {
+        (sem.turnos?.[tIdx]?.ejercicios || []).forEach((ej) => {
+          if (!ej?.ejercicio_id) return;
+          const categoria = getEjAtleta(ej.ejercicio_id)?.categoria;
+          if (categoria) used.add(categoria);
+        });
+      });
+    });
+    return CATEGORIAS.filter((g) => used.has(g));
+  })();
+
+  const intensidadesUsadas = (() => {
+    const used = new Set();
+    semanasConDatosBase.forEach(({ sem }) => {
+      turnosConDatosBase.forEach((tIdx) => {
+        (sem.turnos?.[tIdx]?.ejercicios || []).forEach((ej) => {
+          if (!ej?.ejercicio_id) return;
+          const val = Number(ej.intensidad);
+          if (Number.isFinite(val) && val > 0) used.add(val);
+        });
+      });
+    });
+    return [...used].sort((a, b) => a - b);
+  })();
+
+  const tablasUsadas = (() => {
+    const used = new Set();
+    semanasConDatosBase.forEach(({ sem }) => {
+      turnosConDatosBase.forEach((tIdx) => {
+        (sem.turnos?.[tIdx]?.ejercicios || []).forEach((ej) => {
+          if (!ej?.ejercicio_id) return;
+          const val = Number(ej.tabla);
+          if (Number.isFinite(val) && val > 0) used.add(val);
+        });
+      });
+    });
+    return [...used].sort((a, b) => a - b);
+  })();
+
+  const gruposUsadosKey = gruposUsados.join("|");
+  const intensidadesUsadasKey = intensidadesUsadas.join("|");
+  const tablasUsadasKey = tablasUsadas.join("|");
+
+  useEffect(() => {
+    if (!showFullSembrado) return;
+
+    setFiltroGrupos((prev) =>
+      prev.join("|") === gruposUsadosKey ? prev : gruposUsados,
+    );
+    setFiltroIntensidades((prev) =>
+      prev.join("|") === intensidadesUsadasKey ? prev : intensidadesUsadas,
+    );
+    setFiltroTablas((prev) =>
+      prev.join("|") === tablasUsadasKey ? prev : tablasUsadas,
+    );
+  }, [
+    showFullSembrado,
+    gruposUsadosKey,
+    intensidadesUsadasKey,
+    tablasUsadasKey,
+  ]);
+
+  const pasaFiltrosSembrado = (ej) => {
+    if (!ej?.ejercicio_id) return false;
+    const categoria = getEjAtleta(ej.ejercicio_id)?.categoria;
+    const intensidad = Number(ej.intensidad);
+    const tabla = Number(ej.tabla);
+
+    if (filtroGrupos.length > 0 && !filtroGrupos.includes(categoria)) return false;
+    if (
+      filtroIntensidades.length > 0 &&
+      (!Number.isFinite(intensidad) || !filtroIntensidades.includes(intensidad))
+    )
+      return false;
+    if (filtroTablas.length > 0 && (!Number.isFinite(tabla) || !filtroTablas.includes(tabla)))
+      return false;
+    return true;
+  };
+
+  const semanasConDatos = semanasConDatosBase
+    .map(({ sem, semIdxOriginal }) => ({
+      sem: {
+        ...sem,
+        turnos: (sem.turnos || []).map((turno) => ({
+          ...turno,
+          ejercicios: (turno?.ejercicios || []).filter((ej) => pasaFiltrosSembrado(ej)),
+        })),
+      },
+      semIdxOriginal,
+    }))
+    .filter(({ sem }) =>
+      (sem.turnos || []).some((turno) => (turno?.ejercicios || []).length > 0),
+    );
+
+  const turnosConDatos = (() => {
+    const idxs = new Set();
+    semanasConDatos.forEach(({ sem }) => {
+      (sem.turnos || []).forEach((turno, tIdx) => {
+        if ((turno?.ejercicios || []).length > 0) idxs.add(tIdx);
       });
     });
     return [...idxs].sort((a, b) => a - b);
@@ -15227,14 +15340,42 @@ function PageAtleta({
       const maxCols = Math.max(
         1,
         ...turnosConDatos.map((tIdx) =>
-          ((sem.turnos?.[tIdx]?.ejercicios || []).filter((ej) => !!ej?.ejercicio_id)
-            .length || 0),
+          (sem.turnos?.[tIdx]?.ejercicios || []).length || 0,
         ),
       );
       map.set(sem.id, maxCols);
     });
     return map;
   })();
+
+  useEffect(() => {
+    if (!showFullSembrado) return;
+    const viewport = fullTableViewportRef.current;
+    const table = fullTableRef.current;
+    if (!viewport || !table) return;
+
+    const fit = () => {
+      const maxW = Math.max(1, viewport.clientWidth - 10);
+      const naturalW = Math.max(1, table.scrollWidth);
+      const z = Math.min(1, maxW / naturalW);
+      setFullTableZoom((prev) => (Math.abs(prev - z) < 0.01 ? prev : z));
+    };
+
+    fit();
+    const t = setTimeout(fit, 50);
+    window.addEventListener("resize", fit);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", fit);
+    };
+  }, [
+    showFullSembrado,
+    semanasConDatos.length,
+    turnosConDatos.length,
+    filtroGrupos.join("|"),
+    filtroIntensidades.join("|"),
+    filtroTablas.join("|"),
+  ]);
 
   const _pctKey = (type) =>
     mesoVisto ? `liftplan_pct_${mesoVisto.id}_${type}` : null;
@@ -16890,22 +17031,179 @@ function PageAtleta({
           <div
             style={{
               display: "flex",
-              alignItems: "center",
+              alignItems: "flex-start",
               justifyContent: "space-between",
               gap: 10,
               marginBottom: 10,
               flexWrap: "wrap",
             }}
           >
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>
-              Vista matricial por turno · filas EJ / INT / TBL
+            <div style={{ display: "grid", gap: 4 }}>
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                Vista matricial por turno · filas EJ / INT / TBL
+              </div>
+              <span
+                className="badge badge-blue"
+                style={{ fontSize: 10, letterSpacing: ".04em", width: "fit-content" }}
+              >
+                {semanasConDatos.length} semanas · {turnosConDatos.length} turnos
+              </span>
             </div>
-            <span
-              className="badge badge-blue"
-              style={{ fontSize: 10, letterSpacing: ".04em" }}
-            >
-              {semanasConDatos.length} semanas · {turnosConDatos.length} turnos
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--muted)",
+                  minWidth: 58,
+                  textAlign: "right",
+                }}
+              >
+                {Math.round(fullTableZoom * 100)}%
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ width: 32, height: 30, padding: 0, fontSize: 16 }}
+                onClick={() =>
+                  setFullTableZoom((z) => Math.max(0.35, Math.round((z - 0.1) * 100) / 100))
+                }
+                title="Reducir zoom"
+              >
+                -
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ width: 32, height: 30, padding: 0, fontSize: 16 }}
+                onClick={() =>
+                  setFullTableZoom((z) => Math.min(2.5, Math.round((z + 0.1) * 100) / 100))
+                }
+                title="Aumentar zoom"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 6, marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <span
+                style={{
+                  minWidth: 68,
+                  fontSize: 10,
+                  color: "var(--muted)",
+                  letterSpacing: ".06em",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                }}
+              >
+                Grupos
+              </span>
+              {gruposUsados.map((g) => {
+                const active = filtroGrupos.includes(g);
+                const color = CAT_COLOR[g] || "var(--gold)";
+                return (
+                  <button
+                    key={`fg-${g}`}
+                    className="btn btn-ghost btn-sm"
+                    onClick={() =>
+                      setFiltroGrupos((prev) =>
+                        prev.includes(g)
+                          ? prev.filter((x) => x !== g)
+                          : [...prev, g],
+                      )
+                    }
+                    style={{
+                      padding: "3px 9px",
+                      fontSize: 11,
+                      borderColor: active ? color : "var(--border)",
+                      color: active ? color : "var(--muted)",
+                      background: active ? `${color}22` : "var(--surface2)",
+                    }}
+                  >
+                    {g}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <span
+                style={{
+                  minWidth: 68,
+                  fontSize: 10,
+                  color: "var(--muted)",
+                  letterSpacing: ".06em",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                }}
+              >
+                Intensidad
+              </span>
+              {intensidadesUsadas.map((intens) => {
+                const active = filtroIntensidades.includes(intens);
+                return (
+                  <button
+                    key={`fi-${intens}`}
+                    className="btn btn-ghost btn-sm"
+                    onClick={() =>
+                      setFiltroIntensidades((prev) =>
+                        prev.includes(intens)
+                          ? prev.filter((x) => x !== intens)
+                          : [...prev, intens],
+                      )
+                    }
+                    style={{
+                      padding: "3px 9px",
+                      fontSize: 11,
+                      borderColor: active ? "var(--red)" : "var(--border)",
+                      color: active ? "var(--red)" : "var(--muted)",
+                      background: active ? "rgba(232,80,71,.16)" : "var(--surface2)",
+                    }}
+                  >
+                    {intens}%
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <span
+                style={{
+                  minWidth: 68,
+                  fontSize: 10,
+                  color: "var(--muted)",
+                  letterSpacing: ".06em",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                }}
+              >
+                Tablas
+              </span>
+              {tablasUsadas.map((tbl) => {
+                const active = filtroTablas.includes(tbl);
+                return (
+                  <button
+                    key={`ft-${tbl}`}
+                    className="btn btn-ghost btn-sm"
+                    onClick={() =>
+                      setFiltroTablas((prev) =>
+                        prev.includes(tbl)
+                          ? prev.filter((x) => x !== tbl)
+                          : [...prev, tbl],
+                      )
+                    }
+                    style={{
+                      padding: "3px 9px",
+                      fontSize: 11,
+                      borderColor: active ? "#9b87e8" : "var(--border)",
+                      color: active ? "#9b87e8" : "var(--muted)",
+                      background: active ? "rgba(155,135,232,.17)" : "var(--surface2)",
+                    }}
+                  >
+                    T{tbl}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           {semanasConDatos.length === 0 || turnosConDatos.length === 0 ? (
             <div
@@ -16925,6 +17223,7 @@ function PageAtleta({
             </div>
           ) : (
             <div
+              ref={fullTableViewportRef}
               style={{
                 maxHeight: "80vh",
                 overflowY: "auto",
@@ -16937,11 +17236,13 @@ function PageAtleta({
               }}
             >
               <table
+                ref={fullTableRef}
                 style={{
                   borderCollapse: "collapse",
                   fontSize: 10,
                   fontFamily: "'DM Sans', sans-serif",
                   minWidth: "fit-content",
+                  zoom: fullTableZoom,
                 }}
               >
               <thead
@@ -17097,8 +17398,8 @@ function PageAtleta({
                           rowType === "ej"
                             ? "var(--gold)"
                             : rowType === "int"
-                              ? "var(--blue)"
-                              : "var(--green)";
+                              ? "var(--red)"
+                              : "#9b87e8";
                         const valueColor = cell?.color || toneColor;
                         return (
                           <td
@@ -17174,9 +17475,9 @@ function PageAtleta({
                           style={{
                             ...rowCellBase,
                             borderRight: "2px solid var(--gold)",
-                            color: "var(--blue)",
+                            color: "var(--red)",
                             fontWeight: 700,
-                            background: "rgba(100,180,232,.09)",
+                            background: "rgba(232,80,71,.09)",
                             fontSize: 9,
                             letterSpacing: ".06em",
                           }}
@@ -17194,9 +17495,9 @@ function PageAtleta({
                           style={{
                             ...rowCellBase,
                             borderRight: "2px solid var(--gold)",
-                            color: "var(--green)",
+                            color: "#9b87e8",
                             fontWeight: 700,
-                            background: "rgba(71,232,160,.09)",
+                            background: "rgba(155,135,232,.14)",
                             fontSize: 9,
                             letterSpacing: ".06em",
                           }}
