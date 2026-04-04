@@ -12086,7 +12086,6 @@ function EjBuscadorCompacto({
             >
               <input
                 name="field_29"
-                data-grid-nav-ignore="true"
                 ref={inputRef}
                 value={query}
                 onChange={(e) => {
@@ -12775,7 +12774,6 @@ function SembradoMensual({
   const [importTo, setImportTo] = useState("");
   const [importFeedback, setImportFeedback] = useState(false);
   const importTimerRef = useRef(null);
-  const spreadsheetNavRef = useRef(null);
 
   const emptySlotCache = useRef({});
 
@@ -12936,10 +12934,6 @@ function SembradoMensual({
     setImportTo((prev) => remapSel(prev));
   };
 
-  const handleSpreadsheetNavKeyDown = useCallback((event) => {
-    handlePlanillaArrowNavigation(event, spreadsheetNavRef.current);
-  }, []);
-
   return (
     <div>
       {/* Controles de turnos */}
@@ -13046,11 +13040,7 @@ function SembradoMensual({
         </div>
       </div>
 
-      <div
-        ref={spreadsheetNavRef}
-        onKeyDown={handleSpreadsheetNavKeyDown}
-        style={{ overflowX: "auto" }}
-      >
+      <div style={{ overflowX: "auto" }}>
         <table
           style={{
             borderCollapse: "separate",
