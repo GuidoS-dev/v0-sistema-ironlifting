@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import DOMPurify from "dompurify";
+import { toast, Toaster } from "sonner";
 import {
   Download,
   Send,
@@ -1763,7 +1765,7 @@ const css = `
   .nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:64px;position:sticky;top:0;z-index:100;overflow-x:hidden}
   .nav-logo{display:flex;align-items:center;margin-right:24px;flex-shrink:0}
   .nav-tabs{display:flex;height:100%;gap:0;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
-  .nav-tab{padding:0 14px;border:none;background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;height:100%;transition:all .2s;white-space:nowrap;flex-shrink:0}
+  .nav-tab{padding:0 14px;border:none;background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;height:100%;transition:color .2s,border-color .2s;white-space:nowrap;flex-shrink:0}
   .nav-tab:hover{color:var(--text)}
   .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
 
@@ -1786,15 +1788,16 @@ const css = `
   .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-width:0;width:100%;max-width:100%}
   .form-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
   .form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:border .2s;width:100%;box-sizing:border-box;min-width:0;max-width:100%}
-  .form-input:focus{border-color:var(--gold)}
+  .form-input:focus-visible{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,197,71,.25)}
   input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   input[type=number]{-moz-appearance:textfield}
   .form-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;cursor:pointer;width:100%;box-sizing:border-box;min-width:0;max-width:100%}
+  .form-select:focus-visible{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,197,71,.25)}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
   .form-row .form-group{flex:none;min-width:0;margin-bottom:0;width:100%}
 
   /* BUTTONS */
-  .btn{border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;padding:9px 18px;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+  .btn{border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;padding:9px 18px;transition:color .2s,border-color .2s;display:inline-flex;align-items:center;gap:6px}
   .btn-gold{background:var(--gold);color:#0a0c10}
   .btn-gold:hover{background:#f0d050}
   .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
@@ -1814,7 +1817,7 @@ const css = `
   .badge-red{background:rgba(232,71,71,.15);color:var(--red)}
 
   /* ATLETAS LIST */
-  .atleta-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .2s}
+  .atleta-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:border-color .2s,background .2s}
   .atleta-card:hover{border-color:var(--gold);background:var(--surface2)}
   .atleta-avatar{width:44px;height:44px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);flex-shrink:0}
   .atleta-info{flex:1;min-width:0}
@@ -1829,7 +1832,7 @@ const css = `
   .semana-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
   .semana-num{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold);line-height:1}
   .semana-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;overflow-x:auto;scrollbar-width:none}
-  .semana-tab{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+  .semana-tab{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
   .semana-tab.active{background:var(--gold);color:#0a0c10;border-color:var(--gold)}
 
   /* VOLUMEN CARD */
@@ -1845,6 +1848,7 @@ const css = `
   .grupo-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
   .grupo-pct{display:flex;align-items:center;gap:6px}
   .grupo-pct input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-weight:600;padding:4px 8px;width:60px;text-align:center;outline:none}
+  .grupo-pct input:focus-visible{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,197,71,.25)}
   .grupo-reps{font-size:11px;color:var(--muted);margin-top:4px}
 
   /* TURNOS */
@@ -1854,6 +1858,7 @@ const css = `
   .turno-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);min-width:36px}
   .turno-dia{flex:1;display:flex;gap:8px;align-items:center}
   .turno-dia select{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:4px 8px;outline:none;cursor:pointer}
+  .turno-dia select:focus-visible{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,197,71,.25)}
   .turno-stats{display:flex;gap:12px;margin-left:auto}
   .turno-stat{text-align:center}
   .turno-stat-val{font-family:'Bebas Neue',sans-serif;font-size:16px}
@@ -1870,10 +1875,12 @@ const css = `
   .comp-row:last-child{border-bottom:none}
   .ej-num{font-size:11px;color:var(--muted);text-align:center}
   .ej-select{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;width:100%}
+  .ej-select:focus-visible{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,197,71,.25)}
   .ej-input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center;width:100%}
+  .ej-input:focus-visible{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,197,71,.25)}
   .ej-cat{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
   .ej-kg{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);text-align:center}
-  .sembrado-kb-nav{transition:all .12s}
+  .sembrado-kb-nav{transition:border-color .12s,box-shadow .12s}
   .sembrado-kb-nav:focus-visible{outline:none;border-color:var(--gold)!important;box-shadow:0 0 0 1px rgba(232,197,71,.55) inset,0 0 0 1px rgba(232,197,71,.35);background:rgba(232,197,71,.08)!important;color:var(--text)!important}
 
   /* HISTORIAL */
@@ -2784,8 +2791,9 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
         ))}
       </div>
       <div className="form-group">
-        <label className="form-label">Nombre completo</label>
+        <label className="form-label" htmlFor="nombre">Nombre completo</label>
         <input
+          id="nombre"
           className="form-input"
           name="nombre"
           value={form.nombre}
@@ -2795,8 +2803,9 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
       </div>
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">Email</label>
+          <label className="form-label" htmlFor="email">Email</label>
           <input
+            id="email"
             className="form-input"
             name="email"
             value={form.email}
@@ -2806,8 +2815,9 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
           />
         </div>
         <div className="form-group">
-          <label className="form-label">Teléfono</label>
+          <label className="form-label" htmlFor="telefono">Teléfono</label>
           <input
+            id="telefono"
             className="form-input"
             name="telefono"
             value={form.telefono}
@@ -2817,8 +2827,9 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
         </div>
       </div>
       <div className="form-group">
-        <label className="form-label">Fecha de nacimiento</label>
+        <label className="form-label" htmlFor="fecha_nacimiento">Fecha de nacimiento</label>
         <input
+          id="fecha_nacimiento"
           className="form-input"
           name="fecha_nacimiento"
           value={form.fecha_nacimiento}
@@ -2888,8 +2899,9 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
           >
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Último inicio</label>
+              <label className="form-label" htmlFor="ciclo_ultimo_inicio">Último inicio</label>
               <input
+                id="ciclo_ultimo_inicio"
                 className="form-input"
                 name="ciclo_ultimo_inicio"
                 type="date"
@@ -2900,8 +2912,9 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Duración ciclo (días)</label>
+              <label className="form-label" htmlFor="ciclo_duracion_ciclo">Duración ciclo (días)</label>
               <input
+                id="ciclo_duracion_ciclo"
                 className="form-input"
                 name="ciclo_duracion_ciclo"
                 type="number"
@@ -2917,8 +2930,9 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Duración menstruación (días)</label>
+              <label className="form-label" htmlFor="ciclo_duracion_mens">Duración menstruación (días)</label>
               <input
+                id="ciclo_duracion_mens"
                 className="form-input"
                 name="ciclo_duracion_mens"
                 type="number"
@@ -2938,8 +2952,9 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
       )}
 
       <div className="form-group">
-        <label className="form-label">Notas</label>
+        <label className="form-label" htmlFor="notas">Notas</label>
         <textarea
+          id="notas"
           className="form-input"
           name="notas"
           value={form.notas}
@@ -3149,8 +3164,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
         />
       )}
       <div className="form-group">
-        <label className="form-label">Nombre del mesociclo</label>
+        <label className="form-label" htmlFor="meso_nombre">Nombre del mesociclo</label>
         <input
+          id="meso_nombre"
           className="form-input"
           name="meso_nombre"
           value={form.nombre}
@@ -3159,8 +3175,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
         />
       </div>
       <div className="form-group">
-        <label className="form-label">Descripción / Objetivos</label>
+        <label className="form-label" htmlFor="meso_descripcion">Descripción / Objetivos</label>
         <textarea
+          id="meso_descripcion"
           className="form-input"
           name="meso_descripcion"
           value={form.descripcion}
@@ -3172,8 +3189,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
       </div>
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">Fecha inicio</label>
+          <label className="form-label" htmlFor="meso_fecha_inicio">Fecha inicio</label>
           <input
+            id="meso_fecha_inicio"
             className="form-input"
             name="meso_fecha_inicio"
             type="text"
@@ -3183,8 +3201,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           />
         </div>
         <div className="form-group">
-          <label className="form-label">Modo</label>
+          <label className="form-label" htmlFor="meso_modo">Modo</label>
           <select
+            id="meso_modo"
             className="form-select"
             name="meso_modo"
             value={form.modo}
@@ -3197,8 +3216,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
       </div>
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">IRM Arranque (kg)</label>
+          <label className="form-label" htmlFor="irm_arranque">IRM Arranque (kg)</label>
           <input
+            id="irm_arranque"
             className="form-input"
             name="irm_arranque"
             type="number"
@@ -3210,8 +3230,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           />
         </div>
         <div className="form-group">
-          <label className="form-label">IRM Envión (kg)</label>
+          <label className="form-label" htmlFor="irm_envion">IRM Envión (kg)</label>
           <input
+            id="irm_envion"
             className="form-input"
             name="irm_envion"
             type="number"
@@ -3240,8 +3261,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
       ) : (
         <>
           <div className="form-group">
-            <label className="form-label">Volumen total de repeticiones</label>
+            <label className="form-label" htmlFor="volumen_total">Volumen total de repeticiones</label>
             <input
+              id="volumen_total"
               className="form-input"
               name="volumen_total"
               type="number"
@@ -3914,7 +3936,7 @@ function TurnoCard({
 
   return (
     <div className="turno-card">
-      <div className="turno-header" onClick={() => setOpen((o) => !o)}>
+      <div className="turno-header" role="button" tabIndex={0} onClick={() => setOpen((o) => !o)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}>
         <div className="turno-num">T{turno.numero}</div>
         <div className="turno-dia">
           <select
@@ -3977,6 +3999,7 @@ function TurnoCard({
                 setClipboardTurno(turno);
               }}
               title="Copiar turno"
+              aria-label="Copiar turno"
               style={{
                 background: "none",
                 border: "none",
@@ -4004,6 +4027,7 @@ function TurnoCard({
                 onPaste(clipboardTurno);
               }}
               title={`Pegar ejercicios de T${clipboardTurno.numero || "?"}`}
+              aria-label="Pegar ejercicios"
               style={{
                 background: "rgba(232,197,71,.15)",
                 border: "1px solid rgba(232,197,71,.3)",
@@ -13933,9 +13957,9 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
                   "liftplan_plantillas",
                   JSON.stringify([...stored, nuevo]),
                 );
-                alert(`Semana ${semana.numero} guardada como plantilla ✓`);
+                toast.success(`Semana ${semana.numero} guardada como plantilla`);
               } catch (e) {
-                alert("Error al guardar");
+                toast.error("Error al guardar");
               }
             }}
           >
@@ -13984,7 +14008,7 @@ function AtletaCardItem({ a, mesociclos, onSelect, onEdit, onDelete }) {
   const mesoActivo = mesoAtleta.find((m) => m.activo) || mesoAtleta[0];
   const edad = getAgeFromBirthDate(a.fecha_nacimiento);
   return (
-    <div className="atleta-card" onClick={() => onSelect(a)}>
+    <div className="atleta-card" role="button" tabIndex={0} onClick={() => onSelect(a)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(a); } }}>
       <div
         className="atleta-avatar"
         style={{
@@ -14673,8 +14697,9 @@ function EditMesoModal({ meso, onSave, onClose }) {
   return (
     <Modal title="Editar Mesociclo" onClose={onClose}>
       <div className="form-group">
-        <label className="form-label">Nombre</label>
+        <label className="form-label" htmlFor="field_38">Nombre</label>
         <input
+          id="field_38"
           name="field_38"
           className="form-input"
           value={form.nombre}
@@ -14683,8 +14708,9 @@ function EditMesoModal({ meso, onSave, onClose }) {
         />
       </div>
       <div className="form-group">
-        <label className="form-label">Descripción / Objetivos</label>
+        <label className="form-label" htmlFor="field_39">Descripción / Objetivos</label>
         <textarea
+          id="field_39"
           name="field_39"
           className="form-input"
           value={form.descripcion}
@@ -14696,8 +14722,9 @@ function EditMesoModal({ meso, onSave, onClose }) {
       </div>
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">Fecha inicio</label>
+          <label className="form-label" htmlFor="field_40">Fecha inicio</label>
           <input
+            id="field_40"
             name="field_40"
             className="form-input"
             type="text"
@@ -14707,8 +14734,9 @@ function EditMesoModal({ meso, onSave, onClose }) {
           />
         </div>
         <div className="form-group">
-          <label className="form-label">Modo</label>
+          <label className="form-label" htmlFor="edit_meso_modo">Modo</label>
           <select
+            id="edit_meso_modo"
             className="form-select"
             name="meso_modo"
             value={form.modo}
@@ -14721,8 +14749,9 @@ function EditMesoModal({ meso, onSave, onClose }) {
       </div>
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">IRM Arranque (kg)</label>
+          <label className="form-label" htmlFor="edit_irm_arranque">IRM Arranque (kg)</label>
           <input
+            id="edit_irm_arranque"
             className="form-input"
             name="irm_arranque"
             type="number"
@@ -14734,8 +14763,9 @@ function EditMesoModal({ meso, onSave, onClose }) {
           />
         </div>
         <div className="form-group">
-          <label className="form-label">IRM Envión (kg)</label>
+          <label className="form-label" htmlFor="edit_irm_envion">IRM Envión (kg)</label>
           <input
+            id="edit_irm_envion"
             className="form-input"
             name="irm_envion"
             type="number"
@@ -15212,9 +15242,9 @@ function PageAtleta({
 
   // ── Overrides de porcentajes — persisten en localStorage por mesociclo ───────
   const [semPctOverrides, setSemPctOverridesRaw] = useState({});
-  const [semPctManual, setSemPctManualRaw] = useState(new Set());
+  const [semPctManual, setSemPctManualRaw] = useState(() => new Set());
   const [turnoPctOverrides, setTurnoPctOverridesRaw] = useState({});
-  const [turnoPctManual, setTurnoPctManualRaw] = useState(new Set());
+  const [turnoPctManual, setTurnoPctManualRaw] = useState(() => new Set());
   const [confirmReset, setConfirmReset] = useState(null);
 
   const resetAllPcts = () => {
@@ -16925,7 +16955,7 @@ function PageAtleta({
                             "liftplan_plantillas",
                             JSON.stringify([...stored, nuevo]),
                           );
-                          alert("Distribución guardada como plantilla");
+                          toast.success("Distribución guardada como plantilla");
                         } catch (e) {}
                       }}
                       semPctOverrides={semPctOverrides}
@@ -17688,6 +17718,48 @@ function PageAtleta({
   );
 }
 
+// ── MetricBox — presentational component ────────────────────────
+const MetricBox = ({ label, value, sub, color = "var(--gold)" }) => (
+  <div
+    style={{
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      borderRadius: 10,
+      padding: "10px 12px",
+      textAlign: "center",
+      flex: 1,
+      minWidth: 80,
+    }}
+  >
+    <div
+      style={{
+        fontFamily: "'Bebas Neue'",
+        fontSize: 24,
+        color,
+        lineHeight: 1,
+      }}
+    >
+      {value}
+    </div>
+    <div
+      style={{
+        fontSize: 9,
+        color: "var(--muted)",
+        textTransform: "uppercase",
+        letterSpacing: ".06em",
+        marginTop: 3,
+      }}
+    >
+      {label}
+    </div>
+    {sub && (
+      <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1 }}>
+        {sub}
+      </div>
+    )}
+  </div>
+);
+
 function PageResumen({
   meso,
   atleta,
@@ -17735,7 +17807,7 @@ function PageResumen({
         return EJERCICIOS;
       }
     })();
-  const tablas = (() => {
+  const tablas = useMemo(() => {
     try {
       return (
         JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
@@ -17744,10 +17816,10 @@ function PageResumen({
     } catch {
       return TABLA_DEFAULT;
     }
-  })();
+  }, []);
 
   // ── Leer repsEdit y cellEdit del localStorage del mesociclo ─────────────────
-  const repsEditSaved = (() => {
+  const repsEditSaved = useMemo(() => {
     try {
       return (
         JSON.parse(
@@ -17757,8 +17829,8 @@ function PageResumen({
     } catch {
       return {};
     }
-  })();
-  const manualEditSaved = (() => {
+  }, [meso.id]);
+  const manualEditSaved = useMemo(() => {
     try {
       return new Set(
         JSON.parse(
@@ -17768,8 +17840,8 @@ function PageResumen({
     } catch {
       return new Set();
     }
-  })();
-  const cellEditSaved = (() => {
+  }, [meso.id]);
+  const cellEditSaved = useMemo(() => {
     try {
       return (
         JSON.parse(
@@ -17779,8 +17851,8 @@ function PageResumen({
     } catch {
       return {};
     }
-  })();
-  const cellManualSaved = (() => {
+  }, [meso.id]);
+  const cellManualSaved = useMemo(() => {
     try {
       return new Set(
         JSON.parse(
@@ -17790,7 +17862,7 @@ function PageResumen({
     } catch {
       return new Set();
     }
-  })();
+  }, [meso.id]);
 
   // Obtener reps efectivas para un ejercicio (con overrides de repsEdit)
   const getRepsVal = (ej, semIdx, tIdx) => {
@@ -18009,47 +18081,6 @@ function PageResumen({
     borderRadius: 12,
     padding: "16px 20px",
   };
-
-  const MetricBox = ({ label, value, sub, color = "var(--gold)" }) => (
-    <div
-      style={{
-        background: "var(--surface2)",
-        border: "1px solid var(--border)",
-        borderRadius: 10,
-        padding: "10px 12px",
-        textAlign: "center",
-        flex: 1,
-        minWidth: 80,
-      }}
-    >
-      <div
-        style={{
-          fontFamily: "'Bebas Neue'",
-          fontSize: 24,
-          color,
-          lineHeight: 1,
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          fontSize: 9,
-          color: "var(--muted)",
-          textTransform: "uppercase",
-          letterSpacing: ".06em",
-          marginTop: 3,
-        }}
-      >
-        {label}
-      </div>
-      {sub && (
-        <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1 }}>
-          {sub}
-        </div>
-      )}
-    </div>
-  );
 
   // Datos activos según navegación
   const chartDataSem = metSemanas.map((s) => ({
@@ -19064,7 +19095,7 @@ function PagePDF({
         return EJERCICIOS;
       }
     })();
-  const tablas = (() => {
+  const tablas = useMemo(() => {
     try {
       return (
         JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
@@ -19073,8 +19104,8 @@ function PagePDF({
     } catch {
       return TABLA_DEFAULT;
     }
-  })();
-  const repsEditSaved = (() => {
+  }, []);
+  const repsEditSaved = useMemo(() => {
     try {
       return (
         JSON.parse(
@@ -19084,8 +19115,8 @@ function PagePDF({
     } catch {
       return {};
     }
-  })();
-  const manualEditSaved = (() => {
+  }, [meso.id]);
+  const manualEditSaved = useMemo(() => {
     try {
       return new Set(
         JSON.parse(
@@ -19095,8 +19126,8 @@ function PagePDF({
     } catch {
       return new Set();
     }
-  })();
-  const cellEditSaved = (() => {
+  }, [meso.id]);
+  const cellEditSaved = useMemo(() => {
     try {
       return (
         JSON.parse(
@@ -19106,8 +19137,8 @@ function PagePDF({
     } catch {
       return {};
     }
-  })();
-  const cellManualSaved = (() => {
+  }, [meso.id]);
+  const cellManualSaved = useMemo(() => {
     try {
       return new Set(
         JSON.parse(
@@ -19117,8 +19148,8 @@ function PagePDF({
     } catch {
       return new Set();
     }
-  })();
-  const nameEditSaved = (() => {
+  }, [meso.id]);
+  const nameEditSaved = useMemo(() => {
     try {
       return (
         JSON.parse(
@@ -19128,8 +19159,8 @@ function PagePDF({
     } catch {
       return {};
     }
-  })();
-  const noteEditSaved = (() => {
+  }, [meso.id]);
+  const noteEditSaved = useMemo(() => {
     try {
       return (
         JSON.parse(
@@ -19139,7 +19170,7 @@ function PagePDF({
     } catch {
       return {};
     }
-  })();
+  }, [meso.id]);
 
   const getRepsVal = (ej, semIdx, tIdx) => {
     const k = `${semIdx}-${tIdx}-${ej.id}`;
@@ -19770,7 +19801,7 @@ ${previewEl.outerHTML}
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch (e) {
-      alert(
+      toast.info(
         'Para guardar el PDF: usá el botón del browser "Compartir → Imprimir → Guardar como PDF"',
       );
     } finally {
@@ -19915,7 +19946,7 @@ ${previewEl.outerHTML}
             >
               <div
                 dangerouslySetInnerHTML={{
-                  __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220" width="200" height="73"><defs><linearGradient id="pc-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f5d96a"/><stop offset="40%" stop-color="#e8c547"/><stop offset="100%" stop-color="#b8941e"/></linearGradient><linearGradient id="pc-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient><filter id="pc-glow"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#e8c547" flood-opacity="0.4"/></filter></defs><rect x="40" y="20" width="520" height="1.5" rx="1" fill="url(#pc-gh)" opacity="0.7"/><rect x="40" y="200" width="520" height="1.5" rx="1" fill="url(#pc-gh)" opacity="0.7"/><rect x="40" y="20" width="22" height="2" fill="#e8c547"/><rect x="40" y="20" width="2" height="22" fill="#e8c547"/><rect x="538" y="20" width="22" height="2" fill="#e8c547"/><rect x="558" y="20" width="2" height="22" fill="#e8c547"/><rect x="40" y="198" width="22" height="2" fill="#e8c547"/><rect x="40" y="176" width="2" height="24" fill="#e8c547"/><rect x="538" y="198" width="22" height="2" fill="#e8c547"/><rect x="558" y="176" width="2" height="24" fill="#e8c547"/><text x="300" y="78" font-family="Bebas Neue,Impact,Arial Black,sans-serif" font-size="26" letter-spacing="16" fill="url(#pc-g)" text-anchor="middle" filter="url(#pc-glow)">SISTEMA</text><rect x="190" y="88" width="220" height="1" rx="1" fill="#e8c547" opacity="0.4"/><text x="300" y="178" font-family="Bebas Neue,Impact,Arial Black,sans-serif" font-size="100" letter-spacing="2" fill="url(#pc-g)" text-anchor="middle" filter="url(#pc-glow)">IRONLIFTING</text></svg>`,
+                  __html: DOMPurify.sanitize(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220" width="200" height="73"><defs><linearGradient id="pc-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f5d96a"/><stop offset="40%" stop-color="#e8c547"/><stop offset="100%" stop-color="#b8941e"/></linearGradient><linearGradient id="pc-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient><filter id="pc-glow"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#e8c547" flood-opacity="0.4"/></filter></defs><rect x="40" y="20" width="520" height="1.5" rx="1" fill="url(#pc-gh)" opacity="0.7"/><rect x="40" y="200" width="520" height="1.5" rx="1" fill="url(#pc-gh)" opacity="0.7"/><rect x="40" y="20" width="22" height="2" fill="#e8c547"/><rect x="40" y="20" width="2" height="22" fill="#e8c547"/><rect x="538" y="20" width="22" height="2" fill="#e8c547"/><rect x="558" y="20" width="2" height="22" fill="#e8c547"/><rect x="40" y="198" width="22" height="2" fill="#e8c547"/><rect x="40" y="176" width="2" height="24" fill="#e8c547"/><rect x="538" y="198" width="22" height="2" fill="#e8c547"/><rect x="558" y="176" width="2" height="24" fill="#e8c547"/><text x="300" y="78" font-family="Bebas Neue,Impact,Arial Black,sans-serif" font-size="26" letter-spacing="16" fill="url(#pc-g)" text-anchor="middle" filter="url(#pc-glow)">SISTEMA</text><rect x="190" y="88" width="220" height="1" rx="1" fill="#e8c547" opacity="0.4"/><text x="300" y="178" font-family="Bebas Neue,Impact,Arial Black,sans-serif" font-size="100" letter-spacing="2" fill="url(#pc-g)" text-anchor="middle" filter="url(#pc-glow)">IRONLIFTING</text></svg>`,
                 }}
               />
               <div>
@@ -20334,7 +20365,7 @@ ${previewEl.outerHTML}
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span
                     dangerouslySetInnerHTML={{
-                      __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="14" height="13.3"><defs><linearGradient id="pfs-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f8e47a"/><stop offset="100%" stop-color="#9a7010"/></linearGradient><linearGradient id="pfs-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient></defs><text x="200" y="100" font-family="Arial Black,sans-serif" font-size="32" letter-spacing="14" fill="url(#pfs-g)" text-anchor="middle">SISTEMA</text><rect x="100" y="112" width="200" height="1.5" fill="url(#pfs-gh)" opacity="0.5"/><text x="218" y="300" font-family="Arial Black,sans-serif" font-size="240" letter-spacing="-4" fill="url(#pfs-g)" text-anchor="middle">IL</text><text x="200" y="344" font-family="Arial Black,sans-serif" font-size="15" letter-spacing="9" fill="url(#pfs-g)" text-anchor="middle">IRONLIFTING</text></svg>`,
+                      __html: DOMPurify.sanitize(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="14" height="13.3"><defs><linearGradient id="pfs-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f8e47a"/><stop offset="100%" stop-color="#9a7010"/></linearGradient><linearGradient id="pfs-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient></defs><text x="200" y="100" font-family="Arial Black,sans-serif" font-size="32" letter-spacing="14" fill="url(#pfs-g)" text-anchor="middle">SISTEMA</text><rect x="100" y="112" width="200" height="1.5" fill="url(#pfs-gh)" opacity="0.5"/><text x="218" y="300" font-family="Arial Black,sans-serif" font-size="240" letter-spacing="-4" fill="url(#pfs-g)" text-anchor="middle">IL</text><text x="200" y="344" font-family="Arial Black,sans-serif" font-size="15" letter-spacing="9" fill="url(#pfs-g)" text-anchor="middle">IRONLIFTING</text></svg>`, { USE_PROFILES: { svg: true } }),
                     }}
                   />
                   <strong>{atleta.nombre}</strong>
@@ -20499,7 +20530,7 @@ ${previewEl.outerHTML}
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span
                 dangerouslySetInnerHTML={{
-                  __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="20" height="19"><defs><linearGradient id="pfm-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f8e47a"/><stop offset="100%" stop-color="#9a7010"/></linearGradient><linearGradient id="pfm-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient></defs><text x="200" y="100" font-family="Arial Black,sans-serif" font-size="32" letter-spacing="14" fill="url(#pfm-g)" text-anchor="middle">SISTEMA</text><rect x="100" y="112" width="200" height="1.5" fill="url(#pfm-gh)" opacity="0.5"/><text x="218" y="300" font-family="Arial Black,sans-serif" font-size="240" letter-spacing="-4" fill="url(#pfm-g)" text-anchor="middle">IL</text><text x="200" y="344" font-family="Arial Black,sans-serif" font-size="15" letter-spacing="9" fill="url(#pfm-g)" text-anchor="middle">IRONLIFTING</text></svg>`,
+                  __html: DOMPurify.sanitize(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="20" height="19"><defs><linearGradient id="pfm-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f8e47a"/><stop offset="100%" stop-color="#9a7010"/></lineaQuirGradient><linearGradient id="pfm-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient></defs><text x="200" y="100" font-family="Arial Black,sans-serif" font-size="32" letter-spacing="14" fill="url(#pfm-g)" text-anchor="middle">SISTEMA</text><rect x="100" y="112" width="200" height="1.5" fill="url(#pfm-gh)" opacity="0.5"/><text x="218" y="300" font-family="Arial Black,sans-serif" font-size="240" letter-spacing="-4" fill="url(#pfm-g)" text-anchor="middle">IL</text><text x="200" y="344" font-family="Arial Black,sans-serif" font-size="15" letter-spacing="9" fill="url(#pfm-g)" text-anchor="middle">IRONLIFTING</text></svg>`, { USE_PROFILES: { svg: true } }),
                 }}
               />
               <span style={{ fontSize: 9, color: "#888" }}>
@@ -21136,7 +21167,7 @@ function GuardarPlantillaModal({
 
   const handleSave = () => {
     if (!form.nombre.trim()) {
-      alert("El nombre de la plantilla es obligatorio");
+      toast.warning("El nombre de la plantilla es obligatorio");
       return;
     }
     const base = {
@@ -21515,6 +21546,7 @@ function PlantillaCard({
             <button
               onClick={onOpen}
               title="Abrir"
+              aria-label="Abrir"
               style={iconBtn("open")}
               onMouseEnter={() => setHov("open")}
               onMouseLeave={() => setHov(null)}
@@ -21526,6 +21558,7 @@ function PlantillaCard({
             <button
               onClick={onDuplicate}
               title="Duplicar como nueva plantilla"
+              aria-label="Duplicar plantilla"
               style={iconBtn("dup")}
               onMouseEnter={() => setHov("dup")}
               onMouseLeave={() => setHov(null)}
@@ -21537,6 +21570,7 @@ function PlantillaCard({
             <button
               onClick={onEdit}
               title="Editar metadatos"
+              aria-label="Editar metadatos"
               style={iconBtn("edit")}
               onMouseEnter={() => setHov("edit")}
               onMouseLeave={() => setHov(null)}
@@ -21548,6 +21582,7 @@ function PlantillaCard({
             <button
               onClick={onDelete}
               title="Eliminar"
+              aria-label="Eliminar"
               style={iconBtn("del", "var(--red)")}
               onMouseEnter={() => setHov("del")}
               onMouseLeave={() => setHov(null)}
@@ -21727,9 +21762,9 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   // Ref to always-current form for cleanup save
   const latestFormRef = useRef(null);
   const [semPctOverrides, setSemPctOverrides] = useState({});
-  const [semPctManual, setSemPctManual] = useState(new Set());
+  const [semPctManual, setSemPctManual] = useState(() => new Set());
   const [turnoPctOverrides, setTurnoPctOverrides] = useState({});
-  const [turnoPctManual, setTurnoPctManual] = useState(new Set());
+  const [turnoPctManual, setTurnoPctManual] = useState(() => new Set());
   const [confirmReset, setConfirmReset] = useState(null);
 
   // Estados elevados de PlanillaTurno para historial
@@ -22534,7 +22569,7 @@ function CrearPlantillaModal({ onSave, onClose }) {
 
   const handleSave = () => {
     if (!form.nombre.trim()) {
-      alert("El nombre es obligatorio");
+      toast.warning("El nombre es obligatorio");
       return;
     }
     onSave({ ...form, duracion_semanas: form.semanas?.length || 4 });
@@ -22864,11 +22899,11 @@ function DuplicarPlantillaModal({ plantillas, base, onSave, onClose }) {
 
   const handleSave = () => {
     if (!nombre.trim()) {
-      alert("El nombre es obligatorio");
+      toast.warning("El nombre es obligatorio");
       return;
     }
     if (!selected) {
-      alert("Seleccioná una plantilla base");
+      toast.warning("Seleccioná una plantilla base");
       return;
     }
     onSave(selected, nombre.trim(), descripcion.trim());
@@ -26045,68 +26080,6 @@ function PanelReferencia({
   const irm_arr = modo === "atleta" ? Number(meso?.irm_arranque || 0) : 100;
   const irm_env = modo === "atleta" ? Number(meso?.irm_envion || 0) : 200;
 
-  const TabBtn = ({ id, label }) => (
-    <button
-      onClick={() => cambiarVista(id)}
-      style={{
-        flex: 1,
-        padding: "6px 0",
-        border: "none",
-        cursor: "pointer",
-        fontSize: 12,
-        fontWeight: 700,
-        borderRadius: 8,
-        background: vista === id ? "var(--gold)" : "var(--surface2)",
-        color: vista === id ? "#000" : "var(--muted)",
-        transition: "all .15s",
-      }}
-    >
-      {label}
-    </button>
-  );
-
-  const SemBtn = ({ s, i }) => (
-    <button
-      onClick={() => setSemIdx(i)}
-      style={{
-        padding: "4px 10px",
-        borderRadius: 20,
-        border: "none",
-        cursor: "pointer",
-        fontSize: 11,
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-        background: semIdx === i ? "var(--gold)" : "var(--surface2)",
-        color: semIdx === i ? "#000" : "var(--muted)",
-        transition: "all .15s",
-      }}
-    >
-      Sem {s.numero}
-    </button>
-  );
-
-  const TurnoBtn = ({ t, i }) => (
-    <button
-      onClick={() => setTurnoIdx(i)}
-      style={{
-        padding: "4px 10px",
-        borderRadius: 20,
-        border: "none",
-        cursor: "pointer",
-        fontSize: 11,
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-        background:
-          turnoIdx === i ? "rgba(100,180,255,.85)" : "var(--surface2)",
-        color: turnoIdx === i ? "#000" : "var(--muted)",
-        transition: "all .15s",
-      }}
-    >
-      T{t.numero || i + 1}
-      {t.dia ? ` · ${t.dia}` : ""}
-    </button>
-  );
-
   // ── Vista PLANILLA (resumen + planilla de turnos) ────────────────
   const VistaPlanilla = () => {
     if (!fuente)
@@ -27261,8 +27234,9 @@ function LoginScreen({ onAuth }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {mode === "register" && (
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Nombre completo</label>
+                <label className="form-label" htmlFor="field_91">Nombre completo</label>
                 <input
+                  id="field_91"
                   name="field_91"
                   className="form-input"
                   value={nombre}
@@ -27273,8 +27247,9 @@ function LoginScreen({ onAuth }) {
             )}
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Email</label>
+              <label className="form-label" htmlFor="field_92">Email</label>
               <input
+                id="field_92"
                 name="field_92"
                 className="form-input"
                 type="email"
@@ -27289,8 +27264,9 @@ function LoginScreen({ onAuth }) {
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Contraseña</label>
+              <label className="form-label" htmlFor="field_93">Contraseña</label>
               <input
+                id="field_93"
                 name="field_93"
                 className="form-input"
                 type="password"
@@ -28089,6 +28065,7 @@ function CoachApp({ session, profile, onLogout }) {
                       alignItems: "center",
                     }}
                     title="Cerrar pestaña"
+                    aria-label="Cerrar pestaña"
                   >
                     <X size={11} />
                   </button>
@@ -28152,6 +28129,7 @@ function CoachApp({ session, profile, onLogout }) {
                       alignItems: "center",
                     }}
                     title="Cerrar pestaña"
+                    aria-label="Cerrar pestaña"
                   >
                     <X size={11} />
                   </button>
@@ -28224,6 +28202,7 @@ function CoachApp({ session, profile, onLogout }) {
             <button
               onClick={onLogout}
               title="Cerrar sesión"
+              aria-label="Cerrar sesión"
               style={{
                 flexShrink: 0,
                 padding: "0 10px",
@@ -28463,12 +28442,13 @@ export default function App() {
           .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
           .form-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
           .form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans';font-size:13px;padding:9px 12px;outline:none;transition:border .2s;width:100%;box-sizing:border-box}
-          .form-input:focus{border-color:var(--gold)}
-          .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans';font-size:13px;font-weight:600;transition:all .2s}
+          .form-input:focus-visible{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,197,71,.25)}
+          .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans';font-size:13px;font-weight:600;transition:background .2s,color .2s}
           .btn-gold{background:var(--gold);color:#0a0c10}
           .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
         `}</style>
+        <Toaster theme="dark" position="bottom-right" richColors />
         <LoginScreen onAuth={setSession} />
       </>
     );
@@ -28476,6 +28456,9 @@ export default function App() {
 
   // Logged in — show coach app (for now, all roles see CoachApp; atleta view coming next)
   return (
-    <CoachApp session={session} profile={profile} onLogout={handleLogout} />
+    <>
+      <Toaster theme="dark" position="bottom-right" richColors />
+      <CoachApp session={session} profile={profile} onLogout={handleLogout} />
+    </>
   );
 }
