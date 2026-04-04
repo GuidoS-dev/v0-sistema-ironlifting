@@ -5,7 +5,6 @@ import {
   FileText,
   MessageCircle,
   ChevronLeft,
-  Minus,
   Plus,
   Pencil,
   Trash2,
@@ -2094,6 +2093,7 @@ function Modal({
   overlayPadding = null,
   scrollable = false,
   maxHeight = null,
+  tightHeader = false,
 }) {
   const mdTarget = useRef(null);
   const modalRef = useRef(null);
@@ -2209,8 +2209,13 @@ function Modal({
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
       >
-        <div className="flex-between mb16">
-          <div className="modal-title">{title}</div>
+        <div
+          className={tightHeader ? "flex-between" : "flex-between mb16"}
+          style={tightHeader ? { marginBottom: 6 } : undefined}
+        >
+          <div className="modal-title" style={tightHeader ? { marginBottom: 0 } : undefined}>
+            {title}
+          </div>
           <button
             className="btn btn-ghost btn-sm btn-icon"
             onClick={onClose}
@@ -17069,14 +17074,15 @@ function PageAtleta({
           overlayPadding="6px"
           scrollable
           maxHeight="calc(100vh - 12px)"
+          tightHeader
         >
           <div
             style={{
               display: "flex",
               alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 8,
-              marginBottom: 8,
+              justifyContent: "flex-start",
+              gap: 6,
+              marginBottom: 6,
               flexWrap: "wrap",
             }}
           >
@@ -17091,41 +17097,9 @@ function PageAtleta({
                 {semanasConDatos.length} semanas · {turnosConDatos.length} turnos
               </span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  fontSize: 10,
-                  color: "var(--muted)",
-                  minWidth: 58,
-                  textAlign: "right",
-                }}
-              >
-                {Math.round(fullTableZoom * 100)}%
-              </div>
-              <button
-                className="btn btn-ghost btn-sm btn-icon"
-                onClick={() =>
-                  setFullTableZoom((z) => Math.max(0.35, Math.round((z - 0.1) * 100) / 100))
-                }
-                title="Reducir zoom"
-                aria-label="Reducir zoom"
-              >
-                <Minus size={14} />
-              </button>
-              <button
-                className="btn btn-ghost btn-sm btn-icon"
-                onClick={() =>
-                  setFullTableZoom((z) => Math.min(2.5, Math.round((z + 0.1) * 100) / 100))
-                }
-                title="Aumentar zoom"
-                aria-label="Aumentar zoom"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
           </div>
 
-          <div style={{ display: "grid", gap: 5, marginBottom: 8 }}>
+          <div style={{ display: "grid", gap: 5, marginBottom: 4 }}>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
               <span
                 style={{
@@ -17294,9 +17268,6 @@ function PageAtleta({
                 style={{
                   background: "rgba(26,30,39,.96)",
                   backdropFilter: "blur(3px)",
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 1,
                 }}
               >
                 <tr>
