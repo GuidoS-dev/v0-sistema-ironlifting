@@ -5,6 +5,7 @@ import {
   FileText,
   MessageCircle,
   ChevronLeft,
+  Minus,
   Plus,
   Pencil,
   Trash2,
@@ -17139,6 +17140,39 @@ function PageAtleta({
                   </button>
                 );
               })}
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  marginLeft: "auto",
+                }}
+              >
+                <span style={{ fontSize: 10, color: "var(--muted)", minWidth: 44, textAlign: "right" }}>
+                  {Math.round(fullTableZoom * 100)}%
+                </span>
+                <button
+                  className="btn btn-ghost btn-sm btn-icon"
+                  onClick={() =>
+                    setFullTableZoom((z) => Math.max(0.35, Math.round((z - 0.1) * 100) / 100))
+                  }
+                  title="Reducir zoom"
+                  aria-label="Reducir zoom"
+                >
+                  <Minus size={14} />
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm btn-icon"
+                  onClick={() =>
+                    setFullTableZoom((z) => Math.min(2.5, Math.round((z + 0.1) * 100) / 100))
+                  }
+                  title="Aumentar zoom"
+                  aria-label="Aumentar zoom"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
