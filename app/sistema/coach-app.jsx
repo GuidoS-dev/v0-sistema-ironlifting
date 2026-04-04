@@ -17343,7 +17343,7 @@ function PageAtleta({
                         textAlign: "center",
                         borderRight:
                           semRenderIdx < semanasConDatos.length - 1
-                            ? "3px solid rgba(255,255,255,.02)"
+                            ? "7px solid rgba(255,255,255,.03)"
                             : "1px solid var(--border)",
                         borderBottom: "2px solid var(--gold)",
                         fontWeight: 700,
@@ -17355,7 +17355,7 @@ function PageAtleta({
                         textTransform: "uppercase",
                         boxShadow:
                           semRenderIdx < semanasConDatos.length - 1
-                            ? "inset -1px 0 0 rgba(0,0,0,.22)"
+                            ? "inset -2px 0 0 rgba(0,0,0,.28)"
                             : undefined,
                       }}
                     >
@@ -17405,7 +17405,7 @@ function PageAtleta({
                             borderRight:
                               slotIdx === (semanaColsMap.get(sem.id) || 1) - 1 &&
                               semRenderIdx < semanasConDatos.length - 1
-                                ? "3px solid rgba(255,255,255,.02)"
+                                ? "7px solid rgba(255,255,255,.03)"
                                 : "1px solid var(--border)",
                             borderBottom: "1px solid var(--border)",
                             fontWeight: 600,
@@ -17416,7 +17416,7 @@ function PageAtleta({
                             boxShadow:
                               slotIdx === (semanaColsMap.get(sem.id) || 1) - 1 &&
                               semRenderIdx < semanasConDatos.length - 1
-                                ? "inset -1px 0 0 rgba(0,0,0,.22)"
+                                ? "inset -2px 0 0 rgba(0,0,0,.28)"
                                 : undefined,
                           }}
                         >
@@ -17473,13 +17473,13 @@ function PageAtleta({
                               ...rowCellBase,
                               borderRight:
                                 isEndOfSemana && semRenderIdx < semanasConDatos.length - 1
-                                  ? "3px solid rgba(255,255,255,.02)"
+                                  ? "7px solid rgba(255,255,255,.03)"
                                   : isEndOfSemana
                                     ? "2px solid var(--border)"
                                     : rowCellBase.borderRight,
                               boxShadow:
                                 isEndOfSemana && semRenderIdx < semanasConDatos.length - 1
-                                  ? "inset -1px 0 0 rgba(0,0,0,.22)"
+                                  ? "inset -2px 0 0 rgba(0,0,0,.28)"
                                   : undefined,
                               color: val === null || val === undefined || val === ""
                                 ? "var(--muted)"
