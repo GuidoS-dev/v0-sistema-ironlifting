@@ -7046,6 +7046,7 @@ function PlanillaTurno({
                           justifyContent: "space-between",
                           gap: 8,
                           marginBottom: 10,
+                          flexWrap: "wrap",
                         }}
                       >
                         <div
@@ -7059,57 +7060,18 @@ function PlanillaTurno({
                         >
                           Ejercicios Complementarios
                         </div>
-                        <button
-                          onClick={copiarComplementariosATodasSemanas}
-                          title="Copiar complementarios de este turno a todas las semanas"
+                        <div
                           style={{
-                            padding: "4px 10px",
-                            borderRadius: 6,
-                            border: compCopyFeedback
-                              ? "1px solid rgba(77,182,172,.45)"
-                              : "1px solid var(--border)",
-                            background: compCopyFeedback
-                              ? "rgba(77,182,172,.12)"
-                              : "var(--surface2)",
-                            color: compCopyFeedback
-                              ? "#4db6ac"
-                              : "var(--muted)",
-                            cursor: "pointer",
-                            fontSize: 10,
-                            fontFamily: "'DM Sans'",
-                            fontWeight: 600,
-                            whiteSpace: "nowrap",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            flexWrap: "wrap",
                           }}
                         >
-                          {compCopyFeedback
-                            ? "Copiado a todas"
-                            : "Copiar a todas las semanas"}
-                        </button>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          color: "var(--muted)",
-                          marginBottom: 8,
-                        }}
-                      >
-                        Copia complementarios por turno (uno o todos) hacia
-                        semanas destino (una o todas).
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          flexWrap: "wrap",
-                          marginBottom: 10,
-                        }}
-                      >
-                        <span style={{ fontSize: 10, color: "var(--muted)" }}>
-                          Turnos a copiar
-                        </span>
-                        <details style={{ position: "relative" }}>
+                          <span style={{ fontSize: 10, color: "var(--muted)" }}>
+                            Turnos a copiar
+                          </span>
+                          <details style={{ position: "relative" }}>
                           <summary
                             style={{
                               listStyle: "none",
@@ -7183,16 +7145,16 @@ function PlanillaTurno({
                               );
                             })}
                           </div>
-                        </details>
+                          </details>
 
-                        <span style={{ fontSize: 10, color: "var(--muted)" }}>
-                          →
-                        </span>
+                          <span style={{ fontSize: 10, color: "var(--muted)" }}>
+                            →
+                          </span>
 
-                        <span style={{ fontSize: 10, color: "var(--muted)" }}>
-                          Semanas a pegar
-                        </span>
-                        <details style={{ position: "relative" }}>
+                          <span style={{ fontSize: 10, color: "var(--muted)" }}>
+                            Semanas a pegar
+                          </span>
+                          <details style={{ position: "relative" }}>
                           <summary
                             style={{
                               listStyle: "none",
@@ -7272,25 +7234,53 @@ function PlanillaTurno({
                                 );
                               })}
                           </div>
-                        </details>
+                          </details>
 
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          onClick={pegarComplementariosSeleccionados}
-                          disabled={
-                            compPasteTurnosSel.length === 0 ||
-                            compPasteSemanasSel.length === 0
-                          }
-                          style={{
-                            border: compPasteFeedback
-                              ? "1px solid rgba(77,182,172,.45)"
-                              : undefined,
-                            color: compPasteFeedback ? "#4db6ac" : undefined,
-                          }}
-                          title="Pegar complementarios según selección"
-                        >
-                          {compPasteFeedback ? "Pegado" : "Pegar"}
-                        </button>
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            onClick={pegarComplementariosSeleccionados}
+                            disabled={
+                              compPasteTurnosSel.length === 0 ||
+                              compPasteSemanasSel.length === 0
+                            }
+                            style={{
+                              border: compPasteFeedback
+                                ? "1px solid rgba(77,182,172,.45)"
+                                : undefined,
+                              color: compPasteFeedback ? "#4db6ac" : undefined,
+                            }}
+                            title="Pegar complementarios según selección"
+                          >
+                            {compPasteFeedback ? "Pegado" : "Pegar"}
+                          </button>
+
+                          <button
+                            onClick={copiarComplementariosATodasSemanas}
+                            title="Copiar complementarios de este turno a todas las semanas"
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: 6,
+                              border: compCopyFeedback
+                                ? "1px solid rgba(77,182,172,.45)"
+                                : "1px solid var(--border)",
+                              background: compCopyFeedback
+                                ? "rgba(77,182,172,.12)"
+                                : "var(--surface2)",
+                              color: compCopyFeedback
+                                ? "#4db6ac"
+                                : "var(--muted)",
+                              cursor: "pointer",
+                              fontSize: 10,
+                              fontFamily: "'DM Sans'",
+                              fontWeight: 600,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {compCopyFeedback
+                              ? "Copiado a todas"
+                              : "Copiar a todas las semanas"}
+                          </button>
+                        </div>
                       </div>
 
                       <div style={{ overflowX: "auto" }}>
