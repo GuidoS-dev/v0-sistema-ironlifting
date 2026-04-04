@@ -15275,15 +15275,22 @@ function PageAtleta({
 
   useEffect(() => {
     if (!showFullSembrado) return;
+    setFiltroGrupos([]);
+    setFiltroIntensidades([]);
+    setFiltroTablas([]);
+  }, [showFullSembrado]);
+
+  useEffect(() => {
+    if (!showFullSembrado) return;
 
     setFiltroGrupos((prev) =>
-      prev.join("|") === gruposUsadosKey ? prev : gruposUsados,
+      prev.filter((item) => gruposUsados.includes(item)),
     );
     setFiltroIntensidades((prev) =>
-      prev.join("|") === intensidadesUsadasKey ? prev : intensidadesUsadas,
+      prev.filter((item) => intensidadesUsadas.includes(item)),
     );
     setFiltroTablas((prev) =>
-      prev.join("|") === tablasUsadasKey ? prev : tablasUsadas,
+      prev.filter((item) => tablasUsadas.includes(item)),
     );
   }, [
     showFullSembrado,
