@@ -16850,7 +16850,7 @@ function PageAtleta({
         <Modal
           title="Sembrado Completo"
           onClose={() => setShowFullSembrado(false)}
-          maxWidth="1400px"
+          maxWidth="1600px"
         >
           <div
             style={{
@@ -16863,10 +16863,9 @@ function PageAtleta({
           >
             <table
               style={{
-                width: "100%",
                 borderCollapse: "collapse",
-                fontSize: 11,
-                fontFamily: "'DM Sans', monospace",
+                fontSize: 10,
+                fontFamily: "'Courier New', monospace",
                 minWidth: "fit-content",
               }}
             >
@@ -16881,224 +16880,202 @@ function PageAtleta({
                 <tr>
                   <th
                     style={{
-                      padding: "8px",
-                      textAlign: "left",
-                      borderRight: "1px solid var(--border)",
+                      padding: "6px 8px",
+                      textAlign: "center",
+                      borderRight: "2px solid var(--gold)",
                       borderBottom: "2px solid var(--gold)",
                       fontWeight: 700,
                       color: "var(--gold)",
-                      minWidth: 80,
+                      width: 70,
                     }}
                   >
-                    Turno/Sem
+                    Turno
                   </th>
+                  {mesoVisto.semanas.map((sem) => (
+                    <th
+                      key={`header-${sem.id}`}
+                      colSpan={3}
+                      style={{
+                        padding: "6px 8px",
+                        textAlign: "center",
+                        borderRight: "1px solid var(--border)",
+                        borderBottom: "2px solid var(--gold)",
+                        fontWeight: 700,
+                        color: "var(--blue)",
+                      }}
+                    >
+                      Sem {sem.numero}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
                   <th
                     style={{
-                      padding: "8px",
-                      textAlign: "left",
-                      borderRight: "1px solid var(--border)",
-                      borderBottom: "2px solid var(--gold)",
-                      fontWeight: 700,
-                      color: "var(--gold)",
-                      minWidth: 150,
+                      padding: "4px 6px",
+                      textAlign: "center",
+                      borderRight: "2px solid var(--gold)",
+                      borderBottom: "1px solid var(--border)",
+                      fontWeight: 600,
+                      color: "var(--muted)",
+                      fontSize: 9,
                     }}
                   >
-                    Ejercicio
+                    —
                   </th>
-                  {(() => {
-                    // Mostrar columnas: EJ, INT (intensidades), TBL
-                    return (
-                      <>
-                        <th
-                          style={{
-                            padding: "8px",
-                            textAlign: "center",
-                            borderRight: "1px solid var(--border)",
-                            borderBottom: "2px solid var(--gold)",
-                            fontWeight: 700,
-                            color: "var(--blue)",
-                            width: 50,
-                          }}
-                        >
-                          EJ
-                        </th>
-                        {[65, 75, 85].map((intens) => (
-                          <th
-                            key={intens}
-                            style={{
-                              padding: "8px",
-                              textAlign: "center",
-                              borderRight: "1px solid var(--border)",
-                              borderBottom: "2px solid var(--gold)",
-                              fontWeight: 700,
-                              color: "var(--blue)",
-                              width: 60,
-                            }}
-                          >
-                            {intens}%
-                          </th>
-                        ))}
-                        <th
-                          style={{
-                            padding: "8px",
-                            textAlign: "center",
-                            borderRight: "1px solid var(--border)",
-                            borderBottom: "2px solid var(--gold)",
-                            fontWeight: 700,
-                            color: "var(--green)",
-                            width: 50,
-                          }}
-                        >
-                          TBL
-                        </th>
-                      </>
-                    );
-                  })()}
+                  {mesoVisto.semanas.map((sem) => (
+                    <React.Fragment key={`subheader-${sem.id}`}>
+                      <th
+                        style={{
+                          padding: "4px 4px",
+                          textAlign: "center",
+                          borderRight: "1px solid var(--border)",
+                          borderBottom: "1px solid var(--border)",
+                          fontWeight: 600,
+                          color: "var(--muted)",
+                          fontSize: 8,
+                          width: 35,
+                        }}
+                      >
+                        EJ
+                      </th>
+                      <th
+                        style={{
+                          padding: "4px 4px",
+                          textAlign: "center",
+                          borderRight: "1px solid var(--border)",
+                          borderBottom: "1px solid var(--border)",
+                          fontWeight: 600,
+                          color: "var(--muted)",
+                          fontSize: 8,
+                          width: 35,
+                        }}
+                      >
+                        S
+                      </th>
+                      <th
+                        style={{
+                          padding: "4px 4px",
+                          textAlign: "center",
+                          borderRight: "1px solid var(--border)",
+                          borderBottom: "1px solid var(--border)",
+                          fontWeight: 600,
+                          color: "var(--muted)",
+                          fontSize: 8,
+                          width: 35,
+                        }}
+                      >
+                        Kg
+                      </th>
+                    </React.Fragment>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {mesoVisto.semanas.map((sem, semIdx) =>
-                  sem.turnos.map((turno, turnoIdx) => {
-                    const ejercicios = (turno.ejercicios || []).filter(Boolean);
-                    return ejercicios.map((ej, ejIdx) => {
-                      const ejData = getEjercicioById(ej.ejercicio_id, atletaNormativos);
-                      const bgColor =
-                        semIdx % 2 === 0
-                          ? "var(--surface)"
-                          : "var(--surface2)";
-
-                      return (
-                        <tr
-                          key={`${semIdx}-${turnoIdx}-${ejIdx}`}
+                {(() => {
+                  // Obtener número máximo de turnos
+                  const maxTurnos = Math.max(...mesoVisto.semanas.map(s => s.turnos?.length || 0));
+                  
+                  return Array.from({ length: maxTurnos }).map((_, turnoIdx) => {
+                    return (
+                      <tr
+                        key={`turno-${turnoIdx}`}
+                        style={{
+                          borderBottom: "1px solid var(--border)",
+                        }}
+                      >
+                        <td
                           style={{
-                            background: bgColor,
-                            borderBottom: "1px solid var(--border)",
+                            padding: "6px 8px",
+                            textAlign: "center",
+                            borderRight: "2px solid var(--gold)",
+                            fontWeight: 700,
+                            color: "var(--gold)",
+                            background: "var(--surface)",
                           }}
                         >
-                          {/* Turno + Semana */}
-                          {ejIdx === 0 ? (
-                            <td
-                              rowSpan={ejercicios.length}
-                              style={{
-                                padding: "8px",
-                                borderRight: "1px solid var(--border)",
-                                fontWeight: 600,
-                                color: "var(--gold)",
-                                textAlign: "center",
-                                verticalAlign: "top",
-                                background: bgColor,
-                              }}
-                            >
-                              <div>S{sem.numero}·T{turnoIdx + 1}</div>
-                              {turno.dia && (
-                                <div
-                                  style={{
-                                    fontSize: 9,
+                          T{turnoIdx + 1}
+                        </td>
+
+                        {mesoVisto.semanas.map((sem, semIdx) => {
+                          const turno = sem.turnos?.[turnoIdx];
+                          const ejercicios = turno?.ejercicios?.filter(Boolean) || [];
+
+                          return (
+                            <React.Fragment key={`sem-${semIdx}-turno-${turnoIdx}`}>
+                              {ejercicios.length > 0 ? (
+                                ejercicios.map((ej, ejIdx) => (
+                                  <React.Fragment key={`ej-${ejIdx}`}>
+                                    <td style={{
+                                      padding: "4px 4px",
+                                      textAlign: "center",
+                                      borderRight: "1px solid var(--border)",
+                                      borderBottom: "1px solid var(--border)",
+                                      color: "var(--text)",
+                                      fontSize: 10,
+                                      fontWeight: 600,
+                                    }}>
+                                      {ej.ejercicio_id || "—"}
+                                    </td>
+                                    <td style={{
+                                      padding: "4px 4px",
+                                      textAlign: "center",
+                                      borderRight: "1px solid var(--border)",
+                                      borderBottom: "1px solid var(--border)",
+                                      color: "var(--text)",
+                                      fontSize: 10,
+                                    }}>
+                                      {ej.intensidad || "—"}
+                                    </td>
+                                    <td style={{
+                                      padding: "4px 4px",
+                                      textAlign: "center",
+                                      borderRight: "1px solid var(--border)",
+                                      borderBottom: "1px solid var(--border)",
+                                      color: "var(--text)",
+                                      fontSize: 10,
+                                    }}>
+                                      {ej.tabla || "T1"}
+                                    </td>
+                                  </React.Fragment>
+                                ))
+                              ) : (
+                                <>
+                                  <td style={{
+                                    padding: "4px 4px",
+                                    textAlign: "center",
+                                    borderRight: "1px solid var(--border)",
+                                    borderBottom: "1px solid var(--border)",
                                     color: "var(--muted)",
-                                    marginTop: 2,
-                                  }}
-                                >
-                                  {turno.dia}
-                                  {turno.momento ? ` ${turno.momento}` : ""}
-                                </div>
+                                  }}>
+                                    —
+                                  </td>
+                                  <td style={{
+                                    padding: "4px 4px",
+                                    textAlign: "center",
+                                    borderRight: "1px solid var(--border)",
+                                    borderBottom: "1px solid var(--border)",
+                                    color: "var(--muted)",
+                                  }}>
+                                    —
+                                  </td>
+                                  <td style={{
+                                    padding: "4px 4px",
+                                    textAlign: "center",
+                                    borderRight: "1px solid var(--border)",
+                                    borderBottom: "1px solid var(--border)",
+                                    color: "var(--muted)",
+                                  }}>
+                                    —
+                                  </td>
+                                </>
                               )}
-                            </td>
-                          ) : null}
-
-                          {/* Ejercicio */}
-                          <td
-                            style={{
-                              padding: "8px",
-                              borderRight: "1px solid var(--border)",
-                              color: ejData ? "var(--text)" : "var(--muted)",
-                              fontStyle: ejData ? "normal" : "italic",
-                              textAlign: "left",
-                              fontSize: 11,
-                            }}
-                          >
-                            {ejData ? (
-                              <>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    background: "rgba(232,197,71,.25)",
-                                    color: "#fff",
-                                    padding: "2px 6px",
-                                    borderRadius: 3,
-                                    fontSize: 9,
-                                    fontWeight: 700,
-                                    marginRight: 6,
-                                  }}
-                                >
-                                  {ej.ejercicio_id}
-                                </span>
-                                {ejData.nombre}
-                              </>
-                            ) : (
-                              <span style={{ color: "var(--muted)" }}>
-                                —
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Intensidad seleccionada */}
-                          <td
-                            style={{
-                              padding: "8px",
-                              textAlign: "center",
-                              borderRight: "1px solid var(--border)",
-                              color: "var(--blue)",
-                              fontWeight: 700,
-                              fontSize: 11,
-                            }}
-                          >
-                            {ej.intensidad ? `${ej.intensidad}%` : "—"}
-                          </td>
-
-                          {/* Verificar si la intensidad está en rango para cada columna */}
-                          {[65, 75, 85].map((intens) => {
-                            const isInRange =
-                              ej.intensidad &&
-                              ej.intensidad === intens;
-
-                            return (
-                              <td
-                                key={intens}
-                                style={{
-                                  padding: "8px",
-                                  textAlign: "center",
-                                  borderRight: "1px solid var(--border)",
-                                  color: isInRange ? "var(--green)" : "var(--muted)",
-                                  fontSize: 10,
-                                  fontWeight: isInRange ? 700 : 400,
-                                  background: isInRange
-                                    ? "rgba(71,232,160,.12)"
-                                    : undefined,
-                                }}
-                              >
-                                {isInRange ? "✓" : "—"}
-                              </td>
-                            );
-                          })}
-
-                          {/* Tabla */}
-                          <td
-                            style={{
-                              padding: "8px",
-                              textAlign: "center",
-                              borderRight: "1px solid var(--border)",
-                              color: "var(--green)",
-                              fontWeight: 700,
-                              fontSize: 11,
-                            }}
-                          >
-                            T{ej.tabla || 1}
-                          </td>
-                        </tr>
-                      );
-                    });
-                  }),
-                )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>
