@@ -15067,6 +15067,7 @@ function PageAtleta({
   const [showEditVol, setShowEditVol] = useState(false);
   const [mesoSelId, setMesoSelId] = useState(null);
   const [vistaActual, setVistaActual] = useState("meso");
+  const [showFullSembrado, setShowFullSembrado] = useState(false);
 
   useEffect(() => {
     if (!openRequest?.view) return;
@@ -15977,6 +15978,40 @@ function PageAtleta({
                     {nav.label}
                   </button>
                 ))}
+                <div
+                  style={{
+                    width: "1px",
+                    height: 24,
+                    background: "var(--border)",
+                    margin: "0 4px",
+                  }}
+                />
+                <button
+                  onClick={() => setShowFullSembrado(true)}
+                  style={{
+                    padding: "4px 11px",
+                    borderRadius: 10,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface2)",
+                    color: "var(--muted)",
+                    fontFamily: "'DM Sans'",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "all .2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--gold)";
+                    e.currentTarget.style.color = "var(--gold)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border)";
+                    e.currentTarget.style.color = "var(--muted)";
+                  }}
+                >
+                  Ver todo
+                </button>
               </div>
             )}
           <div style={{ flex: 1 }} />
@@ -16809,6 +16844,283 @@ function PageAtleta({
           </div>
         </Modal>
       )}
+
+      {/* ════ MODAL Ver todo Sembrado ════ */}
+      {showFullSembrado && mesoVisto && (
+        <Modal
+          title="Sembrado Completo"
+          onClose={() => setShowFullSembrado(false)}
+          maxWidth="1400px"
+        >
+          <div
+            style={{
+              maxHeight: "80vh",
+              overflowY: "auto",
+              overflowX: "auto",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 11,
+                fontFamily: "'DM Sans', monospace",
+                minWidth: "fit-content",
+              }}
+            >
+              <thead
+                style={{
+                  background: "var(--surface2)",
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 1,
+                }}
+              >
+                <tr>
+                  <th
+                    style={{
+                      padding: "8px",
+                      textAlign: "left",
+                      borderRight: "1px solid var(--border)",
+                      borderBottom: "2px solid var(--gold)",
+                      fontWeight: 700,
+                      color: "var(--gold)",
+                      minWidth: 80,
+                    }}
+                  >
+                    Turno/Sem
+                  </th>
+                  <th
+                    style={{
+                      padding: "8px",
+                      textAlign: "left",
+                      borderRight: "1px solid var(--border)",
+                      borderBottom: "2px solid var(--gold)",
+                      fontWeight: 700,
+                      color: "var(--gold)",
+                      minWidth: 150,
+                    }}
+                  >
+                    Ejercicio
+                  </th>
+                  {(() => {
+                    // Mostrar columnas: EJ, INT (intensidades), TBL
+                    return (
+                      <>
+                        <th
+                          style={{
+                            padding: "8px",
+                            textAlign: "center",
+                            borderRight: "1px solid var(--border)",
+                            borderBottom: "2px solid var(--gold)",
+                            fontWeight: 700,
+                            color: "var(--blue)",
+                            width: 50,
+                          }}
+                        >
+                          EJ
+                        </th>
+                        {[65, 75, 85].map((intens) => (
+                          <th
+                            key={intens}
+                            style={{
+                              padding: "8px",
+                              textAlign: "center",
+                              borderRight: "1px solid var(--border)",
+                              borderBottom: "2px solid var(--gold)",
+                              fontWeight: 700,
+                              color: "var(--blue)",
+                              width: 60,
+                            }}
+                          >
+                            {intens}%
+                          </th>
+                        ))}
+                        <th
+                          style={{
+                            padding: "8px",
+                            textAlign: "center",
+                            borderRight: "1px solid var(--border)",
+                            borderBottom: "2px solid var(--gold)",
+                            fontWeight: 700,
+                            color: "var(--green)",
+                            width: 50,
+                          }}
+                        >
+                          TBL
+                        </th>
+                      </>
+                    );
+                  })()}
+                </tr>
+              </thead>
+              <tbody>
+                {mesoVisto.semanas.map((sem, semIdx) =>
+                  sem.turnos.map((turno, turnoIdx) => {
+                    const ejercicios = (turno.ejercicios || []).filter(Boolean);
+                    return ejercicios.map((ej, ejIdx) => {
+                      const ejData = getEjercicioById(ej.ejercicio_id, atletaNormativos);
+                      const bgColor =
+                        semIdx % 2 === 0
+                          ? "var(--surface)"
+                          : "var(--surface2)";
+
+                      return (
+                        <tr
+                          key={`${semIdx}-${turnoIdx}-${ejIdx}`}
+                          style={{
+                            background: bgColor,
+                            borderBottom: "1px solid var(--border)",
+                          }}
+                        >
+                          {/* Turno + Semana */}
+                          {ejIdx === 0 ? (
+                            <td
+                              rowSpan={ejercicios.length}
+                              style={{
+                                padding: "8px",
+                                borderRight: "1px solid var(--border)",
+                                fontWeight: 600,
+                                color: "var(--gold)",
+                                textAlign: "center",
+                                verticalAlign: "top",
+                                background: bgColor,
+                              }}
+                            >
+                              <div>S{sem.numero}·T{turnoIdx + 1}</div>
+                              {turno.dia && (
+                                <div
+                                  style={{
+                                    fontSize: 9,
+                                    color: "var(--muted)",
+                                    marginTop: 2,
+                                  }}
+                                >
+                                  {turno.dia}
+                                  {turno.momento ? ` ${turno.momento}` : ""}
+                                </div>
+                              )}
+                            </td>
+                          ) : null}
+
+                          {/* Ejercicio */}
+                          <td
+                            style={{
+                              padding: "8px",
+                              borderRight: "1px solid var(--border)",
+                              color: ejData ? "var(--text)" : "var(--muted)",
+                              fontStyle: ejData ? "normal" : "italic",
+                              textAlign: "left",
+                              fontSize: 11,
+                            }}
+                          >
+                            {ejData ? (
+                              <>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    background: "rgba(232,197,71,.25)",
+                                    color: "#fff",
+                                    padding: "2px 6px",
+                                    borderRadius: 3,
+                                    fontSize: 9,
+                                    fontWeight: 700,
+                                    marginRight: 6,
+                                  }}
+                                >
+                                  {ej.ejercicio_id}
+                                </span>
+                                {ejData.nombre}
+                              </>
+                            ) : (
+                              <span style={{ color: "var(--muted)" }}>
+                                —
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Intensidad seleccionada */}
+                          <td
+                            style={{
+                              padding: "8px",
+                              textAlign: "center",
+                              borderRight: "1px solid var(--border)",
+                              color: "var(--blue)",
+                              fontWeight: 700,
+                              fontSize: 11,
+                            }}
+                          >
+                            {ej.intensidad ? `${ej.intensidad}%` : "—"}
+                          </td>
+
+                          {/* Verificar si la intensidad está en rango para cada columna */}
+                          {[65, 75, 85].map((intens) => {
+                            const isInRange =
+                              ej.intensidad &&
+                              ej.intensidad === intens;
+
+                            return (
+                              <td
+                                key={intens}
+                                style={{
+                                  padding: "8px",
+                                  textAlign: "center",
+                                  borderRight: "1px solid var(--border)",
+                                  color: isInRange ? "var(--green)" : "var(--muted)",
+                                  fontSize: 10,
+                                  fontWeight: isInRange ? 700 : 400,
+                                  background: isInRange
+                                    ? "rgba(71,232,160,.12)"
+                                    : undefined,
+                                }}
+                              >
+                                {isInRange ? "✓" : "—"}
+                              </td>
+                            );
+                          })}
+
+                          {/* Tabla */}
+                          <td
+                            style={{
+                              padding: "8px",
+                              textAlign: "center",
+                              borderRight: "1px solid var(--border)",
+                              color: "var(--green)",
+                              fontWeight: 700,
+                              fontSize: 11,
+                            }}
+                          >
+                            T{ej.tabla || 1}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  }),
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            style={{
+              marginTop: 16,
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 8,
+            }}
+          >
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowFullSembrado(false)}
+            >
+              Cerrar
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {showMeso && (
         <MesocicloForm
           atleta={atleta}
