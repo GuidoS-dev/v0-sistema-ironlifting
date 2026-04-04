@@ -15201,6 +15201,41 @@ function PageAtleta({
     mesoAtleta[0] ||
     null;
 
+  const semanasConDatos = (mesoVisto?.semanas || [])
+    .map((sem, semIdxOriginal) => ({ sem, semIdxOriginal }))
+    .filter(({ sem }) =>
+      (sem.turnos || []).some((turno) =>
+        (turno?.ejercicios || []).some((ej) => !!ej?.ejercicio_id),
+      ),
+    );
+
+  const turnosConDatos = (() => {
+    const idxs = new Set();
+    semanasConDatos.forEach(({ sem }) => {
+      (sem.turnos || []).forEach((turno, tIdx) => {
+        if ((turno?.ejercicios || []).some((ej) => !!ej?.ejercicio_id)) {
+          idxs.add(tIdx);
+        }
+      });
+    });
+    return [...idxs].sort((a, b) => a - b);
+  })();
+
+  const semanaColsMap = (() => {
+    const map = new Map();
+    semanasConDatos.forEach(({ sem }) => {
+      const maxCols = Math.max(
+        1,
+        ...turnosConDatos.map((tIdx) =>
+          ((sem.turnos?.[tIdx]?.ejercicios || []).filter((ej) => !!ej?.ejercicio_id)
+            .length || 0),
+        ),
+      );
+      map.set(sem.id, maxCols);
+    });
+    return map;
+  })();
+
   const _pctKey = (type) =>
     mesoVisto ? `liftplan_pct_${mesoVisto.id}_${type}` : null;
 
@@ -16869,28 +16904,46 @@ function PageAtleta({
               className="badge badge-blue"
               style={{ fontSize: 10, letterSpacing: ".04em" }}
             >
-              {mesoVisto.semanas.length} semanas
+              {semanasConDatos.length} semanas · {turnosConDatos.length} turnos
             </span>
           </div>
-          <div
-            style={{
-              maxHeight: "80vh",
-              overflowY: "auto",
-              overflowX: "auto",
-              border: "1px solid var(--border)",
-              borderRadius: 10,
-              background: "linear-gradient(180deg,var(--surface2),var(--surface))",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,.02)",
-            }}
-          >
-            <table
+          {semanasConDatos.length === 0 || turnosConDatos.length === 0 ? (
+            <div
               style={{
-                borderCollapse: "collapse",
-                fontSize: 10,
-                fontFamily: "'DM Sans', sans-serif",
-                minWidth: "fit-content",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                background:
+                  "linear-gradient(180deg,var(--surface2),var(--surface))",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,.02)",
+                padding: 24,
+                textAlign: "center",
+                color: "var(--muted)",
+                fontSize: 12,
               }}
             >
+              No hay datos cargados para mostrar en la vista completa.
+            </div>
+          ) : (
+            <div
+              style={{
+                maxHeight: "80vh",
+                overflowY: "auto",
+                overflowX: "auto",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                background:
+                  "linear-gradient(180deg,var(--surface2),var(--surface))",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,.02)",
+              }}
+            >
+              <table
+                style={{
+                  borderCollapse: "collapse",
+                  fontSize: 10,
+                  fontFamily: "'DM Sans', sans-serif",
+                  minWidth: "fit-content",
+                }}
+              >
               <thead
                 style={{
                   background: "rgba(26,30,39,.96)",
@@ -16933,19 +16986,10 @@ function PageAtleta({
                   >
                     Tipo
                   </th>
-                  {mesoVisto.semanas.map((sem) => (
+                  {semanasConDatos.map(({ sem }) => (
                     <th
                       key={`header-${sem.id}`}
-                      colSpan={Math.max(
-                        1,
-                        ...mesoVisto.semanas.map(
-                          (s) => s.turnos?.reduce(
-                            (mx, t) =>
-                              Math.max(mx, (t?.ejercicios || []).filter(Boolean).length),
-                            0,
-                          ) || 0,
-                        ),
-                      )}
+                      colSpan={semanaColsMap.get(sem.id) || 1}
                       style={{
                         padding: "8px 8px",
                         textAlign: "center",
@@ -16994,54 +17038,36 @@ function PageAtleta({
                   >
                     —
                   </th>
-                  {mesoVisto.semanas.map((sem) => (
-                    Array.from({
-                      length: Math.max(
-                        1,
-                        ...mesoVisto.semanas.map(
-                          (s) => s.turnos?.reduce(
-                            (mx, t) =>
-                              Math.max(mx, (t?.ejercicios || []).filter(Boolean).length),
-                            0,
-                          ) || 0,
-                        ),
+                  {semanasConDatos.map(({ sem }) =>
+                    Array.from({ length: semanaColsMap.get(sem.id) || 1 }).map(
+                      (_, slotIdx) => (
+                        <th
+                          key={`subheader-${sem.id}-${slotIdx}`}
+                          style={{
+                            padding: "5px 4px",
+                            textAlign: "center",
+                            borderRight: "1px solid var(--border)",
+                            borderBottom: "1px solid var(--border)",
+                            fontWeight: 600,
+                            color: "var(--muted)",
+                            fontSize: 8,
+                            width: 35,
+                            letterSpacing: ".04em",
+                          }}
+                        >
+                          {slotIdx + 1}
+                        </th>
                       ),
-                    }).map((_, slotIdx) => (
-                      <th
-                        key={`subheader-${sem.id}-${slotIdx}`}
-                        style={{
-                          padding: "5px 4px",
-                          textAlign: "center",
-                          borderRight: "1px solid var(--border)",
-                          borderBottom: "1px solid var(--border)",
-                          fontWeight: 600,
-                          color: "var(--muted)",
-                          fontSize: 8,
-                          width: 35,
-                          letterSpacing: ".04em",
-                        }}
-                      >
-                        {slotIdx + 1}
-                      </th>
-                    ))
-                  ))}
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {(() => {
-                  const maxTurnos = Math.max(
-                    ...mesoVisto.semanas.map((s) => s.turnos?.length || 0),
-                  );
-                  const maxColsPerSemana = Math.max(
-                    1,
-                    ...mesoVisto.semanas.map(
-                      (s) =>
-                        s.turnos?.reduce(
-                          (mx, t) =>
-                            Math.max(mx, (t?.ejercicios || []).filter(Boolean).length),
-                          0,
-                        ) || 0,
-                    ),
+                  const maxTurnos = turnosConDatos.length;
+                  const totalCols = semanasConDatos.reduce(
+                    (acc, { sem }) => acc + (semanaColsMap.get(sem.id) || 1),
+                    0,
                   );
 
                   const rowCellBase = {
@@ -17054,23 +17080,29 @@ function PageAtleta({
                     background: "rgba(10,12,16,.2)",
                   };
 
-                  const renderDataCells = (turnoIdx, valueGetter, rowType) =>
-                    mesoVisto.semanas.map((sem, semIdx) => {
-                      const turno = sem.turnos?.[turnoIdx];
-                      const ejercicios = (turno?.ejercicios || []).filter(Boolean);
-                      return Array.from({ length: maxColsPerSemana }).map((_, slotIdx) => {
+                  const renderDataCells =
+                    (turnoGlobalIdx, valueGetter, rowType) =>
+                    semanasConDatos.map(({ sem, semIdxOriginal }) => {
+                      const turno = sem.turnos?.[turnoGlobalIdx];
+                      const ejercicios = (turno?.ejercicios || []).filter(
+                        (ej) => !!ej?.ejercicio_id,
+                      );
+                      const colsSemana = semanaColsMap.get(sem.id) || 1;
+                      return Array.from({ length: colsSemana }).map((_, slotIdx) => {
                         const ej = ejercicios[slotIdx];
-                        const val = ej ? valueGetter(ej) : null;
-                        const isEndOfSemana = slotIdx === maxColsPerSemana - 1;
+                        const cell = ej ? valueGetter(ej) : null;
+                        const val = cell?.val ?? null;
+                        const isEndOfSemana = slotIdx === colsSemana - 1;
                         const toneColor =
                           rowType === "ej"
                             ? "var(--gold)"
                             : rowType === "int"
                               ? "var(--blue)"
                               : "var(--green)";
+                        const valueColor = cell?.color || toneColor;
                         return (
                           <td
-                            key={`s-${semIdx}-t-${turnoIdx}-c-${slotIdx}`}
+                            key={`s-${semIdxOriginal}-t-${turnoGlobalIdx}-c-${slotIdx}`}
                             style={{
                               ...rowCellBase,
                               borderRight: isEndOfSemana
@@ -17078,7 +17110,7 @@ function PageAtleta({
                                 : rowCellBase.borderRight,
                               color: val === null || val === undefined || val === ""
                                 ? "var(--muted)"
-                                : toneColor,
+                                : valueColor,
                               fontWeight: rowType === "ej" ? 700 : 600,
                               background:
                                 val === null || val === undefined || val === ""
@@ -17092,7 +17124,9 @@ function PageAtleta({
                       });
                     });
 
-                  return Array.from({ length: maxTurnos }).flatMap((_, turnoIdx) => {
+                  return Array.from({ length: maxTurnos }).flatMap((_, rowTurnoIdx) => {
+                    const turnoGlobalIdx = turnosConDatos[rowTurnoIdx];
+                    const isLastTurno = rowTurnoIdx === maxTurnos - 1;
                     const baseTurnoCell = {
                       padding: "7px 8px",
                       textAlign: "center",
@@ -17105,10 +17139,10 @@ function PageAtleta({
                       letterSpacing: ".06em",
                     };
 
-                    return [
-                      <tr key={`turno-${turnoIdx}-ej`}>
+                    const rows = [
+                      <tr key={`turno-${turnoGlobalIdx}-ej`}>
                         <td rowSpan={3} style={baseTurnoCell}>
-                          T{turnoIdx + 1}
+                          T{turnoGlobalIdx + 1}
                         </td>
                         <td
                           style={{
@@ -17123,9 +17157,19 @@ function PageAtleta({
                         >
                           EJ
                         </td>
-                        {renderDataCells(turnoIdx, (ej) => ej.ejercicio_id || null, "ej")}
+                        {renderDataCells(
+                          turnoGlobalIdx,
+                          (ej) => {
+                            const categoria = getEjAtleta(ej.ejercicio_id)?.categoria;
+                            return {
+                              val: ej.ejercicio_id || null,
+                              color: CAT_COLOR[categoria] || "var(--gold)",
+                            };
+                          },
+                          "ej",
+                        )}
                       </tr>,
-                      <tr key={`turno-${turnoIdx}-int`}>
+                      <tr key={`turno-${turnoGlobalIdx}-int`}>
                         <td
                           style={{
                             ...rowCellBase,
@@ -17139,9 +17183,13 @@ function PageAtleta({
                         >
                           INT
                         </td>
-                        {renderDataCells(turnoIdx, (ej) => ej.intensidad || null, "int")}
+                        {renderDataCells(
+                          turnoGlobalIdx,
+                          (ej) => ({ val: ej.intensidad || null }),
+                          "int",
+                        )}
                       </tr>,
-                      <tr key={`turno-${turnoIdx}-tbl`}>
+                      <tr key={`turno-${turnoGlobalIdx}-tbl`}>
                         <td
                           style={{
                             ...rowCellBase,
@@ -17155,14 +17203,50 @@ function PageAtleta({
                         >
                           TBL
                         </td>
-                        {renderDataCells(turnoIdx, (ej) => ej.tabla || null, "tbl")}
+                        {renderDataCells(
+                          turnoGlobalIdx,
+                          (ej) => ({ val: ej.tabla || null }),
+                          "tbl",
+                        )}
                       </tr>,
                     ];
+
+                    if (!isLastTurno) {
+                      rows.push(
+                        <tr key={`turno-${turnoGlobalIdx}-sep1`}>
+                          <td
+                            colSpan={2 + totalCols}
+                            style={{
+                              height: 6,
+                              border: "none",
+                              background: "rgba(255,255,255,.02)",
+                              padding: 0,
+                            }}
+                          />
+                        </tr>,
+                      );
+                      rows.push(
+                        <tr key={`turno-${turnoGlobalIdx}-sep2`}>
+                          <td
+                            colSpan={2 + totalCols}
+                            style={{
+                              height: 6,
+                              border: "none",
+                              background: "rgba(0,0,0,.22)",
+                              padding: 0,
+                            }}
+                          />
+                        </tr>,
+                      );
+                    }
+
+                    return rows;
                   });
                 })()}
               </tbody>
             </table>
-          </div>
+            </div>
+          )}
 
           <div
             style={{
