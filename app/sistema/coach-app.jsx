@@ -16854,24 +16854,47 @@ function PageAtleta({
         >
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              marginBottom: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>
+              Vista matricial por turno · filas EJ / INT / TBL
+            </div>
+            <span
+              className="badge badge-blue"
+              style={{ fontSize: 10, letterSpacing: ".04em" }}
+            >
+              {mesoVisto.semanas.length} semanas
+            </span>
+          </div>
+          <div
+            style={{
               maxHeight: "80vh",
               overflowY: "auto",
               overflowX: "auto",
               border: "1px solid var(--border)",
-              borderRadius: 8,
+              borderRadius: 10,
+              background: "linear-gradient(180deg,var(--surface2),var(--surface))",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,.02)",
             }}
           >
             <table
               style={{
                 borderCollapse: "collapse",
                 fontSize: 10,
-                fontFamily: "'Courier New', monospace",
+                fontFamily: "'DM Sans', sans-serif",
                 minWidth: "fit-content",
               }}
             >
               <thead
                 style={{
-                  background: "var(--surface2)",
+                  background: "rgba(26,30,39,.96)",
+                  backdropFilter: "blur(3px)",
                   position: "sticky",
                   top: 0,
                   zIndex: 1,
@@ -16880,26 +16903,32 @@ function PageAtleta({
                 <tr>
                   <th
                     style={{
-                      padding: "6px 8px",
+                      padding: "8px 8px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "2px solid var(--gold)",
                       fontWeight: 700,
                       color: "var(--gold)",
                       width: 70,
+                      fontFamily: "'Bebas Neue'",
+                      fontSize: 14,
+                      letterSpacing: ".06em",
                     }}
                   >
                     Turno
                   </th>
                   <th
                     style={{
-                      padding: "6px 8px",
+                      padding: "8px 8px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "2px solid var(--gold)",
                       fontWeight: 700,
                       color: "var(--gold)",
                       width: 56,
+                      fontFamily: "'Bebas Neue'",
+                      fontSize: 14,
+                      letterSpacing: ".06em",
                     }}
                   >
                     Tipo
@@ -16918,12 +16947,16 @@ function PageAtleta({
                         ),
                       )}
                       style={{
-                        padding: "6px 8px",
+                        padding: "8px 8px",
                         textAlign: "center",
                         borderRight: "1px solid var(--border)",
                         borderBottom: "2px solid var(--gold)",
                         fontWeight: 700,
                         color: "var(--blue)",
+                        fontFamily: "'Bebas Neue'",
+                        fontSize: 14,
+                        letterSpacing: ".06em",
+                        textTransform: "uppercase",
                       }}
                     >
                       Sem {sem.numero}
@@ -16933,26 +16966,30 @@ function PageAtleta({
                 <tr>
                   <th
                     style={{
-                      padding: "4px 6px",
+                      padding: "5px 6px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "1px solid var(--border)",
                       fontWeight: 600,
                       color: "var(--muted)",
-                      fontSize: 9,
+                      fontSize: 8,
+                      textTransform: "uppercase",
+                      letterSpacing: ".06em",
                     }}
                   >
                     —
                   </th>
                   <th
                     style={{
-                      padding: "4px 6px",
+                      padding: "5px 6px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "1px solid var(--border)",
                       fontWeight: 600,
                       color: "var(--muted)",
-                      fontSize: 9,
+                      fontSize: 8,
+                      textTransform: "uppercase",
+                      letterSpacing: ".06em",
                     }}
                   >
                     —
@@ -16973,7 +17010,7 @@ function PageAtleta({
                       <th
                         key={`subheader-${sem.id}-${slotIdx}`}
                         style={{
-                          padding: "4px 4px",
+                          padding: "5px 4px",
                           textAlign: "center",
                           borderRight: "1px solid var(--border)",
                           borderBottom: "1px solid var(--border)",
@@ -16981,6 +17018,7 @@ function PageAtleta({
                           color: "var(--muted)",
                           fontSize: 8,
                           width: 35,
+                          letterSpacing: ".04em",
                         }}
                       >
                         {slotIdx + 1}
@@ -17007,15 +17045,16 @@ function PageAtleta({
                   );
 
                   const rowCellBase = {
-                    padding: "4px 4px",
+                    padding: "5px 4px",
                     textAlign: "center",
                     borderRight: "1px solid var(--border)",
                     borderBottom: "1px solid var(--border)",
                     color: "var(--text)",
                     fontSize: 10,
+                    background: "rgba(10,12,16,.2)",
                   };
 
-                  const renderDataCells = (turnoIdx, valueGetter) =>
+                  const renderDataCells = (turnoIdx, valueGetter, rowType) =>
                     mesoVisto.semanas.map((sem, semIdx) => {
                       const turno = sem.turnos?.[turnoIdx];
                       const ejercicios = (turno?.ejercicios || []).filter(Boolean);
@@ -17023,6 +17062,12 @@ function PageAtleta({
                         const ej = ejercicios[slotIdx];
                         const val = ej ? valueGetter(ej) : null;
                         const isEndOfSemana = slotIdx === maxColsPerSemana - 1;
+                        const toneColor =
+                          rowType === "ej"
+                            ? "var(--gold)"
+                            : rowType === "int"
+                              ? "var(--blue)"
+                              : "var(--green)";
                         return (
                           <td
                             key={`s-${semIdx}-t-${turnoIdx}-c-${slotIdx}`}
@@ -17033,8 +17078,12 @@ function PageAtleta({
                                 : rowCellBase.borderRight,
                               color: val === null || val === undefined || val === ""
                                 ? "var(--muted)"
-                                : rowCellBase.color,
-                              fontWeight: 600,
+                                : toneColor,
+                              fontWeight: rowType === "ej" ? 700 : 600,
+                              background:
+                                val === null || val === undefined || val === ""
+                                  ? "rgba(10,12,16,.12)"
+                                  : "rgba(18,21,28,.72)",
                             }}
                           >
                             {val === null || val === undefined || val === "" ? "" : val}
@@ -17045,12 +17094,15 @@ function PageAtleta({
 
                   return Array.from({ length: maxTurnos }).flatMap((_, turnoIdx) => {
                     const baseTurnoCell = {
-                      padding: "6px 8px",
+                      padding: "7px 8px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       fontWeight: 700,
                       color: "var(--gold)",
-                      background: "var(--surface)",
+                      background: "rgba(232,197,71,.08)",
+                      fontFamily: "'Bebas Neue'",
+                      fontSize: 18,
+                      letterSpacing: ".06em",
                     };
 
                     return [
@@ -17062,42 +17114,48 @@ function PageAtleta({
                           style={{
                             ...rowCellBase,
                             borderRight: "2px solid var(--gold)",
-                            color: "var(--text)",
+                            color: "var(--gold)",
                             fontWeight: 700,
-                            background: "var(--surface2)",
+                            background: "rgba(232,197,71,.08)",
+                            fontSize: 9,
+                            letterSpacing: ".06em",
                           }}
                         >
                           EJ
                         </td>
-                        {renderDataCells(turnoIdx, (ej) => ej.ejercicio_id || null)}
+                        {renderDataCells(turnoIdx, (ej) => ej.ejercicio_id || null, "ej")}
                       </tr>,
                       <tr key={`turno-${turnoIdx}-int`}>
                         <td
                           style={{
                             ...rowCellBase,
                             borderRight: "2px solid var(--gold)",
-                            color: "var(--text)",
+                            color: "var(--blue)",
                             fontWeight: 700,
-                            background: "var(--surface2)",
+                            background: "rgba(100,180,232,.09)",
+                            fontSize: 9,
+                            letterSpacing: ".06em",
                           }}
                         >
                           INT
                         </td>
-                        {renderDataCells(turnoIdx, (ej) => ej.intensidad || null)}
+                        {renderDataCells(turnoIdx, (ej) => ej.intensidad || null, "int")}
                       </tr>,
                       <tr key={`turno-${turnoIdx}-tbl`}>
                         <td
                           style={{
                             ...rowCellBase,
                             borderRight: "2px solid var(--gold)",
-                            color: "var(--text)",
+                            color: "var(--green)",
                             fontWeight: 700,
-                            background: "var(--surface2)",
+                            background: "rgba(71,232,160,.09)",
+                            fontSize: 9,
+                            letterSpacing: ".06em",
                           }}
                         >
                           TBL
                         </td>
-                        {renderDataCells(turnoIdx, (ej) => ej.tabla || null)}
+                        {renderDataCells(turnoIdx, (ej) => ej.tabla || null, "tbl")}
                       </tr>,
                     ];
                   });
