@@ -3991,6 +3991,143 @@ function calcKgEj(
   return Math.round(((((irm * ej.pct_base) / 100) * intensidad) / 100) * 2) / 2;
 }
 
+const PLANILLA_NAV_SELECTOR =
+  'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])';
+
+function buildPlanillaFocusGrid(container) {
+  if (!container) return null;
+  const points = Array.from(container.querySelectorAll(PLANILLA_NAV_SELECTOR))
+    .filter((el) => {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.closest('[data-grid-nav-ignore="true"]')) return false;
+      if (el.tabIndex < 0) return false;
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    })
+    .map((el) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        el,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    })
+    .sort((a, b) => {
+      if (Math.abs(a.y - b.y) > 6) return a.y - b.y;
+      return a.x - b.x;
+    });
+
+  if (!points.length) return null;
+
+  const rows = [];
+  points.forEach((p) => {
+    const prevRow = rows[rows.length - 1];
+    if (!prevRow || Math.abs(prevRow.y - p.y) > 8) {
+      rows.push({ y: p.y, items: [p] });
+      return;
+    }
+    prevRow.items.push(p);
+    prevRow.y = (prevRow.y * (prevRow.items.length - 1) + p.y) / prevRow.items.length;
+  });
+
+  rows.forEach((row) => row.items.sort((a, b) => a.x - b.x));
+
+  const posMap = new Map();
+  rows.forEach((row, rowIdx) => {
+    row.items.forEach((item, colIdx) => {
+      posMap.set(item.el, { rowIdx, colIdx, x: item.x });
+    });
+  });
+
+  return { rows, posMap };
+}
+
+function focusPlanillaField(el) {
+  if (!(el instanceof HTMLElement)) return;
+  el.focus({ preventScroll: true });
+  if (typeof el.select === "function") {
+    try {
+      el.select();
+    } catch {}
+  }
+  el.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
+function handlePlanillaArrowNavigation(event, container) {
+  if (!container) return;
+  if (event.defaultPrevented) return;
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+
+  const key = event.key;
+  if (
+    key !== "ArrowLeft" &&
+    key !== "ArrowRight" &&
+    key !== "ArrowUp" &&
+    key !== "ArrowDown"
+  ) {
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (!container.contains(target)) return;
+  if (target.closest('[data-grid-nav-ignore="true"]')) return;
+
+  const active = target.matches(PLANILLA_NAV_SELECTOR)
+    ? target
+    : target.closest(PLANILLA_NAV_SELECTOR);
+  if (!active) return;
+
+  const grid = buildPlanillaFocusGrid(container);
+  if (!grid) return;
+
+  const pos = grid.posMap.get(active);
+  if (!pos) return;
+
+  const rowCount = grid.rows.length;
+  const row = grid.rows[pos.rowIdx];
+  let next = null;
+
+  if (key === "ArrowRight") {
+    if (pos.colIdx < row.items.length - 1) {
+      next = row.items[pos.colIdx + 1]?.el;
+    } else {
+      const nextRow = grid.rows[(pos.rowIdx + 1) % rowCount];
+      next = nextRow?.items[0]?.el;
+    }
+  }
+
+  if (key === "ArrowLeft") {
+    if (pos.colIdx > 0) {
+      next = row.items[pos.colIdx - 1]?.el;
+    } else {
+      const prevRow = grid.rows[(pos.rowIdx - 1 + rowCount) % rowCount];
+      next = prevRow?.items[prevRow.items.length - 1]?.el;
+    }
+  }
+
+  if (key === "ArrowDown" || key === "ArrowUp") {
+    const delta = key === "ArrowDown" ? 1 : -1;
+    const targetRow = grid.rows[(pos.rowIdx + delta + rowCount) % rowCount];
+    if (targetRow?.items?.length) {
+      let nearest = targetRow.items[0];
+      let dist = Math.abs(nearest.x - pos.x);
+      for (let i = 1; i < targetRow.items.length; i += 1) {
+        const d = Math.abs(targetRow.items[i].x - pos.x);
+        if (d < dist) {
+          nearest = targetRow.items[i];
+          dist = d;
+        }
+      }
+      next = nearest?.el;
+    }
+  }
+
+  if (!next || next === active) return;
+  event.preventDefault();
+  focusPlanillaField(next);
+}
+
 function PlanillaTurno({
   scrollIdPrefix = "planilla",
   semanas,
@@ -4038,6 +4175,7 @@ function PlanillaTurno({
   const compPickerListRef = useRef(null);
   const compTurnosDropdownRef = useRef(null);
   const compSemanasDropdownRef = useRef(null);
+  const spreadsheetNavRef = useRef(null);
 
   // Clave única por mesociclo para persistencia
   const _k = (type) => `liftplan_pt_${meso.id}_${type}`;
@@ -4352,6 +4490,10 @@ function PlanillaTurno({
     };
   }, []);
 
+  const handleSpreadsheetNavKeyDown = useCallback((event) => {
+    handlePlanillaArrowNavigation(event, spreadsheetNavRef.current);
+  }, []);
+
   const pegarComplementariosSeleccionados = () => {
     const sourceTurnos = (compPasteTurnosSel || [])
       .map((v) => Number(v))
@@ -4506,8 +4648,10 @@ function PlanillaTurno({
     <div
       id={`${scrollIdPrefix}-dias`}
       ref={turnoRef}
+      onKeyDown={handleSpreadsheetNavKeyDown}
       style={{ marginTop: 16, scrollMarginTop: 110 }}
     >
+      <div ref={spreadsheetNavRef}>
       {/* Semana tabs */}
       <div
         className="semana-tabs"
@@ -6737,6 +6881,7 @@ function PlanillaTurno({
                                 <input
                                   name="field_11"
                                   autoFocus
+                                  data-grid-nav-ignore="true"
                                   value={compPickerQuery}
                                   onChange={(e) => {
                                     setCompPickerQuery(e.target.value);
@@ -7809,6 +7954,7 @@ function PlanillaTurno({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -7829,6 +7975,7 @@ function PlanillaBasica({
   const [semActiva, setSemActiva] = useState(0);
   const [turnoActivo, setTurnoActivo] = useState(0);
   const [ejPickerOpen, setEjPickerOpen] = useState(null); // ejIdx or null
+  const spreadsheetNavRef = useRef(null);
 
   const normativos =
     normativosProp ??
@@ -8076,10 +8223,14 @@ function PlanillaBasica({
     ...extra,
   });
 
+  const handleSpreadsheetNavKeyDown = useCallback((event) => {
+    handlePlanillaArrowNavigation(event, spreadsheetNavRef.current);
+  }, []);
+
   if (!sem) return null;
 
   return (
-    <div>
+    <div ref={spreadsheetNavRef} onKeyDown={handleSpreadsheetNavKeyDown}>
       {/* ── Semana tabs ── */}
       <div
         style={{
