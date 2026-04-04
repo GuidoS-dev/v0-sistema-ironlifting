@@ -12668,6 +12668,11 @@ function EjCelda({
         name="field_31"
         value={ej.tabla}
         onChange={(e) => onChange({ ...ej, tabla: Number(e.target.value) })}
+        onKeyDown={(e) => {
+          if (e.key !== "1" && e.key !== "2" && e.key !== "3") return;
+          e.preventDefault();
+          onChange({ ...ej, tabla: Number(e.key) });
+        }}
         data-sembrado-nav="true"
         data-role="tabla"
         data-sem-idx={String(semIdx)}
