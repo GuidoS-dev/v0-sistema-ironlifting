@@ -4363,19 +4363,26 @@ function PlanillaTurno({
     const sourceBefore = cloneCompList(turno.complementarios_before);
     const sourceAfter = cloneCompList(turno.complementarios_after);
     const sourceNumBloques = turno.num_bloques_comp || 1;
+    let copiedCount = 0;
 
     if (onChangeTodasSemanas) {
       const nextSemanas = JSON.parse(JSON.stringify(semanas));
 
       nextSemanas.forEach((s, sIdx) => {
         if (sIdx === semActiva) return;
-        const targetTurno = s?.turnos?.[turnoActivo];
-        if (!targetTurno) return;
+        if (!Array.isArray(s.turnos)) s.turnos = [];
+        while (s.turnos.length <= turnoActivo) {
+          s.turnos.push(mkTurno(s.turnos.length + 1));
+        }
+        const targetTurno = s.turnos[turnoActivo];
 
         targetTurno.num_bloques_comp = sourceNumBloques;
         targetTurno.complementarios_before = cloneCompList(sourceBefore);
         targetTurno.complementarios_after = cloneCompList(sourceAfter);
+        copiedCount += 1;
       });
+
+      if (copiedCount === 0) return;
 
       onChangeTodasSemanas(nextSemanas);
       if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
@@ -4389,8 +4396,10 @@ function PlanillaTurno({
 
     semanas.forEach((s, sIdx) => {
       if (sIdx === semActiva) return;
-      const targetTurno = s?.turnos?.[turnoActivo];
-      if (!targetTurno) return;
+      const targetTurno = s?.turnos?.[turnoActivo] || {
+        ...mkTurno(turnoActivo + 1),
+        numero: turnoActivo + 1,
+      };
 
       onChangeTurno?.(sIdx, turnoActivo, {
         ...targetTurno,
@@ -4398,7 +4407,10 @@ function PlanillaTurno({
         complementarios_before: cloneCompList(sourceBefore),
         complementarios_after: cloneCompList(sourceAfter),
       });
+      copiedCount += 1;
     });
+
+    if (copiedCount === 0) return;
 
     if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
     setCompCopyFeedback(true);
