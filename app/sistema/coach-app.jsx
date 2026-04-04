@@ -28164,6 +28164,16 @@ function CoachApp({ session, profile, onLogout }) {
   const forceSaveAllToDb = useCallback(async () => {
     if (!coachId || isManualSaving) return;
 
+    // Cancelar debounce pendientes para evitar doble write
+    if (atletaSyncTimerRef.current) {
+      clearTimeout(atletaSyncTimerRef.current);
+      atletaSyncTimerRef.current = null;
+    }
+    if (mesoSyncTimerRef.current) {
+      clearTimeout(mesoSyncTimerRef.current);
+      mesoSyncTimerRef.current = null;
+    }
+
     setIsManualSaving(true);
     try {
       const atletasPayload = atletasRef.current.map((a) => atletaToDb(a, coachId));
