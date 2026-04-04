@@ -21105,49 +21105,64 @@ function usePlantillas(coachId) {
     }
   });
 
-  // Cargar plantillas desde Supabase al montar
+  // Cargar plantillas desde Supabase + polling cada 10s
   useEffect(() => {
     if (!coachId) return;
-    sb.from("plantillas")
-      .select("*")
-      .eq("coach_id", coachId)
-      .exec()
-      .then(({ data, error }) => {
-        if (error) return;
-        if (data) {
-          const appPlantillas = data.filter((r) => r.app_id);
-          if (appPlantillas.length > 0) {
-            const loaded = appPlantillas.map(plantillaFromDb);
-            setPlantillas(loaded);
-            try {
-              localStorage.setItem(
-                "liftplan_plantillas",
-                JSON.stringify(loaded),
-              );
-            } catch {}
-          } else {
-            // DB vacía — migrar localStorage → DB
-            const local = (() => {
-              try {
-                return JSON.parse(
-                  localStorage.getItem("liftplan_plantillas") || "[]",
-                );
-              } catch {
-                return [];
-              }
-            })();
-            if (local.length > 0) {
-              sb.from("plantillas")
-                .upsert(
-                  local.map((p) => plantillaToDb(p, coachId)),
-                  { onConflict: "app_id" },
-                )
-                .catch(() => {});
-            }
+    let cancelled = false;
+
+    const pullPlantillas = async () => {
+      const { data, error } = await sb
+        .from("plantillas")
+        .select("*")
+        .eq("coach_id", coachId)
+        .exec();
+      if (cancelled || error || !data) return;
+      const appPlantillas = data.filter((r) => r.app_id);
+      if (appPlantillas.length > 0) {
+        const loaded = appPlantillas.map(plantillaFromDb);
+        setPlantillas((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(loaded)) return prev;
+          try {
+            localStorage.setItem("liftplan_plantillas", JSON.stringify(loaded));
+          } catch {}
+          return loaded;
+        });
+      } else {
+        // DB vacía — migrar localStorage → DB
+        const local = (() => {
+          try {
+            return JSON.parse(
+              localStorage.getItem("liftplan_plantillas") || "[]",
+            );
+          } catch {
+            return [];
           }
+        })();
+        if (local.length > 0) {
+          sb.from("plantillas")
+            .upsert(
+              local.map((p) => plantillaToDb(p, coachId)),
+              { onConflict: "app_id" },
+            )
+            .catch(() => {});
         }
-      })
-      .catch(() => {});
+      }
+    };
+
+    pullPlantillas().catch(() => {});
+    const pollInterval = setInterval(() => pullPlantillas().catch(() => {}), 10000);
+    const onFocus = () => pullPlantillas().catch(() => {});
+    const onVisible = () => {
+      if (document.visibilityState === "visible") pullPlantillas().catch(() => {});
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(pollInterval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [coachId]);
 
   const add = (p) => {
@@ -24553,10 +24568,12 @@ function PageNormativos({ coachId, isActive = false }) {
       }
     };
 
+    const pollInterval = setInterval(() => syncFromDb().catch(() => {}), 10000);
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      clearInterval(pollInterval);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
@@ -25219,9 +25236,19 @@ function PageCalculadora({ coachId }) {
     };
 
     syncFromDb().catch(() => {});
+    const pollInterval = setInterval(() => syncFromDb().catch(() => {}), 10000);
+    const onFocus = () => syncFromDb().catch(() => {});
+    const onVisible = () => {
+      if (document.visibilityState === "visible") syncFromDb().catch(() => {});
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       cancelled = true;
+      clearInterval(pollInterval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [coachId]);
 
@@ -27834,6 +27861,7 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullAtletas();
+    const pollInterval = setInterval(() => pullAtletas(), 10000);
     const onFocus = () => {
       pullAtletas();
     };
@@ -27845,6 +27873,7 @@ function CoachApp({ session, profile, onLogout }) {
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
+      clearInterval(pollInterval);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
@@ -27894,6 +27923,7 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullMesociclos();
+    const pollInterval = setInterval(() => pullMesociclos(), 10000);
     const onFocus = () => pullMesociclos();
     const onVisible = () => {
       if (document.visibilityState === "visible") pullMesociclos();
@@ -27903,6 +27933,7 @@ function CoachApp({ session, profile, onLogout }) {
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
+      clearInterval(pollInterval);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
