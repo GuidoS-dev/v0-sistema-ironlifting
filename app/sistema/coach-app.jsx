@@ -15389,9 +15389,18 @@ function PageAtleta({
     if (!viewport || !table) return;
 
     const fit = () => {
-      const maxW = Math.max(1, viewport.clientWidth - 10);
-      const naturalW = Math.max(1, table.scrollWidth);
-      const z = Math.min(1, maxW / naturalW);
+      const rect = table.getBoundingClientRect();
+      const currentZoom = Math.max(0.2, fullTableZoom || 1);
+      const naturalW = Math.max(1, rect.width / currentZoom);
+      const naturalH = Math.max(1, rect.height / currentZoom);
+
+      const viewportTop = viewport.getBoundingClientRect().top;
+      const screenW = Math.max(320, window.innerWidth - 20);
+      const screenH = Math.max(220, window.innerHeight - viewportTop - 14);
+
+      const zByWidth = screenW / naturalW;
+      const zByHeight = screenH / naturalH;
+      const z = Math.max(0.2, Math.min(1, zByWidth, zByHeight));
       setFullTableZoom((prev) => (Math.abs(prev - z) < 0.01 ? prev : z));
     };
 
