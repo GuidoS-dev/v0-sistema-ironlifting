@@ -12747,8 +12747,31 @@ function CeldaSembrado({
   onChange,
   normativos = null,
 }) {
-  const addEj = () => onChange([...ejercicios, mkEj()]);
+  const cellRef = useRef(null);
+  const pendingFocusEjIdxRef = useRef(null);
+
+  const addEj = () => {
+    pendingFocusEjIdxRef.current = ejercicios.length;
+    onChange([...ejercicios, mkEj()]);
+  };
   const removeEj = (i) => onChange(ejercicios.filter((_, idx) => idx !== i));
+
+  useEffect(() => {
+    const targetIdx = pendingFocusEjIdxRef.current;
+    if (!Number.isInteger(targetIdx) || targetIdx < 0) return;
+    const selector =
+      `[data-sembrado-nav="true"][data-role="ejercicio"]` +
+      `[data-sem-idx="${semIdx}"][data-turno-idx="${turnoIdx}"]` +
+      `[data-ej-idx="${targetIdx}"]`;
+
+    const nextField = cellRef.current?.querySelector(selector);
+    if (!(nextField instanceof HTMLElement)) return;
+
+    pendingFocusEjIdxRef.current = null;
+    requestAnimationFrame(() => {
+      focusPlanillaField(nextField);
+    });
+  }, [ejercicios.length, semIdx, turnoIdx]);
 
   // After any update, keep filled exercises before empty ones
   const normalize = (arr) => {
@@ -12775,6 +12798,7 @@ function CeldaSembrado({
 
   return (
     <div
+      ref={cellRef}
       style={{
         display: "flex",
         flexDirection: "column",
