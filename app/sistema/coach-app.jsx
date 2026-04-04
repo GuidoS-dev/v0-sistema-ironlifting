@@ -4026,7 +4026,6 @@ function PlanillaTurno({
   const [compPickerOpen, setCompPickerOpen] = useState(null); // compId | null
   const [compPickerQuery, setCompPickerQuery] = useState("");
   const [compPickerActiveIdx, setCompPickerActiveIdx] = useState(0);
-  const [compCopyFeedback, setCompCopyFeedback] = useState(false);
   const [compPasteFeedback, setCompPasteFeedback] = useState(false);
   const [compPasteTurnosSel, setCompPasteTurnosSel] = useState([]);
   const [compPasteSemanasSel, setCompPasteSemanasSel] = useState([]);
@@ -4034,7 +4033,6 @@ function PlanillaTurno({
   const [compSemanasDropdownOpen, setCompSemanasDropdownOpen] = useState(false);
   const [importSemOrigen, setImportSemOrigen] = useState("");
   const [importSemFeedback, setImportSemFeedback] = useState(false);
-  const compCopyTimerRef = useRef(null);
   const compPasteTimerRef = useRef(null);
   const importSemTimerRef = useRef(null);
   const compPickerListRef = useRef(null);
@@ -4353,72 +4351,6 @@ function PlanillaTurno({
       document.removeEventListener("click", onDocPointerDown);
     };
   }, []);
-
-  const copiarComplementariosATodasSemanas = () => {
-    if (!turno) return;
-    _beforeChangeForced();
-
-    const cloneCompList = (list) => JSON.parse(JSON.stringify(list || []));
-
-    const sourceBefore = cloneCompList(turno.complementarios_before);
-    const sourceAfter = cloneCompList(turno.complementarios_after);
-    const sourceNumBloques = turno.num_bloques_comp || 1;
-    let copiedCount = 0;
-
-    if (onChangeTodasSemanas) {
-      const nextSemanas = JSON.parse(JSON.stringify(semanas));
-
-      nextSemanas.forEach((s, sIdx) => {
-        if (sIdx === semActiva) return;
-        if (!Array.isArray(s.turnos)) s.turnos = [];
-        while (s.turnos.length <= turnoActivo) {
-          s.turnos.push(mkTurno(s.turnos.length + 1));
-        }
-        const targetTurno = s.turnos[turnoActivo];
-
-        targetTurno.num_bloques_comp = sourceNumBloques;
-        targetTurno.complementarios_before = cloneCompList(sourceBefore);
-        targetTurno.complementarios_after = cloneCompList(sourceAfter);
-        copiedCount += 1;
-      });
-
-      if (copiedCount === 0) return;
-
-      onChangeTodasSemanas(nextSemanas);
-      if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
-      setCompCopyFeedback(true);
-      compCopyTimerRef.current = setTimeout(
-        () => setCompCopyFeedback(false),
-        1500,
-      );
-      return;
-    }
-
-    semanas.forEach((s, sIdx) => {
-      if (sIdx === semActiva) return;
-      const targetTurno = s?.turnos?.[turnoActivo] || {
-        ...mkTurno(turnoActivo + 1),
-        numero: turnoActivo + 1,
-      };
-
-      onChangeTurno?.(sIdx, turnoActivo, {
-        ...targetTurno,
-        num_bloques_comp: sourceNumBloques,
-        complementarios_before: cloneCompList(sourceBefore),
-        complementarios_after: cloneCompList(sourceAfter),
-      });
-      copiedCount += 1;
-    });
-
-    if (copiedCount === 0) return;
-
-    if (compCopyTimerRef.current) clearTimeout(compCopyTimerRef.current);
-    setCompCopyFeedback(true);
-    compCopyTimerRef.current = setTimeout(
-      () => setCompCopyFeedback(false),
-      1500,
-    );
-  };
 
   const pegarComplementariosSeleccionados = () => {
     const sourceTurnos = (compPasteTurnosSel || [])
@@ -7333,34 +7265,6 @@ function PlanillaTurno({
                             title="Pegar complementarios según selección"
                           >
                             {compPasteFeedback ? "Pegado" : "Pegar"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={copiarComplementariosATodasSemanas}
-                            title="Copiar complementarios de este turno a todas las semanas"
-                            style={{
-                              padding: "4px 10px",
-                              borderRadius: 6,
-                              border: compCopyFeedback
-                                ? "1px solid rgba(77,182,172,.45)"
-                                : "1px solid var(--border)",
-                              background: compCopyFeedback
-                                ? "rgba(77,182,172,.12)"
-                                : "var(--surface2)",
-                              color: compCopyFeedback
-                                ? "#4db6ac"
-                                : "var(--muted)",
-                              cursor: "pointer",
-                              fontSize: 10,
-                              fontFamily: "'DM Sans'",
-                              fontWeight: 600,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {compCopyFeedback
-                              ? "Copiado a todas"
-                              : "Copiar a todas las semanas"}
                           </button>
                         </div>
                       </div>
