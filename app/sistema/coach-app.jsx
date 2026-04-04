@@ -15388,38 +15388,6 @@ function PageAtleta({
     return map;
   })();
 
-  useEffect(() => {
-    if (!showFullSembrado) return;
-    const viewport = fullTableViewportRef.current;
-    const table = fullTableRef.current;
-    if (!viewport || !table) return;
-
-    const fit = () => {
-      const rect = table.getBoundingClientRect();
-      const currentZoom = Math.max(0.2, fullTableZoom || 1);
-      const naturalW = Math.max(1, rect.width / currentZoom);
-      const screenW = Math.max(320, viewport.clientWidth - 8);
-      const zByWidth = screenW / naturalW;
-      const z = Math.max(0.45, Math.min(1, zByWidth));
-      setFullTableZoom((prev) => (Math.abs(prev - z) < 0.01 ? prev : z));
-    };
-
-    fit();
-    const t = setTimeout(fit, 50);
-    window.addEventListener("resize", fit);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("resize", fit);
-    };
-  }, [
-    showFullSembrado,
-    semanasConDatos.length,
-    turnosConDatos.length,
-    filtroGrupos.join("|"),
-    filtroIntensidades.join("|"),
-    filtroTablas.join("|"),
-  ]);
-
   const _pctKey = (type) =>
     mesoVisto ? `liftplan_pct_${mesoVisto.id}_${type}` : null;
 
