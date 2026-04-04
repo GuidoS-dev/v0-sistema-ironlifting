@@ -4139,7 +4139,7 @@ const SEMBRADO_ROLE_ORDER = {
   add: 4,
 };
 
-function getSembradoTabSequence(container) {
+function getSembradoTabSequence(container, { includeRemove = true } = {}) {
   if (!container) return [];
 
   const items = Array.from(container.querySelectorAll(SEMBRADO_NAV_SELECTOR))
@@ -4168,6 +4168,7 @@ function getSembradoTabSequence(container) {
         roleIdx,
       };
     })
+    .filter((item) => includeRemove || item.roleIdx !== SEMBRADO_ROLE_ORDER.remove)
     .sort((a, b) => {
       if (a.sem !== b.sem) return a.sem - b.sem;
       if (a.turno !== b.turno) return a.turno - b.turno;
@@ -4193,14 +4194,17 @@ function handleSembradoTabNavigation(event, container) {
     : target.closest(SEMBRADO_NAV_SELECTOR);
   if (!(active instanceof HTMLElement)) return;
 
-  const seq = getSembradoTabSequence(container);
+  const isBackward = event.shiftKey;
+  const seq = getSembradoTabSequence(container, {
+    includeRemove: isBackward,
+  });
   if (!seq.length) return;
 
   const idx = seq.indexOf(active);
   if (idx === -1) return;
 
   event.preventDefault();
-  const delta = event.shiftKey ? -1 : 1;
+  const delta = isBackward ? -1 : 1;
   const nextIdx = Math.min(Math.max(idx + delta, 0), seq.length - 1);
   focusPlanillaField(seq[nextIdx]);
 }
@@ -12564,10 +12568,21 @@ function EjCelda({
   normativos = null,
 }) {
   const [showIntModal, setShowIntModal] = useState(false);
+  const intensityBtnRef = useRef(null);
+  const restoreIntensityFocusRef = useRef(false);
   const ejData = ej.ejercicio_id
     ? getEjercicioById(ej.ejercicio_id, normativos)
     : null;
   const col = ejData ? CAT_COLOR[ejData.categoria] : "var(--border)";
+
+  useEffect(() => {
+    if (!showIntModal && restoreIntensityFocusRef.current) {
+      restoreIntensityFocusRef.current = false;
+      setTimeout(() => {
+        intensityBtnRef.current?.focus({ preventScroll: true });
+      }, 0);
+    }
+  }, [showIntModal]);
 
   // Columnas: # | EJ(fijo) | INT | TBL | KG | ✕
   return (
@@ -12617,8 +12632,12 @@ function EjCelda({
 
       {/* INT */}
       <button
+        ref={intensityBtnRef}
         type="button"
-        onClick={() => setShowIntModal(true)}
+        onClick={() => {
+          restoreIntensityFocusRef.current = true;
+          setShowIntModal(true);
+        }}
         data-sembrado-nav="true"
         data-role="intensidad"
         data-sem-idx={String(semIdx)}
@@ -12705,7 +12724,10 @@ function EjCelda({
         <IntensityPickerModal
           value={Number(ej.intensidad) || IRM_VALUES[0]}
           onSelect={(next) => onChange({ ...ej, intensidad: Number(next) })}
-          onClose={() => setShowIntModal(false)}
+          onClose={() => {
+            restoreIntensityFocusRef.current = true;
+            setShowIntModal(false);
+          }}
         />
       )}
     </div>
