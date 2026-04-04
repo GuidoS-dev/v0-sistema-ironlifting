@@ -1870,6 +1870,8 @@ const css = `
   .ej-input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center;width:100%}
   .ej-cat{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
   .ej-kg{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);text-align:center}
+  .sembrado-kb-nav{transition:all .12s}
+  .sembrado-kb-nav:focus-visible{outline:none;border-color:var(--gold)!important;box-shadow:0 0 0 1px rgba(232,197,71,.55) inset,0 0 0 1px rgba(232,197,71,.35);background:rgba(232,197,71,.08)!important;color:var(--text)!important}
 
   /* HISTORIAL */
   .historial-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
@@ -4126,6 +4128,81 @@ function handlePlanillaArrowNavigation(event, container) {
   if (!next || next === active) return;
   event.preventDefault();
   focusPlanillaField(next);
+}
+
+const SEMBRADO_NAV_SELECTOR = '[data-sembrado-nav="true"]';
+const SEMBRADO_ROLE_ORDER = {
+  ejercicio: 0,
+  intensidad: 1,
+  tabla: 2,
+  remove: 3,
+  add: 4,
+};
+
+function getSembradoTabSequence(container) {
+  if (!container) return [];
+
+  const items = Array.from(container.querySelectorAll(SEMBRADO_NAV_SELECTOR))
+    .filter((el) => {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.tabIndex < 0 || el.hasAttribute("disabled")) return false;
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    })
+    .map((el) => {
+      const sem = Number(el.dataset.semIdx);
+      const turno = Number(el.dataset.turnoIdx);
+      const role = el.dataset.role || "";
+      const ejIdxRaw = Number(el.dataset.ejIdx);
+      const ejIdx = role === "add" ? Number.MAX_SAFE_INTEGER : ejIdxRaw;
+      const roleIdx =
+        SEMBRADO_ROLE_ORDER[role] === undefined
+          ? Number.MAX_SAFE_INTEGER
+          : SEMBRADO_ROLE_ORDER[role];
+
+      return {
+        el,
+        sem: Number.isFinite(sem) ? sem : Number.MAX_SAFE_INTEGER,
+        turno: Number.isFinite(turno) ? turno : Number.MAX_SAFE_INTEGER,
+        ejIdx: Number.isFinite(ejIdx) ? ejIdx : Number.MAX_SAFE_INTEGER,
+        roleIdx,
+      };
+    })
+    .sort((a, b) => {
+      if (a.sem !== b.sem) return a.sem - b.sem;
+      if (a.turno !== b.turno) return a.turno - b.turno;
+      if (a.ejIdx !== b.ejIdx) return a.ejIdx - b.ejIdx;
+      return a.roleIdx - b.roleIdx;
+    });
+
+  return items.map((item) => item.el);
+}
+
+function handleSembradoTabNavigation(event, container) {
+  if (!container) return;
+  if (event.defaultPrevented) return;
+  if (event.key !== "Tab") return;
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (!container.contains(target)) return;
+
+  const active = target.matches(SEMBRADO_NAV_SELECTOR)
+    ? target
+    : target.closest(SEMBRADO_NAV_SELECTOR);
+  if (!(active instanceof HTMLElement)) return;
+
+  const seq = getSembradoTabSequence(container);
+  if (!seq.length) return;
+
+  const idx = seq.indexOf(active);
+  if (idx === -1) return;
+
+  event.preventDefault();
+  const delta = event.shiftKey ? -1 : 1;
+  const nextIdx = Math.min(Math.max(idx + delta, 0), seq.length - 1);
+  focusPlanillaField(seq[nextIdx]);
 }
 
 function PlanillaTurno({
@@ -11922,6 +11999,7 @@ function EjBuscadorCompacto({
   onChange,
   color,
   title,
+  navAttrs = {},
   normativos: normativosProp = null,
 }) {
   const ejData = value ? getEjercicioById(Number(value), normativosProp) : null;
@@ -11929,6 +12007,7 @@ function EjBuscadorCompacto({
   const [query, setQuery] = useState("");
   const [activeSearchIdx, setActiveSearchIdx] = useState(0);
   const inputRef = useRef(null);
+  const triggerRef = useRef(null);
 
   const normativos =
     normativosProp ??
@@ -11958,6 +12037,9 @@ function EjBuscadorCompacto({
     setQuery("");
     setOpen(false);
     setActiveSearchIdx(0);
+    setTimeout(() => {
+      triggerRef.current?.focus({ preventScroll: true });
+    }, 0);
   };
 
   const closePicker = () => {
@@ -12005,7 +12087,11 @@ function EjBuscadorCompacto({
 
   return (
     <>
-      <div
+      <button
+        type="button"
+        ref={triggerRef}
+        {...navAttrs}
+        className={`sembrado-kb-nav ${navAttrs.className || ""}`.trim()}
         onClick={() => {
           setOpen(true);
           setActiveSearchIdx(0);
@@ -12023,6 +12109,8 @@ function EjBuscadorCompacto({
           alignItems: "center",
           gap: 4,
           overflow: "hidden",
+          border: "none",
+          textAlign: "left",
         }}
       >
         <span
@@ -12044,7 +12132,7 @@ function EjBuscadorCompacto({
             {ejData.nombre}
           </span>
         )}
-      </div>
+      </button>
 
       {open && (
         <div
@@ -12467,6 +12555,9 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
 function EjCelda({
   ej,
   num,
+  semIdx,
+  turnoIdx,
+  ejIdx,
   onChange,
   onRemove,
   canRemove,
@@ -12511,6 +12602,13 @@ function EjCelda({
         value={ej.ejercicio_id}
         color={col}
         onChange={(id) => onChange({ ...ej, ejercicio_id: id })}
+        navAttrs={{
+          "data-sembrado-nav": "true",
+          "data-role": "ejercicio",
+          "data-sem-idx": String(semIdx),
+          "data-turno-idx": String(turnoIdx),
+          "data-ej-idx": String(ejIdx),
+        }}
         title={
           ejData ? `${ejData.id} — ${ejData.nombre}` : "Seleccionar ejercicio"
         }
@@ -12521,9 +12619,15 @@ function EjCelda({
       <button
         type="button"
         onClick={() => setShowIntModal(true)}
+        data-sembrado-nav="true"
+        data-role="intensidad"
+        data-sem-idx={String(semIdx)}
+        data-turno-idx={String(turnoIdx)}
+        data-ej-idx={String(ejIdx)}
+        className="sembrado-kb-nav"
         style={{
           background: "var(--surface3)",
-          border: "none",
+          border: "1px solid transparent",
           borderRadius: 3,
           color: "var(--text)",
           fontSize: 11,
@@ -12545,9 +12649,15 @@ function EjCelda({
         name="field_31"
         value={ej.tabla}
         onChange={(e) => onChange({ ...ej, tabla: Number(e.target.value) })}
+        data-sembrado-nav="true"
+        data-role="tabla"
+        data-sem-idx={String(semIdx)}
+        data-turno-idx={String(turnoIdx)}
+        data-ej-idx={String(ejIdx)}
+        className="sembrado-kb-nav"
         style={{
           background: "var(--surface3)",
-          border: "none",
+          border: "1px solid transparent",
           borderRadius: 3,
           color: "var(--muted)",
           fontSize: 11,
@@ -12563,12 +12673,19 @@ function EjCelda({
       </select>
 
       {/* Borrar */}
-      {canRemove ? (
+      {canRemove && ej.ejercicio_id ? (
         <button
           onClick={onRemove}
+          data-sembrado-nav="true"
+          data-role="remove"
+          data-sem-idx={String(semIdx)}
+          data-turno-idx={String(turnoIdx)}
+          data-ej-idx={String(ejIdx)}
+          className="sembrado-kb-nav"
           style={{
             background: "none",
-            border: "none",
+            border: "1px solid transparent",
+            borderRadius: 3,
             color: "var(--muted)",
             cursor: "pointer",
             fontSize: 9,
@@ -12603,6 +12720,8 @@ function CeldaSembrado({
   ejercicios,
   irm_arr,
   irm_env,
+  semIdx,
+  turnoIdx,
   onChange,
   normativos = null,
 }) {
@@ -12662,6 +12781,7 @@ function CeldaSembrado({
           >
             <button
               onClick={() => moveEj(i, -1)}
+              tabIndex={-1}
               disabled={
                 i === 0 || !ej.ejercicio_id || !ejercicios[i - 1]?.ejercicio_id
               }
@@ -12689,6 +12809,7 @@ function CeldaSembrado({
             </button>
             <button
               onClick={() => moveEj(i, 1)}
+              tabIndex={-1}
               disabled={
                 i >= ejercicios.length - 1 ||
                 !ej.ejercicio_id ||
@@ -12721,6 +12842,9 @@ function CeldaSembrado({
             <EjCelda
               ej={ej}
               num={i + 1}
+              semIdx={semIdx}
+              turnoIdx={turnoIdx}
+              ejIdx={i}
               onChange={(newEj) => updateEj(i, newEj)}
               onRemove={() => removeEj(i)}
               canRemove={ejercicios.length > 1}
@@ -12731,6 +12855,12 @@ function CeldaSembrado({
       ))}
       <button
         onClick={addEj}
+        data-sembrado-nav="true"
+        data-role="add"
+        data-sem-idx={String(semIdx)}
+        data-turno-idx={String(turnoIdx)}
+        data-ej-idx="999"
+        className="sembrado-kb-nav"
         style={{
           background: "none",
           border: "1px dashed var(--border)",
@@ -12774,6 +12904,7 @@ function SembradoMensual({
   const [importTo, setImportTo] = useState("");
   const [importFeedback, setImportFeedback] = useState(false);
   const importTimerRef = useRef(null);
+  const sembradoNavRef = useRef(null);
 
   const emptySlotCache = useRef({});
 
@@ -12934,8 +13065,12 @@ function SembradoMensual({
     setImportTo((prev) => remapSel(prev));
   };
 
+  const handleSembradoKeyDown = useCallback((event) => {
+    handleSembradoTabNavigation(event, sembradoNavRef.current);
+  }, []);
+
   return (
-    <div>
+    <div ref={sembradoNavRef} onKeyDown={handleSembradoKeyDown}>
       {/* Controles de turnos */}
       <div
         style={{
@@ -13285,6 +13420,8 @@ function SembradoMensual({
                       ejercicios={getEjs(sIdx, tIdx)}
                       irm_arr={irm_arr}
                       irm_env={irm_env}
+                      semIdx={sIdx}
+                      turnoIdx={tIdx}
                       onChange={(newEjs) => updateEjs(sIdx, tIdx, newEjs)}
                       normativos={normativos}
                     />
