@@ -4030,12 +4030,16 @@ function PlanillaTurno({
   const [compPasteFeedback, setCompPasteFeedback] = useState(false);
   const [compPasteTurnosSel, setCompPasteTurnosSel] = useState([]);
   const [compPasteSemanasSel, setCompPasteSemanasSel] = useState([]);
+  const [compTurnosDropdownOpen, setCompTurnosDropdownOpen] = useState(false);
+  const [compSemanasDropdownOpen, setCompSemanasDropdownOpen] = useState(false);
   const [importSemOrigen, setImportSemOrigen] = useState("");
   const [importSemFeedback, setImportSemFeedback] = useState(false);
   const compCopyTimerRef = useRef(null);
   const compPasteTimerRef = useRef(null);
   const importSemTimerRef = useRef(null);
   const compPickerListRef = useRef(null);
+  const compTurnosDropdownRef = useRef(null);
+  const compSemanasDropdownRef = useRef(null);
 
   // Clave única por mesociclo para persistencia
   const _k = (type) => `liftplan_pt_${meso.id}_${type}`;
@@ -4327,6 +4331,28 @@ function PlanillaTurno({
     },
     [],
   );
+
+  useEffect(() => {
+    const onDocPointerDown = (event) => {
+      const t = event.target;
+      if (
+        compTurnosDropdownRef.current &&
+        !compTurnosDropdownRef.current.contains(t)
+      ) {
+        setCompTurnosDropdownOpen(false);
+      }
+      if (
+        compSemanasDropdownRef.current &&
+        !compSemanasDropdownRef.current.contains(t)
+      ) {
+        setCompSemanasDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocPointerDown);
+    };
+  }, []);
 
   const copiarComplementariosATodasSemanas = () => {
     if (!turno) return;
@@ -7071,81 +7097,102 @@ function PlanillaTurno({
                           <span style={{ fontSize: 10, color: "var(--muted)" }}>
                             Turnos a copiar
                           </span>
-                          <details style={{ position: "relative" }}>
-                          <summary
-                            style={{
-                              listStyle: "none",
-                              background: "var(--surface2)",
-                              border: "1px solid var(--border)",
-                              borderRadius: 6,
-                              color: "var(--text)",
-                              fontSize: 11,
-                              padding: "4px 8px",
-                              cursor: "pointer",
-                              minWidth: 148,
-                            }}
-                          >
-                            {compPasteTurnosSel.length > 0
-                              ? `${compPasteTurnosSel.length} turno(s)`
-                              : "Seleccionar turnos"}
-                          </summary>
                           <div
-                            style={{
-                              position: "absolute",
-                              zIndex: 40,
-                              top: "calc(100% + 4px)",
-                              left: 0,
-                              minWidth: 170,
-                              background: "var(--surface)",
-                              border: "1px solid var(--border)",
-                              borderRadius: 8,
-                              padding: 8,
-                              boxShadow: "0 8px 24px rgba(0,0,0,.35)",
-                              display: "grid",
-                              gap: 6,
-                            }}
+                            ref={compTurnosDropdownRef}
+                            style={{ position: "relative" }}
                           >
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCompPasteTurnosSel(
-                                  (sem?.turnos || []).map((_, i) => String(i)),
-                                );
+                              onClick={() =>
+                                setCompTurnosDropdownOpen((prev) => !prev)
+                              }
+                              style={{
+                                background: "var(--surface2)",
+                                border: "1px solid var(--border)",
+                                borderRadius: 6,
+                                color: "var(--text)",
+                                fontSize: 11,
+                                padding: "4px 8px",
+                                cursor: "pointer",
+                                minWidth: 148,
                               }}
-                              className="btn btn-ghost btn-xs"
                             >
-                              Tildar todos
+                              {compPasteTurnosSel.length > 0
+                                ? `${compPasteTurnosSel.length} turno(s)`
+                                : "Seleccionar turnos"}
                             </button>
-                            {(sem?.turnos || []).map((t, i) => {
-                              const checked = compPasteTurnosSel.includes(
-                                String(i),
-                              );
-                              return (
-                                <label
-                                  key={`comp-paste-turno-opt-${t.id}`}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    fontSize: 12,
-                                    color: "var(--text)",
-                                    cursor: "pointer",
+                            {compTurnosDropdownOpen && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  zIndex: 40,
+                                  top: "calc(100% + 4px)",
+                                  left: 0,
+                                  minWidth: 170,
+                                  background: "var(--surface)",
+                                  border: "1px solid var(--border)",
+                                  borderRadius: 8,
+                                  padding: 8,
+                                  boxShadow: "0 8px 24px rgba(0,0,0,.35)",
+                                  display: "grid",
+                                  gap: 6,
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const allTurnos = (sem?.turnos || []).map(
+                                      (_, i) => String(i),
+                                    );
+                                    const allSelected =
+                                      allTurnos.length > 0 &&
+                                      allTurnos.every((v) =>
+                                        compPasteTurnosSel.includes(v),
+                                      );
+                                    setCompPasteTurnosSel(
+                                      allSelected ? [] : allTurnos,
+                                    );
                                   }}
+                                  className="btn btn-ghost btn-xs"
                                 >
-                                  <input
-                                    name="field_73"
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => toggleCompTurnoSel(i)}
-                                    style={{ accentColor: "var(--gold)" }}
-                                  />
-                                  Turno {i + 1}
-                                </label>
-                              );
-                            })}
+                                  {(sem?.turnos || []).length > 0 &&
+                                  (sem?.turnos || []).every((_, i) =>
+                                    compPasteTurnosSel.includes(String(i)),
+                                  )
+                                    ? "Deseleccionar todos"
+                                    : "Tildar todos"}
+                                </button>
+                                {(sem?.turnos || []).map((t, i) => {
+                                  const checked = compPasteTurnosSel.includes(
+                                    String(i),
+                                  );
+                                  return (
+                                    <label
+                                      key={`comp-paste-turno-opt-${t.id}`}
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 6,
+                                        fontSize: 12,
+                                        color: "var(--text)",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      <input
+                                        name="field_73"
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => toggleCompTurnoSel(i)}
+                                        style={{ accentColor: "var(--gold)" }}
+                                      />
+                                      Turno {i + 1}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
-                          </details>
 
                           <span style={{ fontSize: 10, color: "var(--muted)" }}>
                             →
@@ -7154,87 +7201,108 @@ function PlanillaTurno({
                           <span style={{ fontSize: 10, color: "var(--muted)" }}>
                             Semanas a pegar
                           </span>
-                          <details style={{ position: "relative" }}>
-                          <summary
-                            style={{
-                              listStyle: "none",
-                              background: "var(--surface2)",
-                              border: "1px solid var(--border)",
-                              borderRadius: 6,
-                              color: "var(--text)",
-                              fontSize: 11,
-                              padding: "4px 8px",
-                              cursor: "pointer",
-                              minWidth: 162,
-                            }}
-                          >
-                            {compPasteSemanasSel.length > 0
-                              ? `${compPasteSemanasSel.length} semana(s)`
-                              : "Seleccionar semanas"}
-                          </summary>
                           <div
-                            style={{
-                              position: "absolute",
-                              zIndex: 40,
-                              top: "calc(100% + 4px)",
-                              left: 0,
-                              minWidth: 190,
-                              background: "var(--surface)",
-                              border: "1px solid var(--border)",
-                              borderRadius: 8,
-                              padding: 8,
-                              boxShadow: "0 8px 24px rgba(0,0,0,.35)",
-                              display: "grid",
-                              gap: 6,
-                            }}
+                            ref={compSemanasDropdownRef}
+                            style={{ position: "relative" }}
                           >
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCompPasteSemanasSel(
-                                  semanas
+                              onClick={() =>
+                                setCompSemanasDropdownOpen((prev) => !prev)
+                              }
+                              style={{
+                                background: "var(--surface2)",
+                                border: "1px solid var(--border)",
+                                borderRadius: 6,
+                                color: "var(--text)",
+                                fontSize: 11,
+                                padding: "4px 8px",
+                                cursor: "pointer",
+                                minWidth: 162,
+                              }}
+                            >
+                              {compPasteSemanasSel.length > 0
+                                ? `${compPasteSemanasSel.length} semana(s)`
+                                : "Seleccionar semanas"}
+                            </button>
+                            {compSemanasDropdownOpen && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  zIndex: 40,
+                                  top: "calc(100% + 4px)",
+                                  left: 0,
+                                  minWidth: 190,
+                                  background: "var(--surface)",
+                                  border: "1px solid var(--border)",
+                                  borderRadius: 8,
+                                  padding: 8,
+                                  boxShadow: "0 8px 24px rgba(0,0,0,.35)",
+                                  display: "grid",
+                                  gap: 6,
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const allSemanas = semanas
+                                      .map((_, i) => i)
+                                      .filter((i) => i !== semActiva)
+                                      .map(String);
+                                    const allSelected =
+                                      allSemanas.length > 0 &&
+                                      allSemanas.every((v) =>
+                                        compPasteSemanasSel.includes(v),
+                                      );
+                                    setCompPasteSemanasSel(
+                                      allSelected ? [] : allSemanas,
+                                    );
+                                  }}
+                                  className="btn btn-ghost btn-xs"
+                                >
+                                  {semanas
                                     .map((_, i) => i)
                                     .filter((i) => i !== semActiva)
-                                    .map(String),
-                                );
-                              }}
-                              className="btn btn-ghost btn-xs"
-                            >
-                              Tildar todas
-                            </button>
-                            {semanas
-                              .map((s, i) => ({ s, i }))
-                              .filter(({ i }) => i !== semActiva)
-                              .map(({ s, i }) => {
-                                const checked = compPasteSemanasSel.includes(
-                                  String(i),
-                                );
-                                return (
-                                  <label
-                                    key={`comp-paste-sem-opt-${s.id}`}
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 6,
-                                      fontSize: 12,
-                                      color: "var(--text)",
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    <input
-                                      name="field_74"
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={() => toggleCompSemanaSel(i)}
-                                      style={{ accentColor: "var(--gold)" }}
-                                    />
-                                    Semana {s.numero}
-                                  </label>
-                                );
-                              })}
+                                    .every((i) =>
+                                      compPasteSemanasSel.includes(String(i)),
+                                    )
+                                    ? "Deseleccionar todas"
+                                    : "Tildar todas"}
+                                </button>
+                                {semanas
+                                  .map((s, i) => ({ s, i }))
+                                  .filter(({ i }) => i !== semActiva)
+                                  .map(({ s, i }) => {
+                                    const checked = compPasteSemanasSel.includes(
+                                      String(i),
+                                    );
+                                    return (
+                                      <label
+                                        key={`comp-paste-sem-opt-${s.id}`}
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 6,
+                                          fontSize: 12,
+                                          color: "var(--text)",
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        <input
+                                          name="field_74"
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() => toggleCompSemanaSel(i)}
+                                          style={{ accentColor: "var(--gold)" }}
+                                        />
+                                        Semana {s.numero}
+                                      </label>
+                                    );
+                                  })}
+                              </div>
+                            )}
                           </div>
-                          </details>
 
                           <button
                             className="btn btn-ghost btn-xs"
