@@ -2083,18 +2083,78 @@ function getSembradoStats(turnos, normativos = null) {
 
 function Modal({ title, onClose, children, maxWidth = null }) {
   const mdTarget = useRef(null);
+  const modalRef = useRef(null);
   useEffect(() => {
+    const prevFocused = document.activeElement;
     const scrollY = window.scrollY;
     document.body.style.overflow = "hidden";
     document.body.style.position = "fixed";
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = "100%";
+
+    const getFocusable = () => {
+      const root = modalRef.current;
+      if (!root) return [];
+      return Array.from(
+        root.querySelectorAll(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+    };
+
+    const focusables = getFocusable();
+    const initial = focusables[0] || modalRef.current;
+    if (initial && typeof initial.focus === "function") {
+      initial.focus();
+    }
+
+    const onKeyDown = (e) => {
+      if (e.key !== "Tab") return;
+      const root = modalRef.current;
+      if (!root) return;
+
+      const items = getFocusable();
+      if (items.length === 0) {
+        e.preventDefault();
+        root.focus();
+        return;
+      }
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      const isInside = root.contains(active);
+
+      if (!isInside) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
+      }
+
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+
+      if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        last.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown, true);
+
     return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
       document.body.style.overflow = "";
       document.body.style.position = "";
       document.body.style.top = "";
       document.body.style.width = "";
       window.scrollTo(0, scrollY);
+      if (prevFocused && typeof prevFocused.focus === "function") {
+        prevFocused.focus();
+      }
     };
   }, []);
   return (
@@ -2113,7 +2173,9 @@ function Modal({ title, onClose, children, maxWidth = null }) {
       }}
     >
       <div
+        ref={modalRef}
         className="modal"
+        tabIndex={-1}
         style={
           maxWidth
             ? {
