@@ -4738,8 +4738,10 @@ function PlanillaTurno({
   const [compSemanasDropdownOpen, setCompSemanasDropdownOpen] = useState(false);
   const [importSemOrigen, setImportSemOrigen] = useState("");
   const [importSemFeedback, setImportSemFeedback] = useState(false);
+  const [recalcFeedback, setRecalcFeedback] = useState(false);
   const compPasteTimerRef = useRef(null);
   const importSemTimerRef = useRef(null);
+  const recalcTimerRef = useRef(null);
   const compPickerListRef = useRef(null);
   const compPickerModalRef = useRef(null);
   const compTurnosDropdownRef = useRef(null);
@@ -4979,6 +4981,25 @@ function PlanillaTurno({
       return next;
     });
   };
+
+  const forzarRecalculoPlanilla = () => {
+    _beforeChangeForced();
+
+    // Conserva solo edits manuales; el resto vuelve a valores calculados en el render actual.
+    setRepsEdit((prev) => {
+      const next = {};
+      manualEdit.forEach((k) => {
+        if (prev[k] !== undefined) next[k] = prev[k];
+      });
+      return next;
+    });
+
+    if (recalcTimerRef.current) clearTimeout(recalcTimerRef.current);
+    setRecalcFeedback(true);
+    recalcTimerRef.current = setTimeout(() => {
+      setRecalcFeedback(false);
+    }, 1200);
+  };
   const turnoRef = useRef(null);
   const turnoContentRef = useRef(null);
 
@@ -5094,6 +5115,7 @@ function PlanillaTurno({
   useEffect(
     () => () => {
       if (compPasteTimerRef.current) clearTimeout(compPasteTimerRef.current);
+      if (recalcTimerRef.current) clearTimeout(recalcTimerRef.current);
     },
     [],
   );
@@ -5719,6 +5741,29 @@ function PlanillaTurno({
             >
               {modo}
             </span>
+            <button
+              onClick={forzarRecalculoPlanilla}
+              title="Fuerza el recálculo de toda la planilla usando los parámetros actuales"
+              style={{
+                marginLeft: "auto",
+                padding: "4px 10px",
+                borderRadius: 6,
+                border: recalcFeedback
+                  ? "1px solid rgba(77,182,172,.45)"
+                  : "1px solid var(--border)",
+                background: recalcFeedback
+                  ? "rgba(77,182,172,.12)"
+                  : "var(--surface2)",
+                color: recalcFeedback ? "#4db6ac" : "var(--muted)",
+                cursor: "pointer",
+                fontSize: 10,
+                fontFamily: "'DM Sans'",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {recalcFeedback ? "Recalculado" : "Recalcular planilla"}
+            </button>
           </div>
 
           {/* Bloques con reps disponibles — solo si quedan reps */}
