@@ -24543,10 +24543,6 @@ function PageNormativos({ coachId, isActive = false }) {
 
   useEffect(() => {
     if (!coachId || !isActive) return;
-    const pollId = window.setInterval(() => {
-      syncFromDb().catch(() => {});
-    }, 8000);
-
     const onFocus = () => {
       syncFromDb().catch(() => {});
     };
@@ -24561,7 +24557,6 @@ function PageNormativos({ coachId, isActive = false }) {
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
-      window.clearInterval(pollId);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
@@ -27839,9 +27834,6 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullAtletas();
-    const pollId = window.setInterval(() => {
-      pullAtletas();
-    }, 8000);
     const onFocus = () => {
       pullAtletas();
     };
@@ -27853,7 +27845,6 @@ function CoachApp({ session, profile, onLogout }) {
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
-      window.clearInterval(pollId);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
@@ -27903,7 +27894,6 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullMesociclos();
-    const pollId = window.setInterval(pullMesociclos, 8000);
     const onFocus = () => pullMesociclos();
     const onVisible = () => {
       if (document.visibilityState === "visible") pullMesociclos();
@@ -27913,7 +27903,6 @@ function CoachApp({ session, profile, onLogout }) {
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
-      window.clearInterval(pollId);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
@@ -28011,7 +28000,7 @@ function CoachApp({ session, profile, onLogout }) {
     })();
   }, [mesociclos, coachId]);
 
-  // ── Sincronizar overrides de celdas periódicamente (cada 60s) ─────────────
+  // ── Sincronizar overrides al ocultar/cerrar (sin polling periódico) ───────
   useEffect(() => {
     if (!coachId) return;
     const syncOverrides = () => {
@@ -28028,14 +28017,20 @@ function CoachApp({ session, profile, onLogout }) {
       const currAtletas = atletasRef.current;
       void currAtletas;
     };
-    const interval = setInterval(syncOverrides, 60000);
+
     const onHide = () => {
       if (document.visibilityState === "hidden") syncOverrides();
     };
+
+    const onBeforeUnload = () => {
+      syncOverrides();
+    };
+
     document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("beforeunload", onBeforeUnload);
     return () => {
-      clearInterval(interval);
       document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("beforeunload", onBeforeUnload);
     };
   }, [coachId]);
 
