@@ -19584,17 +19584,17 @@ function PagePDF({
   const semTurnos = meso.semanas.map((sem, semIdx) => {
     const turnos = sem.turnos
       .map((t, tIdx) => {
+        // Primero verificar si hay ejercicios principales
+        const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
+        const hasEjerciciosPrincipales = ejs.length > 0;
+
+        // Si no hay ejercicios principales, no procesar complementarios
+        if (!hasEjerciciosPrincipales) return null;
+
         const rows = [];
 
-        // Ejercicios principales (primero, para saber si mostrar complementarios)
-        const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
-        ejs.forEach((ej) => {
-          const row = buildEjercicioRow(ej, semIdx, tIdx, false);
-          if (row) rows.push(row);
-        });
-
-        // Complementarios ANTES (solo si hay ejercicios principales)
-        if (ejs.length > 0 && t.complementarios_before?.length > 0) {
+        // Complementarios ANTES
+        if (t.complementarios_before?.length > 0) {
           const compBefore = t.complementarios_before.filter(
             (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
           );
@@ -19604,8 +19604,14 @@ function PagePDF({
           });
         }
 
-        // Complementarios DESPUÉS (solo si hay ejercicios principales)
-        if (ejs.length > 0 && t.complementarios_after?.length > 0) {
+        // Ejercicios principales
+        ejs.forEach((ej) => {
+          const row = buildEjercicioRow(ej, semIdx, tIdx, false);
+          if (row) rows.push(row);
+        });
+
+        // Complementarios DESPUÉS
+        if (t.complementarios_after?.length > 0) {
           const compAfter = t.complementarios_after.filter(
             (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
           );
