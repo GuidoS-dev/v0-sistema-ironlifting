@@ -12153,6 +12153,7 @@ function EjBuscadorCompacto({
   const [activeSearchIdx, setActiveSearchIdx] = useState(0);
   const inputRef = useRef(null);
   const triggerRef = useRef(null);
+  const modalRef = useRef(null);
 
   const normativos =
     normativosProp ??
@@ -12206,6 +12207,61 @@ function EjBuscadorCompacto({
     return () => {
       document.body.style.overflow = "";
       document.body.style.touchAction = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const getFocusable = () => {
+      const root = modalRef.current;
+      if (!root) return [];
+      return Array.from(
+        root.querySelectorAll(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.getClientRects().length > 0);
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key !== "Tab") return;
+
+      const root = modalRef.current;
+      if (!root) return;
+
+      const items = getFocusable();
+      if (items.length === 0) {
+        e.preventDefault();
+        root.focus();
+        return;
+      }
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      const isInside = root.contains(active);
+
+      if (!isInside) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
+      }
+
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+
+      if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        last.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
     };
   }, [open]);
 
@@ -12296,6 +12352,8 @@ function EjBuscadorCompacto({
           }}
         >
           <div
+            ref={modalRef}
+            tabIndex={-1}
             style={{
               background: "var(--surface)",
               borderRadius: 14,
