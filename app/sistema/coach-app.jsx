@@ -71,26 +71,47 @@ function _emitAuth(event, session) {
 // Current session ref
 let _session = loadSession();
 
+async function _readResponseSafe(r) {
+  const raw = await r.text();
+  if (!raw) return { data: null, raw: "" };
+  try {
+    return { data: JSON.parse(raw), raw };
+  } catch {
+    return { data: null, raw };
+  }
+}
+
+function _authErrorMessage(status, data, raw, fallback) {
+  if (status === 504 || /upstream\s+request\s+timeout/i.test(raw || "")) {
+    return "Supabase no responde (504). Intentá de nuevo en 1-2 minutos.";
+  }
+  return data?.error_description || data?.msg || fallback;
+}
+
 // Token refresh helper
 async function _refreshToken(refresh_token) {
-  const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
-    body: JSON.stringify({ refresh_token }),
-  });
-  if (!r.ok) return null;
-  const data = await r.json();
-  if (!data.access_token) return null;
-  const s = {
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-    user: data.user,
-    expires_at: Date.now() + (data.expires_in || 3600) * 1000,
-  };
-  _session = s;
-  saveSession(s);
-  _emitAuth("TOKEN_REFRESHED", s);
-  return s;
+  try {
+    const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
+      body: JSON.stringify({ refresh_token }),
+    });
+    if (!r.ok) return null;
+    const { data } = await _readResponseSafe(r);
+    if (!data?.access_token) return null;
+    const s = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      user: data.user,
+      expires_at: Date.now() + (data.expires_in || 3600) * 1000,
+    };
+    _session = s;
+    saveSession(s);
+    _emitAuth("TOKEN_REFRESHED", s);
+    return s;
+  } catch {
+    return null;
+  }
 }
 
 async function _getValidSession() {
@@ -114,45 +135,65 @@ const sb = {
       return { data: { subscription: sub } };
     },
     signInWithPassword: async ({ email, password }) => {
-      const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await r.json();
-      if (!r.ok)
+      try {
+        const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
+          body: JSON.stringify({ email, password }),
+        });
+        const { data, raw } = await _readResponseSafe(r);
+        if (!r.ok)
+          return {
+            data: null,
+            error: {
+              message: _authErrorMessage(r.status, data, raw, "Error al ingresar"),
+            },
+          };
+        if (!data?.access_token) {
+          return {
+            data: null,
+            error: { message: "Respuesta inválida de autenticación." },
+          };
+        }
+        const session = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          user: data.user,
+          expires_at: Date.now() + (data.expires_in || 3600) * 1000,
+        };
+        _session = session;
+        saveSession(session);
+        _emitAuth("SIGNED_IN", session);
+        return { data: { session }, error: null };
+      } catch {
         return {
           data: null,
-          error: {
-            message: data.error_description || data.msg || "Error al ingresar",
-          },
+          error: { message: "No se pudo conectar con Supabase." },
         };
-      const session = {
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        user: data.user,
-        expires_at: Date.now() + (data.expires_in || 3600) * 1000,
-      };
-      _session = session;
-      saveSession(session);
-      _emitAuth("SIGNED_IN", session);
-      return { data: { session }, error: null };
+      }
     },
     signUp: async ({ email, password, options }) => {
-      const r = await fetch(`${SUPA_URL}/auth/v1/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
-        body: JSON.stringify({ email, password, data: options?.data || {} }),
-      });
-      const data = await r.json();
-      if (!r.ok)
+      try {
+        const r = await fetch(`${SUPA_URL}/auth/v1/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
+          body: JSON.stringify({ email, password, data: options?.data || {} }),
+        });
+        const { data, raw } = await _readResponseSafe(r);
+        if (!r.ok)
+          return {
+            data: null,
+            error: {
+              message: _authErrorMessage(r.status, data, raw, "Error al registrar"),
+            },
+          };
+        return { data, error: null };
+      } catch {
         return {
           data: null,
-          error: {
-            message: data.error_description || data.msg || "Error al registrar",
-          },
+          error: { message: "No se pudo conectar con Supabase." },
         };
-      return { data, error: null };
+      }
     },
     signOut: async () => {
       const s = await _getValidSession();
@@ -171,12 +212,29 @@ const sb = {
       return { error: null };
     },
     resetPasswordForEmail: async (email) => {
-      await fetch(`${SUPA_URL}/auth/v1/recover`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
-        body: JSON.stringify({ email }),
-      });
-      return { error: null };
+      try {
+        const r = await fetch(`${SUPA_URL}/auth/v1/recover`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
+          body: JSON.stringify({ email }),
+        });
+        const { data, raw } = await _readResponseSafe(r);
+        if (!r.ok) {
+          return {
+            error: {
+              message: _authErrorMessage(
+                r.status,
+                data,
+                raw,
+                "No se pudo enviar el email de recuperación."
+              ),
+            },
+          };
+        }
+        return { error: null };
+      } catch {
+        return { error: { message: "No se pudo conectar con Supabase." } };
+      }
     },
   },
 
@@ -27168,8 +27226,13 @@ function LoginScreen({ onAuth }) {
       return;
     }
     setLoading(true);
-    await sb.auth.resetPasswordForEmail(email);
+    setError("");
+    const { error } = await sb.auth.resetPasswordForEmail(email);
     setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
     setMsg("Se envió un link para restablecer tu contraseña.");
   };
 
