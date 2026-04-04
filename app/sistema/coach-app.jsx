@@ -2116,31 +2116,29 @@ function Modal({ title, onClose, children, maxWidth = null }) {
       const items = getFocusable();
       if (items.length === 0) {
         e.preventDefault();
+        e.stopPropagation();
         root.focus();
         return;
       }
 
-      const first = items[0];
-      const last = items[items.length - 1];
       const active = document.activeElement;
       const isInside = root.contains(active);
 
+      e.preventDefault();
+      e.stopPropagation();
       if (!isInside) {
-        e.preventDefault();
-        (e.shiftKey ? last : first).focus();
+        (e.shiftKey ? items[items.length - 1] : items[0]).focus();
         return;
       }
 
-      if (e.shiftKey && active === first) {
-        e.preventDefault();
-        first.focus();
-        return;
-      }
-
-      if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        last.focus();
-      }
+      const idx = items.indexOf(active);
+      const delta = e.shiftKey ? -1 : 1;
+      const baseIdx = idx === -1 ? (e.shiftKey ? items.length - 1 : 0) : idx;
+      const nextIdx = Math.min(
+        Math.max(baseIdx + delta, 0),
+        items.length - 1,
+      );
+      items[nextIdx].focus();
     };
 
     document.addEventListener("keydown", onKeyDown, true);
@@ -4349,31 +4347,29 @@ function PlanillaTurno({
       const items = getFocusable();
       if (items.length === 0) {
         e.preventDefault();
+        e.stopPropagation();
         modalRoot.focus();
         return;
       }
 
-      const first = items[0];
-      const last = items[items.length - 1];
       const active = document.activeElement;
       const isInside = modalRoot.contains(active);
 
+      e.preventDefault();
+      e.stopPropagation();
       if (!isInside) {
-        e.preventDefault();
-        (e.shiftKey ? last : first).focus();
+        (e.shiftKey ? items[items.length - 1] : items[0]).focus();
         return;
       }
 
-      if (e.shiftKey && active === first) {
-        e.preventDefault();
-        first.focus();
-        return;
-      }
-
-      if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        last.focus();
-      }
+      const idx = items.indexOf(active);
+      const delta = e.shiftKey ? -1 : 1;
+      const baseIdx = idx === -1 ? (e.shiftKey ? items.length - 1 : 0) : idx;
+      const nextIdx = Math.min(
+        Math.max(baseIdx + delta, 0),
+        items.length - 1,
+      );
+      items[nextIdx].focus();
     };
 
     document.addEventListener("keydown", onKeyDown, true);
