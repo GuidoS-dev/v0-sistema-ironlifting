@@ -4348,9 +4348,9 @@ function PlanillaTurno({
         setCompSemanasDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", onDocPointerDown);
+    document.addEventListener("click", onDocPointerDown);
     return () => {
-      document.removeEventListener("mousedown", onDocPointerDown);
+      document.removeEventListener("click", onDocPointerDown);
     };
   }, []);
 
@@ -7305,6 +7305,7 @@ function PlanillaTurno({
                           </div>
 
                           <button
+                            type="button"
                             className="btn btn-ghost btn-xs"
                             onClick={pegarComplementariosSeleccionados}
                             disabled={
@@ -7323,6 +7324,7 @@ function PlanillaTurno({
                           </button>
 
                           <button
+                            type="button"
                             onClick={copiarComplementariosATodasSemanas}
                             title="Copiar complementarios de este turno a todas las semanas"
                             style={{
