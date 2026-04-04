@@ -4316,9 +4316,71 @@ function PlanillaTurno({
   const compPasteTimerRef = useRef(null);
   const importSemTimerRef = useRef(null);
   const compPickerListRef = useRef(null);
+  const compPickerModalRef = useRef(null);
   const compTurnosDropdownRef = useRef(null);
   const compSemanasDropdownRef = useRef(null);
   const spreadsheetNavRef = useRef(null);
+
+  useEffect(() => {
+    if (compPickerOpen === null) return;
+
+    const getFocusable = () => {
+      const root = compPickerModalRef.current;
+      if (!root) return [];
+      return Array.from(
+        root.querySelectorAll(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.getClientRects().length > 0);
+    };
+
+    const root = compPickerModalRef.current;
+    const initial = getFocusable()[0] || root;
+    if (initial && typeof initial.focus === "function") {
+      initial.focus();
+    }
+
+    const onKeyDown = (e) => {
+      if (e.key !== "Tab") return;
+
+      const modalRoot = compPickerModalRef.current;
+      if (!modalRoot) return;
+
+      const items = getFocusable();
+      if (items.length === 0) {
+        e.preventDefault();
+        modalRoot.focus();
+        return;
+      }
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      const isInside = modalRoot.contains(active);
+
+      if (!isInside) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
+      }
+
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+
+      if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        last.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [compPickerOpen]);
 
   // Clave única por mesociclo para persistencia
   const _k = (type) => `liftplan_pt_${meso.id}_${type}`;
@@ -7000,6 +7062,8 @@ function PlanillaTurno({
                             }}
                           >
                             <div
+                              ref={compPickerModalRef}
+                              tabIndex={-1}
                               style={{
                                 background: "var(--surface)",
                                 borderRadius: 14,
