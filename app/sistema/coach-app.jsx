@@ -15101,8 +15101,6 @@ function PageAtleta({
   const [fullTableZoom, setFullTableZoom] = useState(1);
   const fullTableViewportRef = useRef(null);
   const fullTableRef = useRef(null);
-  const fullTableTurnoHeaderRef = useRef(null);
-  const fullTableLastTurnoRef = useRef(null);
 
   useEffect(() => {
     if (!openRequest?.view) return;
@@ -15388,30 +15386,15 @@ function PageAtleta({
     if (!showFullSembrado) return;
     const viewport = fullTableViewportRef.current;
     const table = fullTableRef.current;
-    const turnoHeader = fullTableTurnoHeaderRef.current;
-    const lastTurno = fullTableLastTurnoRef.current;
     if (!viewport || !table) return;
 
     const fit = () => {
       const rect = table.getBoundingClientRect();
       const currentZoom = Math.max(0.2, fullTableZoom || 1);
       const naturalW = Math.max(1, rect.width / currentZoom);
-      const naturalH = (() => {
-        if (!turnoHeader || !lastTurno) return Math.max(1, rect.height / currentZoom);
-        const top = turnoHeader.getBoundingClientRect().top;
-        const bottom = lastTurno.getBoundingClientRect().bottom;
-        return Math.max(1, (bottom - top) / currentZoom);
-      })();
-
-      const viewportTop = turnoHeader
-        ? turnoHeader.getBoundingClientRect().top
-        : viewport.getBoundingClientRect().top;
-      const screenW = Math.max(320, window.innerWidth - 20);
-      const screenH = Math.max(220, window.innerHeight - viewportTop - 14);
-
+      const screenW = Math.max(320, viewport.clientWidth - 8);
       const zByWidth = screenW / naturalW;
-      const zByHeight = screenH / naturalH;
-      const z = Math.max(0.2, Math.min(1, zByWidth, zByHeight));
+      const z = Math.max(0.45, Math.min(1, zByWidth));
       setFullTableZoom((prev) => (Math.abs(prev - z) < 0.01 ? prev : z));
     };
 
@@ -17318,7 +17301,6 @@ function PageAtleta({
               >
                 <tr>
                   <th
-                    ref={fullTableTurnoHeaderRef}
                     style={{
                       padding: "4px 6px",
                       textAlign: "center",
@@ -17510,11 +17492,7 @@ function PageAtleta({
 
                     const rows = [
                       <tr key={`turno-${turnoGlobalIdx}-ej`}>
-                        <td
-                          ref={isLastTurno ? fullTableLastTurnoRef : null}
-                          rowSpan={3}
-                          style={baseTurnoCell}
-                        >
+                        <td rowSpan={3} style={baseTurnoCell}>
                           T{turnoGlobalIdx + 1}
                         </td>
                         <td
