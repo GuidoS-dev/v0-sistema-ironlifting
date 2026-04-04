@@ -5,6 +5,7 @@ import {
   FileText,
   MessageCircle,
   ChevronLeft,
+  Minus,
   Plus,
   Pencil,
   Trash2,
@@ -1798,6 +1799,8 @@ const css = `
   .btn-gold:hover{background:#f0d050}
   .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
   .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+  .btn-icon{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,255,255,.02);color:var(--muted)}
+  .btn-icon:hover{background:var(--surface2);border-color:rgba(232,197,71,.32);color:var(--text);transform:translateY(-1px)}
   .btn-danger{background:transparent;border:1px solid var(--red);color:var(--red)}
   .btn-danger:hover{background:var(--red);color:#fff}
   .btn-sm{padding:5px 12px;font-size:12px}
@@ -2081,7 +2084,7 @@ function getSembradoStats(turnos, normativos = null) {
 
 // ─── COMPONENTS ──────────────────────────────────────────────────────────────
 
-function Modal({ title, onClose, children, maxWidth = null }) {
+function Modal({ title, onClose, children, maxWidth = null, fitContent = false }) {
   const mdTarget = useRef(null);
   const modalRef = useRef(null);
   useEffect(() => {
@@ -2177,10 +2180,10 @@ function Modal({ title, onClose, children, maxWidth = null }) {
         className="modal"
         tabIndex={-1}
         style={
-          maxWidth
+          maxWidth || fitContent
             ? {
-                maxWidth,
-                width: "min(96vw, 100%)",
+                width: fitContent ? "fit-content" : "min(96vw, 100%)",
+                maxWidth: maxWidth || "96vw",
               }
             : undefined
         }
@@ -2189,8 +2192,13 @@ function Modal({ title, onClose, children, maxWidth = null }) {
       >
         <div className="flex-between mb16">
           <div className="modal-title">{title}</div>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>
-            ✕
+          <button
+            className="btn btn-ghost btn-sm btn-icon"
+            onClick={onClose}
+            aria-label="Cerrar modal"
+            title="Cerrar"
+          >
+            <X size={16} />
           </button>
         </div>
         {children}
@@ -17033,7 +17041,8 @@ function PageAtleta({
         <Modal
           title="Sembrado Completo"
           onClose={() => setShowFullSembrado(false)}
-          maxWidth="1600px"
+          maxWidth="calc(100vw - 40px)"
+          fitContent
         >
           <div
             style={{
@@ -17068,24 +17077,24 @@ function PageAtleta({
                 {Math.round(fullTableZoom * 100)}%
               </div>
               <button
-                className="btn btn-ghost btn-sm"
-                style={{ width: 32, height: 30, padding: 0, fontSize: 16 }}
+                className="btn btn-ghost btn-sm btn-icon"
                 onClick={() =>
                   setFullTableZoom((z) => Math.max(0.35, Math.round((z - 0.1) * 100) / 100))
                 }
                 title="Reducir zoom"
+                aria-label="Reducir zoom"
               >
-                -
+                <Minus size={14} />
               </button>
               <button
-                className="btn btn-ghost btn-sm"
-                style={{ width: 32, height: 30, padding: 0, fontSize: 16 }}
+                className="btn btn-ghost btn-sm btn-icon"
                 onClick={() =>
                   setFullTableZoom((z) => Math.min(2.5, Math.round((z + 0.1) * 100) / 100))
                 }
                 title="Aumentar zoom"
+                aria-label="Aumentar zoom"
               >
-                +
+                <Plus size={14} />
               </button>
             </div>
           </div>
@@ -17233,6 +17242,9 @@ function PageAtleta({
               ref={fullTableViewportRef}
               style={{
                 maxHeight: "80vh",
+                width: "fit-content",
+                maxWidth: "100%",
+                marginRight: "auto",
                 overflowY: "auto",
                 overflowX: "auto",
                 border: "1px solid var(--border)",
@@ -17248,7 +17260,8 @@ function PageAtleta({
                   borderCollapse: "collapse",
                   fontSize: 10,
                   fontFamily: "'DM Sans', sans-serif",
-                  minWidth: "fit-content",
+                  width: "max-content",
+                  minWidth: "max-content",
                   zoom: fullTableZoom,
                 }}
               >
