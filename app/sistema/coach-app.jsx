@@ -17299,7 +17299,7 @@ function PageAtleta({
                 <tr>
                   <th
                     style={{
-                      padding: "6px 6px",
+                      padding: "4px 6px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "2px solid var(--gold)",
@@ -17308,6 +17308,7 @@ function PageAtleta({
                       width: 58,
                       fontFamily: "'Bebas Neue'",
                       fontSize: 14,
+                      lineHeight: 1,
                       letterSpacing: ".06em",
                     }}
                   >
@@ -17315,7 +17316,7 @@ function PageAtleta({
                   </th>
                   <th
                     style={{
-                      padding: "6px 6px",
+                      padding: "4px 6px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       borderBottom: "2px solid var(--gold)",
@@ -17324,6 +17325,7 @@ function PageAtleta({
                       width: 48,
                       fontFamily: "'Bebas Neue'",
                       fontSize: 14,
+                      lineHeight: 1,
                       letterSpacing: ".06em",
                     }}
                   >
@@ -17334,7 +17336,7 @@ function PageAtleta({
                       key={`header-${sem.id}`}
                       colSpan={semanaColsMap.get(sem.id) || 1}
                       style={{
-                        padding: "6px 6px",
+                        padding: "4px 6px",
                         textAlign: "center",
                         borderRight: "1px solid var(--border)",
                         borderBottom: "2px solid var(--gold)",
@@ -17342,6 +17344,7 @@ function PageAtleta({
                         color: "var(--blue)",
                         fontFamily: "'Bebas Neue'",
                         fontSize: 14,
+                        lineHeight: 1,
                         letterSpacing: ".06em",
                         textTransform: "uppercase",
                       }}
@@ -17414,12 +17417,13 @@ function PageAtleta({
                   );
 
                   const rowCellBase = {
-                    padding: "3px 3px",
+                    padding: "1px 3px",
                     textAlign: "center",
                     borderRight: "1px solid var(--border)",
                     borderBottom: "1px solid var(--border)",
                     color: "var(--text)",
                     fontSize: 10,
+                    lineHeight: 1,
                     background: "rgba(10,12,16,.2)",
                   };
 
@@ -17471,7 +17475,7 @@ function PageAtleta({
                     const turnoGlobalIdx = turnosConDatos[rowTurnoIdx];
                     const isLastTurno = rowTurnoIdx === maxTurnos - 1;
                     const baseTurnoCell = {
-                      padding: "5px 6px",
+                      padding: "2px 6px",
                       textAlign: "center",
                       borderRight: "2px solid var(--gold)",
                       fontWeight: 700,
@@ -17479,6 +17483,7 @@ function PageAtleta({
                       background: "rgba(232,197,71,.08)",
                       fontFamily: "'Bebas Neue'",
                       fontSize: 18,
+                      lineHeight: 1,
                       letterSpacing: ".06em",
                     };
 
