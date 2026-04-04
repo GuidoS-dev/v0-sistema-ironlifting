@@ -16891,10 +16891,32 @@ function PageAtleta({
                   >
                     Turno
                   </th>
+                  <th
+                    style={{
+                      padding: "6px 8px",
+                      textAlign: "center",
+                      borderRight: "2px solid var(--gold)",
+                      borderBottom: "2px solid var(--gold)",
+                      fontWeight: 700,
+                      color: "var(--gold)",
+                      width: 56,
+                    }}
+                  >
+                    Tipo
+                  </th>
                   {mesoVisto.semanas.map((sem) => (
                     <th
                       key={`header-${sem.id}`}
-                      colSpan={3}
+                      colSpan={Math.max(
+                        1,
+                        ...mesoVisto.semanas.map(
+                          (s) => s.turnos?.reduce(
+                            (mx, t) =>
+                              Math.max(mx, (t?.ejercicios || []).filter(Boolean).length),
+                            0,
+                          ) || 0,
+                        ),
+                      )}
                       style={{
                         padding: "6px 8px",
                         textAlign: "center",
@@ -16922,9 +16944,34 @@ function PageAtleta({
                   >
                     —
                   </th>
+                  <th
+                    style={{
+                      padding: "4px 6px",
+                      textAlign: "center",
+                      borderRight: "2px solid var(--gold)",
+                      borderBottom: "1px solid var(--border)",
+                      fontWeight: 600,
+                      color: "var(--muted)",
+                      fontSize: 9,
+                    }}
+                  >
+                    —
+                  </th>
                   {mesoVisto.semanas.map((sem) => (
-                    <React.Fragment key={`subheader-${sem.id}`}>
+                    Array.from({
+                      length: Math.max(
+                        1,
+                        ...mesoVisto.semanas.map(
+                          (s) => s.turnos?.reduce(
+                            (mx, t) =>
+                              Math.max(mx, (t?.ejercicios || []).filter(Boolean).length),
+                            0,
+                          ) || 0,
+                        ),
+                      ),
+                    }).map((_, slotIdx) => (
                       <th
+                        key={`subheader-${sem.id}-${slotIdx}`}
                         style={{
                           padding: "4px 4px",
                           textAlign: "center",
@@ -16936,144 +16983,123 @@ function PageAtleta({
                           width: 35,
                         }}
                       >
-                        EJ
+                        {slotIdx + 1}
                       </th>
-                      <th
-                        style={{
-                          padding: "4px 4px",
-                          textAlign: "center",
-                          borderRight: "1px solid var(--border)",
-                          borderBottom: "1px solid var(--border)",
-                          fontWeight: 600,
-                          color: "var(--muted)",
-                          fontSize: 8,
-                          width: 35,
-                        }}
-                      >
-                        S
-                      </th>
-                      <th
-                        style={{
-                          padding: "4px 4px",
-                          textAlign: "center",
-                          borderRight: "1px solid var(--border)",
-                          borderBottom: "1px solid var(--border)",
-                          fontWeight: 600,
-                          color: "var(--muted)",
-                          fontSize: 8,
-                          width: 35,
-                        }}
-                      >
-                        Kg
-                      </th>
-                    </React.Fragment>
+                    ))
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {(() => {
-                  // Obtener número máximo de turnos
-                  const maxTurnos = Math.max(...mesoVisto.semanas.map(s => s.turnos?.length || 0));
-                  
-                  return Array.from({ length: maxTurnos }).map((_, turnoIdx) => {
-                    return (
-                      <tr
-                        key={`turno-${turnoIdx}`}
-                        style={{
-                          borderBottom: "1px solid var(--border)",
-                        }}
-                      >
-                        <td
-                          style={{
-                            padding: "6px 8px",
-                            textAlign: "center",
-                            borderRight: "2px solid var(--gold)",
-                            fontWeight: 700,
-                            color: "var(--gold)",
-                            background: "var(--surface)",
-                          }}
-                        >
+                  const maxTurnos = Math.max(
+                    ...mesoVisto.semanas.map((s) => s.turnos?.length || 0),
+                  );
+                  const maxColsPerSemana = Math.max(
+                    1,
+                    ...mesoVisto.semanas.map(
+                      (s) =>
+                        s.turnos?.reduce(
+                          (mx, t) =>
+                            Math.max(mx, (t?.ejercicios || []).filter(Boolean).length),
+                          0,
+                        ) || 0,
+                    ),
+                  );
+
+                  const rowCellBase = {
+                    padding: "4px 4px",
+                    textAlign: "center",
+                    borderRight: "1px solid var(--border)",
+                    borderBottom: "1px solid var(--border)",
+                    color: "var(--text)",
+                    fontSize: 10,
+                  };
+
+                  const renderDataCells = (turnoIdx, valueGetter) =>
+                    mesoVisto.semanas.map((sem, semIdx) => {
+                      const turno = sem.turnos?.[turnoIdx];
+                      const ejercicios = (turno?.ejercicios || []).filter(Boolean);
+                      return Array.from({ length: maxColsPerSemana }).map((_, slotIdx) => {
+                        const ej = ejercicios[slotIdx];
+                        const val = ej ? valueGetter(ej) : null;
+                        const isEndOfSemana = slotIdx === maxColsPerSemana - 1;
+                        return (
+                          <td
+                            key={`s-${semIdx}-t-${turnoIdx}-c-${slotIdx}`}
+                            style={{
+                              ...rowCellBase,
+                              borderRight: isEndOfSemana
+                                ? "2px solid var(--border)"
+                                : rowCellBase.borderRight,
+                              color: val === null || val === undefined || val === ""
+                                ? "var(--muted)"
+                                : rowCellBase.color,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {val === null || val === undefined || val === "" ? "" : val}
+                          </td>
+                        );
+                      });
+                    });
+
+                  return Array.from({ length: maxTurnos }).flatMap((_, turnoIdx) => {
+                    const baseTurnoCell = {
+                      padding: "6px 8px",
+                      textAlign: "center",
+                      borderRight: "2px solid var(--gold)",
+                      fontWeight: 700,
+                      color: "var(--gold)",
+                      background: "var(--surface)",
+                    };
+
+                    return [
+                      <tr key={`turno-${turnoIdx}-ej`}>
+                        <td rowSpan={3} style={baseTurnoCell}>
                           T{turnoIdx + 1}
                         </td>
-
-                        {mesoVisto.semanas.map((sem, semIdx) => {
-                          const turno = sem.turnos?.[turnoIdx];
-                          const ejercicios = turno?.ejercicios?.filter(Boolean) || [];
-
-                          return (
-                            <React.Fragment key={`sem-${semIdx}-turno-${turnoIdx}`}>
-                              {ejercicios.length > 0 ? (
-                                ejercicios.map((ej, ejIdx) => (
-                                  <React.Fragment key={`ej-${ejIdx}`}>
-                                    <td style={{
-                                      padding: "4px 4px",
-                                      textAlign: "center",
-                                      borderRight: "1px solid var(--border)",
-                                      borderBottom: "1px solid var(--border)",
-                                      color: "var(--text)",
-                                      fontSize: 10,
-                                      fontWeight: 600,
-                                    }}>
-                                      {ej.ejercicio_id || "—"}
-                                    </td>
-                                    <td style={{
-                                      padding: "4px 4px",
-                                      textAlign: "center",
-                                      borderRight: "1px solid var(--border)",
-                                      borderBottom: "1px solid var(--border)",
-                                      color: "var(--text)",
-                                      fontSize: 10,
-                                    }}>
-                                      {ej.intensidad || "—"}
-                                    </td>
-                                    <td style={{
-                                      padding: "4px 4px",
-                                      textAlign: "center",
-                                      borderRight: "1px solid var(--border)",
-                                      borderBottom: "1px solid var(--border)",
-                                      color: "var(--text)",
-                                      fontSize: 10,
-                                    }}>
-                                      {ej.tabla || "T1"}
-                                    </td>
-                                  </React.Fragment>
-                                ))
-                              ) : (
-                                <>
-                                  <td style={{
-                                    padding: "4px 4px",
-                                    textAlign: "center",
-                                    borderRight: "1px solid var(--border)",
-                                    borderBottom: "1px solid var(--border)",
-                                    color: "var(--muted)",
-                                  }}>
-                                    —
-                                  </td>
-                                  <td style={{
-                                    padding: "4px 4px",
-                                    textAlign: "center",
-                                    borderRight: "1px solid var(--border)",
-                                    borderBottom: "1px solid var(--border)",
-                                    color: "var(--muted)",
-                                  }}>
-                                    —
-                                  </td>
-                                  <td style={{
-                                    padding: "4px 4px",
-                                    textAlign: "center",
-                                    borderRight: "1px solid var(--border)",
-                                    borderBottom: "1px solid var(--border)",
-                                    color: "var(--muted)",
-                                  }}>
-                                    —
-                                  </td>
-                                </>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </tr>
-                    );
+                        <td
+                          style={{
+                            ...rowCellBase,
+                            borderRight: "2px solid var(--gold)",
+                            color: "var(--text)",
+                            fontWeight: 700,
+                            background: "var(--surface2)",
+                          }}
+                        >
+                          EJ
+                        </td>
+                        {renderDataCells(turnoIdx, (ej) => ej.ejercicio_id || null)}
+                      </tr>,
+                      <tr key={`turno-${turnoIdx}-int`}>
+                        <td
+                          style={{
+                            ...rowCellBase,
+                            borderRight: "2px solid var(--gold)",
+                            color: "var(--text)",
+                            fontWeight: 700,
+                            background: "var(--surface2)",
+                          }}
+                        >
+                          INT
+                        </td>
+                        {renderDataCells(turnoIdx, (ej) => ej.intensidad || null)}
+                      </tr>,
+                      <tr key={`turno-${turnoIdx}-tbl`}>
+                        <td
+                          style={{
+                            ...rowCellBase,
+                            borderRight: "2px solid var(--gold)",
+                            color: "var(--text)",
+                            fontWeight: 700,
+                            background: "var(--surface2)",
+                          }}
+                        >
+                          TBL
+                        </td>
+                        {renderDataCells(turnoIdx, (ej) => ej.tabla || null)}
+                      </tr>,
+                    ];
                   });
                 })()}
               </tbody>
