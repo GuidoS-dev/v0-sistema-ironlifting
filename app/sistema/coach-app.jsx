@@ -25709,7 +25709,7 @@ function PageCalculadora({ coachId }) {
                   </td>
                   <td style={{ textAlign: "center", padding: "3px 4px" }}>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setTestIRM({ tablaKey, row }); }}
+                      onClick={(e) => { e.stopPropagation(); setTestIRM({ tablaKey, origRow: row, editRow: { ...row } }); }}
                       title="Testear distribución de reps"
                       style={{
                         background: "none",
@@ -26075,20 +26075,56 @@ function PageCalculadora({ coachId }) {
 
       {/* Modal Testeo IRM */}
       {testIRM && (() => {
-        const { tablaKey, row } = testIRM;
+        const { tablaKey, origRow, editRow } = testIRM;
         const tablaLabel = tablaKey === "tabla1" ? "Tabla 1" : tablaKey === "tabla2" ? "Tabla 2" : "Tabla 3";
+        const stepVal = (col, delta) => {
+          const key = String(col);
+          const cur = editRow[key] || 0;
+          const next = Math.max(0, Math.min(100, Math.round((cur + delta) * 10) / 10));
+          setTestIRM({ ...testIRM, editRow: { ...editRow, [key]: next } });
+        };
         const results = INTENS_COLS.map((col) => {
-          const tablaVal = row[String(col)] || 0;
+          const key = String(col);
+          const tablaVal = editRow[key] || 0;
+          const origVal = origRow[key] || 0;
+          const changed = tablaVal !== origVal;
           const raw = (tablaVal * testReps) / 100;
           const rounded = Math.round(raw);
-          return { col, tablaVal, raw, rounded };
+          return { col, key, tablaVal, origVal, changed, raw, rounded };
         });
         const totalRounded = results.reduce((s, r) => s + r.rounded, 0);
+        const totalPct = results.reduce((s, r) => s + r.tablaVal, 0);
+        const totalPctOk = Math.round(totalPct * 10) === 1000;
+        const hasChanges = results.some((r) => r.changed);
+        const applyChanges = () => {
+          const rIdx = tablas[tablaKey].findIndex((r) => r.irm === editRow.irm);
+          if (rIdx < 0) return;
+          const newTablas = { ...tablas };
+          newTablas[tablaKey] = tablas[tablaKey].map((r, i) => i === rIdx ? { ...editRow } : r);
+          saveTablas(newTablas);
+          setTestIRM(null);
+        };
+        const stepBtnStyle = {
+          background: "none",
+          border: "1px solid var(--border)",
+          borderRadius: 4,
+          width: 22,
+          height: 18,
+          cursor: "pointer",
+          color: "var(--muted)",
+          fontSize: 10,
+          lineHeight: 1,
+          padding: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "all .12s",
+        };
         return (
-          <Modal title={`🧪 Testeo IRM ${row.irm} — ${tablaLabel}`} onClose={() => setTestIRM(null)}>
+          <Modal title={`🧪 Testeo IRM ${editRow.irm} — ${tablaLabel}`} onClose={() => setTestIRM(null)}>
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
-                Simulá la distribución de repeticiones usando los valores actuales de esta fila.
+                Simulá la distribución de repeticiones. Usá las flechas ▲▼ para ajustar los valores y ver el resultado en tiempo real.
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Repeticiones:</label>
@@ -26127,12 +26163,40 @@ function PageCalculadora({ coachId }) {
                 </thead>
                 <tbody>
                   {results.map((r) => (
-                    <tr key={r.col} style={{ opacity: r.tablaVal > 0 ? 1 : 0.3 }}>
+                    <tr key={r.col} style={{ opacity: r.tablaVal > 0 || r.origVal > 0 ? 1 : 0.35 }}>
                       <td style={{ textAlign: "center", fontFamily: "'Bebas Neue'", fontSize: 15, color: "var(--gold)" }}>
                         {r.col}%
                       </td>
-                      <td style={{ textAlign: "center", color: "var(--muted)" }}>
-                        {r.tablaVal || "—"}
+                      <td style={{ textAlign: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                          <button
+                            style={stepBtnStyle}
+                            onClick={() => stepVal(r.col, -0.5)}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold)"; e.currentTarget.style.color = "var(--gold)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
+                          >▼</button>
+                          <div style={{ minWidth: 32, textAlign: "center" }}>
+                            <span style={{
+                              fontFamily: "'Bebas Neue'",
+                              fontSize: 15,
+                              color: r.changed ? "var(--blue)" : "var(--text)",
+                              fontWeight: r.changed ? 700 : 400,
+                            }}>
+                              {r.tablaVal || "—"}
+                            </span>
+                            {r.changed && (
+                              <div style={{ fontSize: 9, color: "var(--muted)", lineHeight: 1 }}>
+                                era {r.origVal}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            style={stepBtnStyle}
+                            onClick={() => stepVal(r.col, 0.5)}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold)"; e.currentTarget.style.color = "var(--gold)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
+                          >▲</button>
+                        </div>
                       </td>
                       <td style={{ textAlign: "center", color: "var(--text)", fontSize: 11 }}>
                         {r.tablaVal > 0 ? (
@@ -26154,8 +26218,12 @@ function PageCalculadora({ coachId }) {
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: "2px solid var(--border)" }}>
-                    <td colSpan={3} style={{ textAlign: "right", fontWeight: 600, fontSize: 13, color: "var(--text)", paddingRight: 12 }}>
-                      Total reps asignadas:
+                    <td style={{ textAlign: "center", fontWeight: 600, fontSize: 12, color: totalPctOk ? "var(--green)" : "var(--red)" }}>
+                      Σ {Math.round(totalPct * 10) / 10}
+                    </td>
+                    <td></td>
+                    <td style={{ textAlign: "right", fontWeight: 600, fontSize: 13, color: "var(--text)", paddingRight: 8 }}>
+                      Total reps:
                     </td>
                     <td style={{ textAlign: "center" }}>
                       <span style={{
@@ -26168,7 +26236,7 @@ function PageCalculadora({ coachId }) {
                       </span>
                       {totalRounded !== testReps && (
                         <span style={{ fontSize: 11, color: totalRounded > testReps ? "var(--red)" : "var(--gold)", marginLeft: 6 }}>
-                          ({totalRounded > testReps ? "+" : ""}{totalRounded - testReps} por redondeo)
+                          ({totalRounded > testReps ? "+" : ""}{totalRounded - testReps})
                         </span>
                       )}
                     </td>
@@ -26180,8 +26248,13 @@ function PageCalculadora({ coachId }) {
               💡 Fórmula: <code style={{ background: "var(--surface2)", padding: "2px 6px", borderRadius: 4 }}>reps = Math.round(% × reps / 100)</code> — mismo redondeo que la tabla de turnos.
             </div>
             <div className="modal-footer" style={{ marginTop: 16 }}>
+              {hasChanges && (
+                <button className="btn btn-gold" onClick={applyChanges}>
+                  Aplicar a tabla
+                </button>
+              )}
               <button className="btn btn-ghost" onClick={() => setTestIRM(null)}>
-                Cerrar
+                {hasChanges ? "Descartar" : "Cerrar"}
               </button>
             </div>
           </Modal>
