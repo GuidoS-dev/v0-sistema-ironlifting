@@ -26438,6 +26438,8 @@ function PageCalculadora({ coachId }) {
 
   // Suggestion state: { tablaKey, rIdx, pivotCol, pivotVal, suggested }
   const [suggestion, setSuggestion] = useState(null);
+  const [testIRM, setTestIRM] = useState(null);
+  const [testReps, setTestReps] = useState(14);
 
   // Auto-balance: fix pivot col, distribute remaining so IRM_calc = irm_nominal exactly
   // Uses two-col interpolation: finds two bracketing cols and splits weight between them
@@ -26537,6 +26539,7 @@ function PageCalculadora({ coachId }) {
               ))}
               <th style={{ textAlign: "center", width: 56 }}>Total</th>
               <th style={{ textAlign: "center", width: 64 }}>IRM calc.</th>
+              <th style={{ width: 36 }}></th>
             </tr>
           </thead>
           <tbody>
@@ -26694,6 +26697,27 @@ function PageCalculadora({ coachId }) {
                         </div>
                       );
                     })()}
+                  </td>
+                  <td style={{ textAlign: "center", padding: "3px 4px" }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setTestIRM({ tablaKey, row }); }}
+                      title="Testear distribución de reps"
+                      style={{
+                        background: "none",
+                        border: "1px solid var(--border)",
+                        borderRadius: 6,
+                        padding: "3px 7px",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        color: "var(--muted)",
+                        transition: "all .15s",
+                        lineHeight: 1,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold)"; e.currentTarget.style.color = "var(--gold)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
+                    >
+                      🧪
+                    </button>
                   </td>
                 </tr>
               );
@@ -27039,6 +27063,121 @@ function PageCalculadora({ coachId }) {
       <div className="card">
         {seccion === "irm" ? renderTablaIRM(tabIRM) : renderLookup(tabSR)}
       </div>
+
+      {/* Modal Testeo IRM */}
+      {testIRM && (() => {
+        const { tablaKey, row } = testIRM;
+        const tablaLabel = tablaKey === "tabla1" ? "Tabla 1" : tablaKey === "tabla2" ? "Tabla 2" : "Tabla 3";
+        const results = INTENS_COLS.map((col) => {
+          const tablaVal = row[String(col)] || 0;
+          const raw = (tablaVal * testReps) / 100;
+          const rounded = Math.round(raw);
+          return { col, tablaVal, raw, rounded };
+        });
+        const totalRounded = results.reduce((s, r) => s + r.rounded, 0);
+        return (
+          <Modal title={`🧪 Testeo IRM ${row.irm} — ${tablaLabel}`} onClose={() => setTestIRM(null)}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+                Simulá la distribución de repeticiones usando los valores actuales de esta fila.
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Repeticiones:</label>
+                <input
+                  name="field_test_irm_reps"
+                  autoFocus
+                  type="number"
+                  min={1}
+                  max={200}
+                  value={testReps}
+                  onChange={(e) => setTestReps(Math.max(1, Number(e.target.value) || 1))}
+                  style={{
+                    width: 72,
+                    background: "var(--surface2)",
+                    border: "1px solid var(--gold)",
+                    borderRadius: 6,
+                    color: "var(--text)",
+                    textAlign: "center",
+                    fontSize: 18,
+                    fontFamily: "'Bebas Neue'",
+                    padding: "6px 8px",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table className="norm-table" style={{ fontSize: 12, width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "center" }}>Intensidad</th>
+                    <th style={{ textAlign: "center" }}>% Tabla</th>
+                    <th style={{ textAlign: "center" }}>Cálculo</th>
+                    <th style={{ textAlign: "center" }}>Reps asignadas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((r) => (
+                    <tr key={r.col} style={{ opacity: r.tablaVal > 0 ? 1 : 0.3 }}>
+                      <td style={{ textAlign: "center", fontFamily: "'Bebas Neue'", fontSize: 15, color: "var(--gold)" }}>
+                        {r.col}%
+                      </td>
+                      <td style={{ textAlign: "center", color: "var(--muted)" }}>
+                        {r.tablaVal || "—"}
+                      </td>
+                      <td style={{ textAlign: "center", color: "var(--text)", fontSize: 11 }}>
+                        {r.tablaVal > 0 ? (
+                          <span>{r.tablaVal} × {testReps} / 100 = <span style={{ color: "var(--gold)" }}>{r.raw % 1 === 0 ? r.raw : r.raw.toFixed(2)}</span></span>
+                        ) : "—"}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <span style={{
+                          fontFamily: "'Bebas Neue'",
+                          fontSize: 17,
+                          color: r.rounded > 0 ? "var(--green)" : "var(--muted)",
+                          fontWeight: 700,
+                        }}>
+                          {r.rounded || "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: "2px solid var(--border)" }}>
+                    <td colSpan={3} style={{ textAlign: "right", fontWeight: 600, fontSize: 13, color: "var(--text)", paddingRight: 12 }}>
+                      Total reps asignadas:
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <span style={{
+                        fontFamily: "'Bebas Neue'",
+                        fontSize: 20,
+                        color: totalRounded === testReps ? "var(--green)" : "var(--gold)",
+                        fontWeight: 700,
+                      }}>
+                        {totalRounded}
+                      </span>
+                      {totalRounded !== testReps && (
+                        <span style={{ fontSize: 11, color: totalRounded > testReps ? "var(--red)" : "var(--gold)", marginLeft: 6 }}>
+                          ({totalRounded > testReps ? "+" : ""}{totalRounded - testReps} por redondeo)
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div style={{ marginTop: 14, fontSize: 11, color: "var(--muted)", lineHeight: 1.6 }}>
+              💡 Fórmula: <code style={{ background: "var(--surface2)", padding: "2px 6px", borderRadius: 4 }}>reps = Math.round(% × reps / 100)</code> — mismo redondeo que la tabla de turnos.
+            </div>
+            <div className="modal-footer" style={{ marginTop: 16 }}>
+              <button className="btn btn-ghost" onClick={() => setTestIRM(null)}>
+                Cerrar
+              </button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
