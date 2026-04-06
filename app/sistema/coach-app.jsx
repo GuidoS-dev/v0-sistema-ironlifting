@@ -10313,67 +10313,80 @@ function PlanillaPretemporada({
                   return (
                     <tr key={ej.id} style={{ background: eIdx % 2 === 0 ? "var(--surface2)" : "transparent" }}>
                       {/* REF — multi-ID con botones de enlace */}
-                      <td style={{ padding: "3px 4px", textAlign: "center", border: `1px solid ${col}40`, borderRadius: 5, background: `${col}0a`, verticalAlign: "middle" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
-                          {subEjs.map((sub, sIdx) => (
-                            <React.Fragment key={sIdx}>
-                              {/* Link button (before each non-first sub-exercise) */}
-                              {sIdx > 0 && (
-                                <button
-                                  onClick={() => cycleLink(eIdx, sIdx)}
-                                  title={sub.link === "+" ? "Secuencial (+): click para cambiar a combinado" : "Combinado (c): click para cambiar a secuencial"}
-                                  style={{
-                                    width: 18, height: 18, borderRadius: 4,
-                                    border: "none", cursor: "pointer", fontSize: 10, fontWeight: 900,
-                                    padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                                    background: sub.link === "c" ? "rgba(232,71,71,.2)" : "rgba(71,180,232,.2)",
-                                    color: sub.link === "c" ? "var(--red)" : "var(--blue)",
-                                    fontFamily: "'Bebas Neue'", lineHeight: 1,
-                                  }}
-                                >
-                                  {sub.link === "c" ? "C" : "+"}
-                                </button>
-                              )}
-                              {/* ID input */}
-                              <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-                                <input
-                                  name={`field_pt_ref_${eIdx}_${sIdx}`}
-                                  type="number"
-                                  min={1}
-                                  max={999}
-                                  className="no-spin"
-                                  value={sub.eid || ""}
-                                  placeholder="—"
-                                  onChange={(e) => setSubEjId(eIdx, sIdx, e.target.value)}
-                                  style={cellInput({
-                                    width: 32, fontFamily: "'Bebas Neue'", fontSize: 14,
-                                    color: (() => { const d = sub.eid ? normativos.find((x) => x.id === Number(sub.eid)) : null; return d ? CAT_COLOR[d.categoria] : "var(--muted)"; })(),
-                                  })}
-                                />
-                                {/* X to remove sub-exercise (only if more than 1) */}
-                                {subEjs.length > 1 && sIdx > 0 && (
+                      <td style={{ padding: "4px 4px", textAlign: "center", border: `1px solid ${col}40`, borderRadius: 5, background: `${col}0a`, verticalAlign: "middle" }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                          {subEjs.map((sub, sIdx) => {
+                            const subEjData = sub.eid ? normativos.find((x) => x.id === Number(sub.eid)) : null;
+                            const subCol = subEjData ? CAT_COLOR[subEjData.categoria] : "var(--border)";
+                            return (
+                              <React.Fragment key={sIdx}>
+                                {/* Link button between sub-exercises */}
+                                {sIdx > 0 && (
                                   <button
-                                    onClick={() => removeSubEj(eIdx, sIdx)}
-                                    title="Quitar este ejercicio"
-                                    style={{ position: "absolute", top: -4, right: -4, width: 12, height: 12, borderRadius: "50%", border: "none", background: "var(--red)", color: "#fff", cursor: "pointer", fontSize: 8, lineHeight: 1, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                                  >×</button>
+                                    onClick={() => cycleLink(eIdx, sIdx)}
+                                    title={sub.link === "+" ? "Secuencial (+): click para cambiar a combinado" : "Combinado (c): click para cambiar a secuencial"}
+                                    style={{
+                                      width: 20, height: 14, borderRadius: 3,
+                                      border: "none", cursor: "pointer", fontSize: 9, fontWeight: 900,
+                                      padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                                      background: sub.link === "c" ? "rgba(232,71,71,.25)" : "rgba(71,180,232,.25)",
+                                      color: sub.link === "c" ? "var(--red)" : "var(--blue)",
+                                      fontFamily: "'Bebas Neue'", lineHeight: 1, margin: "-1px 0",
+                                    }}
+                                  >
+                                    {sub.link === "c" ? "C" : "+"}
+                                  </button>
                                 )}
-                              </div>
-                            </React.Fragment>
-                          ))}
-                          {/* [-] button to add more */}
+                                {/* ID container */}
+                                <div style={{
+                                  position: "relative",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  width: 40, minHeight: 28,
+                                  borderRadius: 6,
+                                  border: `1.5px solid ${sub.eid ? subCol : "var(--border)"}`,
+                                  background: sub.eid ? `${subCol}12` : "var(--surface2)",
+                                  transition: "all .15s",
+                                }}>
+                                  <input
+                                    name={`field_pt_ref_${eIdx}_${sIdx}`}
+                                    type="number"
+                                    min={1}
+                                    max={999}
+                                    className="no-spin"
+                                    value={sub.eid || ""}
+                                    placeholder="—"
+                                    onChange={(e) => setSubEjId(eIdx, sIdx, e.target.value)}
+                                    style={cellInput({
+                                      width: 34, fontFamily: "'Bebas Neue'", fontSize: 15, fontWeight: 700,
+                                      color: subEjData ? subCol : "var(--muted)",
+                                      padding: "2px 0",
+                                    })}
+                                  />
+                                  {/* X to remove sub-exercise */}
+                                  {subEjs.length > 1 && sIdx > 0 && (
+                                    <button
+                                      onClick={() => removeSubEj(eIdx, sIdx)}
+                                      title="Quitar este ejercicio"
+                                      style={{ position: "absolute", top: -5, right: -5, width: 14, height: 14, borderRadius: "50%", border: "1.5px solid var(--surface1)", background: "var(--red)", color: "#fff", cursor: "pointer", fontSize: 8, lineHeight: 1, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}
+                                    >×</button>
+                                  )}
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
+                          {/* Button to add more sub-exercises */}
                           <button
                             onClick={() => addSubEj(eIdx)}
                             title="Agregar ejercicio a esta fila"
                             style={{
-                              width: 18, height: 18, borderRadius: 4,
+                              width: 40, height: 18, borderRadius: 4,
                               border: "1px dashed var(--border)", background: "transparent",
                               color: "var(--muted)", cursor: "pointer", fontSize: 11, fontWeight: 700,
                               padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                              lineHeight: 1,
+                              lineHeight: 1, opacity: 0.6,
                             }}
                           >
-                            −
+                            +
                           </button>
                         </div>
                       </td>
