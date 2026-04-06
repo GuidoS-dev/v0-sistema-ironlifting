@@ -10391,12 +10391,13 @@ function PlanillaPretemporada({
                         </div>
                       </td>
                       {/* Ejercicio nombre */}
-                      <td style={{ padding: "3px 6px", border: "1px solid var(--border)", borderRadius: 5, position: "relative", minWidth: 100 }}>
-                        <input
+                      <td style={{ padding: "6px 8px", border: "1px solid var(--border)", borderRadius: 6, position: "relative", minWidth: 160, maxWidth: 240, verticalAlign: "middle", background: "var(--surface2)" }}>
+                        <div style={{ fontSize: 9, color: "var(--muted)", fontFamily: "'DM Sans'", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 2, lineHeight: 1 }}>Ejercicio</div>
+                        <textarea
                           name={`field_pt_name_${eIdx}`}
-                          type="text"
                           value={displayName}
                           placeholder="Nombre del ejercicio"
+                          rows={2}
                           onChange={(e) => {
                             const val = e.target.value;
                             if (val === "") { setNombreCustom(eIdx, EMPTY_NAME_SENTINEL); return; }
@@ -10408,7 +10409,7 @@ function PlanillaPretemporada({
                               setNombreCustom(eIdx, "");
                             }
                           }}
-                          style={{ width: "100%", background: "transparent", border: "none", color: "var(--text)", fontSize: 11, outline: "none", padding: "2px 0", fontFamily: "'DM Sans'" }}
+                          style={{ width: "100%", background: "transparent", border: "none", color: "var(--text)", fontSize: 11, outline: "none", padding: "2px 0", fontFamily: "'DM Sans'", resize: "none", lineHeight: 1.3, overflow: "hidden" }}
                         />
                       </td>
                       {/* Bloques: % | S | R | Kg + nota */}
@@ -23539,8 +23540,8 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
             }
             numBloques={form.num_bloques_basica || 3}
             onBeforeChange={(forced) => pushSnap(forced)}
-            irm_arr={form.irm_arranque ?? 100}
-            irm_env={form.irm_envion ?? 200}
+            irm_arr={form.irm_arranque || 100}
+            irm_env={form.irm_envion || 200}
           />
         </div>
       )}
@@ -23578,8 +23579,8 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
             }
             numBloques={form.num_bloques_basica || 3}
             onBeforeChange={(forced) => pushSnap(forced)}
-            irm_arr={form.irm_arranque ?? 100}
-            irm_env={form.irm_envion ?? 200}
+            irm_arr={form.irm_arranque || 100}
+            irm_env={form.irm_envion || 200}
           />
         </div>
       )}
