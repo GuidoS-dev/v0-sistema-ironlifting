@@ -464,6 +464,7 @@ function buildMesoOverridesPayload(meso, liveOverrides = null) {
       escuela_nivel: meso.escuela_nivel ?? "1",
       num_bloques_basica: meso.num_bloques_basica ?? 3,
       distribucion: meso.distribucion ?? null,
+      pretemporada: meso.pretemporada ?? false,
     },
   };
 }
@@ -675,10 +676,19 @@ function mesoFromDb(r) {
     escuela_nivel: meta.escuela_nivel ?? "1",
     num_bloques_basica: meta.num_bloques_basica ?? 3,
     distribucion: meta.distribucion ?? null,
+    pretemporada: meta.pretemporada ?? false,
     _updated_at: r.updated_at || null,
   };
 }
 function plantillaToDb(p, coachId) {
+  const ovr = { ...(p.overrides || {}) };
+  ovr._meta = {
+    ...(ovr._meta || {}),
+    escuela: p.escuela ?? false,
+    escuela_nivel: p.escuela_nivel ?? "1",
+    num_bloques_basica: p.num_bloques_basica ?? 3,
+    pretemporada: p.pretemporada ?? false,
+  };
   return {
     coach_id: coachId,
     app_id: p.id,
@@ -694,11 +704,12 @@ function plantillaToDb(p, coachId) {
     duracion_semanas: p.duracion_semanas || null,
     irm_arranque: p.irm_arranque || null,
     irm_envion: p.irm_envion || null,
-    overrides: p.overrides || {},
+    overrides: ovr,
     updated_at: new Date().toISOString(),
   };
 }
 function plantillaFromDb(r) {
+  const meta = (r.overrides || {})._meta || {};
   return {
     id: r.app_id,
     nombre: r.nombre,
@@ -714,6 +725,10 @@ function plantillaFromDb(r) {
     irm_arranque: r.irm_arranque,
     irm_envion: r.irm_envion,
     overrides: r.overrides || {},
+    escuela: meta.escuela ?? r.escuela ?? false,
+    escuela_nivel: meta.escuela_nivel ?? r.escuela_nivel ?? "1",
+    num_bloques_basica: meta.num_bloques_basica ?? r.num_bloques_basica ?? 3,
+    pretemporada: meta.pretemporada ?? r.pretemporada ?? false,
     creado: r.created_at?.slice(0, 10),
     _updated_at: r.updated_at || null,
   };
@@ -1821,6 +1836,28 @@ const mkSemanasBasica = (numSem = 4, numBloques = 3) =>
     id: mkId(),
     numero: i + 1,
     turnos: mkTurnosBasica(numBloques),
+  }));
+
+// ── Pretemporada helpers ────────────────────────────────────────────────────
+const mkEjPretemp = (n = 3) => ({
+  id: mkId(),
+  ejercicio_ids: [{ eid: null, link: "-" }],
+  nombre_custom: "",
+  bloques: Array.from({ length: n }, mkBloqueBasica),
+});
+const mkTurnosPretemp = (n = 3) =>
+  Array.from({ length: 3 }, (_, i) => ({
+    id: mkId(),
+    numero: i + 1,
+    dia: "",
+    momento: "",
+    ejercicios: Array.from({ length: 6 }, () => mkEjPretemp(n)),
+  }));
+const mkSemanasPretemp = (numSem = 4, numBloques = 3) =>
+  Array.from({ length: numSem }, (_, i) => ({
+    id: mkId(),
+    numero: i + 1,
+    turnos: mkTurnosPretemp(numBloques),
   }));
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
@@ -3072,12 +3109,14 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
       escuela: false,
       escuela_nivel: "1",
       num_bloques_basica: 3,
+      pretemporada: false,
       semanas: mkSemanas(),
     },
   );
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const esEscuela = form.escuela === true || form.escuela === "true";
-  const totalPct = esEscuela
+  const esPretemp = form.pretemporada === true || form.pretemporada === "true";
+  const totalPct = esEscuela || esPretemp
     ? 100
     : form.semanas.reduce((s, sem) => s + Number(sem.pct_volumen), 0);
   const [showPicker, setShowPicker] = useState(false);
@@ -3104,6 +3143,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
   const confirmApply = (plt, opts) => {
     if (plt.tipo === "meso" && plt.semanas) {
       const esEscuela = plt.escuela === true || plt.escuela === "true";
+      const esPretemp = plt.pretemporada === true || plt.pretemporada === "true";
       if (esEscuela) {
         // Plantilla escuela: preservar estructura de bloques tal cual
         const newSemanas = plt.semanas.map((s) => ({
@@ -3126,6 +3166,36 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           nombre: f.nombre || plt.nombre,
           escuela: true,
           escuela_nivel: plt.escuela_nivel || "1",
+          num_bloques_basica: plt.num_bloques_basica || 3,
+          ...(opts.irm
+            ? {
+                irm_arranque: plt.irm_arranque || "",
+                irm_envion: plt.irm_envion || "",
+              }
+            : {}),
+          semanas: newSemanas,
+        }));
+      } else if (esPretemp) {
+        // Plantilla pretemporada: preservar estructura con ejercicio_ids
+        const newSemanas = plt.semanas.map((s) => ({
+          id: mkId(),
+          numero: s.numero,
+          turnos: (s.turnos || []).map((t) => ({
+            id: mkId(),
+            dia: t.dia,
+            momento: t.momento,
+            ejercicios: (t.ejercicios || []).map((e) => ({
+              id: mkId(),
+              ejercicio_ids: (e.ejercicio_ids || [{ eid: e.ejercicio_id, link: "-" }]).map((sub) => ({ ...sub })),
+              nombre_custom: e.nombre_custom || "",
+              bloques: (e.bloques || []).map((b) => ({ ...b })),
+            })),
+          })),
+        }));
+        setForm((f) => ({
+          ...f,
+          nombre: f.nombre || plt.nombre,
+          pretemporada: true,
           num_bloques_basica: plt.num_bloques_basica || 3,
           ...(opts.irm
             ? {
@@ -3314,6 +3384,70 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           />
         </div>
       </div>
+      <datalist id="irm-values">
+        {IRM_VALUES.map((v) => (
+          <option key={v} value={v} />
+        ))}
+      </datalist>
+      {/* ── Selector de tipo de planilla ── */}
+      {!meso && (
+        <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+          {[
+            { key: "regular", label: "Regular", color: "var(--gold)" },
+            { key: "escuela", label: "Escuela Inicial", color: "#4db6ac" },
+            { key: "pretemporada", label: "Pretemporada", color: "#ff9800" },
+          ].map((opt) => {
+            const active =
+              opt.key === "escuela" ? esEscuela :
+              opt.key === "pretemporada" ? esPretemp :
+              !esEscuela && !esPretemp;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => {
+                  if (opt.key === "escuela") {
+                    setForm((f) => ({
+                      ...f,
+                      escuela: true,
+                      pretemporada: false,
+                      semanas: mkSemanasBasica(4, f.num_bloques_basica || 3),
+                    }));
+                  } else if (opt.key === "pretemporada") {
+                    setForm((f) => ({
+                      ...f,
+                      escuela: false,
+                      pretemporada: true,
+                      semanas: mkSemanasPretemp(4, f.num_bloques_basica || 3),
+                    }));
+                  } else {
+                    setForm((f) => ({
+                      ...f,
+                      escuela: false,
+                      pretemporada: false,
+                      semanas: mkSemanas(),
+                    }));
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: "7px 10px",
+                  borderRadius: 8,
+                  border: active ? `2px solid ${opt.color}` : "1px solid var(--border)",
+                  background: active ? `${opt.color}18` : "var(--surface2)",
+                  color: active ? opt.color : "var(--muted)",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  transition: "all .15s",
+                  fontFamily: "'DM Sans'",
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {esEscuela ? (
         <div
           style={{
@@ -3327,6 +3461,19 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
         >
           Planilla Escuela Inicial · Nivel {form.escuela_nivel} ·{" "}
           {form.semanas?.length} semanas
+        </div>
+      ) : esPretemp ? (
+        <div
+          style={{
+            padding: "10px 14px",
+            background: "rgba(232,197,71,.08)",
+            border: "1px solid rgba(232,197,71,.3)",
+            borderRadius: 8,
+            fontSize: 12,
+            color: "var(--gold)",
+          }}
+        >
+          Planilla Pretemporada · {form.semanas?.length} semanas
         </div>
       ) : (
         <>
@@ -3405,7 +3552,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           className="btn btn-gold"
           onClick={() =>
             onSave(
-              esEscuela
+              esEscuela || esPretemp
                 ? form
                 : {
                     ...form,
@@ -9737,6 +9884,647 @@ function PlanillaBasica({
                       </div>
                     ),
                 )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Planilla Pretemporada ────────────────────────────────────────────────────
+// Similar a PlanillaBasica pero con soporte multi-ejercicio por fila.
+// Cada ejercicio tiene ejercicio_ids: [{eid, link}] donde link es "-", "+" o "c".
+function PlanillaPretemporada({
+  semanas,
+  onChange,
+  numBloques = 3,
+  onBeforeChange,
+  irm_arr = 100,
+  irm_env = 200,
+  normativos: normativosProp = null,
+}) {
+  const [semActiva, setSemActiva] = useState(0);
+  const [turnoActivo, setTurnoActivo] = useState(0);
+
+  const normativos =
+    normativosProp ??
+    (() => {
+      try {
+        return (
+          JSON.parse(localStorage.getItem("liftplan_normativos") || "null") ||
+          EJERCICIOS
+        );
+      } catch {
+        return EJERCICIOS;
+      }
+    })();
+
+  const sem = semanas[semActiva];
+  const turno = sem?.turnos[turnoActivo];
+  const ejs = turno?.ejercicios || [];
+
+  const _bc = () => {
+    try {
+      if (onBeforeChange) onBeforeChange();
+    } catch {}
+  };
+
+  // Calc kg using LOWEST pct_base among all ejercicio_ids with normativos
+  const calcKgPretemp = (ejercicio_ids, pct) => {
+    if (!ejercicio_ids || !ejercicio_ids.length || !pct) return null;
+    let lowestKgBase = null;
+    for (const { eid } of ejercicio_ids) {
+      if (!eid) continue;
+      const ejData = normativos.find((e) => e.id === Number(eid));
+      if (!ejData || !ejData.pct_base) continue;
+      const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+      if (!irm) continue;
+      const kgBase = (irm * ejData.pct_base) / 100;
+      if (lowestKgBase === null || kgBase < lowestKgBase) lowestKgBase = kgBase;
+    }
+    if (lowestKgBase === null) return null;
+    return Math.round(((lowestKgBase * pct) / 100) * 2) / 2;
+  };
+
+  const updateSemanas = (updater, extraFormUpdates) => {
+    _bc();
+    const next =
+      typeof updater === "function"
+        ? updater(JSON.parse(JSON.stringify(semanas)))
+        : updater;
+    onChange(next, extraFormUpdates);
+  };
+
+  const updateBloque = (ejIdx, bIdx, field, value) => {
+    updateSemanas((ss) => {
+      const ej = ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx];
+      if (!ej.bloques)
+        ej.bloques = Array.from({ length: numBloques }, mkBloqueBasica);
+      if (field === "pct") {
+        const newPct = value === "" ? null : Number(value);
+        const autoKg = calcKgPretemp(ej.ejercicio_ids, newPct);
+        ej.bloques[bIdx] = { ...ej.bloques[bIdx], pct: newPct, kg: autoKg };
+      } else if (field === "nota") {
+        ej.bloques[bIdx] = { ...ej.bloques[bIdx], nota: value };
+      } else {
+        ej.bloques[bIdx] = {
+          ...ej.bloques[bIdx],
+          [field]: value === "" ? null : isNaN(Number(value)) ? value : Number(value),
+        };
+      }
+      return ss;
+    });
+  };
+
+  const setSubEjId = (ejIdx, subIdx, newId) => {
+    updateSemanas((ss) => {
+      const ej = ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx];
+      if (!ej.ejercicio_ids) ej.ejercicio_ids = [{ eid: null, link: "-" }];
+      ej.ejercicio_ids[subIdx] = { ...ej.ejercicio_ids[subIdx], eid: newId ? Number(newId) : null };
+      // Recalculate kg for all blocks
+      if (ej.bloques) {
+        ej.bloques.forEach((b) => {
+          if (b.pct) b.kg = calcKgPretemp(ej.ejercicio_ids, b.pct);
+        });
+      }
+      return ss;
+    });
+  };
+
+  const addSubEj = (ejIdx) => {
+    updateSemanas((ss) => {
+      const ej = ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx];
+      if (!ej.ejercicio_ids) ej.ejercicio_ids = [{ eid: null, link: "-" }];
+      // Change last "-" to "+"
+      const last = ej.ejercicio_ids[ej.ejercicio_ids.length - 1];
+      if (last.link === "-") last.link = "+";
+      ej.ejercicio_ids.push({ eid: null, link: "-" });
+      return ss;
+    });
+  };
+
+  const removeSubEj = (ejIdx, subIdx) => {
+    updateSemanas((ss) => {
+      const ej = ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx];
+      if (!ej.ejercicio_ids || ej.ejercicio_ids.length <= 1) return ss;
+      ej.ejercicio_ids.splice(subIdx, 1);
+      // First element always has link "-"
+      ej.ejercicio_ids[0].link = "-";
+      // Last element always has link "-"
+      ej.ejercicio_ids[ej.ejercicio_ids.length - 1].link = "-";
+      // Recalculate kg
+      if (ej.bloques) {
+        ej.bloques.forEach((b) => {
+          if (b.pct) b.kg = calcKgPretemp(ej.ejercicio_ids, b.pct);
+        });
+      }
+      return ss;
+    });
+  };
+
+  const cycleLink = (ejIdx, subIdx) => {
+    updateSemanas((ss) => {
+      const ej = ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx];
+      const sub = ej.ejercicio_ids[subIdx];
+      sub.link = sub.link === "+" ? "c" : "+";
+      return ss;
+    });
+  };
+
+  const setNombreCustom = (ejIdx, nombre) => {
+    updateSemanas((ss) => {
+      ss[semActiva].turnos[turnoActivo].ejercicios[ejIdx].nombre_custom = nombre;
+      return ss;
+    });
+  };
+
+  const addEjercicio = () => {
+    updateSemanas((ss) => {
+      ss[semActiva].turnos[turnoActivo].ejercicios.push(mkEjPretemp(numBloques));
+      return ss;
+    });
+  };
+
+  const removeEjercicio = (ejIdx) => {
+    if (ejs.length <= 1) return;
+    updateSemanas((ss) => {
+      ss[semActiva].turnos[turnoActivo].ejercicios.splice(ejIdx, 1);
+      return ss;
+    });
+  };
+
+  const addTurno = () => {
+    updateSemanas((ss) => {
+      const s = ss[semActiva];
+      s.turnos.push({
+        id: mkId(),
+        numero: s.turnos.length + 1,
+        dia: "",
+        momento: "",
+        ejercicios: Array.from({ length: 6 }, () => mkEjPretemp(numBloques)),
+      });
+      return ss;
+    });
+  };
+
+  const removeTurno = () => {
+    if (!sem || sem.turnos.length <= 1) return;
+    updateSemanas((ss) => {
+      ss[semActiva].turnos.splice(turnoActivo, 1);
+      ss[semActiva].turnos.forEach((t, i) => { t.numero = i + 1; });
+      return ss;
+    });
+    setTurnoActivo((v) => Math.max(0, Math.min(v, (sem?.turnos.length || 2) - 2)));
+  };
+
+  const addSemana = () => {
+    updateSemanas((ss) => {
+      ss.push({
+        id: mkId(),
+        numero: ss.length + 1,
+        turnos: mkTurnosPretemp(numBloques),
+      });
+      return ss;
+    });
+  };
+
+  const removeSemana = () => {
+    if (semanas.length <= 1) return;
+    updateSemanas((ss) => {
+      ss.splice(semActiva, 1);
+      ss.forEach((s, i) => { s.numero = i + 1; });
+      return ss;
+    });
+    setSemActiva((v) => Math.max(0, Math.min(v, semanas.length - 2)));
+    setTurnoActivo(0);
+  };
+
+  const addBloqueCol = () => {
+    const newNum = numBloques + 1;
+    updateSemanas(
+      (ss) => {
+        ss.forEach((s) =>
+          s.turnos.forEach((t) =>
+            t.ejercicios.forEach((e) => {
+              if (!e.bloques) e.bloques = Array.from({ length: numBloques }, mkBloqueBasica);
+              e.bloques.push(mkBloqueBasica());
+            }),
+          ),
+        );
+        return ss;
+      },
+      { num_bloques_basica: newNum },
+    );
+  };
+
+  const removeBloqueCol = (bIdx) => {
+    if (numBloques <= 1) return;
+    updateSemanas(
+      (ss) => {
+        ss.forEach((s) =>
+          s.turnos.forEach((t) =>
+            t.ejercicios.forEach((e) => {
+              if (e.bloques && e.bloques.length > bIdx) e.bloques.splice(bIdx, 1);
+            }),
+          ),
+        );
+        return ss;
+      },
+      { num_bloques_basica: numBloques - 1 },
+    );
+  };
+
+  const moveEj = (ejIdx, dir) => {
+    const tgt = ejIdx + dir;
+    if (tgt < 0 || tgt >= ejs.length) return;
+    updateSemanas((ss) => {
+      const arr = ss[semActiva].turnos[turnoActivo].ejercicios;
+      [arr[ejIdx], arr[tgt]] = [arr[tgt], arr[ejIdx]];
+      return ss;
+    });
+  };
+
+  const copiarTurnoATodasSemanas = () => {
+    if (!turno) return;
+    updateSemanas((ss) => {
+      const turnoBase = JSON.parse(JSON.stringify(turno));
+      ss.forEach((s, sIdx) => {
+        if (sIdx === semActiva) return;
+        while (s.turnos.length <= turnoActivo) {
+          s.turnos.push({
+            id: mkId(),
+            numero: s.turnos.length + 1,
+            dia: "",
+            momento: "",
+            ejercicios: Array.from({ length: 6 }, () => mkEjPretemp(numBloques)),
+          });
+        }
+        const copy = JSON.parse(JSON.stringify(turnoBase));
+        copy.id = s.turnos[turnoActivo].id;
+        copy.numero = turnoActivo + 1;
+        s.turnos[turnoActivo] = copy;
+      });
+      return ss;
+    });
+  };
+
+  const cellInput = (extra = {}) => ({
+    width: "100%",
+    background: "transparent",
+    border: "none",
+    fontFamily: "'Bebas Neue'",
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 1.2,
+    outline: "none",
+    padding: "3px 2px",
+    color: "var(--text)",
+    MozAppearance: "textfield",
+    appearance: "textfield",
+    ...extra,
+  });
+
+  // Build auto-name from ejercicio_ids
+  const buildAutoName = (ejercicio_ids) => {
+    if (!ejercicio_ids || !ejercicio_ids.length) return "";
+    return ejercicio_ids
+      .map((sub, i) => {
+        const ejData = sub.eid ? normativos.find((e) => e.id === Number(sub.eid)) : null;
+        const name = ejData?.nombre || "";
+        if (i === 0) return name;
+        const sep = sub.link === "c" ? " c/ " : " + ";
+        return sep + name;
+      })
+      .join("");
+  };
+
+  if (!sem) return null;
+
+  return (
+    <div>
+      {/* ── Semana tabs ── */}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8, alignItems: "center" }}>
+        {semanas.map((s, i) => (
+          <button
+            key={s.id}
+            className={`semana-tab${semActiva === i ? " active" : ""}`}
+            onClick={() => { setSemActiva(i); setTurnoActivo(0); }}
+          >
+            Semana {s.numero}
+          </button>
+        ))}
+        <button
+          onClick={addSemana}
+          style={{ width: 28, height: 28, borderRadius: "50%", border: "1px dashed var(--border)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
+        >
+          +
+        </button>
+        {semanas.length > 1 && (
+          <button
+            onClick={removeSemana}
+            title="Eliminar semana actual"
+            style={{ width: 28, height: 28, borderRadius: "50%", border: "1px dashed var(--border)", background: "transparent", color: "var(--red)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
+          >
+            −
+          </button>
+        )}
+      </div>
+
+      {/* ── Turno tabs ── */}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+        {sem.turnos.map((t, i) => (
+          <button
+            key={t.id}
+            onClick={() => setTurnoActivo(i)}
+            style={{
+              padding: "4px 12px", borderRadius: 6, border: "none",
+              background: turnoActivo === i ? "var(--gold)" : "var(--surface3)",
+              color: turnoActivo === i ? "#000" : "var(--text)",
+              fontFamily: "'Bebas Neue'", fontSize: 14, cursor: "pointer", letterSpacing: ".04em",
+            }}
+          >
+            T{i + 1}{t.dia ? ` · ${t.dia.slice(0, 3)}` : ""}
+          </button>
+        ))}
+        <button onClick={addTurno} style={{ width: 24, height: 24, borderRadius: "50%", border: "1px dashed var(--border)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>+</button>
+        {sem.turnos.length > 1 && (
+          <button onClick={removeTurno} title="Eliminar turno actual" style={{ width: 24, height: 24, borderRadius: "50%", border: "1px dashed var(--border)", background: "transparent", color: "var(--red)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>−</button>
+        )}
+        <button onClick={copiarTurnoATodasSemanas} title="Copiar este turno a todas las semanas" style={{ marginLeft: 8, padding: "3px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface2)", color: "var(--muted)", cursor: "pointer", fontSize: 10, fontFamily: "'DM Sans'", fontWeight: 600 }}>Copiar a todas las semanas</button>
+      </div>
+
+      {/* ── Header del turno ── */}
+      {turno && (
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <div style={{ fontFamily: "'Bebas Neue'", fontSize: 20, color: "var(--gold)" }}>Semana {sem.numero} — Turno {turnoActivo + 1}</div>
+            <select name="field_pt_day" value={turno.dia || ""} onChange={(e) => { updateSemanas((ss) => { ss[semActiva].turnos[turnoActivo].dia = e.target.value; return ss; }); }} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", color: "var(--text)", fontSize: 11, fontFamily: "'DM Sans'" }}>
+              <option value="">Día</option>
+              {["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"].map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select name="field_pt_mom" value={turno.momento || ""} onChange={(e) => { updateSemanas((ss) => { ss[semActiva].turnos[turnoActivo].momento = e.target.value; return ss; }); }} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", color: "var(--text)", fontSize: 11, fontFamily: "'DM Sans'" }}>
+              <option value="">Momento</option>
+              {["Mañana","Tarde","Noche"].map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          {/* ── Tabla de ejercicios ── */}
+          <div style={{ overflowX: "auto" }}>
+            <table className="planilla-tabla" style={{ borderCollapse: "separate", borderSpacing: "2px 2px", width: "100%" }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: "5px 6px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 5, textAlign: "center", fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", minWidth: 80 }}>REF</th>
+                  <th style={{ padding: "5px 6px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 5, fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", minWidth: 100 }}>EJERCICIO</th>
+                  {Array.from({ length: numBloques }).map((_, bIdx) => (
+                    <th key={bIdx} style={{ padding: "3px 4px", background: "rgba(232,197,71,.08)", border: "1px solid rgba(232,197,71,.3)", borderRadius: 5, textAlign: "center", fontSize: 9, color: "var(--gold)", fontWeight: 700 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 0, flex: 1 }}>
+                          {["%", "S", "R", "Kg"].map((l) => <div key={l} style={{ fontSize: 8, color: "var(--muted)", textAlign: "center", fontWeight: 700 }}>{l}</div>)}
+                        </div>
+                        {numBloques > 1 && (
+                          <button onClick={() => removeBloqueCol(bIdx)} style={{ width: 14, height: 14, borderRadius: "50%", border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0, flexShrink: 0 }} title="Eliminar esta columna de %">×</button>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                  <th style={{ padding: "3px 4px", background: "rgba(232,197,71,.08)", border: "1px solid rgba(232,197,71,.3)", borderRadius: 5, textAlign: "center", fontSize: 9, color: "var(--gold)", fontWeight: 700 }}>VOL<br/>REPs</th>
+                  <th style={{ padding: "3px 4px", background: "rgba(71,180,232,.08)", border: "1px solid rgba(71,180,232,.3)", borderRadius: 5, textAlign: "center", fontSize: 9, color: "var(--blue)", fontWeight: 700 }}>VOL<br/>Kg</th>
+                  <th style={{ padding: "3px 4px", background: "rgba(71,232,160,.05)", border: "1px solid rgba(71,232,160,.2)", borderRadius: 5, textAlign: "center", fontSize: 9, color: "var(--green)", fontWeight: 700 }}>Peso<br/>Medio</th>
+                  <th style={{ padding: "3px 4px", background: "rgba(155,135,232,.05)", border: "1px solid rgba(155,135,232,.2)", borderRadius: 5, textAlign: "center", fontSize: 9, color: "#9b87e8", fontWeight: 700 }}>Int<br/>Media</th>
+                  <th style={{ padding: "3px 4px", background: "var(--surface2)", border: "1px dashed var(--border)", borderRadius: 5, width: 30 }}>
+                    <button onClick={addBloqueCol} title="Agregar columna de %" style={{ width: "100%", background: "transparent", border: "none", color: "var(--gold)", cursor: "pointer", fontSize: 13, fontWeight: 700, padding: 0 }}>+ %</button>
+                  </th>
+                  <th style={{ width: 26 }} />
+                </tr>
+              </thead>
+              <tbody>
+                {ejs.map((ej, eIdx) => {
+                  const subEjs = ej.ejercicio_ids || [{ eid: ej.ejercicio_id || null, link: "-" }];
+                  // Find lowest pct_base for color
+                  const firstEid = subEjs.find((s) => s.eid)?.eid;
+                  const firstEjData = firstEid ? normativos.find((e) => e.id === Number(firstEid)) : null;
+                  const col = firstEjData ? CAT_COLOR[firstEjData.categoria] : "var(--border)";
+                  const bloques = ej.bloques || Array.from({ length: numBloques }, mkBloqueBasica);
+                  const autoName = buildAutoName(subEjs);
+                  const displayName = resolveExerciseName(ej.nombre_custom, autoName);
+
+                  return (
+                    <tr key={ej.id} style={{ background: eIdx % 2 === 0 ? "var(--surface2)" : "transparent" }}>
+                      {/* REF — multi-ID con botones de enlace */}
+                      <td style={{ padding: "3px 4px", textAlign: "center", border: `1px solid ${col}40`, borderRadius: 5, background: `${col}0a`, verticalAlign: "middle" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
+                          {subEjs.map((sub, sIdx) => (
+                            <React.Fragment key={sIdx}>
+                              {/* Link button (before each non-first sub-exercise) */}
+                              {sIdx > 0 && (
+                                <button
+                                  onClick={() => cycleLink(eIdx, sIdx)}
+                                  title={sub.link === "+" ? "Secuencial (+): click para cambiar a combinado" : "Combinado (c): click para cambiar a secuencial"}
+                                  style={{
+                                    width: 18, height: 18, borderRadius: 4,
+                                    border: "none", cursor: "pointer", fontSize: 10, fontWeight: 900,
+                                    padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                                    background: sub.link === "c" ? "rgba(232,71,71,.2)" : "rgba(71,180,232,.2)",
+                                    color: sub.link === "c" ? "var(--red)" : "var(--blue)",
+                                    fontFamily: "'Bebas Neue'", lineHeight: 1,
+                                  }}
+                                >
+                                  {sub.link === "c" ? "C" : "+"}
+                                </button>
+                              )}
+                              {/* ID input */}
+                              <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                                <input
+                                  name={`field_pt_ref_${eIdx}_${sIdx}`}
+                                  type="number"
+                                  min={1}
+                                  max={999}
+                                  className="no-spin"
+                                  value={sub.eid || ""}
+                                  placeholder="—"
+                                  onChange={(e) => setSubEjId(eIdx, sIdx, e.target.value)}
+                                  style={cellInput({
+                                    width: 32, fontFamily: "'Bebas Neue'", fontSize: 14,
+                                    color: (() => { const d = sub.eid ? normativos.find((x) => x.id === Number(sub.eid)) : null; return d ? CAT_COLOR[d.categoria] : "var(--muted)"; })(),
+                                  })}
+                                />
+                                {/* X to remove sub-exercise (only if more than 1) */}
+                                {subEjs.length > 1 && sIdx > 0 && (
+                                  <button
+                                    onClick={() => removeSubEj(eIdx, sIdx)}
+                                    title="Quitar este ejercicio"
+                                    style={{ position: "absolute", top: -4, right: -4, width: 12, height: 12, borderRadius: "50%", border: "none", background: "var(--red)", color: "#fff", cursor: "pointer", fontSize: 8, lineHeight: 1, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                                  >×</button>
+                                )}
+                              </div>
+                            </React.Fragment>
+                          ))}
+                          {/* [-] button to add more */}
+                          <button
+                            onClick={() => addSubEj(eIdx)}
+                            title="Agregar ejercicio a esta fila"
+                            style={{
+                              width: 18, height: 18, borderRadius: 4,
+                              border: "1px dashed var(--border)", background: "transparent",
+                              color: "var(--muted)", cursor: "pointer", fontSize: 11, fontWeight: 700,
+                              padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                              lineHeight: 1,
+                            }}
+                          >
+                            −
+                          </button>
+                        </div>
+                      </td>
+                      {/* Ejercicio nombre */}
+                      <td style={{ padding: "3px 6px", border: "1px solid var(--border)", borderRadius: 5, position: "relative", minWidth: 100 }}>
+                        <input
+                          name={`field_pt_name_${eIdx}`}
+                          type="text"
+                          value={displayName}
+                          placeholder="Nombre del ejercicio"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "") { setNombreCustom(eIdx, EMPTY_NAME_SENTINEL); return; }
+                            if (val === autoName) { setNombreCustom(eIdx, ""); } else { setNombreCustom(eIdx, val); }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Backspace" && e.currentTarget.value === "" && ej.nombre_custom === EMPTY_NAME_SENTINEL) {
+                              e.preventDefault();
+                              setNombreCustom(eIdx, "");
+                            }
+                          }}
+                          style={{ width: "100%", background: "transparent", border: "none", color: "var(--text)", fontSize: 11, outline: "none", padding: "2px 0", fontFamily: "'DM Sans'" }}
+                        />
+                      </td>
+                      {/* Bloques: % | S | R | Kg + nota */}
+                      {bloques.slice(0, numBloques).map((b, bIdx) => {
+                        const hasNota = b.nota && b.nota.trim() !== "";
+                        const hasData = b.pct || b.series || b.reps;
+                        return (
+                          <td key={bIdx} style={{ padding: "2px 3px", textAlign: "center", background: "rgba(232,197,71,.04)", border: `1px solid ${hasNota ? "var(--muted)" : "rgba(232,197,71,.15)"}`, borderRadius: 5, position: "relative" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 0 }}>
+                              <input name={`field_pt_pct_${eIdx}_${bIdx}`} type="number" className="no-spin" value={b.pct ?? ""} placeholder="%" onChange={(e) => updateBloque(eIdx, bIdx, "pct", e.target.value)} style={cellInput({ fontSize: 13, color: "var(--gold)" })} />
+                              <input name={`field_pt_s_${eIdx}_${bIdx}`} type="text" className="no-spin" value={b.series ?? ""} placeholder="—" onChange={(e) => {
+                                const raw = e.target.value;
+                                updateSemanas((ss) => {
+                                  const ej2 = ss[semActiva].turnos[turnoActivo].ejercicios[eIdx];
+                                  if (!ej2.bloques) ej2.bloques = Array.from({ length: numBloques }, mkBloqueBasica);
+                                  ej2.bloques[bIdx] = { ...ej2.bloques[bIdx], series: raw === "" ? null : isNaN(Number(raw)) ? raw : Number(raw) };
+                                  return ss;
+                                });
+                              }} style={cellInput()} />
+                              <input name={`field_pt_r_${eIdx}_${bIdx}`} type="number" className="no-spin" value={b.reps ?? ""} placeholder="—" onChange={(e) => updateBloque(eIdx, bIdx, "reps", e.target.value)} style={cellInput()} />
+                              <input name={`field_pt_kg_${eIdx}_${bIdx}`} type="number" step="0.5" className="no-spin" value={calcKgPretemp(subEjs, b.pct) ?? b.kg ?? ""} readOnly style={cellInput({ color: "var(--muted)", fontSize: 12 })} />
+                            </div>
+                            <input name={`field_pt_nota_${eIdx}_${bIdx}`} type="text" value={b.nota || ""} placeholder="…" onChange={(e) => updateBloque(eIdx, bIdx, "nota", e.target.value)} title="Aclaración" style={{ display: hasData || hasNota ? "block" : "none", width: "100%", background: "transparent", border: "none", borderTop: hasNota ? "1px solid var(--border)" : "none", color: "var(--muted)", fontSize: 9, textAlign: "center", outline: "none", padding: "2px 0 0", fontFamily: "'DM Sans'", marginTop: 2 }} />
+                          </td>
+                        );
+                      })}
+                      {/* Stats: VOL REPs, VOL Kg, Peso Medio, Int Media */}
+                      {(() => {
+                        let volReps = 0, volKg = 0;
+                        (bloques || []).slice(0, numBloques).forEach((b) => {
+                          if (!b.series && !b.reps) return;
+                          const s = typeof b.series === "string" && b.series.includes("+")
+                            ? b.series.split("+").reduce((a, v) => a + Number(v), 0) : Number(b.series) || 0;
+                          const r = Number(b.reps) || 0;
+                          const kg = Number(calcKgPretemp(subEjs, b.pct) ?? b.kg ?? 0);
+                          volReps += s * r;
+                          volKg += s * r * kg;
+                        });
+                        const pesoMedio = volReps > 0 ? Math.round((volKg / volReps) * 2) / 2 : null;
+                        // Int media: use lowest pct_base
+                        let intMedia = null;
+                        if (volReps > 0 && volKg > 0) {
+                          let lowestKgBase = null;
+                          for (const { eid } of subEjs) {
+                            if (!eid) continue;
+                            const ejD = normativos.find((e) => e.id === Number(eid));
+                            if (!ejD || !ejD.pct_base) continue;
+                            const irm = ejD.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+                            if (!irm) continue;
+                            const kb = (irm * ejD.pct_base) / 100;
+                            if (lowestKgBase === null || kb < lowestKgBase) lowestKgBase = kb;
+                          }
+                          if (lowestKgBase) intMedia = Math.round((volKg / volReps / lowestKgBase) * 100);
+                        }
+                        return (
+                          <>
+                            <td style={{ padding: "5px 6px", textAlign: "center", background: "rgba(232,197,71,.06)", border: "1px solid rgba(232,197,71,.2)", borderRadius: 5 }}>
+                              <div style={{ fontFamily: "'Bebas Neue'", fontSize: 16, color: "var(--gold)", lineHeight: 1 }}>{volReps > 0 ? volReps : "—"}</div>
+                            </td>
+                            <td style={{ padding: "5px 6px", textAlign: "center", background: "rgba(71,180,232,.06)", border: "1px solid rgba(71,180,232,.2)", borderRadius: 5 }}>
+                              <div style={{ fontFamily: "'Bebas Neue'", fontSize: 16, color: "var(--blue)", lineHeight: 1 }}>{volKg > 0 ? Number.isInteger(volKg) ? volKg : volKg.toFixed(1) : "—"}</div>
+                            </td>
+                            <td style={{ padding: "5px 6px", textAlign: "center", background: "rgba(71,232,160,.05)", border: "1px solid rgba(71,232,160,.2)", borderRadius: 5 }}>
+                              <div style={{ fontFamily: "'Bebas Neue'", fontSize: 16, color: "var(--green)", lineHeight: 1 }}>{pesoMedio !== null ? pesoMedio % 1 === 0 ? pesoMedio : pesoMedio.toFixed(1) : "—"}</div>
+                            </td>
+                            <td style={{ padding: "5px 6px", textAlign: "center", background: "rgba(155,135,232,.05)", border: "1px solid rgba(155,135,232,.2)", borderRadius: 5 }}>
+                              <div style={{ fontFamily: "'Bebas Neue'", fontSize: 16, color: "#9b87e8", lineHeight: 1 }}>{intMedia !== null ? intMedia + "%" : "—"}</div>
+                            </td>
+                          </>
+                        );
+                      })()}
+                      <td style={{ border: "none" }} />
+                      {/* Actions */}
+                      <td style={{ padding: 0, textAlign: "center", border: "none" }}>
+                        <div style={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                          {eIdx > 0 && <button onClick={() => moveEj(eIdx, -1)} title="Mover arriba" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 10, padding: "2px" }}>▲</button>}
+                          {eIdx < ejs.length - 1 && <button onClick={() => moveEj(eIdx, 1)} title="Mover abajo" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 10, padding: "2px" }}>▼</button>}
+                          <button onClick={() => removeEjercicio(eIdx)} title="Eliminar ejercicio" style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer", fontSize: 12, padding: "2px", opacity: 0.6 }}>×</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Agregar ejercicio */}
+          <button
+            onClick={addEjercicio}
+            style={{ marginTop: 8, padding: "6px 16px", borderRadius: 8, border: "1px dashed var(--border)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: 12, fontFamily: "'DM Sans'", fontWeight: 600, width: "100%" }}
+          >
+            + Agregar ejercicio
+          </button>
+
+          {/* Info resumen del turno */}
+          {(() => {
+            const ejsConDatos = ejs.filter((e) => (e.ejercicio_ids || []).some((s) => s.eid));
+            if (ejsConDatos.length === 0) return null;
+            let totalReps = 0, totalKg = 0;
+            ejsConDatos.forEach((e) => {
+              const subEjsR = e.ejercicio_ids || [{ eid: e.ejercicio_id, link: "-" }];
+              (e.bloques || []).slice(0, numBloques).forEach((b) => {
+                if (!b.series && !b.reps) return;
+                const s = typeof b.series === "string" && b.series.includes("+")
+                  ? b.series.split("+").reduce((a, v) => a + Number(v), 0) : Number(b.series) || 0;
+                const r = Number(b.reps) || 0;
+                const kg = Number(calcKgPretemp(subEjsR, b.pct) ?? b.kg ?? 0);
+                totalReps += s * r;
+                totalKg += s * r * kg;
+              });
+            });
+            const pesoMedioTotal = totalReps > 0 ? Math.round((totalKg / totalReps) * 2) / 2 : null;
+            const metrics = [
+              { label: "VOL REPs", value: totalReps > 0 ? totalReps : null, color: "var(--gold)" },
+              { label: "VOL Kg", value: totalKg > 0 ? Number.isInteger(totalKg) ? totalKg : totalKg.toFixed(1) : null, color: "var(--blue)" },
+              { label: "Peso Medio", value: pesoMedioTotal !== null ? pesoMedioTotal % 1 === 0 ? pesoMedioTotal : pesoMedioTotal.toFixed(1) : null, color: "var(--green)" },
+            ];
+            return (
+              <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <div style={{ fontSize: 11, color: "var(--muted)", padding: "6px 10px", background: "var(--surface2)", borderRadius: 8 }}>
+                  Ejercicios: <span style={{ color: "var(--gold)", fontWeight: 700 }}>{ejsConDatos.length}</span>
+                </div>
+                {metrics.map((m) => m.value !== null && (
+                  <div key={m.label} style={{ padding: "4px 10px", borderRadius: 8, background: "var(--surface2)", border: `1px solid ${m.color}30`, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 60 }}>
+                    <div style={{ fontSize: 9, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>{m.label}</div>
+                    <div style={{ fontFamily: "'Bebas Neue'", fontSize: 18, color: m.color, lineHeight: 1 }}>{m.value}</div>
+                  </div>
+                ))}
               </div>
             );
           })()}
@@ -16808,6 +17596,10 @@ function PageAtleta({
                 <div style={{ fontSize: 12, color: "#4db6ac" }}>
                   Planilla Escuela Inicial · Nivel {mesoVisto.escuela_nivel}
                 </div>
+              ) : mesoVisto.pretemporada === true || mesoVisto.pretemporada === "true" ? (
+                <div style={{ fontSize: 12, color: "#ff9800" }}>
+                  Planilla Pretemporada
+                </div>
               ) : (
                 <>
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>
@@ -16959,7 +17751,139 @@ function PageAtleta({
                 </div>
                 <PlanillaBasica
                   semanas={mesoVisto.semanas}
-                  onChange={(ss) => updateMeso({ ...mesoVisto, semanas: ss })}
+                  onChange={(ss, extra) => updateMeso({ ...mesoVisto, semanas: ss, ...(extra || {}) })}
+                  numBloques={mesoVisto.num_bloques_basica || 3}
+                  onBeforeChange={(forced) => pushSnap(forced)}
+                  irm_arr={irm_arr}
+                  irm_env={irm_env}
+                  normativos={atletaNormativos}
+                />
+              </div>
+            ) : mesoVisto.pretemporada === true || mesoVisto.pretemporada === "true" ? (
+              <div className="card">
+                <div
+                  className="flex-between mb16"
+                  style={{ flexWrap: "wrap", gap: 10 }}
+                >
+                  <div className="card-title" style={{ marginBottom: 0, color: "#ff9800" }}>
+                    Planilla Pretemporada
+                  </div>
+                  <div
+                    style={{ display: "flex", gap: 10, alignItems: "center" }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <label
+                        style={{
+                          fontSize: 10,
+                          color: "var(--gold)",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: ".05em",
+                        }}
+                      >
+                        IRM Arr
+                      </label>
+                      <input
+                        name="field_pt_irm_arr"
+                        type="number"
+                        min={0}
+                        max={300}
+                        className="no-spin"
+                        value={mesoVisto.irm_arranque ?? ""}
+                        placeholder="kg"
+                        onChange={(e) => {
+                          pushSnap();
+                          setMesociclos((prev) =>
+                            prev.map((m) =>
+                              m.id === mesoVisto.id
+                                ? {
+                                    ...m,
+                                    irm_arranque:
+                                      e.target.value === ""
+                                        ? null
+                                        : Number(e.target.value),
+                                  }
+                                : m,
+                            ),
+                          );
+                        }}
+                        style={{
+                          width: 52,
+                          background: "var(--surface2)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          padding: "4px 6px",
+                          color: "var(--gold)",
+                          fontSize: 14,
+                          fontFamily: "'Bebas Neue'",
+                          textAlign: "center",
+                          outline: "none",
+                          MozAppearance: "textfield",
+                          appearance: "textfield",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <label
+                        style={{
+                          fontSize: 10,
+                          color: "var(--blue)",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: ".05em",
+                        }}
+                      >
+                        IRM Env
+                      </label>
+                      <input
+                        name="field_pt_irm_env"
+                        type="number"
+                        min={0}
+                        max={400}
+                        className="no-spin"
+                        value={mesoVisto.irm_envion ?? ""}
+                        placeholder="kg"
+                        onChange={(e) => {
+                          pushSnap();
+                          setMesociclos((prev) =>
+                            prev.map((m) =>
+                              m.id === mesoVisto.id
+                                ? {
+                                    ...m,
+                                    irm_envion:
+                                      e.target.value === ""
+                                        ? null
+                                        : Number(e.target.value),
+                                  }
+                                : m,
+                            ),
+                          );
+                        }}
+                        style={{
+                          width: 52,
+                          background: "var(--surface2)",
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          padding: "4px 6px",
+                          color: "var(--blue)",
+                          fontSize: 14,
+                          fontFamily: "'Bebas Neue'",
+                          textAlign: "center",
+                          outline: "none",
+                          MozAppearance: "textfield",
+                          appearance: "textfield",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <PlanillaPretemporada
+                  semanas={mesoVisto.semanas}
+                  onChange={(ss, extra) => updateMeso({ ...mesoVisto, semanas: ss, ...(extra || {}) })}
                   numBloques={mesoVisto.num_bloques_basica || 3}
                   onBeforeChange={(forced) => pushSnap(forced)}
                   irm_arr={irm_arr}
@@ -21423,6 +22347,10 @@ function GuardarPlantillaModal({
     const base = {
       ...form,
       tipo,
+      escuela: dataMeso?.escuela ?? false,
+      escuela_nivel: dataMeso?.escuela_nivel ?? "1",
+      num_bloques_basica: dataMeso?.num_bloques_basica ?? 3,
+      pretemporada: dataMeso?.pretemporada ?? false,
       duracion_semanas:
         tipo === "meso"
           ? dataMeso?.semanas?.length || 4
@@ -21431,6 +22359,12 @@ function GuardarPlantillaModal({
             : null,
     };
     if (tipo === "meso" && dataMeso) {
+      const isBasicaOrPretemp = dataMeso.escuela || dataMeso.pretemporada;
+      if (isBasicaOrPretemp) {
+        // Escuela/Pretemporada: guardar semanas completas tal cual
+        base.semanas = dataMeso.semanas;
+        base.num_bloques_basica = dataMeso.num_bloques_basica ?? 3;
+      } else {
       // Guardar estructura completa con todo
       base.semanas = dataMeso.semanas.map((s) => ({
         numero: s.numero,
@@ -21456,6 +22390,7 @@ function GuardarPlantillaModal({
           num_bloques_comp: t.num_bloques_comp || 1,
         })),
       }));
+      }
       base.volumen_total = dataMeso.volumen_total;
       base.irm_arranque = dataMeso.irm_arranque;
       base.irm_envion = dataMeso.irm_envion;
@@ -22309,6 +23244,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
 
   const esSemanal = plt.tipo === "semana";
   const esBasica = form.escuela === true || form.escuela === "true";
+  const esPretempPlt = form.pretemporada === true || form.pretemporada === "true";
 
   return (
     <div>
@@ -22596,7 +23532,46 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
         </div>
       )}
 
-      {vistaActual === "planilla" && !esBasica && (
+      {/* ── Planilla Pretemporada ── */}
+      {vistaActual === "planilla" && esPretempPlt && (
+        <div className="card">
+          <div
+            className="flex-between mb16"
+            style={{ flexWrap: "wrap", gap: 10 }}
+          >
+            <div className="card-title" style={{ marginBottom: 0, color: "#ff9800" }}>
+              Planilla Pretemporada
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <label style={{ fontSize: 10, color: "var(--gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>IRM Arr</label>
+                <input name="field_pt_plt_arr" type="number" min={0} max={300} className="no-spin" value={form.irm_arranque ?? ""} placeholder="kg" onChange={(e) => set("irm_arranque", e.target.value === "" ? null : Number(e.target.value))} style={{ width: 52, background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 6px", color: "var(--gold)", fontSize: 14, fontFamily: "'Bebas Neue'", textAlign: "center", outline: "none", MozAppearance: "textfield", appearance: "textfield" }} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <label style={{ fontSize: 10, color: "var(--blue)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>IRM Env</label>
+                <input name="field_pt_plt_env" type="number" min={0} max={400} className="no-spin" value={form.irm_envion ?? ""} placeholder="kg" onChange={(e) => set("irm_envion", e.target.value === "" ? null : Number(e.target.value))} style={{ width: 52, background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 6px", color: "var(--blue)", fontSize: 14, fontFamily: "'Bebas Neue'", textAlign: "center", outline: "none", MozAppearance: "textfield", appearance: "textfield" }} />
+              </div>
+              <span style={{ fontSize: 9, color: "var(--muted)" }}>kg</span>
+            </div>
+          </div>
+          <PlanillaPretemporada
+            semanas={form.semanas}
+            onChange={(ss, extraUpdates) =>
+              setFormWithHist((f) => ({
+                ...f,
+                semanas: ss,
+                ...(extraUpdates || {}),
+              }))
+            }
+            numBloques={form.num_bloques_basica || 3}
+            onBeforeChange={(forced) => pushSnap(forced)}
+            irm_arr={form.irm_arranque ?? 100}
+            irm_env={form.irm_envion ?? 200}
+          />
+        </div>
+      )}
+
+      {vistaActual === "planilla" && !esBasica && !esPretempPlt && (
         <>
           <div
             style={{
@@ -22807,6 +23782,7 @@ function CrearPlantillaModal({ onSave, onClose }) {
     escuela: false,
     escuela_nivel: "1",
     num_bloques_basica: 3,
+    pretemporada: false,
     irm_arranque: 0,
     irm_envion: 0,
   });
@@ -22825,8 +23801,8 @@ function CrearPlantillaModal({ onSave, onClose }) {
   return (
     <Modal title="Nueva plantilla" onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {/* Tipo selector — oculto si es escuela */}
-        {!form.escuela && (
+        {/* Tipo selector — oculto si es escuela o pretemporada */}
+        {!form.escuela && !form.pretemporada && (
           <div style={{ display: "flex", gap: 8 }}>
             {[
               ["meso", "Mesociclo"],
@@ -22893,74 +23869,65 @@ function CrearPlantillaModal({ onSave, onClose }) {
             placeholder="Notas, contexto, para quién es..."
           />
         </div>
-        {/* Toggle Escuela Inicial */}
-        <div
-          style={{
-            background: form.escuela
-              ? "rgba(77,182,172,.1)"
-              : "var(--surface2)",
-            border: form.escuela
-              ? "1px solid #4db6ac"
-              : "1px solid var(--border)",
-            borderRadius: 10,
-            padding: "10px 14px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            cursor: "pointer",
-            transition: "all .2s",
-          }}
-          onClick={() => {
-            const newVal = !form.escuela;
-            setForm((f) => ({
-              ...f,
-              escuela: newVal,
-              tipo: "meso",
-              semanas: newVal
-                ? mkSemanasBasica(4, f.num_bloques_basica || 3)
-                : mkSemanas(),
-            }));
-          }}
-        >
-          <div
-            style={{
-              width: 36,
-              height: 20,
-              borderRadius: 10,
-              position: "relative",
-              background: form.escuela ? "#4db6ac" : "var(--surface3)",
-              transition: "background .2s",
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                top: 2,
-                left: form.escuela ? 18 : 2,
-                width: 16,
-                height: 16,
-                borderRadius: "50%",
-                background: "#fff",
-                transition: "left .2s",
-                boxShadow: "0 1px 3px rgba(0,0,0,.3)",
-              }}
-            />
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: form.escuela ? "#4db6ac" : "var(--text)",
-              }}
-            >
-              Escuela Inicial
-            </div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>
-              Esta plantilla pertenece al programa de Escuela Inicial
-            </div>
-          </div>
+        {/* Selector tipo de planilla */}
+        <div style={{ display: "flex", gap: 6 }}>
+          {[
+            { key: "regular", label: "Regular", color: "var(--gold)" },
+            { key: "escuela", label: "Escuela Inicial", color: "#4db6ac" },
+            { key: "pretemporada", label: "Pretemporada", color: "#ff9800" },
+          ].map((opt) => {
+            const active =
+              opt.key === "escuela" ? form.escuela :
+              opt.key === "pretemporada" ? form.pretemporada :
+              !form.escuela && !form.pretemporada;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => {
+                  if (opt.key === "escuela") {
+                    setForm((f) => ({
+                      ...f,
+                      escuela: true,
+                      pretemporada: false,
+                      tipo: "meso",
+                      semanas: mkSemanasBasica(4, f.num_bloques_basica || 3),
+                    }));
+                  } else if (opt.key === "pretemporada") {
+                    setForm((f) => ({
+                      ...f,
+                      escuela: false,
+                      pretemporada: true,
+                      tipo: "meso",
+                      semanas: mkSemanasPretemp(4, f.num_bloques_basica || 3),
+                    }));
+                  } else {
+                    setForm((f) => ({
+                      ...f,
+                      escuela: false,
+                      pretemporada: false,
+                      tipo: "meso",
+                      semanas: mkSemanas(),
+                    }));
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: "7px 10px",
+                  borderRadius: 8,
+                  border: active ? `2px solid ${opt.color}` : "1px solid var(--border)",
+                  background: active ? `${opt.color}18` : "var(--surface2)",
+                  color: active ? opt.color : "var(--muted)",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: "'DM Sans'",
+                  transition: "all .15s",
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
 
         {form.escuela && (
@@ -22993,8 +23960,8 @@ function CrearPlantillaModal({ onSave, onClose }) {
           </div>
         )}
 
-        {/* Campos estándar — ocultos si es escuela (Escuela Inicial usa planilla básica) */}
-        {!form.escuela && (
+        {/* Campos estándar — ocultos si es escuela o pretemporada */}
+        {!form.escuela && !form.pretemporada && (
           <>
             <div
               style={{
@@ -23527,13 +24494,18 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
   const [showImportar, setShowImportar] = useState(false);
   const [colapsadoEscuela, setColapsadoEscuela] = useState({});
   const [colapsadoEscuelaMain, setColapsadoEscuelaMain] = useState(false);
+  const [colapsadoPretemp, setColapsadoPretemp] = useState(false);
   const [colapsadoMias, setColapsadoMias] = useState(false);
 
   const escuela = plantillas.filter(
     (p) => p.escuela === true || p.escuela === "true",
   );
+  const pretemporada = plantillas.filter(
+    (p) => p.pretemporada === true || p.pretemporada === "true",
+  );
   const mias = plantillas.filter(
-    (p) => !p.escuela || p.escuela === false || p.escuela === "false",
+    (p) => (!p.escuela || p.escuela === false || p.escuela === "false") &&
+           (!p.pretemporada || p.pretemporada === false || p.pretemporada === "false"),
   );
 
   const matchBusqueda = (p) =>
@@ -23565,6 +24537,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
             {plantillas.length} plantilla{plantillas.length !== 1 ? "s" : ""}{" "}
             guardada{plantillas.length !== 1 ? "s" : ""}
             {escuela.length > 0 && ` · ${escuela.length} Escuela Inicial`}
+            {pretemporada.length > 0 && ` · ${pretemporada.length} Pretemporada`}
           </div>
         </div>
         <button className="btn btn-gold" onClick={() => setShowNueva(true)}>
@@ -23827,6 +24800,25 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
             </SectionHeader>
           )}
 
+          {/* ── SECCIÓN PRETEMPORADA ── */}
+          {pretemporada.filter(matchBusqueda).length > 0 && (
+            <SectionHeader
+              title="Pretemporada"
+              count={pretemporada.filter(matchBusqueda).length}
+              color="#ff9800"
+              collapsed={colapsadoPretemp}
+              onToggle={() => setColapsadoPretemp((v) => !v)}
+            >
+              <CardGrid
+                lista={pretemporada.filter(matchBusqueda)}
+                onOpen={handleOpen}
+                onDuplicate={handleDuplicate}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </SectionHeader>
+          )}
+
           {/* ── SECCIÓN MIS PLANTILLAS ── */}
           {mias.filter(matchBusqueda).length > 0 && (
             <SectionHeader
@@ -23848,6 +24840,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
 
           {busqueda &&
             escuela.filter(matchBusqueda).length === 0 &&
+            pretemporada.filter(matchBusqueda).length === 0 &&
             mias.filter(matchBusqueda).length === 0 && (
               <div
                 style={{
@@ -23897,58 +24890,42 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
             />
           </div>
 
-          {/* Toggle escuela en edición */}
-          <div
-            style={{
-              background: editando.escuela
-                ? "rgba(77,182,172,.1)"
-                : "var(--surface2)",
-              border: editando.escuela
-                ? "1px solid #4db6ac"
-                : "1px solid var(--border)",
-              borderRadius: 10,
-              padding: "10px 14px",
-              marginBottom: 14,
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              cursor: "pointer",
-            }}
-            onClick={() => setEditando((p) => ({ ...p, escuela: !p.escuela }))}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 20,
-                borderRadius: 10,
-                position: "relative",
-                background: editando.escuela ? "#4db6ac" : "var(--surface3)",
-                flexShrink: 0,
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  top: 2,
-                  left: editando.escuela ? 18 : 2,
-                  width: 16,
-                  height: 16,
-                  borderRadius: "50%",
-                  background: "#fff",
-                  transition: "left .2s",
-                  boxShadow: "0 1px 3px rgba(0,0,0,.3)",
-                }}
-              />
-            </div>
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: editando.escuela ? "#4db6ac" : "var(--text)",
-              }}
-            >
-              Escuela Inicial
-            </span>
+          {/* Selector tipo en edición */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+            {[
+              { key: "regular", label: "Regular", color: "var(--gold)" },
+              { key: "escuela", label: "Escuela Inicial", color: "#4db6ac" },
+              { key: "pretemporada", label: "Pretemporada", color: "#ff9800" },
+            ].map((opt) => {
+              const active =
+                opt.key === "escuela" ? editando.escuela :
+                opt.key === "pretemporada" ? editando.pretemporada :
+                !editando.escuela && !editando.pretemporada;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => {
+                    if (opt.key === "escuela") {
+                      setEditando((p) => ({ ...p, escuela: true, pretemporada: false }));
+                    } else if (opt.key === "pretemporada") {
+                      setEditando((p) => ({ ...p, escuela: false, pretemporada: true }));
+                    } else {
+                      setEditando((p) => ({ ...p, escuela: false, pretemporada: false }));
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: "7px 10px", borderRadius: 8,
+                    border: active ? `2px solid ${opt.color}` : "1px solid var(--border)",
+                    background: active ? `${opt.color}18` : "var(--surface2)",
+                    color: active ? opt.color : "var(--muted)",
+                    cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "'DM Sans'",
+                    transition: "all .15s",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
 
           {editando.escuela && (
@@ -23988,7 +24965,7 @@ function PagePlantillas({ plantillas, onAdd, onUpdate, onDelete, onOpen }) {
             </>
           )}
 
-          {!editando.escuela && (
+          {!editando.escuela && !editando.pretemporada && (
             <div
               style={{
                 display: "grid",
