@@ -3473,7 +3473,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
             color: "var(--gold)",
           }}
         >
-          Planilla Pretemporada · {form.semanas?.length} semanas
+          Planilla Pretemporada · {(form.semanas || []).reduce((acc, s) => acc + (s.turnos?.length || 0), 0)} turnos
         </div>
       ) : (
         <>
@@ -9905,8 +9905,9 @@ function PlanillaPretemporada({
   irm_env = 200,
   normativos: normativosProp = null,
 }) {
-  const [semActiva, setSemActiva] = useState(0);
-  const [turnoActivo, setTurnoActivo] = useState(0);
+  const [turnoGlobalActivo, setTurnoGlobalActivo] = useState(0);
+  const [jumpTurno, setJumpTurno] = useState("");
+  const pendingTurnoIdRef = useRef(null);
 
   const normativos =
     normativosProp ??
@@ -9921,9 +9922,50 @@ function PlanillaPretemporada({
       }
     })();
 
+  const turnosFlat = React.useMemo(() => {
+    const out = [];
+    let globalNumero = 1;
+    (semanas || []).forEach((s, semIdx) => {
+      (s.turnos || []).forEach((t, turnoIdx) => {
+        out.push({ semIdx, turnoIdx, turno: t, globalNumero });
+        globalNumero += 1;
+      });
+    });
+    return out;
+  }, [semanas]);
+
+  useEffect(() => {
+    if (!turnosFlat.length) {
+      setTurnoGlobalActivo(0);
+      return;
+    }
+    if (turnoGlobalActivo >= turnosFlat.length) {
+      setTurnoGlobalActivo(turnosFlat.length - 1);
+    }
+  }, [turnosFlat, turnoGlobalActivo]);
+
+  useEffect(() => {
+    if (!pendingTurnoIdRef.current || !turnosFlat.length) return;
+    const idx = turnosFlat.findIndex((x) => x.turno.id === pendingTurnoIdRef.current);
+    if (idx >= 0) {
+      setTurnoGlobalActivo(idx);
+      pendingTurnoIdRef.current = null;
+    }
+  }, [turnosFlat]);
+
+  const turnoRefGlobal = turnosFlat[turnoGlobalActivo] || null;
+  const semActiva = turnoRefGlobal?.semIdx ?? 0;
+  const turnoActivo = turnoRefGlobal?.turnoIdx ?? 0;
   const sem = semanas[semActiva];
-  const turno = sem?.turnos[turnoActivo];
+  const turno = turnoRefGlobal?.turno || sem?.turnos?.[turnoActivo];
   const ejs = turno?.ejercicios || [];
+
+  const totalTurnos = turnosFlat.length;
+  const turnosPorRango = 12;
+  const rangoActivo = Math.floor(turnoGlobalActivo / turnosPorRango);
+  const totalRangos = Math.max(1, Math.ceil(totalTurnos / turnosPorRango));
+  const inicioRango = rangoActivo * turnosPorRango;
+  const finRango = Math.min(totalTurnos, inicioRango + turnosPorRango);
 
   const _bc = () => {
     try {
@@ -10055,50 +10097,38 @@ function PlanillaPretemporada({
     });
   };
 
-  const addTurno = () => {
+  const removeTurno = () => {
+    if (!sem || totalTurnos <= 1) return;
+    const targetGlobalIdx = Math.max(0, turnoGlobalActivo - 1);
     updateSemanas((ss) => {
-      const s = ss[semActiva];
-      s.turnos.push({
-        id: mkId(),
-        numero: s.turnos.length + 1,
+      ss[semActiva].turnos.splice(turnoActivo, 1);
+      ss[semActiva].turnos.forEach((t, i) => { t.numero = i + 1; });
+      if (ss[semActiva].turnos.length === 0 && ss.length > 1) {
+        ss.splice(semActiva, 1);
+        ss.forEach((s, i) => { s.numero = i + 1; });
+      }
+      return ss;
+    });
+    setTurnoGlobalActivo(targetGlobalIdx);
+  };
+
+  const addTurno = () => {
+    const newTurnoId = mkId();
+    updateSemanas((ss) => {
+      const semIdx = Math.max(0, Math.min(semActiva, ss.length - 1));
+      const semSel = ss[semIdx];
+      const insertIdx = Math.max(0, Math.min(turnoActivo + 1, semSel.turnos.length));
+      semSel.turnos.splice(insertIdx, 0, {
+        id: newTurnoId,
+        numero: 0,
         dia: "",
         momento: "",
         ejercicios: Array.from({ length: 6 }, () => mkEjPretemp(numBloques)),
       });
+      semSel.turnos.forEach((t, i) => { t.numero = i + 1; });
       return ss;
     });
-  };
-
-  const removeTurno = () => {
-    if (!sem || sem.turnos.length <= 1) return;
-    updateSemanas((ss) => {
-      ss[semActiva].turnos.splice(turnoActivo, 1);
-      ss[semActiva].turnos.forEach((t, i) => { t.numero = i + 1; });
-      return ss;
-    });
-    setTurnoActivo((v) => Math.max(0, Math.min(v, (sem?.turnos.length || 2) - 2)));
-  };
-
-  const addSemana = () => {
-    updateSemanas((ss) => {
-      ss.push({
-        id: mkId(),
-        numero: ss.length + 1,
-        turnos: mkTurnosPretemp(numBloques),
-      });
-      return ss;
-    });
-  };
-
-  const removeSemana = () => {
-    if (semanas.length <= 1) return;
-    updateSemanas((ss) => {
-      ss.splice(semActiva, 1);
-      ss.forEach((s, i) => { s.numero = i + 1; });
-      return ss;
-    });
-    setSemActiva((v) => Math.max(0, Math.min(v, semanas.length - 2)));
-    setTurnoActivo(0);
+    pendingTurnoIdRef.current = newTurnoId;
   };
 
   const addBloqueCol = () => {
@@ -10146,28 +10176,10 @@ function PlanillaPretemporada({
     });
   };
 
-  const copiarTurnoATodasSemanas = () => {
-    if (!turno) return;
-    updateSemanas((ss) => {
-      const turnoBase = JSON.parse(JSON.stringify(turno));
-      ss.forEach((s, sIdx) => {
-        if (sIdx === semActiva) return;
-        while (s.turnos.length <= turnoActivo) {
-          s.turnos.push({
-            id: mkId(),
-            numero: s.turnos.length + 1,
-            dia: "",
-            momento: "",
-            ejercicios: Array.from({ length: 6 }, () => mkEjPretemp(numBloques)),
-          });
-        }
-        const copy = JSON.parse(JSON.stringify(turnoBase));
-        copy.id = s.turnos[turnoActivo].id;
-        copy.numero = turnoActivo + 1;
-        s.turnos[turnoActivo] = copy;
-      });
-      return ss;
-    });
+  const irATurnoGlobal = (idx) => {
+    if (!turnosFlat.length) return;
+    const safe = Math.max(0, Math.min(idx, turnosFlat.length - 1));
+    setTurnoGlobalActivo(safe);
   };
 
   const cellInput = (extra = {}) => ({
@@ -10204,62 +10216,113 @@ function PlanillaPretemporada({
 
   return (
     <div>
-      {/* ── Semana tabs ── */}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8, alignItems: "center" }}>
-        {semanas.map((s, i) => (
+      {/* ── Navegación por turnos globales ── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ padding: "4px 8px", borderRadius: 8, background: "rgba(255,152,0,.12)", border: "1px solid rgba(255,152,0,.3)", fontSize: 11, color: "#ffb74d", fontWeight: 700 }}>
+            Turnos: {totalTurnos}
+          </div>
+          <div style={{ fontFamily: "'Bebas Neue'", fontSize: 20, color: "var(--gold)", lineHeight: 1 }}>
+            T{Math.min(totalTurnos, turnoGlobalActivo + 1)}
+            <span style={{ fontFamily: "'DM Sans'", fontSize: 12, color: "var(--muted)", marginLeft: 6 }}>
+              de {totalTurnos}
+            </span>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <button
-            key={s.id}
-            className={`semana-tab${semActiva === i ? " active" : ""}`}
-            onClick={() => { setSemActiva(i); setTurnoActivo(0); }}
+            onClick={() => irATurnoGlobal(turnoGlobalActivo - 1)}
+            disabled={turnoGlobalActivo <= 0}
+            style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface2)", color: "var(--muted)", cursor: turnoGlobalActivo <= 0 ? "not-allowed" : "pointer", fontSize: 11, opacity: turnoGlobalActivo <= 0 ? 0.45 : 1 }}
           >
-            Semana {s.numero}
+            ◀ Anterior
           </button>
-        ))}
-        <button
-          onClick={addSemana}
-          style={{ width: 28, height: 28, borderRadius: "50%", border: "1px dashed var(--border)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
-        >
-          +
-        </button>
-        {semanas.length > 1 && (
           <button
-            onClick={removeSemana}
-            title="Eliminar semana actual"
-            style={{ width: 28, height: 28, borderRadius: "50%", border: "1px dashed var(--border)", background: "transparent", color: "var(--red)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}
+            onClick={() => irATurnoGlobal(turnoGlobalActivo + 1)}
+            disabled={turnoGlobalActivo >= totalTurnos - 1}
+            style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface2)", color: "var(--muted)", cursor: turnoGlobalActivo >= totalTurnos - 1 ? "not-allowed" : "pointer", fontSize: 11, opacity: turnoGlobalActivo >= totalTurnos - 1 ? 0.45 : 1 }}
           >
-            −
+            Siguiente ▶
           </button>
-        )}
+          <input
+            name="field_pt_jump_turno"
+            type="number"
+            min={1}
+            max={Math.max(1, totalTurnos)}
+            className="no-spin"
+            value={jumpTurno}
+            placeholder="N°"
+            onChange={(e) => setJumpTurno(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              const n = Number(jumpTurno);
+              if (!Number.isInteger(n)) return;
+              irATurnoGlobal(n - 1);
+            }}
+            style={{ width: 58, background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 6px", color: "var(--text)", textAlign: "center", fontFamily: "'Bebas Neue'", fontSize: 15, outline: "none" }}
+          />
+        </div>
       </div>
 
-      {/* ── Turno tabs ── */}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
+        {Array.from({ length: totalRangos }).map((_, i) => {
+          const ini = i * turnosPorRango + 1;
+          const fin = Math.min(totalTurnos, (i + 1) * turnosPorRango);
+          const activo = i === rangoActivo;
+          return (
+            <button
+              key={`rango-${i}`}
+              onClick={() => irATurnoGlobal(i * turnosPorRango)}
+              style={{
+                padding: "4px 10px",
+                borderRadius: 999,
+                border: activo ? "1px solid var(--gold)" : "1px solid var(--border)",
+                background: activo ? "rgba(232,197,71,.14)" : "var(--surface2)",
+                color: activo ? "var(--gold)" : "var(--muted)",
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {ini}-{fin}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Turnos del rango activo ── */}
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
-        {sem.turnos.map((t, i) => (
+        {turnosFlat.slice(inicioRango, finRango).map((tRef, i) => {
+          const globalIdx = inicioRango + i;
+          const t = tRef.turno;
+          return (
           <button
             key={t.id}
-            onClick={() => setTurnoActivo(i)}
+            onClick={() => irATurnoGlobal(globalIdx)}
             style={{
               padding: "4px 12px", borderRadius: 6, border: "none",
-              background: turnoActivo === i ? "var(--gold)" : "var(--surface3)",
-              color: turnoActivo === i ? "#000" : "var(--text)",
+              background: turnoGlobalActivo === globalIdx ? "var(--gold)" : "var(--surface3)",
+              color: turnoGlobalActivo === globalIdx ? "#000" : "var(--text)",
               fontFamily: "'Bebas Neue'", fontSize: 14, cursor: "pointer", letterSpacing: ".04em",
             }}
           >
-            T{i + 1}{t.dia ? ` · ${t.dia.slice(0, 3)}` : ""}
+            T{tRef.globalNumero}{t.dia ? ` · ${t.dia.slice(0, 3)}` : ""}
           </button>
-        ))}
+          );
+        })}
         <button onClick={addTurno} style={{ width: 24, height: 24, borderRadius: "50%", border: "1px dashed var(--border)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>+</button>
-        {sem.turnos.length > 1 && (
+        {totalTurnos > 1 && (
           <button onClick={removeTurno} title="Eliminar turno actual" style={{ width: 24, height: 24, borderRadius: "50%", border: "1px dashed var(--border)", background: "transparent", color: "var(--red)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>−</button>
         )}
-        <button onClick={copiarTurnoATodasSemanas} title="Copiar este turno a todas las semanas" style={{ marginLeft: 8, padding: "3px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface2)", color: "var(--muted)", cursor: "pointer", fontSize: 10, fontFamily: "'DM Sans'", fontWeight: 600 }}>Copiar a todas las semanas</button>
       </div>
 
       {/* ── Header del turno ── */}
       {turno && (
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-            <div style={{ fontFamily: "'Bebas Neue'", fontSize: 20, color: "var(--gold)" }}>Semana {sem.numero} — Turno {turnoActivo + 1}</div>
+            <div style={{ fontFamily: "'Bebas Neue'", fontSize: 20, color: "var(--gold)" }}>
+              Turno {Math.min(totalTurnos, turnoGlobalActivo + 1)}
+            </div>
             <select name="field_pt_day" value={turno.dia || ""} onChange={(e) => { updateSemanas((ss) => { ss[semActiva].turnos[turnoActivo].dia = e.target.value; return ss; }); }} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", color: "var(--text)", fontSize: 11, fontFamily: "'DM Sans'" }}>
               <option value="">Día</option>
               {["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"].map((d) => <option key={d} value={d}>{d}</option>)}
@@ -23330,7 +23393,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
                   </>
                 ) : (
                   <>
-                    {form.semanas?.length} semanas · {form.volumen_total} reps
+                    {(form.semanas || []).reduce((acc, s) => acc + (s.turnos?.length || 0), 0)} turnos · {form.volumen_total} reps
                     {" · "}IRM prueba: {irm_arr}/{irm_env} kg
                   </>
                 )}
