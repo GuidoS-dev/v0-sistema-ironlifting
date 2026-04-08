@@ -30072,18 +30072,32 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  const withTimeout = useCallback((promise, ms) => {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("AUTH_TIMEOUT")), ms);
+      }),
+    ]);
+  }, []);
+
   // Check session on mount
   useEffect(() => {
     let mounted = true;
+    const authWatchdog = setTimeout(() => {
+      if (mounted) setAuthLoading(false);
+    }, 8000);
 
     const init = async () => {
       try {
-        const {
-          data: { session },
-        } = await sb.auth.getSession();
+        const sessionResult = await withTimeout(sb.auth.getSession(), 6000);
+        const session = sessionResult?.data?.session || null;
         if (mounted) {
           setSession(session);
-          if (session?.user?.id) await loadProfile(session.user.id);
+          if (session?.user?.id) {
+            // Load profile without blocking initial auth UI transition.
+            void loadProfile(session.user.id);
+          }
           else setAuthLoading(false);
         }
       } catch (e) {
@@ -30109,17 +30123,18 @@ export default function App() {
 
     return () => {
       mounted = false;
+      clearTimeout(authWatchdog);
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [withTimeout]);
 
   const loadProfile = async (userId) => {
     try {
-      const { data } = await sb
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      const profileResult = await withTimeout(
+        sb.from("profiles").select("*").eq("id", userId).single(),
+        6000,
+      );
+      const { data } = profileResult || {};
       setProfile(data);
     } catch (e) {}
     setAuthLoading(false);
