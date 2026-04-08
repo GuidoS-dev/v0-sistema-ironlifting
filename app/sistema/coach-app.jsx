@@ -34,6 +34,44 @@ const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPA_CONFIG_OK = Boolean(SUPA_URL && SUPA_ANON);
 const SUPA_TIMEOUT_MS = 10000;
 
+function sanitizeStringInput(value) {
+  if (typeof value !== "string") return value;
+  return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+}
+
+function sanitizeInput(value) {
+  if (typeof value === "string") return sanitizeStringInput(value);
+  if (Array.isArray(value)) return value.map(sanitizeInput);
+  if (value && typeof value === "object") {
+    const out = {};
+    Object.entries(value).forEach(([k, v]) => {
+      // Avoid prototype-pollution style keys in untrusted payloads.
+      if (k === "__proto__" || k === "prototype" || k === "constructor") {
+        return;
+      }
+      out[k] = sanitizeInput(v);
+    });
+    return out;
+  }
+  return value;
+}
+
+function sanitizeRequestBody(body, contentType) {
+  if (typeof body !== "string") return body;
+
+  const isJson = /application\/json/i.test(contentType || "");
+  if (!isJson) {
+    return sanitizeStringInput(body);
+  }
+
+  try {
+    const parsed = JSON.parse(body);
+    return JSON.stringify(sanitizeInput(parsed));
+  } catch {
+    return sanitizeStringInput(body);
+  }
+}
+
 // Storage keys for session persistence
 const SESSION_KEY = "sb_session";
 
@@ -124,7 +162,15 @@ async function _fetchWithTimeout(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(requestUrl, { ...options, signal: controller.signal });
+    const nextOptions = { ...options, signal: controller.signal };
+    const headers = new Headers(options?.headers || {});
+    const contentType = headers.get("content-type") || "";
+
+    if (typeof nextOptions.body === "string") {
+      nextOptions.body = sanitizeRequestBody(nextOptions.body, contentType);
+    }
+
+    return await fetch(requestUrl, nextOptions);
   } catch (error) {
     if (error?.name === "AbortError") {
       throw new Error("SUPABASE_TIMEOUT");

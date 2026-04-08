@@ -5,6 +5,36 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const ALLOWED_PREFIXES = ["/auth/v1/", "/rest/v1/"];
 
+function sanitizeStringInput(value: string) {
+  return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+}
+
+function sanitizeInput(value: unknown): unknown {
+  if (typeof value === "string") return sanitizeStringInput(value);
+  if (Array.isArray(value)) return value.map((item) => sanitizeInput(item));
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    Object.entries(value as Record<string, unknown>).forEach(([k, v]) => {
+      if (k === "__proto__" || k === "prototype" || k === "constructor") {
+        return;
+      }
+      out[k] = sanitizeInput(v);
+    });
+    return out;
+  }
+  return value;
+}
+
+function sanitizeRequestBody(body: string, contentType: string | null) {
+  const isJson = /application\/json/i.test(contentType || "");
+  if (!isJson) {
+    return sanitizeStringInput(body);
+  }
+
+  const parsed = JSON.parse(body) as unknown;
+  return JSON.stringify(sanitizeInput(parsed));
+}
+
 function getTargetUrl(path: string) {
   if (!SUPABASE_URL) return null;
   if (!ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix))) return null;
@@ -19,7 +49,8 @@ async function handleProxy(req: NextRequest) {
     );
   }
 
-  const path = req.nextUrl.searchParams.get("path") || "";
+  const rawPath = req.nextUrl.searchParams.get("path") || "";
+  const path = sanitizeStringInput(rawPath);
   const target = getTargetUrl(path);
   if (!target) {
     return new Response(JSON.stringify({ error: "Invalid Supabase path." }), {
@@ -46,7 +77,19 @@ async function handleProxy(req: NextRequest) {
 
   try {
     const hasBody = req.method !== "GET" && req.method !== "HEAD";
-    const body = hasBody ? await req.text() : undefined;
+    let body: string | undefined;
+    if (hasBody) {
+      const rawBody = await req.text();
+      const contentType = req.headers.get("content-type");
+      try {
+        body = sanitizeRequestBody(rawBody, contentType);
+      } catch {
+        return new Response(JSON.stringify({ error: "Invalid request body." }), {
+          status: 400,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    }
 
     const upstream = await fetch(target, {
       method: req.method,
