@@ -31,6 +31,8 @@ import {
 // ═══════════════════════════════════════════════════════════════
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPA_CONFIG_OK = Boolean(SUPA_URL && SUPA_ANON);
+const SUPA_TIMEOUT_MS = 10000;
 
 // Storage keys for session persistence
 const SESSION_KEY = "sb_session";
@@ -82,16 +84,48 @@ async function _readResponseSafe(r) {
 }
 
 function _authErrorMessage(status, data, raw, fallback) {
+  if (status == null) {
+    return fallback;
+  }
   if (status === 504 || /upstream\s+request\s+timeout/i.test(raw || "")) {
     return "Supabase no responde (504). Intentá de nuevo en 1-2 minutos.";
   }
   return data?.error_description || data?.msg || fallback;
 }
 
+function _runtimeErrorMessage(error, fallback) {
+  if (error?.message === "SUPABASE_CONFIG_MISSING") {
+    return "Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY en el deploy.";
+  }
+  if (error?.message === "SUPABASE_TIMEOUT") {
+    return "Supabase tardó demasiado en responder. Intentá nuevamente.";
+  }
+  return fallback;
+}
+
+async function _fetchWithTimeout(url, options = {}, timeoutMs = SUPA_TIMEOUT_MS) {
+  if (!SUPA_CONFIG_OK) {
+    throw new Error("SUPABASE_CONFIG_MISSING");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("SUPABASE_TIMEOUT");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 // Token refresh helper
 async function _refreshToken(refresh_token) {
   try {
-    const r = await fetch(
+    const r = await _fetchWithTimeout(
       `${SUPA_URL}/auth/v1/token?grant_type=refresh_token`,
       {
         method: "POST",
@@ -139,11 +173,14 @@ const sb = {
     },
     signInWithPassword: async ({ email, password }) => {
       try {
-        const r = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+        const r = await _fetchWithTimeout(
+          `${SUPA_URL}/auth/v1/token?grant_type=password`,
+          {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
           body: JSON.stringify({ email, password }),
-        });
+          },
+        );
         const { data, raw } = await _readResponseSafe(r);
         if (!r.ok)
           return {
@@ -173,16 +210,21 @@ const sb = {
         saveSession(session);
         _emitAuth("SIGNED_IN", session);
         return { data: { session }, error: null };
-      } catch {
+      } catch (error) {
         return {
           data: null,
-          error: { message: "No se pudo conectar con Supabase." },
+          error: {
+            message: _runtimeErrorMessage(
+              error,
+              "No se pudo conectar con Supabase.",
+            ),
+          },
         };
       }
     },
     signUp: async ({ email, password, options }) => {
       try {
-        const r = await fetch(`${SUPA_URL}/auth/v1/signup`, {
+        const r = await _fetchWithTimeout(`${SUPA_URL}/auth/v1/signup`, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
           body: JSON.stringify({ email, password, data: options?.data || {} }),
@@ -201,17 +243,22 @@ const sb = {
             },
           };
         return { data, error: null };
-      } catch {
+      } catch (error) {
         return {
           data: null,
-          error: { message: "No se pudo conectar con Supabase." },
+          error: {
+            message: _runtimeErrorMessage(
+              error,
+              "No se pudo conectar con Supabase.",
+            ),
+          },
         };
       }
     },
     signOut: async () => {
       const s = await _getValidSession();
       if (s) {
-        await fetch(`${SUPA_URL}/auth/v1/logout`, {
+        await _fetchWithTimeout(`${SUPA_URL}/auth/v1/logout`, {
           method: "POST",
           headers: {
             apikey: SUPA_ANON,
@@ -226,7 +273,7 @@ const sb = {
     },
     resetPasswordForEmail: async (email) => {
       try {
-        const r = await fetch(`${SUPA_URL}/auth/v1/recover`, {
+        const r = await _fetchWithTimeout(`${SUPA_URL}/auth/v1/recover`, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
           body: JSON.stringify({ email }),
@@ -245,8 +292,15 @@ const sb = {
           };
         }
         return { error: null };
-      } catch {
-        return { error: { message: "No se pudo conectar con Supabase." } };
+      } catch (error) {
+        return {
+          error: {
+            message: _runtimeErrorMessage(
+              error,
+              "No se pudo conectar con Supabase.",
+            ),
+          },
+        };
       }
     },
   },
@@ -300,7 +354,9 @@ const sb = {
       exec: async () => {
         const h = await _headers();
         if (_q.single_) h["Accept"] = "application/vnd.pgrst.object+json";
-        const r = await fetch(`${_url()}?${_params()}`, { headers: h });
+        const r = await _fetchWithTimeout(`${_url()}?${_params()}`, {
+          headers: h,
+        });
         const data = await r.json();
         return r.ok ? { data, error: null } : { data: null, error: data };
       },
@@ -310,7 +366,7 @@ const sb = {
       insert: async (rows) => {
         const h = await _headers();
         h["Prefer"] = "return=representation";
-        const r = await fetch(_url(), {
+        const r = await _fetchWithTimeout(_url(), {
           method: "POST",
           headers: h,
           body: JSON.stringify(rows),
@@ -322,7 +378,7 @@ const sb = {
         const h = await _headers();
         h["Prefer"] = "return=representation,resolution=merge-duplicates";
         const extra = onConflict ? `?on_conflict=${onConflict}` : "";
-        const r = await fetch(`${_url()}${extra}`, {
+        const r = await _fetchWithTimeout(`${_url()}${extra}`, {
           method: "POST",
           headers: h,
           body: JSON.stringify(rows),
@@ -335,7 +391,7 @@ const sb = {
         h["Prefer"] = "return=representation";
         const p = new URLSearchParams();
         _q.filters.forEach((f) => p.append(f.col, f.val));
-        const r = await fetch(`${_url()}?${p}`, {
+        const r = await _fetchWithTimeout(`${_url()}?${p}`, {
           method: "PATCH",
           headers: h,
           body: JSON.stringify(vals),
@@ -347,7 +403,7 @@ const sb = {
         const h = await _headers();
         const p = new URLSearchParams();
         _q.filters.forEach((f) => p.append(f.col, f.val));
-        const r = await fetch(`${_url()}?${p}`, {
+        const r = await _fetchWithTimeout(`${_url()}?${p}`, {
           method: "DELETE",
           headers: h,
         });
@@ -30101,7 +30157,11 @@ export default function App() {
           else setAuthLoading(false);
         }
       } catch (e) {
-        console.error("Auth init error:", e);
+        if (e?.message === "SUPABASE_CONFIG_MISSING") {
+          console.warn(
+            "Supabase no configurado en deploy: faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+          );
+        }
         if (mounted) setAuthLoading(false);
       }
     };
