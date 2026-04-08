@@ -10993,7 +10993,6 @@ function ResumenGrupos({
           maxHeight: "52vh",
           overscrollBehavior: "contain",
         }}
-        onWheel={(e) => e.stopPropagation()}
       >
         <table
           style={{
@@ -12123,7 +12122,6 @@ function DistribucionTurnos({
             maxHeight: "52vh",
             overscrollBehavior: "contain",
           }}
-          onWheel={(e) => e.stopPropagation()}
         >
           <table
             style={{
