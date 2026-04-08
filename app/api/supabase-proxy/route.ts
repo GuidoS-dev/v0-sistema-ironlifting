@@ -1,0 +1,99 @@
+import { NextRequest } from "next/server";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const ALLOWED_PREFIXES = ["/auth/v1/", "/rest/v1/"];
+
+function getTargetUrl(path: string) {
+  if (!SUPABASE_URL) return null;
+  if (!ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix))) return null;
+  return `${SUPABASE_URL}${path}`;
+}
+
+async function handleProxy(req: NextRequest) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return new Response(
+      JSON.stringify({ error: "Supabase is not configured in server env." }),
+      { status: 500, headers: { "content-type": "application/json" } },
+    );
+  }
+
+  const path = req.nextUrl.searchParams.get("path") || "";
+  const target = getTargetUrl(path);
+  if (!target) {
+    return new Response(JSON.stringify({ error: "Invalid Supabase path." }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const headers = new Headers();
+  headers.set("apikey", SUPABASE_ANON_KEY);
+
+  const contentType = req.headers.get("content-type");
+  const prefer = req.headers.get("prefer");
+  const accept = req.headers.get("accept");
+  const authorization = req.headers.get("authorization");
+
+  if (contentType) headers.set("content-type", contentType);
+  if (prefer) headers.set("prefer", prefer);
+  if (accept) headers.set("accept", accept);
+  if (authorization) headers.set("authorization", authorization);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const hasBody = req.method !== "GET" && req.method !== "HEAD";
+    const body = hasBody ? await req.text() : undefined;
+
+    const upstream = await fetch(target, {
+      method: req.method,
+      headers,
+      body,
+      signal: controller.signal,
+      cache: "no-store",
+    });
+
+    const text = await upstream.text();
+    const responseHeaders = new Headers();
+    responseHeaders.set(
+      "content-type",
+      upstream.headers.get("content-type") || "application/json",
+    );
+
+    return new Response(text, {
+      status: upstream.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    const message =
+      (error as Error)?.name === "AbortError"
+        ? "Supabase upstream timeout"
+        : "Supabase proxy failed";
+
+    return new Response(JSON.stringify({ error: message }), {
+      status: 504,
+      headers: { "content-type": "application/json" },
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  return handleProxy(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handleProxy(req);
+}
+
+export async function PATCH(req: NextRequest) {
+  return handleProxy(req);
+}
+
+export async function DELETE(req: NextRequest) {
+  return handleProxy(req);
+}
