@@ -74,6 +74,7 @@ function sanitizeRequestBody(body, contentType) {
 
 // Storage keys for session persistence
 const SESSION_KEY = "sb_session";
+const PROFILE_KEY = "sb_profile";
 
 function saveSession(s) {
   try {
@@ -91,6 +92,18 @@ function clearSession() {
   try {
     localStorage.removeItem(SESSION_KEY);
   } catch {}
+}
+function saveProfileLocal(p) {
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+  } catch {}
+}
+function loadProfileLocal() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_KEY));
+  } catch {
+    return null;
+  }
 }
 
 // Auth listeners
@@ -31406,7 +31419,17 @@ export default function App() {
   useEffect(() => {
     let mounted = true;
     const authWatchdog = setTimeout(() => {
-      if (mounted) setAuthLoading(false);
+      if (mounted && !session) {
+        // Watchdog: si Supabase no respondió, intentar modo offline
+        const cached = loadSession();
+        if (cached?.user?.id) {
+          console.warn("Auth timeout — entrando en modo offline con sesión cacheada");
+          setSession(cached);
+          const cachedProfile = loadProfileLocal();
+          if (cachedProfile) setProfile(cachedProfile);
+        }
+        setAuthLoading(false);
+      }
     }, 8000);
 
     const init = async () => {
@@ -31426,7 +31449,17 @@ export default function App() {
             "Supabase no configurado en deploy: faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY.",
           );
         }
-        if (mounted) setAuthLoading(false);
+        // Supabase no disponible — intentar modo offline
+        if (mounted) {
+          const cached = loadSession();
+          if (cached?.user?.id) {
+            console.warn("Supabase no disponible — modo offline con sesión cacheada");
+            setSession(cached);
+            const cachedProfile = loadProfileLocal();
+            if (cachedProfile) setProfile(cachedProfile);
+          }
+          setAuthLoading(false);
+        }
       }
     };
 
@@ -31459,13 +31492,26 @@ export default function App() {
         6000,
       );
       const { data } = profileResult || {};
-      setProfile(data);
-    } catch (e) {}
+      if (data) {
+        setProfile(data);
+        saveProfileLocal(data);
+      } else {
+        // DB no devolvió perfil — usar cache local
+        const cached = loadProfileLocal();
+        if (cached) setProfile(cached);
+      }
+    } catch (e) {
+      // Falló la carga de perfil — usar cache local
+      const cached = loadProfileLocal();
+      if (cached) setProfile(cached);
+    }
     setAuthLoading(false);
   };
 
   const handleLogout = async () => {
     await sb.auth.signOut();
+    clearSession();
+    try { localStorage.removeItem(PROFILE_KEY); } catch {}
     setSession(null);
     setProfile(null);
   };
