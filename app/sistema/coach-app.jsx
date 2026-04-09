@@ -821,7 +821,7 @@ function mesoToDb(m, coachId, options = {}) {
     ultimo_inicio: m.ultimo_inicio || null,
     semanas: m.semanas || [],
     overrides: options.overrides ?? buildMesoOverridesPayload(m),
-    updated_at: new Date().toISOString(),
+    updated_at: m._updated_at || new Date().toISOString(),
   };
 }
 function mesoFromDb(r) {
@@ -30834,22 +30834,11 @@ function CoachApp({ session, profile, onLogout }) {
       const deletedIds = prev
         .filter((p) => !curr.find((m) => m.id === p.id))
         .map((p) => p.id);
-      const nowM = new Date().toISOString();
       const toUpsert = curr.filter((m) => {
         const old = prev.find((p) => p.id === m.id);
         return !old || JSON.stringify(old) !== JSON.stringify(m);
       });
       if (deletedIds.length === 0 && toUpsert.length === 0) return;
-
-      if (toUpsert.length > 0) {
-        setMesociclosRaw((s) =>
-          s.map((m) =>
-            toUpsert.find((u) => u.id === m.id)
-              ? { ...m, _updated_at: nowM }
-              : m,
-          ),
-        );
-      }
 
       for (const id of deletedIds) {
         await sb
