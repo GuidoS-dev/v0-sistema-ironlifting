@@ -3,8 +3,12 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const RATE_LIMIT_MAX_REQUESTS = Number(process.env.API_RATE_LIMIT_MAX_REQUESTS || 60);
-const RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS || 60_000);
+const RATE_LIMIT_MAX_REQUESTS = Number(
+  process.env.API_RATE_LIMIT_MAX_REQUESTS || 60,
+);
+const RATE_LIMIT_WINDOW_MS = Number(
+  process.env.API_RATE_LIMIT_WINDOW_MS || 60_000,
+);
 
 const ALLOWED_PREFIXES = ["/auth/v1/", "/rest/v1/"];
 
@@ -102,10 +106,13 @@ async function handleProxy(req: NextRequest) {
       try {
         body = sanitizeRequestBody(rawBody, contentType);
       } catch {
-        return new Response(JSON.stringify({ error: "Invalid request body." }), {
-          status: 400,
-          headers: { "content-type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Invalid request body." }),
+          {
+            status: 400,
+            headers: { "content-type": "application/json" },
+          },
+        );
       }
     }
 

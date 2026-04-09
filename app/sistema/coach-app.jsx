@@ -23366,21 +23366,13 @@ function usePlantillas(coachId) {
     };
 
     pullPlantillas().catch(() => {});
-    const pollInterval = setInterval(
-      () => pullPlantillas().catch(() => {}),
-      60000,
-    );
-    const onFocus = () => pullPlantillas().catch(() => {});
     const onVisible = () => {
       if (document.visibilityState === "visible")
         pullPlantillas().catch(() => {});
     };
-    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
-      clearInterval(pollInterval);
-      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [coachId]);
@@ -26947,9 +26939,6 @@ function PageNormativos({ coachId, isActive = false }) {
 
   useEffect(() => {
     if (!coachId || !isActive) return;
-    const onFocus = () => {
-      syncFromDb().catch(() => {});
-    };
 
     const onVisible = () => {
       if (document.visibilityState === "visible") {
@@ -26957,13 +26946,9 @@ function PageNormativos({ coachId, isActive = false }) {
       }
     };
 
-    const pollInterval = setInterval(() => syncFromDb().catch(() => {}), 60000);
-    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [coachId, isActive, syncFromDb]);
@@ -27625,18 +27610,13 @@ function PageCalculadora({ coachId }) {
     };
 
     syncFromDb().catch(() => {});
-    const pollInterval = setInterval(() => syncFromDb().catch(() => {}), 60000);
-    const onFocus = () => syncFromDb().catch(() => {});
     const onVisible = () => {
       if (document.visibilityState === "visible") syncFromDb().catch(() => {});
     };
-    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       cancelled = true;
-      clearInterval(pollInterval);
-      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [coachId]);
@@ -30635,10 +30615,6 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullAtletas();
-    const pollInterval = setInterval(() => pullAtletas(), 60000);
-    const onFocus = () => {
-      pullAtletas();
-    };
     const onVisible = () => {
       if (document.visibilityState === "visible") pullAtletas();
     };
@@ -30646,13 +30622,10 @@ function CoachApp({ session, profile, onLogout }) {
       if (e.data?.type === "atletas" || e.data?.type === "all") pullAtletas();
     };
 
-    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
     _bc?.addEventListener("message", onBc);
     return () => {
       cancelled = true;
-      clearInterval(pollInterval);
-      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
       _bc?.removeEventListener("message", onBc);
     };
@@ -30702,8 +30675,6 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullMesociclos();
-    const pollInterval = setInterval(() => pullMesociclos(), 60000);
-    const onFocus = () => pullMesociclos();
     const onVisible = () => {
       if (document.visibilityState === "visible") pullMesociclos();
     };
@@ -30712,13 +30683,10 @@ function CoachApp({ session, profile, onLogout }) {
         pullMesociclos();
     };
 
-    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
     _bc?.addEventListener("message", onBc);
     return () => {
       cancelled = true;
-      clearInterval(pollInterval);
-      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
       _bc?.removeEventListener("message", onBc);
     };
@@ -30743,6 +30711,8 @@ function CoachApp({ session, profile, onLogout }) {
         const old = prev.find((p) => p.id === a.id);
         return !old || JSON.stringify(old) !== JSON.stringify(a);
       });
+      // Skip DB sync if nothing changed
+      if (deletedIds.length === 0 && toUpsert.length === 0) return;
       if (deletedIds.length === 0 && toUpsert.length === 0) return;
 
       if (toUpsert.length > 0) {
@@ -30772,10 +30742,10 @@ function CoachApp({ session, profile, onLogout }) {
           .catch((e) => console.warn("DB sync atletas failed:", e));
         broadcastDbWrite("atletas");
       }
-    }, 1500);
+    }, 5000);
   }, [atletas]);
 
-  // ── Sincronizar mesociclos con DB cuando cambian (debounce 1.5s) ──────────
+  // ── Sincronizar mesociclos con DB cuando cambian (debounce 5s) ──────────
   useEffect(() => {
     if (!coachId || prevMesociclosRef.current === null) return;
     const curr = mesociclos;
@@ -30823,7 +30793,7 @@ function CoachApp({ session, profile, onLogout }) {
           .catch((e) => console.warn("DB sync mesociclos failed:", e));
         broadcastDbWrite("mesociclos");
       }
-    }, 1500);
+    }, 5000);
   }, [mesociclos, coachId]);
 
   // ── Sincronizar overrides al ocultar/cerrar (sin polling periódico) ───────
