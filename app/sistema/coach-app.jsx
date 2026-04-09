@@ -16087,7 +16087,7 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
 
 // ─── PAGES ───────────────────────────────────────────────────────────────────
 
-function AtletaCardItem({ a, mesociclos, onSelect, onEdit, onDelete }) {
+function AtletaCardItem({ a, mesociclos, coachId, onSelect, onEdit, onDelete }) {
   const mesoAtleta = mesociclos
     .filter((m) => m.atleta_id === a.id)
     .sort(
@@ -16166,6 +16166,23 @@ function AtletaCardItem({ a, mesociclos, onSelect, onEdit, onDelete }) {
                     kg
                   </span>
                 )}
+              </span>
+            )}
+            {/* Última edición del meso */}
+            {mesoActivo._updated_at && (
+              <span
+                style={{
+                  fontSize: 9,
+                  color: "var(--muted)",
+                  opacity: 0.7,
+                  whiteSpace: "nowrap",
+                }}
+                title={`Última edición: ${new Date(mesoActivo._updated_at).toLocaleString()}`}
+              >
+                ed. {new Date(mesoActivo._updated_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}{" "}
+                <span style={{ color: coachId ? "var(--green)" : "var(--gold)", fontWeight: 700 }}>
+                  {coachId ? "DB" : "LO"}
+                </span>
               </span>
             )}
             {/* Fase del ciclo actual */}
@@ -16279,7 +16296,7 @@ function AlumnoSectionHeader({ title, count, color, onAdd }) {
   );
 }
 
-function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
+function PageAtletas({ atletas, setAtletas, mesociclos, onSelect, coachId }) {
   const [showForm, setShowForm] = useState(false);
   const [tipoInicial, setTipoInicial] = useState("atleta");
   const [editAtleta, setEditAtleta] = useState(null);
@@ -16312,6 +16329,7 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect }) {
       key={a.id}
       a={a}
       mesociclos={mesociclos}
+      coachId={coachId}
       onSelect={() => setPreviewAtleta(a)}
       onEdit={setEditAtleta}
       onDelete={deleteAtleta}
@@ -31445,6 +31463,7 @@ function CoachApp({ session, profile, onLogout }) {
                 setAtletas={setAtletasFn}
                 mesociclos={mesociclos}
                 onSelect={abrirAtleta}
+                coachId={coachId}
               />
             </div>
             <div style={{ display: tab === "plantillas" ? "block" : "none" }}>
