@@ -512,7 +512,48 @@ const _bc = (() => {
 function broadcastDbWrite(type) {
   try {
     _bc?.postMessage({ type });
+    // Registrar último sync exitoso con DB
+    try { localStorage.setItem("liftplan_last_db_sync", Date.now().toString()); } catch {}
   } catch {}
+}
+
+// ── Backup local automático ──────────────────────────────────────────────────
+const BACKUP_INTERVAL_MS = 5 * 60 * 60 * 1000; // 5 horas
+const BACKUP_PROMPTED_KEY = "liftplan_backup_prompted_at";
+
+function getLastDbSync() {
+  try {
+    const v = localStorage.getItem("liftplan_last_db_sync");
+    return v ? Number(v) : 0;
+  } catch { return 0; }
+}
+
+function collectBackupData() {
+  const get = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch { return fb; } };
+  return {
+    _backup_version: 1,
+    _created_at: new Date().toISOString(),
+    atletas: get("liftplan_atletas", []),
+    mesociclos: get("liftplan_mesociclos", []),
+    plantillas: get("liftplan_plantillas", []),
+    normativos: get("liftplan_normativos", null),
+    tablas: get("liftplan_tablas", null),
+  };
+}
+
+function downloadBackup() {
+  const data = collectBackupData();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ironlifting-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  try { localStorage.setItem(BACKUP_PROMPTED_KEY, Date.now().toString()); } catch {}
 }
 
 function emitLocalSyncEvent(key) {
@@ -30576,6 +30617,8 @@ function CoachApp({ session, profile, onLogout }) {
           prevAtletasRef.current = atletasRef.current;
         if (prevMesociclosRef.current === null)
           prevMesociclosRef.current = mesociclosRef.current;
+        // Registrar que se intentó cargar desde DB (si hubo éxito, broadcastDbWrite ya lo marcó)
+        try { if (!localStorage.getItem("liftplan_last_db_sync")) localStorage.setItem("liftplan_last_db_sync", Date.now().toString()); } catch {}
       }
     })();
   }, [coachId]);
@@ -30950,6 +30993,24 @@ function CoachApp({ session, profile, onLogout }) {
   ];
 
   const [isManualSaving, setIsManualSaving] = useState(false);
+  const [showBackupBanner, setShowBackupBanner] = useState(false);
+
+  // ── Auto-backup: si pasan 5h sin sync a DB, mostrar aviso ─────────────────
+  useEffect(() => {
+    const check = () => {
+      const lastSync = getLastDbSync();
+      const lastPrompted = Number(localStorage.getItem(BACKUP_PROMPTED_KEY) || "0");
+      const now = Date.now();
+      // Mostrar si: pasaron 5h desde último sync Y no se descargó backup recientemente
+      if (lastSync > 0 && (now - lastSync) > BACKUP_INTERVAL_MS && (now - lastPrompted) > BACKUP_INTERVAL_MS) {
+        setShowBackupBanner(true);
+      }
+    };
+    check();
+    const onVisible = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   const forceSaveAllToDb = useCallback(async () => {
     if (!coachId || isManualSaving) return;
@@ -31229,6 +31290,30 @@ function CoachApp({ session, profile, onLogout }) {
             <Send size={13} /> {isManualSaving ? "Guardando..." : "Guardar"}
           </button>
 
+          <button
+            onClick={() => { downloadBackup(); setShowBackupBanner(false); }}
+            title="Descargar respaldo local (JSON)"
+            style={{
+              flexShrink: 0,
+              marginLeft: 6,
+              padding: "0 10px",
+              height: 36,
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "var(--surface2)",
+              color: "var(--muted)",
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              transition: "all .2s",
+            }}
+          >
+            <Download size={13} />
+          </button>
+
           {/* Usuario logueado */}
           <div
             style={{
@@ -31297,6 +31382,53 @@ function CoachApp({ session, profile, onLogout }) {
             </button>
           </div>
         </nav>
+
+        {/* Banner de respaldo automático */}
+        {showBackupBanner && (
+          <div style={{
+            background: "rgba(232,80,71,.12)",
+            borderBottom: "1px solid var(--red)",
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 12,
+            fontSize: 13,
+            color: "var(--text)",
+          }}>
+            <span>⚠️ Hace más de 5 horas sin sincronizar con la base de datos. Descargá un respaldo por seguridad.</span>
+            <button
+              onClick={() => { downloadBackup(); setShowBackupBanner(false); }}
+              style={{
+                padding: "4px 14px",
+                borderRadius: 6,
+                border: "1px solid var(--gold)",
+                background: "var(--gold)",
+                color: "#0a0c10",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Download size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
+              Descargar respaldo
+            </button>
+            <button
+              onClick={() => setShowBackupBanner(false)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--muted)",
+                cursor: "pointer",
+                padding: 4,
+              }}
+              title="Cerrar"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Content area — flex row with panel as sidebar on desktop */}
         <div
