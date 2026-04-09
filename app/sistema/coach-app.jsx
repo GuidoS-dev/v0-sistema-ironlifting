@@ -16168,23 +16168,6 @@ function AtletaCardItem({ a, mesociclos, coachId, onSelect, onEdit, onDelete }) 
                 )}
               </span>
             )}
-            {/* Última edición del meso */}
-            {mesoActivo._updated_at && (
-              <span
-                style={{
-                  fontSize: 9,
-                  color: "var(--muted)",
-                  opacity: 0.7,
-                  whiteSpace: "nowrap",
-                }}
-                title={`Última edición: ${new Date(mesoActivo._updated_at).toLocaleString()}`}
-              >
-                ed. {new Date(mesoActivo._updated_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}{" "}
-                <span style={{ color: coachId ? "var(--green)" : "var(--gold)", fontWeight: 700 }}>
-                  {coachId ? "DB" : "LO"}
-                </span>
-              </span>
-            )}
             {/* Fase del ciclo actual */}
             {a.genero === "f" &&
               a.ciclo?.ultimo_inicio &&
@@ -16222,25 +16205,40 @@ function AtletaCardItem({ a, mesociclos, coachId, onSelect, onEdit, onDelete }) 
           </div>
         )}
       </div>
-      <div className="flex gap8">
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(a);
-          }}
-        >
-          Editar
-        </button>
-        <button
-          className="btn btn-danger btn-sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(a.id, e);
-          }}
-        >
-          x
-        </button>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+        <div className="flex gap8">
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(a);
+            }}
+          >
+            Editar
+          </button>
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(a.id, e);
+            }}
+          >
+            x
+          </button>
+        </div>
+        {mesoActivo?._updated_at && (
+          <span
+            style={{
+              fontSize: 9,
+              color: "var(--muted)",
+              opacity: 0.6,
+              whiteSpace: "nowrap",
+            }}
+            title={`Última edición: ${new Date(mesoActivo._updated_at).toLocaleString()}`}
+          >
+            ed. {new Date(mesoActivo._updated_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+          </span>
+        )}
       </div>
     </div>
   );
