@@ -16236,7 +16236,10 @@ function AtletaCardItem({ a, mesociclos, coachId, onSelect, onEdit, onDelete }) 
             }}
             title={`Última edición: ${new Date(mesoActivo._updated_at).toLocaleString()}`}
           >
-            ed. {new Date(mesoActivo._updated_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            ed. {new Date(mesoActivo._updated_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}{" "}
+            <span style={{ fontWeight: 700, color: coachId ? "var(--green)" : "var(--blue)" }}>
+              {coachId ? "DB" : "LO"}
+            </span>
           </span>
         )}
       </div>
