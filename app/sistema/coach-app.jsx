@@ -509,11 +509,14 @@ const _bc = (() => {
   }
 })();
 
+function markDbSync() {
+  try { localStorage.setItem("liftplan_last_db_sync", Date.now().toString()); } catch {}
+}
+
 function broadcastDbWrite(type) {
   try {
     _bc?.postMessage({ type });
-    // Registrar último sync exitoso con DB
-    try { localStorage.setItem("liftplan_last_db_sync", Date.now().toString()); } catch {}
+    markDbSync();
   } catch {}
 }
 
@@ -30636,8 +30639,8 @@ function CoachApp({ session, profile, onLogout }) {
           prevAtletasRef.current = atletasRef.current;
         if (prevMesociclosRef.current === null)
           prevMesociclosRef.current = mesociclosRef.current;
-        // Registrar que se intentó cargar desde DB (si hubo éxito, broadcastDbWrite ya lo marcó)
-        try { if (!localStorage.getItem("liftplan_last_db_sync")) localStorage.setItem("liftplan_last_db_sync", Date.now().toString()); } catch {}
+        // Registrar sync exitoso con DB
+        markDbSync();
       }
     })();
   }, [coachId]);
@@ -30657,6 +30660,8 @@ function CoachApp({ session, profile, onLogout }) {
 
       const appAtletas = data.filter((r) => r.app_id);
       if (appAtletas.length === 0) return;
+
+      markDbSync();
 
       appAtletas.forEach((r) => {
         restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
@@ -30721,6 +30726,8 @@ function CoachApp({ session, profile, onLogout }) {
 
       const appMesos = data.filter((r) => r.app_id);
       if (appMesos.length === 0) return;
+
+      markDbSync();
 
       appMesos.forEach((r) => restoreMesoOverrides(r.app_id, r.overrides));
 
