@@ -887,7 +887,7 @@ function plantillaFromDb(r) {
     nombre: r.nombre,
     descripcion: r.descripcion,
     tipo: r.tipo,
-    periodo: r.periodo,
+    periodo: r.periodo === "competitivo" ? "general" : r.periodo,
     objetivo: r.objetivo,
     nivel: r.nivel,
     modo: r.modo,
@@ -4782,7 +4782,7 @@ function calcSeriesRepsKg(
   if (!ejData || !ej.ejercicio_id) return null;
 
   const isTiron = String(ejData?.categoria || "").trim() === "Tirones";
-  const modoKey = modo === "Competitivo" ? "Comp" : "Prep";
+  const modoKey = modo === "Competitivo" ? "Comp" : modo === "Mixto" ? "Mixto" : "Prep";
 
   // Kg base del ejercicio = IRM_atleta × pct_base / 100
   // Este valor representa el 100% de la carga — los % de intensidad se aplican sobre él
@@ -4815,10 +4815,25 @@ function calcSeriesRepsKg(
       reps_serie = repsInter;
     } else {
       const lookup = isTiron ? tablas.lookup_tirones : tablas.lookup_general;
-      const row = lookup?.find(
+      let row = lookup?.find(
         (r) =>
           r.intens === intens && r.modo === modoKey && r.reps === repsInter,
       );
+      // Fallback para Mixto: promediar Prep y Comp si no hay fila explícita
+      if (!row && modoKey === "Mixto") {
+        const prep = lookup?.find(
+          (r) => r.intens === intens && r.modo === "Prep" && r.reps === repsInter,
+        );
+        const comp = lookup?.find(
+          (r) => r.intens === intens && r.modo === "Comp" && r.reps === repsInter,
+        );
+        if (prep && comp) {
+          row = {
+            series: Math.round((prep.series + comp.series) / 2),
+            reps_serie: Math.round((prep.reps_serie + comp.reps_serie) / 2),
+          };
+        }
+      }
       series = row?.series ?? null;
       reps_serie = row?.reps_serie ?? null;
     }
@@ -6108,7 +6123,7 @@ function PlanillaTurno({
                 </span>
               )}
               <span
-                className={`badge ${modo === "Competitivo" ? "badge-gold" : "badge-blue"}`}
+                className={`badge ${modo === "Competitivo" ? "badge-gold" : modo === "Mixto" ? "badge-green" : "badge-blue"}`}
               >
                 {modo}
               </span>
@@ -14288,6 +14303,41 @@ const TABLA_DEFAULT = {
     { intens: 95, modo: "Comp", reps: 8, series: 8, reps_serie: 1 },
   ],
 };
+
+// ─── Generar entradas Mixto (promedio Prep/Comp) para lookup tables ────────
+function ensureMixtoLookup(lookup) {
+  if (!Array.isArray(lookup)) return lookup;
+  const hasMixto = lookup.some((r) => r.modo === "Mixto");
+  if (hasMixto) return lookup;
+  const mixtoEntries = [];
+  const intensities = [...new Set(lookup.map((r) => r.intens))];
+  const repsValues = [...new Set(lookup.map((r) => r.reps))];
+  for (const intens of intensities) {
+    for (const reps of repsValues) {
+      const prep = lookup.find(
+        (r) => r.intens === intens && r.modo === "Prep" && r.reps === reps,
+      );
+      const comp = lookup.find(
+        (r) => r.intens === intens && r.modo === "Comp" && r.reps === reps,
+      );
+      if (prep && comp) {
+        mixtoEntries.push({
+          intens,
+          modo: "Mixto",
+          reps,
+          series: Math.round((prep.series + comp.series) / 2),
+          reps_serie: Math.round((prep.reps_serie + comp.reps_serie) / 2),
+        });
+      }
+    }
+  }
+  return [...lookup, ...mixtoEntries];
+}
+
+// Aplicar Mixto a las tablas por defecto
+TABLA_DEFAULT.lookup_general = ensureMixtoLookup(TABLA_DEFAULT.lookup_general);
+TABLA_DEFAULT.lookup_tirones = ensureMixtoLookup(TABLA_DEFAULT.lookup_tirones);
+
 const DEFAULT_EJS = 3;
 // ── Buscador compacto para EjCelda (muestra ID, abre popover al hacer click) ──
 function EjBuscadorCompacto({
@@ -16852,6 +16902,7 @@ function EditMesoModal({ meso, onSave, onClose }) {
           >
             <option>Preparatorio</option>
             <option>Competitivo</option>
+            <option>Mixto</option>
           </select>
         </div>
       </div>
@@ -18183,7 +18234,7 @@ function PageAtleta({
                 </div>
               )}
               <span
-                className={`badge ${mesoVisto.modo === "Competitivo" ? "badge-gold" : "badge-blue"}`}
+                className={`badge ${mesoVisto.modo === "Competitivo" ? "badge-gold" : mesoVisto.modo === "Mixto" ? "badge-green" : "badge-blue"}`}
                 style={{ fontSize: 10 }}
               >
                 {mesoVisto.modo}
@@ -18563,7 +18614,7 @@ function PageAtleta({
                       <span className="badge badge-green">● Activo</span>
                     )}
                     <span
-                      className={`badge ${m.modo === "Competitivo" ? "badge-gold" : "badge-blue"}`}
+                      className={`badge ${m.modo === "Competitivo" ? "badge-gold" : m.modo === "Mixto" ? "badge-green" : "badge-blue"}`}
                     >
                       {m.modo}
                     </span>
@@ -22883,14 +22934,16 @@ ${previewEl.outerHTML}
 // SISTEMA DE PLANTILLAS — helpers, PagePlantillas, hooks
 // ═══════════════════════════════════════════════════════════════
 
-const PERIODOS = ["pretemporada", "competitivo", "transicion", "general"];
+const PERIODOS = ["general", "pretemporada", "transicion", "etapa_1", "etapa_2", "etapa_3"];
 const OBJETIVOS = ["fuerza", "tecnica", "volumen", "pico", "mixto"];
 const NIVELES = ["principiante", "intermedio", "elite"];
 const PERIODO_LABEL = {
-  pretemporada: "Pretemporada",
-  competitivo: "Competitivo",
-  transicion: "Transición",
   general: "General",
+  pretemporada: "Pretemporada",
+  transicion: "Transición",
+  etapa_1: "Etapa 1",
+  etapa_2: "Etapa 2",
+  etapa_3: "Etapa 3",
 };
 const OBJETIVO_LABEL = {
   fuerza: "Fuerza",
@@ -23343,8 +23396,10 @@ function usePlantillas(coachId) {
           const draft = JSON.parse(
             localStorage.getItem(`liftplan_plt_draft_${p.id}`) || "null",
           );
-          // Usar el borrador si existe (siempre es más reciente)
-          return draft || p;
+          const item = draft || p;
+          // Migrar periodo "competitivo" → "general"
+          if (item.periodo === "competitivo") item.periodo = "general";
+          return item;
         } catch {
           return p;
         }
@@ -23746,6 +23801,7 @@ function GuardarPlantillaModal({
             >
               <option>Preparatorio</option>
               <option>Competitivo</option>
+              <option>Mixto</option>
             </select>
           </div>
         )}
@@ -27648,6 +27704,9 @@ function PageCalculadora({ coachId }) {
     Object.keys(TABLA_DEFAULT).forEach((k) => {
       if (Array.isArray(value[k])) merged[k] = value[k];
     });
+    // Asegurar que las lookup tables tengan entradas Mixto
+    if (merged.lookup_general) merged.lookup_general = ensureMixtoLookup(merged.lookup_general);
+    if (merged.lookup_tirones) merged.lookup_tirones = ensureMixtoLookup(merged.lookup_tirones);
     return merged;
   };
 
@@ -28193,7 +28252,7 @@ function PageCalculadora({ coachId }) {
                 </td>
                 <td>
                   <span
-                    className={`badge ${row.modo === "Comp" ? "badge-gold" : "badge-blue"}`}
+                    className={`badge ${row.modo === "Comp" ? "badge-gold" : row.modo === "Mixto" ? "badge-green" : "badge-blue"}`}
                   >
                     {row.modo}
                   </span>
