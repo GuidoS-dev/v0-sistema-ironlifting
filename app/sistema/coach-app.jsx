@@ -22335,13 +22335,13 @@ function PagePDF({
       .pdf-table td[data-label] {
         display: flex;
         align-items: center;
-        padding: 6px 10px 6px 0;
+        padding: 0;
         border-bottom: 1px solid #1a2030;
-        gap: 8px;
-        min-height: 46px;
+        gap: 0;
+        min-height: 42px;
         width: 100%;
         flex-basis: 100%;
-        background: #0d1117;
+        background: #0f1520;
       }
       .pdf-table td[data-label]:last-child {
         border-bottom: none;
@@ -22353,16 +22353,17 @@ function PagePDF({
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 44px;
-        min-width: 44px;
+        width: 48px;
+        min-width: 48px;
         padding: 0;
-        background: transparent;
-        color: #5a6577;
-        font-size: 10px;
-        font-weight: 600;
+        background: #141c28;
+        color: #d4a832;
+        font-size: 11px;
+        font-weight: 700;
         flex-shrink: 0;
         letter-spacing: -.02em;
         align-self: stretch;
+        border-right: 1px solid #1e2733;
       }
 
       /* Cell data: two mini-cards [S×R] [Kg] */
@@ -22372,7 +22373,7 @@ function PagePDF({
         gap: 0;
         font-size: 15px;
         flex: 1;
-        padding: 0;
+        padding: 10px 14px;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
       /* Mini-card for series × reps */
@@ -22444,7 +22445,7 @@ function PagePDF({
         text-align: right;
         font-style: italic;
         flex-shrink: 1;
-        padding-left: 6px;
+        padding-left: 10px;
       }
 
       /* Empty cells: hide */
@@ -22540,9 +22541,9 @@ function PagePDF({
         grid-template-columns: 1fr;
       }
       .pdf-table td[data-label]::before {
-        width: 36px;
-        min-width: 36px;
-        font-size: 9px;
+        width: 40px;
+        min-width: 40px;
+        font-size: 10px;
       }
       .pdf-table .cell-series,
       .pdf-table .cell-reps {
