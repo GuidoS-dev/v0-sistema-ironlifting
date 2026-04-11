@@ -18,10 +18,10 @@ CREATE POLICY "atleta_meso_read" ON public.mesociclos
   );
 
 -- Allow coaches to read athlete profiles (for the user selector dropdown)
+-- Uses JWT metadata instead of subquery on profiles to avoid recursive RLS evaluation
 CREATE POLICY "Coaches can read athlete profiles" ON public.profiles
   FOR SELECT
   USING (
-    rol = 'atleta' AND EXISTS (
-      SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.rol = 'coach'
-    )
+    rol = 'atleta'
+    AND (auth.jwt() -> 'user_metadata' ->> 'tipo') = 'coach'
   );
