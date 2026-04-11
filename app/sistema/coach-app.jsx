@@ -391,7 +391,10 @@ const sb = {
       // Fetch user info with the token
       const r = await _fetchWithTimeout(`${SUPA_URL}/auth/v1/user`, {
         method: "GET",
-        headers: { apikey: SUPA_ANON, Authorization: `${token_type || "bearer"} ${access_token}` },
+        headers: {
+          apikey: SUPA_ANON,
+          Authorization: `${token_type || "bearer"} ${access_token}`,
+        },
       });
       const { data } = await _readResponseSafe(r);
       if (!r.ok || !data?.id) return null;
@@ -404,7 +407,11 @@ const sb = {
       _session = session;
       saveSession(session);
       // Clear hash from URL without reload
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
       _emitAuth("SIGNED_IN", session);
       return session;
     } catch {
@@ -844,6 +851,7 @@ function atletaToDb(a, coachId, options = {}) {
     tipo: a.tipo || "atleta",
     genero: a.genero || "m",
     ciclo: a.ciclo ? JSON.stringify(a.ciclo) : null,
+    profile_id: a.profile_id || null,
     pct_overrides: options.pctOverrides ?? collectAtletaPctOverrides(a.id),
     normativos_overrides:
       options.normativosOverrides ?? collectAtletaNormOverrides(a.id),
@@ -869,6 +877,7 @@ function atletaFromDb(r) {
     tipo: r.tipo,
     genero: r.genero || "m",
     ciclo,
+    profile_id: r.profile_id || null,
     _updated_at: r.updated_at || null,
   };
 }
@@ -3096,7 +3105,13 @@ function getFechaSemana(mesoFechaInicio, semanaNum) {
   return d.toISOString().slice(0, 10);
 }
 
-function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
+function AtletaForm({
+  atleta,
+  tipoInicial = "atleta",
+  onSave,
+  onClose,
+  registeredUsers = [],
+}) {
   const [form, setForm] = useState(
     atleta || {
       id: mkId(),
@@ -3108,6 +3123,7 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
       tipo: tipoInicial,
       genero: "m",
       ciclo: null,
+      profile_id: null,
     },
   );
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -3302,6 +3318,28 @@ function AtletaForm({ atleta, tipoInicial = "atleta", onSave, onClose }) {
           </div>
         </div>
       )}
+
+      {/* Vincular usuario registrado */}
+      <div className="form-group">
+        <label className="form-label">Vincular usuario registrado</label>
+        <select
+          className="form-input"
+          value={form.profile_id || ""}
+          onChange={(e) => set("profile_id", e.target.value || null)}
+          style={{ cursor: "pointer" }}
+        >
+          <option value="">— Sin vincular —</option>
+          {registeredUsers.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.nombre || u.email} ({u.email})
+            </option>
+          ))}
+        </select>
+        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+          Vinculá este atleta con su cuenta de usuario para que pueda ver sus
+          mesociclos al iniciar sesión.
+        </div>
+      </div>
 
       <div className="form-group">
         <label className="form-label">Notas</label>
@@ -16427,7 +16465,20 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect, coachId }) {
   const [previewAtleta, setPreviewAtleta] = useState(null);
   const [expandedAtletas, setExpandedAtletas] = useState(false);
   const [expandedAsesorias, setExpandedAsesorias] = useState(false);
+  const [registeredUsers, setRegisteredUsers] = useState([]);
   const MAX_VISIBLE = 4;
+
+  // Load registered athlete users for the selector
+  useEffect(() => {
+    if (!SUPA_CONFIG_OK) return;
+    sb.from("profiles")
+      .select("id, nombre, email")
+      .eq("rol", "atleta")
+      .then(({ data }) => {
+        if (data) setRegisteredUsers(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const saveAtleta = (a) => {
     setAtletas((prev) => {
@@ -16783,6 +16834,7 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect, coachId }) {
         <AtletaForm
           atleta={editAtleta}
           tipoInicial={tipoInicial}
+          registeredUsers={registeredUsers}
           onSave={saveAtleta}
           onClose={() => {
             setShowForm(false);
@@ -22013,12 +22065,12 @@ function PagePDF({
   React.useLayoutEffect(() => {
     const container = previewRef.current;
     if (!container) return;
-    container.querySelectorAll('.pdf-page').forEach((page) => {
-      const semH = page.querySelector('.pdf-sem-header');
+    container.querySelectorAll(".pdf-page").forEach((page) => {
+      const semH = page.querySelector(".pdf-sem-header");
       if (!semH) return;
       const h = semH.offsetHeight;
-      page.querySelectorAll('.pdf-turno-header').forEach((t) => {
-        t.style.top = h + 'px';
+      page.querySelectorAll(".pdf-turno-header").forEach((t) => {
+        t.style.top = h + "px";
       });
     });
   });
@@ -22661,12 +22713,12 @@ function PagePDF({
       const previewEl = previewRef.current;
       if (!previewEl) return;
       // Setear top de turno-headers antes de capturar el HTML
-      previewEl.querySelectorAll('.pdf-page').forEach((page) => {
-        const semH = page.querySelector('.pdf-sem-header');
+      previewEl.querySelectorAll(".pdf-page").forEach((page) => {
+        const semH = page.querySelector(".pdf-sem-header");
         if (!semH) return;
         const h = semH.offsetHeight;
-        page.querySelectorAll('.pdf-turno-header').forEach((t) => {
-          t.style.top = h + 'px';
+        page.querySelectorAll(".pdf-turno-header").forEach((t) => {
+          t.style.top = h + "px";
         });
       });
       // Construir HTML con estilos completos
@@ -30717,14 +30769,21 @@ function LoginScreen({ onAuth }) {
     if (rol === "coach") {
       if (!codigoCoach.trim()) {
         setLoading(false);
-        setError("Ingresá el código de autorización para registrarte como coach.");
+        setError(
+          "Ingresá el código de autorización para registrarte como coach.",
+        );
         return;
       }
       try {
-        const { data: valid, error: rpcErr } = await sb.rpc("verify_coach_code", { input_code: codigoCoach.trim() });
+        const { data: valid, error: rpcErr } = await sb.rpc(
+          "verify_coach_code",
+          { input_code: codigoCoach.trim() },
+        );
         if (rpcErr || !valid) {
           setLoading(false);
-          setError("Código de autorización inválido. Contactá al administrador.");
+          setError(
+            "Código de autorización inválido. Contactá al administrador.",
+          );
           return;
         }
       } catch {
@@ -30748,9 +30807,10 @@ function LoginScreen({ onAuth }) {
       return;
     }
     setError("");
-    setMsg(rol === "coach"
-      ? "Revisá tu email para confirmar tu cuenta de coach."
-      : "Revisá tu email para confirmar tu cuenta."
+    setMsg(
+      rol === "coach"
+        ? "Revisá tu email para confirmar tu cuenta de coach."
+        : "Revisá tu email para confirmar tu cuenta.",
     );
   };
 
@@ -30863,25 +30923,59 @@ function LoginScreen({ onAuth }) {
                 {/* Selector de rol */}
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Tipo de cuenta</label>
-                  <div style={{
-                    display: "flex", gap: 0,
-                    background: "var(--surface2)", borderRadius: 10, padding: 4
-                  }}>
-                    {[["atleta", "Atleta"], ["coach", "Coach"]].map(([v, l]) => (
-                      <button key={v} type="button" onClick={() => { setRol(v); setError(""); }}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 0,
+                      background: "var(--surface2)",
+                      borderRadius: 10,
+                      padding: 4,
+                    }}
+                  >
+                    {[
+                      ["atleta", "Atleta"],
+                      ["coach", "Coach"],
+                    ].map(([v, l]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => {
+                          setRol(v);
+                          setError("");
+                        }}
                         style={{
-                          flex: 1, padding: "8px 0", border: "none", cursor: "pointer",
-                          borderRadius: 8, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700,
+                          flex: 1,
+                          padding: "8px 0",
+                          border: "none",
+                          cursor: "pointer",
+                          borderRadius: 8,
+                          fontFamily: "'DM Sans'",
+                          fontSize: 13,
+                          fontWeight: 700,
                           transition: "all .2s",
-                          background: rol === v ? "var(--surface)" : "transparent",
-                          color: rol === v ? (v === "coach" ? "var(--gold)" : "var(--green)") : "var(--muted)",
-                          boxShadow: rol === v ? "0 1px 4px rgba(0,0,0,.3)" : "none"
-                        }}>
+                          background:
+                            rol === v ? "var(--surface)" : "transparent",
+                          color:
+                            rol === v
+                              ? v === "coach"
+                                ? "var(--gold)"
+                                : "var(--green)"
+                              : "var(--muted)",
+                          boxShadow:
+                            rol === v ? "0 1px 4px rgba(0,0,0,.3)" : "none",
+                        }}
+                      >
                         {l}
                       </button>
                     ))}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--muted)",
+                      marginTop: 4,
+                    }}
+                  >
                     {rol === "coach"
                       ? "Requiere código de autorización del administrador"
                       : "Cuenta gratuita para atletas"}
@@ -30909,7 +31003,10 @@ function LoginScreen({ onAuth }) {
                       value={codigoCoach}
                       onChange={(e) => setCodigoCoach(e.target.value)}
                       placeholder="Ingresá el código proporcionado"
-                      style={{ letterSpacing: ".15em", textTransform: "uppercase" }}
+                      style={{
+                        letterSpacing: ".15em",
+                        textTransform: "uppercase",
+                      }}
                     />
                   </div>
                 )}
@@ -30989,7 +31086,11 @@ function LoginScreen({ onAuth }) {
                 fontSize: 14,
               }}
             >
-              {mode === "login" ? "Ingresar" : (rol === "coach" ? "Crear cuenta Coach" : "Crear cuenta Atleta")}
+              {mode === "login"
+                ? "Ingresar"
+                : rol === "coach"
+                  ? "Crear cuenta Coach"
+                  : "Crear cuenta Atleta"}
             </button>
 
             {mode === "login" && (
@@ -32251,6 +32352,665 @@ function CoachApp({ session, profile, onLogout }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PANEL DE ATLETA — vista para usuarios con rol "atleta"
+// ═══════════════════════════════════════════════════════════════
+function AtletaPanel({ session, profile, onLogout }) {
+  const [loading, setLoading] = useState(true);
+  const [atletaInfo, setAtletaInfo] = useState(null);
+  const [mesociclos, setMesociclos] = useState([]);
+  const [selectedMeso, setSelectedMeso] = useState(null);
+
+  useEffect(() => {
+    if (!SUPA_CONFIG_OK || !session?.user?.id) {
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        // Load the atleta record linked to this profile
+        const { data: atletaData } = await sb
+          .from("atletas")
+          .select("*")
+          .eq("profile_id", session.user.id)
+          .limit(1);
+        const atleta = atletaData?.[0] || null;
+        setAtletaInfo(atleta);
+
+        if (atleta?.app_id) {
+          // Load mesociclos for this athlete
+          const { data: mesosData } = await sb
+            .from("mesociclos")
+            .select("*")
+            .eq("app_atleta_id", atleta.app_id)
+            .order("updated_at", { ascending: false });
+          if (mesosData) {
+            setMesociclos(mesosData.map(mesoFromDb));
+          }
+        }
+      } catch (e) {
+        console.warn("Error loading athlete data:", e);
+      }
+      setLoading(false);
+    })();
+  }, [session?.user?.id]);
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
+        <LogoHorizontal height={60} />
+        <div
+          style={{ fontSize: 12, color: "var(--muted)", letterSpacing: ".1em" }}
+        >
+          CARGANDO TUS DATOS...
+        </div>
+      </div>
+    );
+  }
+
+  // Not linked to any coach athlete record
+  if (!atletaInfo) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 440,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            padding: 32,
+            textAlign: "center",
+          }}
+        >
+          <LogoHorizontal height={60} />
+          <div
+            style={{
+              fontFamily: "'Bebas Neue'",
+              fontSize: 13,
+              color: "var(--muted)",
+              letterSpacing: ".15em",
+              marginTop: 8,
+              marginBottom: 28,
+            }}
+          >
+            PANEL DE ATLETA
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              marginBottom: 20,
+              padding: "12px 16px",
+              background: "var(--surface2)",
+              borderRadius: 10,
+              border: "1px solid var(--border)",
+            }}
+          >
+            <User size={18} style={{ color: "var(--gold)" }} />
+            <span style={{ fontSize: 14, fontWeight: 600 }}>
+              {profile.nombre || session?.user?.email}
+            </span>
+          </div>
+          <p
+            style={{
+              fontSize: 14,
+              color: "var(--muted)",
+              lineHeight: 1.6,
+              marginBottom: 24,
+            }}
+          >
+            Tu cuenta aún no fue vinculada por tu coach.
+            <br />
+            <br />
+            Pedile a tu coach que vincule tu usuario desde el panel de gestión
+            para poder ver tus mesociclos acá.
+          </p>
+          <button
+            className="btn btn-ghost"
+            onClick={onLogout}
+            style={{ width: "100%" }}
+          >
+            <LogOut size={14} /> Cerrar sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show selected mesociclo detail
+  if (selectedMeso) {
+    const meso = selectedMeso;
+    return (
+      <div
+        style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}
+      >
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          {/* Header */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 24,
+            }}
+          >
+            <button
+              className="btn btn-ghost"
+              onClick={() => setSelectedMeso(null)}
+              style={{ gap: 6 }}
+            >
+              <ChevronLeft size={14} /> Volver
+            </button>
+            <button className="btn btn-ghost" onClick={onLogout}>
+              <LogOut size={14} /> Salir
+            </button>
+          </div>
+
+          {/* Meso title */}
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              padding: "20px 24px",
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'Bebas Neue'",
+                fontSize: 24,
+                color: "var(--gold)",
+                marginBottom: 4,
+              }}
+            >
+              {meso.nombre || "Mesociclo"}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                fontSize: 12,
+              }}
+            >
+              <span
+                style={{
+                  background:
+                    meso.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
+                  color: "#fff",
+                  padding: "2px 10px",
+                  borderRadius: 20,
+                  fontWeight: 700,
+                }}
+              >
+                {meso.modo}
+              </span>
+              {meso.fecha_inicio && (
+                <span style={{ color: "var(--muted)" }}>
+                  Inicio: {meso.fecha_inicio}
+                </span>
+              )}
+              {meso.irm_arranque && (
+                <span style={{ color: "var(--muted)" }}>
+                  ARR: {meso.irm_arranque}kg
+                </span>
+              )}
+              {meso.irm_envion && (
+                <span style={{ color: "var(--muted)" }}>
+                  ENV: {meso.irm_envion}kg
+                </span>
+              )}
+            </div>
+            {meso.descripcion && (
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--muted)",
+                  marginTop: 10,
+                  lineHeight: 1.5,
+                }}
+              >
+                {meso.descripcion}
+              </p>
+            )}
+          </div>
+
+          {/* Weeks */}
+          {(meso.semanas || []).map((sem, si) => (
+            <div
+              key={sem.id || si}
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 14,
+                padding: "16px 20px",
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Bebas Neue'",
+                  fontSize: 16,
+                  color: "var(--text)",
+                  marginBottom: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                SEMANA {sem.numero || si + 1}
+                {sem.pct_volumen && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontFamily: "'DM Sans'",
+                      color: "var(--gold)",
+                      background: "var(--surface2)",
+                      padding: "2px 8px",
+                      borderRadius: 12,
+                    }}
+                  >
+                    {sem.pct_volumen}%
+                  </span>
+                )}
+              </div>
+              {(sem.turnos || []).map((turno, ti) => (
+                <div
+                  key={turno.id || ti}
+                  style={{
+                    background: "var(--surface2)",
+                    borderRadius: 10,
+                    padding: "12px 14px",
+                    marginBottom: 8,
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "var(--gold)",
+                      marginBottom: 8,
+                      textTransform: "uppercase",
+                      letterSpacing: ".05em",
+                    }}
+                  >
+                    {turno.dia || `Turno ${ti + 1}`}
+                    {turno.momento && (
+                      <span style={{ color: "var(--muted)", fontWeight: 400 }}>
+                        {" "}
+                        — {turno.momento}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Complementarios before */}
+                  {(turno.complementarios_before || []).length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      {turno.complementarios_before.map((c, ci) => (
+                        <div
+                          key={ci}
+                          style={{
+                            fontSize: 12,
+                            color: "var(--muted)",
+                            padding: "3px 0",
+                            display: "flex",
+                            gap: 6,
+                          }}
+                        >
+                          <span style={{ color: "var(--green)", fontSize: 10 }}>
+                            ●
+                          </span>
+                          {c.nombre || c.ejercicio_id || "Complementario"}
+                          {c.detalle && (
+                            <span
+                              style={{ color: "var(--muted)", fontSize: 11 }}
+                            >
+                              {" "}
+                              — {c.detalle}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Main exercises */}
+                  {(turno.ejercicios || []).map((ej, ei) => (
+                    <div
+                      key={ej.id || ei}
+                      style={{
+                        padding: "6px 0",
+                        borderBottom:
+                          ei < turno.ejercicios.length - 1
+                            ? "1px solid var(--border)"
+                            : "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "var(--text)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {ej.nombre_custom ||
+                          ej.ejercicio_id ||
+                          `Ejercicio ${ei + 1}`}
+                      </div>
+                      {(ej.bloques || []).length > 0 && (
+                        <div
+                          style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+                        >
+                          {ej.bloques.map((b, bi) => (
+                            <span
+                              key={bi}
+                              style={{
+                                fontSize: 11,
+                                background: "var(--surface)",
+                                padding: "2px 8px",
+                                borderRadius: 6,
+                                color: "var(--muted)",
+                                border: "1px solid var(--border)",
+                              }}
+                            >
+                              {b.series && b.reps
+                                ? `${b.series}×${b.reps}${b.peso ? ` @${b.peso}kg` : ""}${b.pct ? ` ${b.pct}%` : ""}`
+                                : b.texto || JSON.stringify(b)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Complementarios after */}
+                  {(turno.complementarios_after || []).length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      {turno.complementarios_after.map((c, ci) => (
+                        <div
+                          key={ci}
+                          style={{
+                            fontSize: 12,
+                            color: "var(--muted)",
+                            padding: "3px 0",
+                            display: "flex",
+                            gap: 6,
+                          }}
+                        >
+                          <span style={{ color: "var(--blue)", fontSize: 10 }}>
+                            ●
+                          </span>
+                          {c.nombre || c.ejercicio_id || "Complementario"}
+                          {c.detalle && (
+                            <span
+                              style={{ color: "var(--muted)", fontSize: 11 }}
+                            >
+                              {" "}
+                              — {c.detalle}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Main athlete dashboard — list of mesociclos
+  const activeMesos = mesociclos.filter((m) => m.activo);
+  const inactiveMesos = mesociclos.filter((m) => !m.activo);
+
+  return (
+    <div
+      style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}
+    >
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <LogoHorizontal height={36} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--muted)",
+                textAlign: "right",
+              }}
+            >
+              <div style={{ fontWeight: 600, color: "var(--text)" }}>
+                {profile.nombre || session?.user?.email}
+              </div>
+              <div style={{ fontSize: 11 }}>Atleta</div>
+            </div>
+            <button
+              className="btn btn-ghost"
+              onClick={onLogout}
+              style={{ padding: "6px 10px" }}
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Active mesociclos */}
+        {activeMesos.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <div
+              style={{
+                fontFamily: "'Bebas Neue'",
+                fontSize: 18,
+                color: "var(--gold)",
+                letterSpacing: ".04em",
+                marginBottom: 12,
+              }}
+            >
+              MESOCICLO ACTIVO
+            </div>
+            {activeMesos.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setSelectedMeso(m)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  background: "var(--surface)",
+                  border: "2px solid var(--gold)",
+                  borderRadius: 14,
+                  padding: "16px 20px",
+                  marginBottom: 8,
+                  fontFamily: "'DM Sans'",
+                  color: "var(--text)",
+                  transition: "all .2s",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    marginBottom: 4,
+                  }}
+                >
+                  {m.nombre || "Mesociclo"}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    fontSize: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span
+                    style={{
+                      background:
+                        m.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
+                      color: "#fff",
+                      padding: "2px 8px",
+                      borderRadius: 20,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {m.modo}
+                  </span>
+                  {m.semanas && (
+                    <span style={{ color: "var(--muted)" }}>
+                      {m.semanas.length} semanas
+                    </span>
+                  )}
+                  {m.irm_arranque && (
+                    <span style={{ color: "var(--muted)" }}>
+                      ARR: {m.irm_arranque}kg
+                    </span>
+                  )}
+                  {m.irm_envion && (
+                    <span style={{ color: "var(--muted)" }}>
+                      ENV: {m.irm_envion}kg
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Inactive / past mesociclos */}
+        {inactiveMesos.length > 0 && (
+          <div>
+            <div
+              style={{
+                fontFamily: "'Bebas Neue'",
+                fontSize: 16,
+                color: "var(--muted)",
+                letterSpacing: ".04em",
+                marginBottom: 12,
+              }}
+            >
+              MESOCICLOS ANTERIORES
+            </div>
+            {inactiveMesos.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setSelectedMeso(m)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  padding: "14px 18px",
+                  marginBottom: 8,
+                  fontFamily: "'DM Sans'",
+                  color: "var(--text)",
+                  transition: "all .2s",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    marginBottom: 4,
+                  }}
+                >
+                  {m.nombre || "Mesociclo"}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    fontSize: 11,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span style={{ color: "var(--muted)" }}>{m.modo}</span>
+                  {m.fecha_inicio && (
+                    <span style={{ color: "var(--muted)" }}>
+                      Inicio: {m.fecha_inicio}
+                    </span>
+                  )}
+                  {m.semanas && (
+                    <span style={{ color: "var(--muted)" }}>
+                      {m.semanas.length} sem.
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* No mesociclos at all */}
+        {mesociclos.length === 0 && (
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              padding: 32,
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'Bebas Neue'",
+                fontSize: 18,
+                color: "var(--muted)",
+                marginBottom: 8,
+              }}
+            >
+              SIN MESOCICLOS
+            </div>
+            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
+              Tu coach aún no te asignó ningún mesociclo. Contactalo para más
+              información.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -32448,71 +33208,11 @@ export default function App() {
           .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
         `}</style>
-        <div style={{
-          minHeight: "100vh",
-          background: "var(--bg)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 20,
-        }}>
-          <div style={{
-            width: "100%",
-            maxWidth: 440,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            padding: 32,
-            textAlign: "center",
-          }}>
-            <LogoHorizontal height={60} />
-            <div style={{
-              fontFamily: "'Bebas Neue'",
-              fontSize: 13,
-              color: "var(--muted)",
-              letterSpacing: ".15em",
-              marginTop: 8,
-              marginBottom: 28,
-            }}>
-              PANEL DE ATLETA
-            </div>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              marginBottom: 20,
-              padding: "12px 16px",
-              background: "var(--surface2)",
-              borderRadius: 10,
-              border: "1px solid var(--border)",
-            }}>
-              <User size={18} style={{ color: "var(--gold)" }} />
-              <span style={{ fontSize: 14, fontWeight: 600 }}>
-                {profile.nombre || session?.user?.email}
-              </span>
-            </div>
-            <p style={{
-              fontSize: 14,
-              color: "var(--muted)",
-              lineHeight: 1.6,
-              marginBottom: 24,
-            }}>
-              Tu cuenta está registrada como <strong style={{ color: "var(--text)" }}>atleta</strong>. 
-              El panel de atleta estará disponible próximamente.
-              <br /><br />
-              Si sos coach y necesitás acceso al sistema de gestión, contactá al administrador para obtener un código de autorización y registrate con una cuenta de coach.
-            </p>
-            <button
-              className="btn btn-ghost"
-              onClick={handleLogout}
-              style={{ width: "100%" }}
-            >
-              <LogOut size={14} />
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
+        <AtletaPanel
+          session={session}
+          profile={profile}
+          onLogout={handleLogout}
+        />
       </>
     );
   }
