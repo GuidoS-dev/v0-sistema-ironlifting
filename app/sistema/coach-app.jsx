@@ -16679,10 +16679,10 @@ function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect,
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
-                        maxHeight: expandedAtletas
-                          ? "none"
-                          : `${MAX_VISIBLE * 90}px`,
-                        overflowY: expandedAtletas ? "visible" : "hidden",
+                        maxHeight: hasMore && !expandedAtletas
+                          ? `${MAX_VISIBLE * 90}px`
+                          : "none",
+                        overflowY: hasMore && !expandedAtletas ? "hidden" : "visible",
                         position: "relative",
                       }}
                     >
@@ -16801,10 +16801,10 @@ function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect,
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
-                        maxHeight: expandedAsesorias
-                          ? "none"
-                          : `${MAX_VISIBLE * 90}px`,
-                        overflowY: expandedAsesorias ? "visible" : "hidden",
+                        maxHeight: hasMore && !expandedAsesorias
+                          ? `${MAX_VISIBLE * 90}px`
+                          : "none",
+                        overflowY: hasMore && !expandedAsesorias ? "hidden" : "visible",
                         position: "relative",
                       }}
                     >
