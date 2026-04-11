@@ -22296,10 +22296,13 @@ function PagePDF({
       /* ID badge + nombre: header de la card */
       .pdf-table td:first-child {
         position: static;
-        padding: 0 0 0 12px;
+        padding: 0;
+        width: 48px;
+        min-width: 48px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
+        justify-content: center;
         align-self: stretch;
       }
       .pdf-table td:first-child span {
@@ -22359,7 +22362,7 @@ function PagePDF({
         width: 48px;
         min-width: 48px;
         padding: 0;
-        background: #141c28;
+        background: #0d1117;
         color: #d4a832;
         font-size: 11px;
         font-weight: 700;
