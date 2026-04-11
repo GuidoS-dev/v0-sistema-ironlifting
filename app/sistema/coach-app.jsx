@@ -22882,7 +22882,7 @@ ${previewEl.outerHTML}
 
               {/* Turnos */}
               {turnos.map(({ tIdx, dia, momento, rows }) => (
-                <div key={tIdx}>
+                <React.Fragment key={tIdx}>
                   <div className="pdf-turno-header">
                     <span className="pdf-turno-num">Turno {tIdx + 1}</span>
                     {dia && (
@@ -23186,7 +23186,7 @@ ${previewEl.outerHTML}
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </React.Fragment>
               ))}
 
               <div className="pdf-footer">
