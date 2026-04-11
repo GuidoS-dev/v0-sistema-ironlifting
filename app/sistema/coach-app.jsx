@@ -17527,10 +17527,43 @@ function PageAtleta({
   }, [atleta.id]);
 
   // ── Overrides de porcentajes — persisten en localStorage por mesociclo ───────
-  const [semPctOverrides, setSemPctOverridesRaw] = useState({});
-  const [semPctManual, setSemPctManualRaw] = useState(new Set());
-  const [turnoPctOverrides, setTurnoPctOverridesRaw] = useState({});
-  const [turnoPctManual, setTurnoPctManualRaw] = useState(new Set());
+  // Compute initial meso ID so we can initialize pct states from localStorage
+  // (avoids one-frame flash of empty overrides on first render)
+  const _initMesoId = (() => {
+    const filtered = mesociclos
+      .filter((m) => m.atleta_id === atleta.id)
+      .sort(
+        (a, b) =>
+          (parseAppDate(b.fecha_inicio)?.getTime() || 0) -
+          (parseAppDate(a.fecha_inicio)?.getTime() || 0),
+      );
+    return (filtered.find((m) => m.activo) || filtered[0])?.id || null;
+  })();
+  const _loadPctInit = (type, dflt) => {
+    if (!_initMesoId) return dflt;
+    try {
+      const mesoKey = `liftplan_pct_${_initMesoId}_${type}`;
+      const mesoVal = JSON.parse(localStorage.getItem(mesoKey) || "null");
+      if (mesoVal != null) return mesoVal;
+      const legacyKey = `liftplan_pct_${atleta.id}_${type}`;
+      const legacyVal = JSON.parse(localStorage.getItem(legacyKey) || "null");
+      return legacyVal ?? dflt;
+    } catch {
+      return dflt;
+    }
+  };
+  const [semPctOverrides, setSemPctOverridesRaw] = useState(
+    () => _loadPctInit("semOvr", {}),
+  );
+  const [semPctManual, setSemPctManualRaw] = useState(
+    () => new Set(_loadPctInit("semMan", [])),
+  );
+  const [turnoPctOverrides, setTurnoPctOverridesRaw] = useState(
+    () => _loadPctInit("turnoOvr", {}),
+  );
+  const [turnoPctManual, setTurnoPctManualRaw] = useState(
+    () => new Set(_loadPctInit("turnoMan", [])),
+  );
   const [confirmReset, setConfirmReset] = useState(null);
 
   const resetAllPcts = () => {
@@ -17897,7 +17930,57 @@ function PageAtleta({
   const [nameEdit, setNameEditRaw] = useState(() => _loadPt("nameEdit", {}));
   const [noteEdit, setNoteEditRaw] = useState(() => _loadPt("noteEdit", {}));
 
-  // Reload when meso changes
+  // ── Synchronous state reset when mesoVisto changes ──────────────────────────
+  // Prevents one-frame flash of stale data from previous meso on first render.
+  // React "getDerivedStateFromProps" pattern: setState during render triggers a
+  // synchronous re-render BEFORE the browser paints, so stale state is never shown.
+  const [_prevSyncMesoId, _setPrevSyncMesoId] = useState(mesoVisto?.id);
+  if (mesoVisto?.id !== _prevSyncMesoId) {
+    _setPrevSyncMesoId(mesoVisto?.id);
+    // Load pct overrides for new meso
+    const _loadPctSync = (type, dflt) => {
+      if (!mesoVisto) return dflt;
+      try {
+        const mesoKey = `liftplan_pct_${mesoVisto.id}_${type}`;
+        const mesoVal = JSON.parse(localStorage.getItem(mesoKey) || "null");
+        if (mesoVal != null) return mesoVal;
+        const legacyKey = `liftplan_pct_${atleta.id}_${type}`;
+        const legacyVal = JSON.parse(
+          localStorage.getItem(legacyKey) || "null",
+        );
+        if (legacyVal != null) {
+          localStorage.setItem(mesoKey, JSON.stringify(legacyVal));
+          return legacyVal;
+        }
+      } catch {}
+      return dflt;
+    };
+    setSemPctOverridesRaw(_loadPctSync("semOvr", {}));
+    setSemPctManualRaw(new Set(_loadPctSync("semMan", [])));
+    setTurnoPctOverridesRaw(_loadPctSync("turnoOvr", {}));
+    setTurnoPctManualRaw(new Set(_loadPctSync("turnoMan", [])));
+    // Load PT states for new meso
+    const _loadPtSync = (type, dflt) => {
+      try {
+        const k = mesoVisto
+          ? `liftplan_pt_${mesoVisto.id}_${type}`
+          : null;
+        return k
+          ? (JSON.parse(localStorage.getItem(k) || "null") ?? dflt)
+          : dflt;
+      } catch {
+        return dflt;
+      }
+    };
+    setRepsEditRaw(_loadPtSync("repsEdit", {}));
+    setManualEditRaw(new Set(_loadPtSync("manualEdit", [])));
+    setCellEditRaw(_loadPtSync("cellEdit", {}));
+    setCellManualRaw(new Set(_loadPtSync("cellManual", [])));
+    setNameEditRaw(_loadPtSync("nameEdit", {}));
+    setNoteEditRaw(_loadPtSync("noteEdit", {}));
+  }
+
+  // Reload when meso changes (fallback — synchronous reset above handles the critical path)
   const prevPtMesoId = useRef(null);
   useEffect(() => {
     if (!mesoVisto || mesoVisto.id === prevPtMesoId.current) return;
