@@ -149,9 +149,6 @@ export function Pricing() {
               const originalMonthly = isAnnual
                 ? Math.round(plan.originalPrice * 12)
                 : plan.originalPrice;
-              const dailyPrice = Math.round(
-                (isAnnual ? price : plan.discountedPrice * 12) / 365
-              );
 
               return (
                 <Card
@@ -192,9 +189,6 @@ export function Pricing() {
                           {isAnnual ? "/año" : "/mes"}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Solo ${formatPrice(dailyPrice)} por día
-                      </p>
                       <Badge
                         variant="outline"
                         className="mt-2 border-[#e8c547]/50 bg-[#e8c547]/10 text-[#e8c547]"
