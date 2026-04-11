@@ -32865,12 +32865,11 @@ function AtletaPanel({ session, profile, onLogout }) {
         setAtletaInfo(atleta);
 
         if (atleta?.app_id) {
-          // Load mesociclos for this athlete — only active ones
+          // Load all mesociclos for this athlete (active + completed)
           const { data: mesosData } = await sb
             .from("mesociclos")
             .select("*")
             .eq("app_atleta_id", atleta.app_id)
-            .eq("activo", true)
             .order("updated_at", { ascending: false });
           if (mesosData) {
             setMesociclos(mesosData.map(mesoFromDb));
@@ -33280,17 +33279,18 @@ function AtletaPanel({ session, profile, onLogout }) {
     );
   };
 
-  // Get the primary active meso for the week summary
+  // Get the primary active meso for the IRM cards
   const primaryMeso = activeMesos[0] || null;
-  const primaryWeekIdx = primaryMeso ? getCurrentWeek(primaryMeso) : null;
-  const primarySemana = primaryWeekIdx != null ? primaryMeso?.semanas?.[primaryWeekIdx] : null;
+
+  // Last completed (inactive) mesociclo for summary
+  const lastCompletedMeso = mesociclos.find((m) => !m.activo) || null;
 
   return (
     <div
       style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}
     >
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
-        {/* Header */}
+        {/* Header — name left, logo center, logout right */}
         <div
           style={{
             display: "flex",
@@ -33299,25 +33299,27 @@ function AtletaPanel({ session, profile, onLogout }) {
             marginBottom: 28,
           }}
         >
-          <LogoHorizontal height={36} />
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ textAlign: "right" }}>
-              <div
-                style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}
-              >
-                {toTitleCase(profile.nombre) || session?.user?.email}
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "var(--gold)",
-                  fontWeight: 600,
-                  letterSpacing: ".04em",
-                }}
-              >
-                ATLETA
-              </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}
+            >
+              {toTitleCase(profile.nombre) || session?.user?.email}
             </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--gold)",
+                fontWeight: 600,
+                letterSpacing: ".04em",
+              }}
+            >
+              ATLETA
+            </div>
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <LogoHorizontal height={36} />
+          </div>
+          <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
             <button
               className="btn btn-ghost"
               onClick={onLogout}
@@ -33327,43 +33329,6 @@ function AtletaPanel({ session, profile, onLogout }) {
             </button>
           </div>
         </div>
-
-        {/* Athlete Info Card */}
-        {(atletaGenero || atletaAge || atletaInfo?.ciclo) && (
-          <div
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              padding: "14px 18px",
-              marginBottom: 16,
-              display: "flex",
-              gap: 16,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
-            <User size={16} style={{ color: "var(--gold)", flexShrink: 0 }} />
-            {atletaGenero && (
-              <div style={{ fontSize: 13 }}>
-                <span style={{ color: "var(--muted)", fontSize: 11 }}>Género</span>
-                <div style={{ fontWeight: 600 }}>{atletaGenero}</div>
-              </div>
-            )}
-            {atletaAge && (
-              <div style={{ fontSize: 13 }}>
-                <span style={{ color: "var(--muted)", fontSize: 11 }}>Edad</span>
-                <div style={{ fontWeight: 600 }}>{atletaAge} años</div>
-              </div>
-            )}
-            {atletaInfo?.ciclo && (
-              <div style={{ fontSize: 13 }}>
-                <span style={{ color: "var(--muted)", fontSize: 11 }}>Ciclo</span>
-                <div style={{ fontWeight: 600 }}>{atletaInfo.ciclo}</div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* IRM Summary Card */}
         {primaryMeso && (primaryMeso.irm_arranque || primaryMeso.irm_envion) && (
@@ -33446,8 +33411,8 @@ function AtletaPanel({ session, profile, onLogout }) {
           </div>
         )}
 
-        {/* Weekly Training Summary */}
-        {primarySemana && primarySemana.turnos?.length > 0 && (
+        {/* Last completed mesociclo summary */}
+        {lastCompletedMeso && (
           <div style={{ marginBottom: 20 }}>
             <div
               style={{
@@ -33456,118 +33421,158 @@ function AtletaPanel({ session, profile, onLogout }) {
                 gap: 10,
                 marginBottom: 14,
                 paddingBottom: 8,
-                borderBottom: "2px solid var(--blue)",
+                borderBottom: "2px solid var(--muted)",
               }}
             >
               <div
                 style={{
                   fontFamily: "'Bebas Neue'",
                   fontSize: 20,
-                  color: "var(--blue)",
+                  color: "var(--muted)",
                   letterSpacing: ".04em",
                 }}
               >
-                SEMANA {primaryWeekIdx + 1} — ENTRENAMIENTO
+                ÚLTIMO MESOCICLO
               </div>
             </div>
-            {primarySemana.turnos.map((turno, tIdx) => {
-              const ejercicios = (turno.ejercicios || []).filter(
-                (e) => e?.ejercicio_id
-              );
-              if (ejercicios.length === 0) return null;
-              return (
+            <button
+              onClick={() => setSelectedMeso(lastCompletedMeso)}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                cursor: "pointer",
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 12,
+                padding: 0,
+                marginBottom: 10,
+                fontFamily: "'DM Sans'",
+                color: "var(--text)",
+                transition: "all .2s",
+                overflow: "hidden",
+                opacity: 0.75,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "14px 18px",
+                }}
+              >
                 <div
-                  key={turno.id || tIdx}
                   style={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 12,
-                    padding: "14px 18px",
-                    marginBottom: 8,
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    background: "var(--surface3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: "'Bebas Neue',sans-serif",
+                    fontSize: 18,
+                    color: "var(--muted)",
+                    flexShrink: 0,
                   }}
                 >
+                  {(lastCompletedMeso.nombre || "M").charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {lastCompletedMeso.nombre || "Mesociclo"}
+                  </div>
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "center",
                       gap: 8,
-                      marginBottom: 10,
+                      flexWrap: "wrap",
+                      marginTop: 6,
+                      alignItems: "center",
                     }}
                   >
-                    <Zap size={14} style={{ color: "var(--gold)" }} />
                     <span
                       style={{
-                        fontFamily: "'Bebas Neue'",
-                        fontSize: 15,
-                        color: "var(--text)",
-                        letterSpacing: ".04em",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "2px 10px",
+                        borderRadius: 20,
+                        background:
+                          lastCompletedMeso.modo === "Competitivo"
+                            ? "rgba(232,80,71,.15)"
+                            : "rgba(100,180,232,.15)",
+                        color: lastCompletedMeso.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
+                        border: `1px solid ${lastCompletedMeso.modo === "Competitivo" ? "var(--red)" : "var(--blue)"}30`,
                       }}
                     >
-                      {turno.dia || `TURNO ${tIdx + 1}`}
-                      {turno.momento ? ` — ${turno.momento}` : ""}
+                      {lastCompletedMeso.modo}
                     </span>
-                    <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}>
-                      {ejercicios.length} ej.
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "2px 10px",
+                        borderRadius: 20,
+                        background: "rgba(107,114,128,.15)",
+                        color: "var(--muted)",
+                        border: "1px solid rgba(107,114,128,.25)",
+                      }}
+                    >
+                      Finalizado
                     </span>
+                    {lastCompletedMeso.semanas && (
+                      <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                        {lastCompletedMeso.semanas.length} semanas
+                      </span>
+                    )}
                   </div>
-                  {ejercicios.map((ej, eIdx) => (
+                  {(lastCompletedMeso.irm_arranque || lastCompletedMeso.irm_envion) && (
                     <div
-                      key={ej.id || eIdx}
                       style={{
                         display: "flex",
+                        gap: 12,
+                        marginTop: 6,
                         alignItems: "center",
-                        gap: 8,
-                        padding: "6px 0",
-                        borderTop: eIdx > 0 ? "1px solid var(--border)" : "none",
-                        fontSize: 13,
                       }}
                     >
-                      <span style={{ color: "var(--muted)", fontSize: 11, width: 20, textAlign: "center", flexShrink: 0 }}>
-                        {eIdx + 1}
-                      </span>
-                      <span style={{ flex: 1, color: "var(--text)" }}>
-                        {getEjercicioNombre(ej.ejercicio_id)}
-                      </span>
-                      {ej.reps_asignadas > 0 && (
+                      {lastCompletedMeso.irm_arranque && (
                         <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                          {ej.reps_asignadas} reps
+                          ARR:{" "}
+                          <strong style={{ color: "var(--gold)" }}>
+                            {lastCompletedMeso.irm_arranque}
+                          </strong>
+                          kg
+                        </span>
+                      )}
+                      {lastCompletedMeso.irm_envion && (
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                          ENV:{" "}
+                          <strong style={{ color: "var(--blue)" }}>
+                            {lastCompletedMeso.irm_envion}
+                          </strong>
+                          kg
                         </span>
                       )}
                     </div>
-                  ))}
-                  {/* Complementarios */}
-                  {(turno.complementarios_before?.length > 0 || turno.complementarios_after?.length > 0) && (
-                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
-                      <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>COMPLEMENTARIOS</span>
-                      {[...(turno.complementarios_before || []), ...(turno.complementarios_after || [])].map((c, cIdx) => (
-                        <div key={cIdx} style={{ fontSize: 12, color: "var(--muted)", padding: "3px 0", paddingLeft: 20 }}>
-                          {c.nombre || c.ejercicio || `Complementario ${cIdx + 1}`}
-                          {c.series && c.reps ? ` — ${c.series}x${c.reps}` : ""}
-                        </div>
-                      ))}
-                    </div>
                   )}
                 </div>
-              );
-            })}
-            {/* Tap to see full detail */}
-            <button
-              onClick={() => setSelectedMeso(primaryMeso)}
-              style={{
-                width: "100%",
-                padding: "10px",
-                background: "var(--surface2)",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                color: "var(--blue)",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "'DM Sans'",
-                marginTop: 4,
-              }}
-            >
-              Ver planificación completa
+                <ChevronLeft
+                  size={16}
+                  style={{
+                    color: "var(--muted)",
+                    transform: "rotate(180deg)",
+                    flexShrink: 0,
+                  }}
+                />
+              </div>
             </button>
           </div>
         )}
