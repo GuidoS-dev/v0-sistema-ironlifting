@@ -22258,7 +22258,7 @@ function PagePDF({
         box-shadow: 0 2px 10px rgba(0,0,0,.25);
         position: sticky;
         top: 0;
-        z-index: 10;
+        z-index: 30;
       }
       .pdf-turno-num {
         font-size: 13px;
