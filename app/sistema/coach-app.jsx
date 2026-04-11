@@ -22335,13 +22335,13 @@ function PagePDF({
       .pdf-table td[data-label] {
         display: flex;
         align-items: center;
-        padding: 0;
+        padding: 6px 10px 6px 0;
         border-bottom: 1px solid #1a2030;
-        gap: 0;
-        min-height: 42px;
+        gap: 8px;
+        min-height: 46px;
         width: 100%;
         flex-basis: 100%;
-        background: #0f1520;
+        background: #0d1117;
       }
       .pdf-table td[data-label]:last-child {
         border-bottom: none;
@@ -22353,68 +22353,85 @@ function PagePDF({
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 48px;
-        min-width: 48px;
+        width: 44px;
+        min-width: 44px;
         padding: 0;
-        background: #141c28;
-        color: #d4a832;
-        font-size: 11px;
-        font-weight: 700;
+        background: transparent;
+        color: #5a6577;
+        font-size: 10px;
+        font-weight: 600;
         flex-shrink: 0;
         letter-spacing: -.02em;
         align-self: stretch;
-        border-right: 1px solid #1e2733;
       }
 
-      /* Cell data: 3-zone layout — [S×R] [Kg] [Note] */
+      /* Cell data: two mini-cards [S×R] [Kg] */
       .pdf-table .cell-data {
         display: flex;
         align-items: center;
-        gap: 0;
+        gap: 6px;
         font-size: 15px;
         flex: 1;
-        padding: 10px 14px;
+        padding: 0;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
+      /* Mini-card for series × reps */
       .pdf-table .cell-series {
-        font-size: 18px;
-        font-weight: 900;
-        color: #f0f0f0;
-        letter-spacing: -.5px;
+        font-size: 15px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -.3px;
       }
       .pdf-table .cell-series::after {
         content: '×';
-        font-size: 12px;
-        font-weight: 500;
-        color: #5a6577;
-        margin: 0 3px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #d4a832;
+        margin: 0 2px;
       }
       .pdf-table .cell-reps {
-        font-size: 18px;
-        font-weight: 900;
-        color: #f0f0f0;
-        letter-spacing: -.5px;
-        min-width: 28px;
+        font-size: 15px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -.3px;
+        padding-right: 2px;
       }
       .pdf-table .cell-reps::after {
         content: '';
         margin: 0;
       }
+      /* Mini-card for kg */
       .pdf-table .cell-kg {
-        font-size: 16px;
-        font-weight: 700;
-        color: #e8c547;
-        margin-left: 20px;
-        min-width: 55px;
-        text-align: right;
+        font-size: 15px;
+        font-weight: 800;
+        color: #fff;
+        background: #1a1a2e;
+        padding: 5px 10px;
+        border-radius: 6px;
+        white-space: nowrap;
       }
       .pdf-table .cell-kg::after {
-        content: 'kg';
-        font-size: 10px;
-        font-weight: 500;
-        color: #a89240;
+        content: ' kg';
+        font-size: 11px;
+        font-weight: 600;
+        color: #d4a832;
         margin-left: 2px;
         vertical-align: baseline;
+      }
+      /* Wrap series+reps in a mini-card too — via parent background trick */
+      .pdf-table .cell-data {
+        background: transparent;
+      }
+      .pdf-table .cell-data > .cell-series:first-child {
+        background: #1a1a2e;
+        padding: 5px 0 5px 10px;
+        border-radius: 6px 0 0 6px;
+        margin-left: 0;
+      }
+      .pdf-table .cell-data > .cell-reps {
+        background: #1a1a2e;
+        padding: 5px 10px 5px 0;
+        border-radius: 0 6px 6px 0;
       }
       .pdf-table .cell-data .cell-note {
         font-size: 10px;
@@ -22426,7 +22443,7 @@ function PagePDF({
         text-align: right;
         font-style: italic;
         flex-shrink: 1;
-        padding-left: 10px;
+        padding-left: 6px;
       }
 
       /* Empty cells: hide */
@@ -22522,13 +22539,13 @@ function PagePDF({
         grid-template-columns: 1fr;
       }
       .pdf-table td[data-label]::before {
-        width: 40px;
-        min-width: 40px;
-        font-size: 10px;
+        width: 36px;
+        min-width: 36px;
+        font-size: 9px;
       }
       .pdf-table .cell-series,
       .pdf-table .cell-reps {
-        font-size: 16px;
+        font-size: 14px;
       }
       .pdf-table .cell-kg {
         font-size: 14px;
