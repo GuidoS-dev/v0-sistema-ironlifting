@@ -23044,9 +23044,6 @@ ${previewEl.outerHTML}
                                 <tr
                                   key={rIdx}
                                   className={isLast ? "last-ej" : ""}
-                                  style={{
-                                    opacity: row.isComplementario ? 0.85 : 1,
-                                  }}
                                 >
                                   <td style={{ padding: "3px 4px" }}>
                                     <span
@@ -23086,7 +23083,10 @@ ${previewEl.outerHTML}
                                           !hasComplementarioBlockContent(col)
                                         ) {
                                           return (
-                                            <td key={bIdx} data-label={`B${bIdx + 1}`}>
+                                            <td
+                                              key={bIdx}
+                                              data-label={`B${bIdx + 1}`}
+                                            >
                                               <span className="cell-empty">
                                                 –
                                               </span>
@@ -23127,7 +23127,10 @@ ${previewEl.outerHTML}
                                       );
                                       if (!col || !col.s) {
                                         return (
-                                          <td key={intens} data-label={`${intens}%`}>
+                                          <td
+                                            key={intens}
+                                            data-label={`${intens}%`}
+                                          >
                                             <span className="cell-empty">
                                               –
                                             </span>
