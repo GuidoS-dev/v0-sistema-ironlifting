@@ -22607,6 +22607,15 @@ function PagePDF({
     try {
       const previewEl = previewRef.current;
       if (!previewEl) return;
+      // Setear top de turno-headers antes de capturar el HTML
+      previewEl.querySelectorAll('.pdf-page').forEach((page) => {
+        const semH = page.querySelector('.pdf-sem-header');
+        if (!semH) return;
+        const h = semH.offsetHeight;
+        page.querySelectorAll('.pdf-turno-header').forEach((t) => {
+          t.style.top = h + 'px';
+        });
+      });
       // Construir HTML con estilos completos
       const style = Array.from(document.querySelectorAll("style"))
         .map((s) => s.innerHTML)
@@ -22630,6 +22639,22 @@ ${pdfStyle}
 </head>
 <body>
 ${previewEl.outerHTML}
+<script>
+// Posicionar turno sticky debajo de semana header
+function updateStickyTurnos(){
+  document.querySelectorAll('.pdf-page').forEach(function(page){
+    var semH=page.querySelector('.pdf-sem-header');
+    if(!semH)return;
+    var h=semH.offsetHeight;
+    page.querySelectorAll('.pdf-turno-header').forEach(function(t){
+      t.style.top=h+'px';
+    });
+  });
+}
+updateStickyTurnos();
+window.addEventListener('resize',updateStickyTurnos);
+window.addEventListener('load',updateStickyTurnos);
+</script>
 </body></html>`;
       // Crear blob y link de descarga — funciona en la mayoría de browsers modernos
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
