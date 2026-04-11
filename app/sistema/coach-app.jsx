@@ -16277,7 +16277,7 @@ function AtletaCardItem({
             >
               {mesoActivo.modo}
             </span>
-            <span className="badge badge-green">Activo</span>
+            <span className={mesoActivo.activo ? "badge badge-green" : "badge"}>{mesoActivo.activo ? "Activo" : "Inactivo"}</span>
             {mesoActivo.nombre && (
               <span
                 style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}
@@ -16465,7 +16465,7 @@ function AlumnoSectionHeader({ title, count, color, onAdd }) {
   );
 }
 
-function PageAtletas({ atletas, setAtletas, mesociclos, onSelect, coachId }) {
+function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect, coachId }) {
   const [showForm, setShowForm] = useState(false);
   const [tipoInicial, setTipoInicial] = useState("atleta");
   const [editAtleta, setEditAtleta] = useState(null);
@@ -16527,6 +16527,40 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect, coachId }) {
             (parseAppDate(x.fecha_inicio)?.getTime() || 0),
         )
     : [];
+
+  const [confirmDeletePreviewMeso, setConfirmDeletePreviewMeso] = useState(null);
+
+  const previewSetActivo = (m) => {
+    const willBeActive = !m.activo;
+    setMesociclos((prev) =>
+      prev.map((x) =>
+        x.atleta_id === previewAtleta.id
+          ? { ...x, activo: willBeActive && x.id === m.id }
+          : x,
+      ),
+    );
+  };
+
+  const previewDuplicarMeso = (meso) => {
+    const newId = mkId();
+    const dup = {
+      ...JSON.parse(JSON.stringify(meso)),
+      id: newId,
+      activo: false,
+      nombre: (meso.nombre || "Mesociclo") + " (copia)",
+      fecha_inicio: new Date().toISOString().slice(0, 10),
+      semanas: (meso.semanas || []).map((s) => ({
+        ...s,
+        id: mkId(),
+        turnos: (s.turnos || []).map((t) => ({
+          ...t,
+          id: mkId(),
+          ejercicios: (t.ejercicios || []).map((e) => ({ ...e, id: mkId() })),
+        })),
+      })),
+    };
+    setMesociclos((prev) => [...prev, dup]);
+  };
 
   return (
     <div>
@@ -16935,6 +16969,8 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect, coachId }) {
                     alignItems: "center",
                     gap: 10,
                     flexWrap: "wrap",
+                    border: m.activo ? "1px solid rgba(71,232,160,.4)" : undefined,
+                    background: m.activo ? "rgba(71,232,160,.04)" : undefined,
                   }}
                 >
                   <div className="historial-fecha">{m.fecha_inicio}</div>
@@ -16947,15 +16983,51 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect, coachId }) {
                       {m.activo ? " · Activo" : ""}
                     </div>
                   </div>
-                  <button
-                    className="btn btn-gold btn-sm"
-                    onClick={() => {
-                      onSelect(previewAtleta, { view: "meso", mesoId: m.id });
-                      setPreviewAtleta(null);
-                    }}
-                  >
-                    Abrir planilla
-                  </button>
+                  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                    <button
+                      className="btn btn-xs"
+                      title={m.activo ? "Desactivar" : "Activar"}
+                      style={{
+                        background: m.activo ? "rgba(71,232,160,.15)" : "transparent",
+                        color: m.activo ? "var(--green)" : "var(--muted)",
+                        border: `1px solid ${m.activo ? "rgba(71,232,160,.4)" : "var(--border)"}`,
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: 11,
+                        padding: "3px 8px",
+                      }}
+                      onClick={() => previewSetActivo(m)}
+                    >
+                      {m.activo ? "● Activo" : "Activar"}
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      title="Duplicar"
+                      style={{ padding: "3px 5px" }}
+                      onClick={() => previewDuplicarMeso(m)}
+                    >
+                      <Copy size={12} />
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      title="Eliminar"
+                      style={{ padding: "3px 5px", color: "var(--red)" }}
+                      onClick={() => setConfirmDeletePreviewMeso(m)}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    <button
+                      className="btn btn-gold btn-sm"
+                      style={{ fontSize: 11, padding: "3px 10px" }}
+                      onClick={() => {
+                        onSelect(previewAtleta, { view: "meso", mesoId: m.id });
+                        setPreviewAtleta(null);
+                      }}
+                    >
+                      Abrir planilla
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -16966,6 +17038,34 @@ function PageAtletas({ atletas, setAtletas, mesociclos, onSelect, coachId }) {
               onClick={() => setPreviewAtleta(null)}
             >
               Cerrar
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {confirmDeletePreviewMeso && (
+        <Modal title="Eliminar mesociclo" onClose={() => setConfirmDeletePreviewMeso(null)}>
+          <p style={{ fontSize: 13, marginBottom: 8 }}>
+            ¿Eliminar <strong>{confirmDeletePreviewMeso.nombre || "este mesociclo"}</strong>?
+          </p>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 20 }}>
+            Se perderán todos los datos del ciclo. Esta acción no se puede deshacer.
+          </p>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button className="btn btn-ghost" onClick={() => setConfirmDeletePreviewMeso(null)}>
+              Cancelar
+            </button>
+            <button
+              className="btn"
+              style={{ background: "var(--red)", color: "#fff" }}
+              onClick={() => {
+                setMesociclos((prev) =>
+                  prev.filter((m) => m.id !== confirmDeletePreviewMeso.id),
+                );
+                setConfirmDeletePreviewMeso(null);
+              }}
+            >
+              <Trash2 size={14} /> Eliminar
             </button>
           </div>
         </Modal>
@@ -17809,13 +17909,31 @@ function PageAtleta({
     });
 
   const saveMeso = (m) => {
-    const updated = mesociclos.map((x) =>
-      x.atleta_id === atleta.id ? { ...x, activo: false } : x,
-    );
-    setMesociclos([...updated, { ...m, activo: true }]);
+    setMesociclos((prev) => [...prev, { ...m, activo: false }]);
     setMesoSelId(m.id);
     setShowMeso(false);
     setVistaActual("meso");
+  };
+
+  const duplicarMeso = (meso) => {
+    const newId = mkId();
+    const dup = {
+      ...JSON.parse(JSON.stringify(meso)),
+      id: newId,
+      activo: false,
+      nombre: (meso.nombre || "Mesociclo") + " (copia)",
+      fecha_inicio: new Date().toISOString().slice(0, 10),
+      semanas: (meso.semanas || []).map((s) => ({
+        ...s,
+        id: mkId(),
+        turnos: (s.turnos || []).map((t) => ({
+          ...t,
+          id: mkId(),
+          ejercicios: (t.ejercicios || []).map((e) => ({ ...e, id: mkId() })),
+        })),
+      })),
+    };
+    setMesociclos((prev) => [...prev, dup]);
   };
 
   // Editar solo nombre, fecha, modo, IRM del meso actual
@@ -17847,9 +17965,12 @@ function PageAtleta({
   };
 
   const setActivo = (m) => {
+    const willBeActive = !m.activo;
     setMesociclos((prev) =>
       prev.map((x) =>
-        x.atleta_id === atleta.id ? { ...x, activo: x.id === m.id } : x,
+        x.atleta_id === atleta.id
+          ? { ...x, activo: willBeActive && x.id === m.id }
+          : x,
       ),
     );
   };
@@ -18408,6 +18529,23 @@ function PageAtleta({
               >
                 <Pencil size={12} /> Editar
               </button>
+              <button
+                className="btn btn-xs"
+                title={mesoVisto.activo ? "Desactivar — el atleta dejará de verlo" : "Activar — el atleta podrá verlo"}
+                style={{
+                  background: mesoVisto.activo ? "rgba(71,232,160,.15)" : "rgba(71,232,160,.06)",
+                  color: mesoVisto.activo ? "var(--green)" : "var(--muted)",
+                  border: `1px solid ${mesoVisto.activo ? "rgba(71,232,160,.4)" : "var(--border)"}`,
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  padding: "3px 10px",
+                }}
+                onClick={() => setActivo(mesoVisto)}
+              >
+                {mesoVisto.activo ? "● Activo" : "Activar"}
+              </button>
             </div>
           )}
         </div>
@@ -18640,12 +18778,10 @@ function PageAtleta({
               ))}
             </select>
             {mesoVisto.activo ? (
-              <span className="badge badge-green">Activo</span>
-            ) : (
               <button
                 className="btn btn-xs"
                 style={{
-                  background: "rgba(71,232,160,.1)",
+                  background: "rgba(71,232,160,.15)",
                   color: "var(--green)",
                   border: "1px solid rgba(71,232,160,.4)",
                   borderRadius: 6,
@@ -18656,7 +18792,24 @@ function PageAtleta({
                 }}
                 onClick={() => setActivo(mesoVisto)}
               >
-                Marcar activo
+                ● Activo
+              </button>
+            ) : (
+              <button
+                className="btn btn-xs"
+                style={{
+                  background: "rgba(71,232,160,.06)",
+                  color: "var(--muted)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  padding: "4px 10px",
+                }}
+                onClick={() => setActivo(mesoVisto)}
+              >
+                Activar
               </button>
             )}
           </div>
@@ -18804,7 +18957,7 @@ function PageAtleta({
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
                   <button
                     className="btn btn-ghost btn-xs"
                     onClick={() => {
@@ -18814,29 +18967,38 @@ function PageAtleta({
                   >
                     Ver planilla
                   </button>
-                  {!m.activo && (
-                    <button
-                      className="btn btn-xs"
-                      style={{
-                        background: "rgba(71,232,160,.1)",
-                        color: "var(--green)",
-                        border: "1px solid rgba(71,232,160,.4)",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        fontWeight: 600,
-                        fontSize: 11,
-                        padding: "3px 10px",
-                      }}
-                      onClick={() => setActivo(m)}
-                    >
-                      Marcar activo
-                    </button>
-                  )}
                   <button
-                    className="btn btn-danger btn-xs"
+                    className="btn btn-xs"
+                    title={m.activo ? "Desactivar" : "Activar"}
+                    style={{
+                      background: m.activo ? "rgba(71,232,160,.15)" : "rgba(71,232,160,.06)",
+                      color: m.activo ? "var(--green)" : "var(--muted)",
+                      border: `1px solid ${m.activo ? "rgba(71,232,160,.4)" : "var(--border)"}`,
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: 11,
+                      padding: "3px 10px",
+                    }}
+                    onClick={() => setActivo(m)}
+                  >
+                    {m.activo ? "● Activo" : "Activar"}
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    title="Duplicar mesociclo"
+                    style={{ padding: "3px 6px" }}
+                    onClick={() => duplicarMeso(m)}
+                  >
+                    <Copy size={13} />
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    title="Eliminar mesociclo"
+                    style={{ padding: "3px 6px", color: "var(--red)" }}
                     onClick={() => deleteMeso(m.id)}
                   >
-                    ✕
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
@@ -32499,6 +32661,7 @@ function CoachApp({ session, profile, onLogout }) {
                 atletas={atletas}
                 setAtletas={setAtletasFn}
                 mesociclos={mesociclos}
+                setMesociclos={setMesociclos}
                 onSelect={abrirAtleta}
                 coachId={coachId}
               />
@@ -32617,11 +32780,12 @@ function AtletaPanel({ session, profile, onLogout }) {
         setAtletaInfo(atleta);
 
         if (atleta?.app_id) {
-          // Load mesociclos for this athlete
+          // Load mesociclos for this athlete — only active ones
           const { data: mesosData } = await sb
             .from("mesociclos")
             .select("*")
             .eq("app_atleta_id", atleta.app_id)
+            .eq("activo", true)
             .order("updated_at", { ascending: false });
           if (mesosData) {
             setMesociclos(mesosData.map(mesoFromDb));
@@ -32813,9 +32977,8 @@ function AtletaPanel({ session, profile, onLogout }) {
     );
   }
 
-  // Main athlete dashboard — list of mesociclos
+  // Main athlete dashboard — only show active mesociclos
   const activeMesos = mesociclos.filter((m) => m.activo);
-  const inactiveMesos = mesociclos.filter((m) => !m.activo);
 
   const MesoCard = ({ m, isActive }) => (
     <button
@@ -33033,20 +33196,8 @@ function AtletaPanel({ session, profile, onLogout }) {
                   letterSpacing: ".04em",
                 }}
               >
-                MESOCICLO ACTIVO
+                {activeMesos.length === 1 ? "MESOCICLO ACTIVO" : "MESOCICLOS ACTIVOS"}
               </div>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  background: "rgba(232,197,71,.15)",
-                  color: "var(--gold)",
-                  padding: "2px 10px",
-                  borderRadius: 20,
-                }}
-              >
-                {activeMesos.length}
-              </span>
             </div>
             {activeMesos.map((m) => (
               <MesoCard key={m.id} m={m} isActive />
@@ -33054,50 +33205,8 @@ function AtletaPanel({ session, profile, onLogout }) {
           </div>
         )}
 
-        {/* Inactive / past mesociclos */}
-        {inactiveMesos.length > 0 && (
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 14,
-                paddingBottom: 8,
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "'Bebas Neue'",
-                  fontSize: 18,
-                  color: "var(--muted)",
-                  letterSpacing: ".04em",
-                }}
-              >
-                MESOCICLOS ANTERIORES
-              </div>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  background: "var(--surface2)",
-                  color: "var(--muted)",
-                  padding: "2px 10px",
-                  borderRadius: 20,
-                }}
-              >
-                {inactiveMesos.length}
-              </span>
-            </div>
-            {inactiveMesos.map((m) => (
-              <MesoCard key={m.id} m={m} isActive={false} />
-            ))}
-          </div>
-        )}
-
-        {/* No mesociclos at all */}
-        {mesociclos.length === 0 && (
+        {/* No active mesociclos */}
+        {activeMesos.length === 0 && (
           <div
             style={{
               background: "var(--surface)",
@@ -33115,10 +33224,10 @@ function AtletaPanel({ session, profile, onLogout }) {
                 marginBottom: 8,
               }}
             >
-              SIN MESOCICLOS
+              SIN MESOCICLO ACTIVO
             </div>
             <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
-              Tu coach aún no te asignó ningún mesociclo. Contactalo para más
+              Tu coach aún no activó ningún mesociclo para vos. Contactalo para más
               información.
             </p>
           </div>
