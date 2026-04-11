@@ -38,7 +38,7 @@ const plans = [
     name: "Básico",
     description: "Ideal para comenzar tu camino en la halterofilia",
     originalPrice: 75600,
-    discountedPrice: 35,
+    discountedPrice: 49140,
     spots: 20,
     popular: false,
     features: [
@@ -52,7 +52,7 @@ const plans = [
     name: "Intermedio",
     description: "Para atletas que buscan llevar su nivel al siguiente paso",
     originalPrice: 215600,
-    discountedPrice: 100,
+    discountedPrice: 140140,
     spots: 10,
     popular: true,
     features: [
@@ -66,7 +66,7 @@ const plans = [
     name: "Pro",
     description: "Entrenamiento élite para competidores serios",
     originalPrice: 428400,
-    discountedPrice: 199,
+    discountedPrice: 278460,
     spots: 2,
     popular: false,
     features: [
