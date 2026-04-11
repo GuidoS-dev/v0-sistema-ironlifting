@@ -486,6 +486,24 @@ const sb = {
     };
     return builder;
   },
+
+  // RPC call (PostgREST function invocation)
+  rpc: async (fnName, params = {}) => {
+    try {
+      const s = await _getValidSession();
+      const h = { "Content-Type": "application/json", apikey: SUPA_ANON };
+      if (s) h["Authorization"] = `Bearer ${s.access_token}`;
+      const r = await _fetchWithTimeout(`${SUPA_URL}/rest/v1/rpc/${fnName}`, {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify(params),
+      });
+      const data = await r.json().catch(() => null);
+      return r.ok ? { data, error: null } : { data: null, error: data };
+    } catch (error) {
+      return { data: null, error: { message: error?.message || "RPC failed" } };
+    }
+  },
 };
 
 function getSupabase() {
@@ -30691,8 +30709,10 @@ function LoginScreen({ onAuth }) {
     setLoading(false);
     if (error) {
       setError(error.message);
+      setMsg("");
       return;
     }
+    setError("");
     setMsg(rol === "coach"
       ? "Revisá tu email para confirmar tu cuenta de coach."
       : "Revisá tu email para confirmar tu cuenta."
