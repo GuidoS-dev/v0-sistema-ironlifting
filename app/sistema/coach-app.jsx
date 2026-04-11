@@ -377,6 +377,41 @@ const sb = {
     },
   },
 
+  // Handle email confirmation / password-recovery callback from URL hash
+  _handleEmailCallback: async () => {
+    if (typeof window === "undefined") return null;
+    const hash = window.location.hash;
+    if (!hash || !hash.includes("access_token")) return null;
+    try {
+      const params = new URLSearchParams(hash.substring(1));
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      const token_type = params.get("token_type");
+      if (!access_token) return null;
+      // Fetch user info with the token
+      const r = await _fetchWithTimeout(`${SUPA_URL}/auth/v1/user`, {
+        method: "GET",
+        headers: { apikey: SUPA_ANON, Authorization: `${token_type || "bearer"} ${access_token}` },
+      });
+      const { data } = await _readResponseSafe(r);
+      if (!r.ok || !data?.id) return null;
+      const session = {
+        access_token,
+        refresh_token,
+        token_type: token_type || "bearer",
+        user: data,
+      };
+      _session = session;
+      saveSession(session);
+      // Clear hash from URL without reload
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      _emitAuth("SIGNED_IN", session);
+      return session;
+    } catch {
+      return null;
+    }
+  },
+
   // PostgREST query builder
   from: (table) => {
     const _q = {
@@ -32251,6 +32286,16 @@ export default function App() {
 
     const init = async () => {
       try {
+        // First, check if this is a callback from email confirmation/recovery
+        const callbackSession = await sb._handleEmailCallback();
+        if (callbackSession && mounted) {
+          setSession(callbackSession);
+          if (callbackSession.user?.id) {
+            void loadProfile(callbackSession.user.id);
+          } else setAuthLoading(false);
+          return;
+        }
+
         const sessionResult = await withTimeout(sb.auth.getSession(), 6000);
         const session = sessionResult?.data?.session || null;
         if (mounted) {
