@@ -32435,7 +32435,88 @@ export default function App() {
     );
   }
 
-  // Logged in — show coach app (for now, all roles see CoachApp; atleta view coming next)
+  // Logged in — check role before showing the appropriate panel
+  if (profile && profile.tipo !== "coach") {
+    return (
+      <>
+        <style>{`
+          :root{--bg:#0a0c10;--surface:#12151c;--surface2:#1a1e27;--surface3:#222732;
+          --border:#2a303c;--text:#e8eaf0;--muted:#6b7280;--gold:#e8c547;
+          --blue:#64b4e8;--green:#47e8a0;--red:#e85047}
+          body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin:0}
+          .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans';font-size:13px;font-weight:600;transition:all .2s}
+          .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+          @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
+        `}</style>
+        <div style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}>
+          <div style={{
+            width: "100%",
+            maxWidth: 440,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            padding: 32,
+            textAlign: "center",
+          }}>
+            <LogoHorizontal height={60} />
+            <div style={{
+              fontFamily: "'Bebas Neue'",
+              fontSize: 13,
+              color: "var(--muted)",
+              letterSpacing: ".15em",
+              marginTop: 8,
+              marginBottom: 28,
+            }}>
+              PANEL DE ATLETA
+            </div>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              marginBottom: 20,
+              padding: "12px 16px",
+              background: "var(--surface2)",
+              borderRadius: 10,
+              border: "1px solid var(--border)",
+            }}>
+              <User size={18} style={{ color: "var(--gold)" }} />
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                {profile.nombre || session?.user?.email}
+              </span>
+            </div>
+            <p style={{
+              fontSize: 14,
+              color: "var(--muted)",
+              lineHeight: 1.6,
+              marginBottom: 24,
+            }}>
+              Tu cuenta está registrada como <strong style={{ color: "var(--text)" }}>atleta</strong>. 
+              El panel de atleta estará disponible próximamente.
+              <br /><br />
+              Si sos coach y necesitás acceso al sistema de gestión, contactá al administrador para obtener un código de autorización y registrate con una cuenta de coach.
+            </p>
+            <button
+              className="btn btn-ghost"
+              onClick={handleLogout}
+              style={{ width: "100%" }}
+            >
+              <LogOut size={14} />
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <CoachApp session={session} profile={profile} onLogout={handleLogout} />
   );
