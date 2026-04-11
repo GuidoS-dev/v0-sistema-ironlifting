@@ -22824,6 +22824,15 @@ function PagePDF({
         color: #f0b429;
         border-color: rgba(240,180,41,.3);
       }
+      .pdf-mobile-nav-turno.active {
+        background: rgba(240,180,41,.15);
+        color: #f0b429;
+        border-color: rgba(240,180,41,.3);
+      }
+      /* Disable exercise row hover on mobile */
+      .pdf-table tr:hover td {
+        background: inherit !important;
+      }
       /* Padding inferior para que el contenido no quede tapado por la barra */
       #pdf-preview {
         padding-bottom: 80px !important;
@@ -22842,6 +22851,7 @@ function PagePDF({
   );
   const [mobNavActive, setMobNavActive] = useState(0);
   const [mobNavTurnos, setMobNavTurnos] = useState(false);
+  const [mobActiveTurno, setMobActiveTurno] = useState(-1);
 
   // Detect mobile on resize
   React.useEffect(() => {
@@ -23729,6 +23739,7 @@ window.addEventListener('load',updateStickyTurnos);
                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     setMobNavTurnos(activeSem.semIdx === sIdx ? !mobNavTurnos : true);
                     setMobNavActive(sIdx);
+                    setMobActiveTurno(-1);
                   }}
                 >
                   S{sem.numero}
@@ -23740,10 +23751,11 @@ window.addEventListener('load',updateStickyTurnos);
                 {activeSem.turnos.map(({ tIdx, dia }) => (
                   <button
                     key={tIdx}
-                    className="pdf-mobile-nav-turno"
+                    className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? ' active' : ''}`}
                     onClick={() => {
                       const el = document.getElementById(`pdf-turno-${activeSem.semIdx}-${tIdx}`);
                       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      setMobActiveTurno(tIdx);
                     }}
                   >
                     T{tIdx + 1}{dia ? ` · ${dia}` : ''}
