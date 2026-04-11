@@ -22607,6 +22607,15 @@ function PagePDF({
     try {
       const previewEl = previewRef.current;
       if (!previewEl) return;
+      // Setear top de turno-headers antes de capturar el HTML
+      previewEl.querySelectorAll('.pdf-page').forEach((page) => {
+        const semH = page.querySelector('.pdf-sem-header');
+        if (!semH) return;
+        const h = semH.offsetHeight;
+        page.querySelectorAll('.pdf-turno-header').forEach((t) => {
+          t.style.top = h + 'px';
+        });
+      });
       // Construir HTML con estilos completos
       const style = Array.from(document.querySelectorAll("style"))
         .map((s) => s.innerHTML)
@@ -22614,25 +22623,49 @@ function PagePDF({
       const html = `<!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#0d1117"/>
 <title>${atleta.nombre} — ${meso.nombre || "Mesociclo"}</title>
 <style>
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{margin:0;padding:0;background:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;padding:0;background:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-left:env(safe-area-inset-left,0px);
+  padding-right:env(safe-area-inset-right,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
 @media screen and (min-width:769px){body{padding:16px}}
-@media screen and (max-width:768px){body{padding:0}}
-@media print{@page{size:A4 landscape;margin:8mm}body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+@media screen and (max-width:768px){
+  body{padding-top:calc(env(safe-area-inset-top,0px) + 52px);padding-left:0;padding-right:0;padding-bottom:0}
+  .pdf-sem-header{top:calc(env(safe-area-inset-top,0px) + 52px)!important}
+}
+@media print{@page{size:A4 landscape;margin:8mm}body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-sem-header{top:0!important}}
 ${pdfStyle}
-/* Override: quitar sticky en HTML descargado para evitar problemas con barras de apps móviles */
-.pdf-sem-header{position:relative!important}
-.pdf-turno-header{position:relative!important}
 </style>
 </head>
 <body>
 ${previewEl.outerHTML}
+<script>
+// Posicionar turno sticky debajo de semana header, considerando offset de barra de visor
+function updateStickyTurnos(){
+  var isMobile=window.innerWidth<=768;
+  var barOffset=isMobile?52:0;
+  document.querySelectorAll('.pdf-page').forEach(function(page){
+    var semH=page.querySelector('.pdf-sem-header');
+    if(!semH)return;
+    if(isMobile)semH.style.top=barOffset+'px';
+    var h=semH.offsetHeight+barOffset;
+    page.querySelectorAll('.pdf-turno-header').forEach(function(t){
+      t.style.top=h+'px';
+    });
+  });
+}
+updateStickyTurnos();
+window.addEventListener('resize',updateStickyTurnos);
+window.addEventListener('load',updateStickyTurnos);
+</script>
 </body></html>`;
       // Crear blob y link de descarga — funciona en la mayoría de browsers modernos
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
