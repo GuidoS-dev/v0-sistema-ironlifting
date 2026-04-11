@@ -30738,7 +30738,7 @@ function LoginScreen({ onAuth }) {
       email,
       password,
       options: {
-        data: { nombre: nombre || email.split("@")[0], tipo: rol },
+        data: { nombre: nombre || email.split("@")[0], rol },
       },
     });
     setLoading(false);
@@ -32436,7 +32436,7 @@ export default function App() {
   }
 
   // Logged in — check role before showing the appropriate panel
-  if (profile && profile.tipo !== "coach") {
+  if (profile && profile.rol !== "coach") {
     return (
       <>
         <style>{`
