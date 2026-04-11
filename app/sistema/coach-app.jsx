@@ -22847,7 +22847,7 @@ function PagePDF({
     typeof window !== "undefined" && window.innerWidth <= 768
   );
   const [mobNavActive, setMobNavActive] = useState(0);
-  const [mobNavTurnos, setMobNavTurnos] = useState(false);
+  const [mobNavTurnos, setMobNavTurnos] = useState(true);
   const [mobActiveTurno, setMobActiveTurno] = useState(-1);
 
   // Detect mobile on resize
@@ -23750,6 +23750,11 @@ window.addEventListener('load',updateStickyTurnos);
                     key={tIdx}
                     className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? ' active' : ''}`}
                     onClick={() => {
+                      if (mobActiveTurno === tIdx) {
+                        setMobNavTurnos(false);
+                        setMobActiveTurno(-1);
+                        return;
+                      }
                       const el = document.getElementById(`pdf-turno-${activeSem.semIdx}-${tIdx}`);
                       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       setMobActiveTurno(tIdx);
