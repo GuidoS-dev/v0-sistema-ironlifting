@@ -21482,7 +21482,6 @@ function PagePDF({
   normativos: normativosProp = null,
 }) {
   const previewRef = React.useRef(null);
-  const semHeaderHeightsRef = React.useRef({});
   const normativos =
     normativosProp ??
     (() => {
@@ -21956,19 +21955,25 @@ function PagePDF({
     return { sem, semIdx, turnos, met: metricas[semIdx] };
   });
 
-  // Callback ref para medir sem-header y setear CSS var en pdf-page
-  const semHeaderRefCallback = React.useCallback((el) => {
-    if (!el) return;
-    const page = el.closest('.pdf-page');
-    if (!page) return;
+  // Medir sem-headers y setear --sem-h en cada pdf-page para sticky turno
+  React.useEffect(() => {
+    const container = previewRef.current;
+    if (!container) return;
     const update = () => {
-      const h = el.offsetHeight;
-      page.style.setProperty('--sem-h', h + 'px');
+      container.querySelectorAll('.pdf-page').forEach((page) => {
+        const semH = page.querySelector('.pdf-sem-header');
+        if (semH) {
+          const h = semH.offsetHeight;
+          page.style.setProperty('--sem-h', h + 'px');
+        }
+      });
     };
-    update();
+    // Esperar al layout completo
+    const timer = setTimeout(update, 100);
     const ro = new ResizeObserver(update);
-    ro.observe(el);
-  }, []);
+    container.querySelectorAll('.pdf-sem-header').forEach((el) => ro.observe(el));
+    return () => { clearTimeout(timer); ro.disconnect(); };
+  });
 
   const pdfStyle = `
     @media print {
@@ -22849,7 +22854,7 @@ ${previewEl.outerHTML}
               style={{ padding: "0 12px 16px" }}
             >
               {/* Sem header */}
-              <div className="pdf-sem-header" ref={semHeaderRefCallback}>
+              <div className="pdf-sem-header">
                 <div className="pdf-sem-num">S{sem.numero}</div>
                 <div className="pdf-sem-info">
                   <div className="pdf-sem-title">SEMANA {sem.numero}</div>
