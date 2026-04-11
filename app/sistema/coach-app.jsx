@@ -22104,11 +22104,10 @@ function PagePDF({
     return { sem, semIdx, turnos, met: metricas[semIdx] };
   });
 
-  // Medir sem-headers y setear --sem-h en cada pdf-page para sticky turno
-  // Medir sem-header y posicionar turno-headers debajo (sincrónico, antes del paint)
+  // Medir sem-header y posicionar turno-headers debajo (solo desktop, mobile no usa sticky)
   React.useLayoutEffect(() => {
     const container = previewRef.current;
-    if (!container) return;
+    if (!container || window.innerWidth <= 768) return;
     container.querySelectorAll(".pdf-page").forEach((page) => {
       const semH = page.querySelector(".pdf-sem-header");
       if (!semH) return;
@@ -22373,10 +22372,9 @@ function PagePDF({
       .pdf-sem-header {
         flex-direction: column;
         border-radius: 8px;
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        box-shadow: 0 2px 8px rgba(0,0,0,.3);
+        position: relative;
+        z-index: 2;
+        box-shadow: 0 2px 8px rgba(0,0,0,.15);
         background: #fafafa;
       }
       .pdf-sem-num {
@@ -22420,9 +22418,8 @@ function PagePDF({
         margin: 10px 0 4px;
         border-radius: 6px;
         box-shadow: 0 2px 10px rgba(0,0,0,.25);
-        position: sticky;
-        top: 0;
-        z-index: 30;
+        position: relative;
+        z-index: 2;
       }
       .pdf-turno-num {
         font-size: 13px;
@@ -22731,12 +22728,124 @@ function PagePDF({
         font-size: 14px;
       }
     }
+
+    /* ══ Mobile bottom navigation bar ══ */
+    .pdf-mobile-nav {
+      display: none;
+    }
+    @media screen and (max-width: 768px) {
+      .pdf-mobile-nav {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: #0d1117;
+        border-top: 2px solid #f0b429;
+        padding: 8px 10px max(8px, env(safe-area-inset-bottom));
+        gap: 0;
+        align-items: center;
+        box-shadow: 0 -4px 20px rgba(0,0,0,.5);
+      }
+      .pdf-mobile-nav-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+      .pdf-mobile-nav-pill {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        font-family: 'DM Sans', sans-serif;
+        transition: all .15s;
+        background: #1a2030;
+        color: #8a95a8;
+      }
+      .pdf-mobile-nav-pill.active {
+        background: #f0b429;
+        color: #0d1117;
+        box-shadow: 0 0 12px rgba(240,180,41,.35);
+      }
+      .pdf-mobile-nav-turnos {
+        display: flex;
+        gap: 6px;
+        width: 100%;
+        justify-content: center;
+        padding-top: 6px;
+        margin-top: 6px;
+        border-top: 1px solid #1e2733;
+      }
+      .pdf-mobile-nav-turno {
+        padding: 5px 12px;
+        border-radius: 14px;
+        font-size: 11px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        font-family: 'DM Sans', sans-serif;
+        background: #1a2030;
+        color: #8a95a8;
+        transition: all .15s;
+      }
+      .pdf-mobile-nav-turno:active {
+        background: rgba(240,180,41,.25);
+        color: #f0b429;
+      }
+      /* Padding inferior para que el contenido no quede tapado por la barra */
+      #pdf-preview {
+        padding-bottom: 72px !important;
+      }
+    }
   `;
 
   const [sharing, setSharing] = useState(false);
 
   const [shareStatus, setShareStatus] = useState("");
   const [downloading, setDownloading] = useState(false);
+
+  // ── Mobile navigation state ──
+  const [isMob, setIsMob] = useState(
+    typeof window !== "undefined" && window.innerWidth <= 768
+  );
+  const [mobNavActive, setMobNavActive] = useState(0);
+  const [mobNavTurnos, setMobNavTurnos] = useState(false);
+
+  // Detect mobile on resize
+  React.useEffect(() => {
+    const check = () => setIsMob(window.innerWidth <= 768);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Track which semana is currently visible via IntersectionObserver
+  React.useEffect(() => {
+    if (!isMob) return;
+    const container = previewRef.current;
+    if (!container) return;
+    const pages = container.querySelectorAll(".pdf-page[data-sem-idx]");
+    if (!pages.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            const idx = parseInt(e.target.dataset.semIdx, 10);
+            if (!isNaN(idx)) setMobNavActive(idx);
+          }
+        });
+      },
+      { rootMargin: "-10% 0px -70% 0px", threshold: 0 }
+    );
+    pages.forEach((p) => observer.observe(p));
+    return () => observer.disconnect();
+  }, [isMob]);
 
   const handleShareWhatsApp = () => {
     const phone = atleta.telefono ? atleta.telefono.replace(/\D/g, "") : "";
@@ -23030,6 +23139,8 @@ window.addEventListener('load',updateStickyTurnos);
           return (
             <div
               key={sem.id}
+              id={`pdf-sem-${semIdx}`}
+              data-sem-idx={semIdx}
               className="pdf-page"
               style={{ padding: "0 12px 16px" }}
             >
@@ -23082,7 +23193,7 @@ window.addEventListener('load',updateStickyTurnos);
               {/* Turnos */}
               {turnos.map(({ tIdx, dia, momento, rows }) => (
                 <React.Fragment key={tIdx}>
-                  <div className="pdf-turno-header">
+                  <div className="pdf-turno-header" id={`pdf-turno-${semIdx}-${tIdx}`}>
                     <span className="pdf-turno-num">Turno {tIdx + 1}</span>
                     {dia && (
                       <span className="pdf-turno-dia">
@@ -23575,6 +23686,44 @@ window.addEventListener('load',updateStickyTurnos);
           </div>
         </div>
       </div>
+
+      {/* ── Mobile bottom navigation ── */}
+      {isMob && semTurnos.length > 0 && (
+        <div className="pdf-mobile-nav no-print">
+          <div className="pdf-mobile-nav-row">
+            {semTurnos.map(({ sem, semIdx: sIdx }) => (
+              <button
+                key={sIdx}
+                className={`pdf-mobile-nav-pill${mobNavActive === sIdx ? ' active' : ''}`}
+                onClick={() => {
+                  const el = document.getElementById(`pdf-sem-${sIdx}`);
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setMobNavTurnos(mobNavActive === sIdx ? !mobNavTurnos : true);
+                  setMobNavActive(sIdx);
+                }}
+              >
+                S{sem.numero}
+              </button>
+            ))}
+          </div>
+          {mobNavTurnos && semTurnos[mobNavActive] && (
+            <div className="pdf-mobile-nav-turnos">
+              {semTurnos[mobNavActive].turnos.map(({ tIdx, dia }) => (
+                <button
+                  key={tIdx}
+                  className="pdf-mobile-nav-turno"
+                  onClick={() => {
+                    const el = document.getElementById(`pdf-turno-${mobNavActive}-${tIdx}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                >
+                  T{tIdx + 1}{dia ? ` ${dia}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
