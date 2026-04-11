@@ -22742,66 +22742,91 @@ function PagePDF({
         left: 0;
         right: 0;
         z-index: 100;
-        background: #0d1117;
-        border-top: 2px solid #f0b429;
-        padding: 8px 10px max(8px, env(safe-area-inset-bottom));
+        background: rgba(13,17,23,.92);
+        -webkit-backdrop-filter: blur(16px) saturate(1.4);
+        backdrop-filter: blur(16px) saturate(1.4);
+        border-top: 1px solid rgba(240,180,41,.25);
+        padding: 10px 12px max(10px, env(safe-area-inset-bottom));
         gap: 0;
-        align-items: center;
-        box-shadow: 0 -4px 20px rgba(0,0,0,.5);
+        align-items: stretch;
+        box-shadow: 0 -8px 32px rgba(0,0,0,.6);
       }
       .pdf-mobile-nav-row {
         display: flex;
-        gap: 6px;
-        align-items: center;
-        justify-content: center;
-        flex-wrap: wrap;
+        gap: 0;
+        align-items: stretch;
         width: 100%;
+        background: rgba(26,32,48,.7);
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.06);
       }
       .pdf-mobile-nav-pill {
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 13px;
+        flex: 1;
+        padding: 10px 4px;
+        border-radius: 0;
+        font-size: 12px;
         font-weight: 700;
+        letter-spacing: .02em;
         border: none;
         cursor: pointer;
         font-family: 'DM Sans', sans-serif;
-        transition: all .15s;
-        background: #1a2030;
-        color: #8a95a8;
+        transition: all .2s ease;
+        background: transparent;
+        color: rgba(138,149,168,.7);
+        position: relative;
+        text-align: center;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .pdf-mobile-nav-pill + .pdf-mobile-nav-pill {
+        border-left: 1px solid rgba(255,255,255,.04);
       }
       .pdf-mobile-nav-pill.active {
+        background: rgba(240,180,41,.12);
+        color: #f0b429;
+      }
+      .pdf-mobile-nav-pill.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 20%;
+        right: 20%;
+        height: 2px;
         background: #f0b429;
-        color: #0d1117;
-        box-shadow: 0 0 12px rgba(240,180,41,.35);
+        border-radius: 2px 2px 0 0;
       }
       .pdf-mobile-nav-turnos {
         display: flex;
         gap: 6px;
         width: 100%;
         justify-content: center;
-        padding-top: 6px;
-        margin-top: 6px;
-        border-top: 1px solid #1e2733;
+        padding-top: 8px;
+        margin-top: 8px;
       }
       .pdf-mobile-nav-turno {
-        padding: 5px 12px;
-        border-radius: 14px;
+        flex: 1;
+        max-width: 120px;
+        padding: 7px 6px;
+        border-radius: 8px;
         font-size: 11px;
         font-weight: 600;
-        border: none;
+        border: 1px solid rgba(255,255,255,.06);
         cursor: pointer;
         font-family: 'DM Sans', sans-serif;
-        background: #1a2030;
-        color: #8a95a8;
+        background: rgba(26,32,48,.6);
+        color: rgba(138,149,168,.8);
         transition: all .15s;
+        text-align: center;
+        -webkit-tap-highlight-color: transparent;
       }
       .pdf-mobile-nav-turno:active {
-        background: rgba(240,180,41,.25);
+        background: rgba(240,180,41,.15);
         color: #f0b429;
+        border-color: rgba(240,180,41,.3);
       }
       /* Padding inferior para que el contenido no quede tapado por la barra */
       #pdf-preview {
-        padding-bottom: 72px !important;
+        padding-bottom: 80px !important;
       }
     }
   `;
@@ -23688,42 +23713,47 @@ window.addEventListener('load',updateStickyTurnos);
       </div>
 
       {/* ── Mobile bottom navigation ── */}
-      {isMob && semTurnos.length > 0 && (
-        <div className="pdf-mobile-nav no-print">
-          <div className="pdf-mobile-nav-row">
-            {semTurnos.map(({ sem, semIdx: sIdx }) => (
-              <button
-                key={sIdx}
-                className={`pdf-mobile-nav-pill${mobNavActive === sIdx ? ' active' : ''}`}
-                onClick={() => {
-                  const el = document.getElementById(`pdf-sem-${sIdx}`);
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  setMobNavTurnos(mobNavActive === sIdx ? !mobNavTurnos : true);
-                  setMobNavActive(sIdx);
-                }}
-              >
-                S{sem.numero}
-              </button>
-            ))}
-          </div>
-          {mobNavTurnos && semTurnos[mobNavActive] && (
-            <div className="pdf-mobile-nav-turnos">
-              {semTurnos[mobNavActive].turnos.map(({ tIdx, dia }) => (
+      {isMob && (() => {
+        const validSems = semTurnos.filter(s => s.turnos.length > 0);
+        if (!validSems.length) return null;
+        const activeSem = validSems.find(s => s.semIdx === mobNavActive) || validSems[0];
+        return (
+          <div className="pdf-mobile-nav no-print">
+            <div className="pdf-mobile-nav-row">
+              {validSems.map(({ sem, semIdx: sIdx }) => (
                 <button
-                  key={tIdx}
-                  className="pdf-mobile-nav-turno"
+                  key={sIdx}
+                  className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? ' active' : ''}`}
                   onClick={() => {
-                    const el = document.getElementById(`pdf-turno-${mobNavActive}-${tIdx}`);
+                    const el = document.getElementById(`pdf-sem-${sIdx}`);
                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    setMobNavTurnos(activeSem.semIdx === sIdx ? !mobNavTurnos : true);
+                    setMobNavActive(sIdx);
                   }}
                 >
-                  T{tIdx + 1}{dia ? ` ${dia}` : ''}
+                  S{sem.numero}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-      )}
+            {mobNavTurnos && activeSem.turnos.length > 0 && (
+              <div className="pdf-mobile-nav-turnos">
+                {activeSem.turnos.map(({ tIdx, dia }) => (
+                  <button
+                    key={tIdx}
+                    className="pdf-mobile-nav-turno"
+                    onClick={() => {
+                      const el = document.getElementById(`pdf-turno-${activeSem.semIdx}-${tIdx}`);
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                  >
+                    T{tIdx + 1}{dia ? ` · ${dia}` : ''}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
