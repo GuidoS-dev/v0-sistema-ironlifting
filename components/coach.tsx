@@ -19,7 +19,7 @@ export function Coach() {
               <div className="aspect-4/5 overflow-hidden rounded-lg bg-muted">
                 <img
                   src="https://69b2ade2ece241a369f33537.imgix.net/WhatsApp%20Image%202026-03-12%20at%2010.43.19.jpeg?w=474&h=843&rect=15%2C197%2C474%2C843"
-                  alt="Hugo Palacios - Entrenador de Halterofilia Olímpica"
+                  alt="Hugo Palacios - Entrenador"
                   className="h-full w-full object-cover object-top"
                 />
               </div>

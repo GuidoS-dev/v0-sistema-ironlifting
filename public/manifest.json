@@ -1,7 +1,7 @@
 {
   "name": "Sistema Ironlifting",
   "short_name": "Ironlifting",
-  "description": "Programa de Halterofilia Olímpica con metodología científica",
+  "description": "Programa con metodología científica",
   "start_url": "/sistema",
   "display": "standalone",
   "orientation": "portrait",

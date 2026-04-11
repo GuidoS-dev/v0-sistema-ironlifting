@@ -15,9 +15,9 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema Ironlifting | Halterofilia Olímpica con Hugo Palacios",
+  title: "Sistema Ironlifting",
   description:
-    "Programa de Halterofilia Olímpica con metodología científica y más de 35 años de experiencia. Entrenamiento profesional para atletas de todos los niveles.",
+    "Programa con metodología científica y más de 35 años de experiencia. Entrenamiento profesional para atletas de todos los niveles.",
   keywords: [
     "halterofilia",
     "weightlifting",
