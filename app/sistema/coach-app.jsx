@@ -22746,7 +22746,8 @@ function PagePDF({
         -webkit-backdrop-filter: blur(16px) saturate(1.4);
         backdrop-filter: blur(16px) saturate(1.4);
         border-top: 1px solid rgba(240,180,41,.25);
-        padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+        padding: 10px 12px 0;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
         gap: 0;
         align-items: stretch;
         box-shadow: 0 -8px 32px rgba(0,0,0,.6);
@@ -22810,18 +22811,20 @@ function PagePDF({
         border-radius: 8px;
         font-size: 11px;
         font-weight: 600;
-        border: 1px solid rgba(240,180,41,.25);
+        border: 1px solid rgba(255,255,255,.06);
         cursor: pointer;
         font-family: 'DM Sans', sans-serif;
-        background: rgba(240,180,41,.12);
-        color: #f0b429;
+        background: rgba(26,32,48,.6);
+        color: rgba(138,149,168,.8);
         transition: all .15s;
         text-align: center;
         -webkit-tap-highlight-color: transparent;
       }
-      .pdf-mobile-nav-turno:active {
-        background: rgba(240,180,41,.22);
-        border-color: rgba(240,180,41,.4);
+      .pdf-mobile-nav-turno:active,
+      .pdf-mobile-nav-turno.active {
+        background: rgba(240,180,41,.15);
+        color: #f0b429;
+        border-color: rgba(240,180,41,.3);
       }
       /* Disable exercise row hover on mobile */
       .pdf-table tr:hover td {
