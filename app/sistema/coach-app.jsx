@@ -32991,7 +32991,7 @@ function AtletaPanel({ session, profile, onLogout }) {
           >
             <User size={18} style={{ color: "var(--gold)" }} />
             <span style={{ fontSize: 14, fontWeight: 600 }}>
-              {profile.nombre || session?.user?.email}
+              {toTitleCase(profile.nombre) || session?.user?.email}
             </span>
           </div>
           <p
@@ -33065,7 +33065,42 @@ function AtletaPanel({ session, profile, onLogout }) {
   // Main athlete dashboard — only show active mesociclos
   const activeMesos = mesociclos.filter((m) => m.activo);
 
-  const MesoCard = ({ m, isActive }) => (
+  // Calculate current week number based on fecha_inicio
+  const getCurrentWeek = (meso) => {
+    if (!meso.fecha_inicio || !meso.semanas?.length) return null;
+    const start = new Date(meso.fecha_inicio + "T00:00:00");
+    const now = new Date();
+    const diffMs = now - start;
+    if (diffMs < 0) return 0; // hasn't started
+    const weekNum = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+    return Math.min(weekNum, meso.semanas.length - 1);
+  };
+
+  // Helper to get the exercise name from normativos
+  const getEjercicioNombre = (ejId) => {
+    const norms = coachNormativos || EJERCICIOS;
+    const found = norms.find((e) => e.id === ejId);
+    return found?.nombre || `Ejercicio #${ejId}`;
+  };
+
+  // Calculate athlete age from fecha_nacimiento
+  const calcAge = (dateStr) => {
+    if (!dateStr) return null;
+    const birth = new Date(dateStr);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  };
+
+  const atletaAge = calcAge(atletaInfo?.fecha_nacimiento);
+  const atletaGenero = atletaInfo?.genero === "f" ? "Femenino" : atletaInfo?.genero === "m" ? "Masculino" : null;
+
+  const MesoCard = ({ m, isActive }) => {
+    const currentWeek = getCurrentWeek(m);
+    const currentSemana = currentWeek != null ? m.semanas?.[currentWeek] : null;
+    return (
     <button
       onClick={() => setSelectedMeso(m)}
       style={{
@@ -33162,14 +33197,19 @@ function AtletaPanel({ session, profile, onLogout }) {
                 Activo
               </span>
             )}
-            {m.semanas && (
-              <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                {m.semanas.length} semanas
-              </span>
-            )}
-            {m.fecha_inicio && (
-              <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                Inicio: {m.fecha_inicio}
+            {currentWeek != null && m.semanas?.length > 0 && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "2px 10px",
+                  borderRadius: 20,
+                  background: "rgba(232,197,71,.1)",
+                  color: "var(--gold)",
+                  border: "1px solid rgba(232,197,71,.25)",
+                }}
+              >
+                Sem {currentWeek + 1}/{m.semanas.length}
               </span>
             )}
           </div>
@@ -33203,6 +33243,28 @@ function AtletaPanel({ session, profile, onLogout }) {
               )}
             </div>
           )}
+          {/* Week progress bar */}
+          {currentWeek != null && m.semanas?.length > 0 && (
+            <div
+              style={{
+                marginTop: 8,
+                height: 4,
+                borderRadius: 2,
+                background: "var(--surface3)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${((currentWeek + 1) / m.semanas.length) * 100}%`,
+                  background: "var(--gold)",
+                  borderRadius: 2,
+                  transition: "width .3s",
+                }}
+              />
+            </div>
+          )}
         </div>
         {/* Arrow */}
         <ChevronLeft
@@ -33215,7 +33277,13 @@ function AtletaPanel({ session, profile, onLogout }) {
         />
       </div>
     </button>
-  );
+    );
+  };
+
+  // Get the primary active meso for the week summary
+  const primaryMeso = activeMesos[0] || null;
+  const primaryWeekIdx = primaryMeso ? getCurrentWeek(primaryMeso) : null;
+  const primarySemana = primaryWeekIdx != null ? primaryMeso?.semanas?.[primaryWeekIdx] : null;
 
   return (
     <div
@@ -33237,7 +33305,7 @@ function AtletaPanel({ session, profile, onLogout }) {
               <div
                 style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}
               >
-                {profile.nombre || session?.user?.email}
+                {toTitleCase(profile.nombre) || session?.user?.email}
               </div>
               <div
                 style={{
@@ -33260,9 +33328,95 @@ function AtletaPanel({ session, profile, onLogout }) {
           </div>
         </div>
 
+        {/* Athlete Info Card */}
+        {(atletaGenero || atletaAge || atletaInfo?.ciclo) && (
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+              padding: "14px 18px",
+              marginBottom: 16,
+              display: "flex",
+              gap: 16,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <User size={16} style={{ color: "var(--gold)", flexShrink: 0 }} />
+            {atletaGenero && (
+              <div style={{ fontSize: 13 }}>
+                <span style={{ color: "var(--muted)", fontSize: 11 }}>Género</span>
+                <div style={{ fontWeight: 600 }}>{atletaGenero}</div>
+              </div>
+            )}
+            {atletaAge && (
+              <div style={{ fontSize: 13 }}>
+                <span style={{ color: "var(--muted)", fontSize: 11 }}>Edad</span>
+                <div style={{ fontWeight: 600 }}>{atletaAge} años</div>
+              </div>
+            )}
+            {atletaInfo?.ciclo && (
+              <div style={{ fontSize: 13 }}>
+                <span style={{ color: "var(--muted)", fontSize: 11 }}>Ciclo</span>
+                <div style={{ fontWeight: 600 }}>{atletaInfo.ciclo}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* IRM Summary Card */}
+        {primaryMeso && (primaryMeso.irm_arranque || primaryMeso.irm_envion) && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            {primaryMeso.irm_arranque && (
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  padding: "16px",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>
+                  ARRANQUE
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: "var(--gold)", fontFamily: "'Bebas Neue'" }}>
+                  {primaryMeso.irm_arranque}<span style={{ fontSize: 14, color: "var(--muted)" }}>kg</span>
+                </div>
+              </div>
+            )}
+            {primaryMeso.irm_envion && (
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  padding: "16px",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>
+                  ENVIÓN
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: "var(--blue)", fontFamily: "'Bebas Neue'" }}>
+                  {primaryMeso.irm_envion}<span style={{ fontSize: 14, color: "var(--muted)" }}>kg</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Active mesociclos */}
         {activeMesos.length > 0 && (
-          <div style={{ marginBottom: 28 }}>
+          <div style={{ marginBottom: 20 }}>
             <div
               style={{
                 display: "flex",
@@ -33289,6 +33443,132 @@ function AtletaPanel({ session, profile, onLogout }) {
             {activeMesos.map((m) => (
               <MesoCard key={m.id} m={m} isActive />
             ))}
+          </div>
+        )}
+
+        {/* Weekly Training Summary */}
+        {primarySemana && primarySemana.turnos?.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                paddingBottom: 8,
+                borderBottom: "2px solid var(--blue)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Bebas Neue'",
+                  fontSize: 20,
+                  color: "var(--blue)",
+                  letterSpacing: ".04em",
+                }}
+              >
+                SEMANA {primaryWeekIdx + 1} — ENTRENAMIENTO
+              </div>
+            </div>
+            {primarySemana.turnos.map((turno, tIdx) => {
+              const ejercicios = (turno.ejercicios || []).filter(
+                (e) => e?.ejercicio_id
+              );
+              if (ejercicios.length === 0) return null;
+              return (
+                <div
+                  key={turno.id || tIdx}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 12,
+                    padding: "14px 18px",
+                    marginBottom: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <Zap size={14} style={{ color: "var(--gold)" }} />
+                    <span
+                      style={{
+                        fontFamily: "'Bebas Neue'",
+                        fontSize: 15,
+                        color: "var(--text)",
+                        letterSpacing: ".04em",
+                      }}
+                    >
+                      {turno.dia || `TURNO ${tIdx + 1}`}
+                      {turno.momento ? ` — ${turno.momento}` : ""}
+                    </span>
+                    <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}>
+                      {ejercicios.length} ej.
+                    </span>
+                  </div>
+                  {ejercicios.map((ej, eIdx) => (
+                    <div
+                      key={ej.id || eIdx}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "6px 0",
+                        borderTop: eIdx > 0 ? "1px solid var(--border)" : "none",
+                        fontSize: 13,
+                      }}
+                    >
+                      <span style={{ color: "var(--muted)", fontSize: 11, width: 20, textAlign: "center", flexShrink: 0 }}>
+                        {eIdx + 1}
+                      </span>
+                      <span style={{ flex: 1, color: "var(--text)" }}>
+                        {getEjercicioNombre(ej.ejercicio_id)}
+                      </span>
+                      {ej.reps_asignadas > 0 && (
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                          {ej.reps_asignadas} reps
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {/* Complementarios */}
+                  {(turno.complementarios_before?.length > 0 || turno.complementarios_after?.length > 0) && (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
+                      <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>COMPLEMENTARIOS</span>
+                      {[...(turno.complementarios_before || []), ...(turno.complementarios_after || [])].map((c, cIdx) => (
+                        <div key={cIdx} style={{ fontSize: 12, color: "var(--muted)", padding: "3px 0", paddingLeft: 20 }}>
+                          {c.nombre || c.ejercicio || `Complementario ${cIdx + 1}`}
+                          {c.series && c.reps ? ` — ${c.series}x${c.reps}` : ""}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {/* Tap to see full detail */}
+            <button
+              onClick={() => setSelectedMeso(primaryMeso)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                background: "var(--surface2)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                color: "var(--blue)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "'DM Sans'",
+                marginTop: 4,
+              }}
+            >
+              Ver planificación completa
+            </button>
           </div>
         )}
 
