@@ -22810,24 +22810,18 @@ function PagePDF({
         border-radius: 8px;
         font-size: 11px;
         font-weight: 600;
-        border: 1px solid rgba(255,255,255,.06);
+        border: 1px solid rgba(240,180,41,.25);
         cursor: pointer;
         font-family: 'DM Sans', sans-serif;
-        background: rgba(26,32,48,.6);
-        color: rgba(138,149,168,.8);
+        background: rgba(240,180,41,.12);
+        color: #f0b429;
         transition: all .15s;
         text-align: center;
         -webkit-tap-highlight-color: transparent;
       }
       .pdf-mobile-nav-turno:active {
-        background: rgba(240,180,41,.15);
-        color: #f0b429;
-        border-color: rgba(240,180,41,.3);
-      }
-      .pdf-mobile-nav-turno.active {
-        background: rgba(240,180,41,.15);
-        color: #f0b429;
-        border-color: rgba(240,180,41,.3);
+        background: rgba(240,180,41,.22);
+        border-color: rgba(240,180,41,.4);
       }
       /* Disable exercise row hover on mobile */
       .pdf-table tr:hover td {
