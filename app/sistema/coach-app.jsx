@@ -16277,7 +16277,9 @@ function AtletaCardItem({
             >
               {mesoActivo.modo}
             </span>
-            <span className={mesoActivo.activo ? "badge badge-green" : "badge"}>{mesoActivo.activo ? "Activo" : "Inactivo"}</span>
+            <span className={mesoActivo.activo ? "badge badge-green" : "badge"}>
+              {mesoActivo.activo ? "Activo" : "Inactivo"}
+            </span>
             {mesoActivo.nombre && (
               <span
                 style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}
@@ -16465,7 +16467,14 @@ function AlumnoSectionHeader({ title, count, color, onAdd }) {
   );
 }
 
-function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect, coachId }) {
+function PageAtletas({
+  atletas,
+  setAtletas,
+  mesociclos,
+  setMesociclos,
+  onSelect,
+  coachId,
+}) {
   const [showForm, setShowForm] = useState(false);
   const [tipoInicial, setTipoInicial] = useState("atleta");
   const [editAtleta, setEditAtleta] = useState(null);
@@ -16528,7 +16537,8 @@ function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect,
         )
     : [];
 
-  const [confirmDeletePreviewMeso, setConfirmDeletePreviewMeso] = useState(null);
+  const [confirmDeletePreviewMeso, setConfirmDeletePreviewMeso] =
+    useState(null);
 
   const previewSetActivo = (m) => {
     const willBeActive = !m.activo;
@@ -16679,10 +16689,12 @@ function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect,
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
-                        maxHeight: hasMore && !expandedAtletas
-                          ? `${MAX_VISIBLE * 90}px`
-                          : "none",
-                        overflowY: hasMore && !expandedAtletas ? "hidden" : "visible",
+                        maxHeight:
+                          hasMore && !expandedAtletas
+                            ? `${MAX_VISIBLE * 90}px`
+                            : "none",
+                        overflowY:
+                          hasMore && !expandedAtletas ? "hidden" : "visible",
                         position: "relative",
                       }}
                     >
@@ -16801,10 +16813,12 @@ function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect,
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
-                        maxHeight: hasMore && !expandedAsesorias
-                          ? `${MAX_VISIBLE * 90}px`
-                          : "none",
-                        overflowY: hasMore && !expandedAsesorias ? "hidden" : "visible",
+                        maxHeight:
+                          hasMore && !expandedAsesorias
+                            ? `${MAX_VISIBLE * 90}px`
+                            : "none",
+                        overflowY:
+                          hasMore && !expandedAsesorias ? "hidden" : "visible",
                         position: "relative",
                       }}
                     >
@@ -16969,7 +16983,9 @@ function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect,
                     alignItems: "center",
                     gap: 10,
                     flexWrap: "wrap",
-                    border: m.activo ? "1px solid rgba(71,232,160,.4)" : undefined,
+                    border: m.activo
+                      ? "1px solid rgba(71,232,160,.4)"
+                      : undefined,
                     background: m.activo ? "rgba(71,232,160,.04)" : undefined,
                   }}
                 >
@@ -16983,12 +16999,16 @@ function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect,
                       {m.activo ? " · Activo" : ""}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                  <div
+                    style={{ display: "flex", gap: 4, alignItems: "center" }}
+                  >
                     <button
                       className="btn btn-xs"
                       title={m.activo ? "Desactivar" : "Activar"}
                       style={{
-                        background: m.activo ? "rgba(71,232,160,.15)" : "transparent",
+                        background: m.activo
+                          ? "rgba(71,232,160,.15)"
+                          : "transparent",
                         color: m.activo ? "var(--green)" : "var(--muted)",
                         border: `1px solid ${m.activo ? "rgba(71,232,160,.4)" : "var(--border)"}`,
                         borderRadius: 6,
@@ -17044,15 +17064,26 @@ function PageAtletas({ atletas, setAtletas, mesociclos, setMesociclos, onSelect,
       )}
 
       {confirmDeletePreviewMeso && (
-        <Modal title="Eliminar mesociclo" onClose={() => setConfirmDeletePreviewMeso(null)}>
+        <Modal
+          title="Eliminar mesociclo"
+          onClose={() => setConfirmDeletePreviewMeso(null)}
+        >
           <p style={{ fontSize: 13, marginBottom: 8 }}>
-            ¿Eliminar <strong>{confirmDeletePreviewMeso.nombre || "este mesociclo"}</strong>?
+            ¿Eliminar{" "}
+            <strong>
+              {confirmDeletePreviewMeso.nombre || "este mesociclo"}
+            </strong>
+            ?
           </p>
           <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 20 }}>
-            Se perderán todos los datos del ciclo. Esta acción no se puede deshacer.
+            Se perderán todos los datos del ciclo. Esta acción no se puede
+            deshacer.
           </p>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button className="btn btn-ghost" onClick={() => setConfirmDeletePreviewMeso(null)}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setConfirmDeletePreviewMeso(null)}
+            >
               Cancelar
             </button>
             <button
@@ -17652,14 +17683,14 @@ function PageAtleta({
       return dflt;
     }
   };
-  const [semPctOverrides, setSemPctOverridesRaw] = useState(
-    () => _loadPctInit("semOvr", {}),
+  const [semPctOverrides, setSemPctOverridesRaw] = useState(() =>
+    _loadPctInit("semOvr", {}),
   );
   const [semPctManual, setSemPctManualRaw] = useState(
     () => new Set(_loadPctInit("semMan", [])),
   );
-  const [turnoPctOverrides, setTurnoPctOverridesRaw] = useState(
-    () => _loadPctInit("turnoOvr", {}),
+  const [turnoPctOverrides, setTurnoPctOverridesRaw] = useState(() =>
+    _loadPctInit("turnoOvr", {}),
   );
   const [turnoPctManual, setTurnoPctManualRaw] = useState(
     () => new Set(_loadPctInit("turnoMan", [])),
@@ -18531,9 +18562,15 @@ function PageAtleta({
               </button>
               <button
                 className="btn btn-xs"
-                title={mesoVisto.activo ? "Desactivar — el atleta dejará de verlo" : "Activar — el atleta podrá verlo"}
+                title={
+                  mesoVisto.activo
+                    ? "Desactivar — el atleta dejará de verlo"
+                    : "Activar — el atleta podrá verlo"
+                }
                 style={{
-                  background: mesoVisto.activo ? "rgba(71,232,160,.15)" : "rgba(71,232,160,.06)",
+                  background: mesoVisto.activo
+                    ? "rgba(71,232,160,.15)"
+                    : "rgba(71,232,160,.06)",
                   color: mesoVisto.activo ? "var(--green)" : "var(--muted)",
                   border: `1px solid ${mesoVisto.activo ? "rgba(71,232,160,.4)" : "var(--border)"}`,
                   borderRadius: 6,
@@ -18957,7 +18994,14 @@ function PageAtleta({
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    flexShrink: 0,
+                    alignItems: "center",
+                  }}
+                >
                   <button
                     className="btn btn-ghost btn-xs"
                     onClick={() => {
@@ -18971,7 +19015,9 @@ function PageAtleta({
                     className="btn btn-xs"
                     title={m.activo ? "Desactivar" : "Activar"}
                     style={{
-                      background: m.activo ? "rgba(71,232,160,.15)" : "rgba(71,232,160,.06)",
+                      background: m.activo
+                        ? "rgba(71,232,160,.15)"
+                        : "rgba(71,232,160,.06)",
                       color: m.activo ? "var(--green)" : "var(--muted)",
                       border: `1px solid ${m.activo ? "rgba(71,232,160,.4)" : "var(--border)"}`,
                       borderRadius: 6,
@@ -23006,7 +23052,7 @@ function PagePDF({
 
   // ── Mobile navigation state ──
   const [isMob, setIsMob] = useState(
-    typeof window !== "undefined" && window.innerWidth <= 768
+    typeof window !== "undefined" && window.innerWidth <= 768,
   );
   const [mobNavActive, setMobNavActive] = useState(0);
   const [mobNavTurnos, setMobNavTurnos] = useState(true);
@@ -23035,7 +23081,7 @@ function PagePDF({
           }
         });
       },
-      { rootMargin: "-10% 0px -70% 0px", threshold: 0 }
+      { rootMargin: "-10% 0px -70% 0px", threshold: 0 },
     );
     pages.forEach((p) => observer.observe(p));
     return () => observer.disconnect();
@@ -23141,111 +23187,113 @@ window.addEventListener('load',updateStickyTurnos);
       <style>{pdfStyle}</style>
 
       {/* Barra de acciones */}
-      {!hideActions && <div
-        className="no-print"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-          padding: "14px 20px",
-          flexWrap: "wrap",
-          gap: 10,
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 12,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontFamily: "'Bebas Neue'",
-              fontSize: 18,
-              color: "var(--gold)",
-              letterSpacing: ".05em",
-            }}
-          >
-            Vista previa — Planilla del atleta
+      {!hideActions && (
+        <div
+          className="no-print"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 16,
+            padding: "14px 20px",
+            flexWrap: "wrap",
+            gap: 10,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 12,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontFamily: "'Bebas Neue'",
+                fontSize: 18,
+                color: "var(--gold)",
+                letterSpacing: ".05em",
+              }}
+            >
+              Vista previa — Planilla del atleta
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+              Usá "Guardar como PDF" en el diálogo de impresión · Orientación
+              horizontal A4
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-            Usá "Guardar como PDF" en el diálogo de impresión · Orientación
-            horizontal A4
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              onClick={handleShareWhatsApp}
+              disabled={sharing}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 18px",
+                background:
+                  shareStatus === "error"
+                    ? "#e53935"
+                    : shareStatus === "done"
+                      ? "#43a047"
+                      : sharing
+                        ? "var(--surface3)"
+                        : "#25D366",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                cursor: sharing ? "default" : "pointer",
+                fontFamily: "'DM Sans'",
+                fontSize: 13,
+                fontWeight: 600,
+                opacity: sharing ? 0.85 : 1,
+                transition: "all .3s",
+                minWidth: 200,
+                justifyContent: "center",
+              }}
+            >
+              {sharing ? (
+                <>
+                  <Download
+                    size={15}
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />{" "}
+                  Generando PDF...
+                </>
+              ) : shareStatus === "done" ? (
+                <>
+                  <Send size={15} /> Enviado
+                </>
+              ) : shareStatus === "error" ? (
+                "Error — reintentando..."
+              ) : (
+                <>
+                  <MessageCircle size={15} /> Enviar por WhatsApp
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="btn btn-gold"
+              style={{
+                gap: 8,
+                padding: "10px 18px",
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                opacity: downloading ? 0.7 : 1,
+                transition: "all .2s",
+              }}
+            >
+              <Download
+                size={15}
+                style={
+                  downloading ? { animation: "spin 1s linear infinite" } : {}
+                }
+              />
+              {downloading ? "Generando..." : "Descargar PDF"}
+            </button>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button
-            onClick={handleShareWhatsApp}
-            disabled={sharing}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 18px",
-              background:
-                shareStatus === "error"
-                  ? "#e53935"
-                  : shareStatus === "done"
-                    ? "#43a047"
-                    : sharing
-                      ? "var(--surface3)"
-                      : "#25D366",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              cursor: sharing ? "default" : "pointer",
-              fontFamily: "'DM Sans'",
-              fontSize: 13,
-              fontWeight: 600,
-              opacity: sharing ? 0.85 : 1,
-              transition: "all .3s",
-              minWidth: 200,
-              justifyContent: "center",
-            }}
-          >
-            {sharing ? (
-              <>
-                <Download
-                  size={15}
-                  style={{ animation: "spin 1s linear infinite" }}
-                />{" "}
-                Generando PDF...
-              </>
-            ) : shareStatus === "done" ? (
-              <>
-                <Send size={15} /> Enviado
-              </>
-            ) : shareStatus === "error" ? (
-              "Error — reintentando..."
-            ) : (
-              <>
-                <MessageCircle size={15} /> Enviar por WhatsApp
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="btn btn-gold"
-            style={{
-              gap: 8,
-              padding: "10px 18px",
-              fontSize: 13,
-              display: "flex",
-              alignItems: "center",
-              opacity: downloading ? 0.7 : 1,
-              transition: "all .2s",
-            }}
-          >
-            <Download
-              size={15}
-              style={
-                downloading ? { animation: "spin 1s linear infinite" } : {}
-              }
-            />
-            {downloading ? "Generando..." : "Descargar PDF"}
-          </button>
-        </div>
-      </div>}
+      )}
 
       {/* Preview */}
       <div
@@ -23387,7 +23435,10 @@ window.addEventListener('load',updateStickyTurnos);
               {/* Turnos */}
               {turnos.map(({ tIdx, dia, momento, rows }) => (
                 <React.Fragment key={tIdx}>
-                  <div className="pdf-turno-header" id={`pdf-turno-${semIdx}-${tIdx}`}>
+                  <div
+                    className="pdf-turno-header"
+                    id={`pdf-turno-${semIdx}-${tIdx}`}
+                  >
                     <span className="pdf-turno-num">Turno {tIdx + 1}</span>
                     {dia && (
                       <span className="pdf-turno-dia">
@@ -23882,54 +23933,69 @@ window.addEventListener('load',updateStickyTurnos);
       </div>
 
       {/* ── Mobile bottom navigation ── */}
-      {isMob && (() => {
-        const validSems = semTurnos.filter(s => s.turnos.length > 0);
-        if (!validSems.length) return null;
-        const activeSem = validSems.find(s => s.semIdx === mobNavActive) || validSems[0];
-        return (
-          <div className="pdf-mobile-nav no-print">
-            <div className="pdf-mobile-nav-row">
-              {validSems.map(({ sem, semIdx: sIdx }) => (
-                <button
-                  key={sIdx}
-                  className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? ' active' : ''}`}
-                  onClick={() => {
-                    const el = document.getElementById(`pdf-sem-${sIdx}`);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    setMobNavTurnos(activeSem.semIdx === sIdx ? !mobNavTurnos : true);
-                    setMobNavActive(sIdx);
-                    setMobActiveTurno(-1);
-                  }}
-                >
-                  S{sem.numero}
-                </button>
-              ))}
-            </div>
-            {mobNavTurnos && activeSem.turnos.length > 0 && (
-              <div className="pdf-mobile-nav-turnos">
-                {activeSem.turnos.map(({ tIdx, dia }) => (
+      {isMob &&
+        (() => {
+          const validSems = semTurnos.filter((s) => s.turnos.length > 0);
+          if (!validSems.length) return null;
+          const activeSem =
+            validSems.find((s) => s.semIdx === mobNavActive) || validSems[0];
+          return (
+            <div className="pdf-mobile-nav no-print">
+              <div className="pdf-mobile-nav-row">
+                {validSems.map(({ sem, semIdx: sIdx }) => (
                   <button
-                    key={tIdx}
-                    className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? ' active' : ''}`}
+                    key={sIdx}
+                    className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? " active" : ""}`}
                     onClick={() => {
-                      if (mobActiveTurno === tIdx) {
-                        setMobNavTurnos(false);
-                        setMobActiveTurno(-1);
-                        return;
-                      }
-                      const el = document.getElementById(`pdf-turno-${activeSem.semIdx}-${tIdx}`);
-                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      setMobActiveTurno(tIdx);
+                      const el = document.getElementById(`pdf-sem-${sIdx}`);
+                      if (el)
+                        el.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      setMobNavTurnos(
+                        activeSem.semIdx === sIdx ? !mobNavTurnos : true,
+                      );
+                      setMobNavActive(sIdx);
+                      setMobActiveTurno(-1);
                     }}
                   >
-                    T{tIdx + 1}{dia ? ` · ${dia}` : ''}
+                    S{sem.numero}
                   </button>
                 ))}
               </div>
-            )}
-          </div>
-        );
-      })()}
+              {mobNavTurnos && activeSem.turnos.length > 0 && (
+                <div className="pdf-mobile-nav-turnos">
+                  {activeSem.turnos.map(({ tIdx, dia }) => (
+                    <button
+                      key={tIdx}
+                      className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? " active" : ""}`}
+                      onClick={() => {
+                        if (mobActiveTurno === tIdx) {
+                          setMobNavTurnos(false);
+                          setMobActiveTurno(-1);
+                          return;
+                        }
+                        const el = document.getElementById(
+                          `pdf-turno-${activeSem.semIdx}-${tIdx}`,
+                        );
+                        if (el)
+                          el.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                        setMobActiveTurno(tIdx);
+                      }}
+                    >
+                      T{tIdx + 1}
+                      {dia ? ` · ${dia}` : ""}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
     </div>
   );
 }
@@ -33196,7 +33262,9 @@ function AtletaPanel({ session, profile, onLogout }) {
                   letterSpacing: ".04em",
                 }}
               >
-                {activeMesos.length === 1 ? "MESOCICLO ACTIVO" : "MESOCICLOS ACTIVOS"}
+                {activeMesos.length === 1
+                  ? "MESOCICLO ACTIVO"
+                  : "MESOCICLOS ACTIVOS"}
               </div>
             </div>
             {activeMesos.map((m) => (
@@ -33227,8 +33295,8 @@ function AtletaPanel({ session, profile, onLogout }) {
               SIN MESOCICLO ACTIVO
             </div>
             <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
-              Tu coach aún no activó ningún mesociclo para vos. Contactalo para más
-              información.
+              Tu coach aún no activó ningún mesociclo para vos. Contactalo para
+              más información.
             </p>
           </div>
         )}
