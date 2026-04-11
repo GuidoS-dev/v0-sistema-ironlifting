@@ -22402,10 +22402,7 @@ function PagePDF({
       border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden;
     }
     .pdf-sem-num {
-      background: #0d1117; color: #f0b429;
-      font-size: 18px; font-weight: 900; padding: 6px 10px;
-      display: flex; align-items: center; justify-content: center;
-      min-width: 40px; letter-spacing: -.5px;
+      display: none;
     }
     .pdf-sem-info { flex: 1; padding: 6px 10px; background: #fafafa; min-width: 0; }
     .pdf-sem-title { font-size: 10px; font-weight: 800; color: #1a1a2e; }
@@ -22544,42 +22541,61 @@ function PagePDF({
       /* ── Portada ── */
       .pdf-cover {
         flex-direction: column;
-        align-items: flex-start;
-        padding: 16px 14px 14px;
-        gap: 14px;
+        align-items: center;
+        text-align: center;
+        padding: 20px 16px 16px;
+        gap: 6px;
+      }
+      .pdf-cover > div:first-child {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+      }
+      .pdf-cover > div:first-child > div:first-child {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 8px !important;
       }
       .pdf-cover-name {
-        font-size: 20px;
+        font-size: 22px;
         word-break: break-word;
+        text-align: center;
       }
       .pdf-cover-meso {
         font-size: 13px;
+        text-align: center;
+        line-height: 1.3;
       }
       .pdf-cover-sub {
         font-size: 11px;
+        text-align: center;
       }
       .pdf-cover-right {
-        text-align: left;
+        text-align: center;
         width: 100%;
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         align-items: center;
-        gap: 12px;
+        gap: 6px;
+        margin-top: 4px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,.1);
       }
       .pdf-cover-right > div:first-child {
         font-size: 10px;
       }
       .pdf-irm-box {
-        gap: 20px;
+        gap: 28px;
       }
       .pdf-irm-val {
-        font-size: 22px;
+        font-size: 26px;
       }
       .pdf-irm-lbl {
         font-size: 9px;
       }
       .pdf-cover svg {
-        max-width: 160px;
+        max-width: 180px;
         height: auto;
       }
 
@@ -22593,10 +22609,7 @@ function PagePDF({
         background: #fafafa;
       }
       .pdf-sem-num {
-        font-size: 16px;
-        padding: 8px 12px;
-        min-width: unset;
-        justify-content: flex-start;
+        display: none;
       }
       .pdf-sem-info {
         padding: 10px 12px;
@@ -23395,7 +23408,6 @@ window.addEventListener('load',updateStickyTurnos);
             >
               {/* Sem header */}
               <div className="pdf-sem-header">
-                <div className="pdf-sem-num">S{sem.numero}</div>
                 <div className="pdf-sem-info">
                   <div className="pdf-sem-title">SEMANA {sem.numero}</div>
                   <div className="pdf-sem-details">
