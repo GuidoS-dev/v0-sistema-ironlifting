@@ -22349,13 +22349,14 @@ function PagePDF({
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 42px;
-        padding: 3px 8px;
-        background: #0d1117;
-        color: #f0b429;
-        font-size: 12px;
-        font-weight: 800;
-        border-radius: 5px;
+        min-width: 32px;
+        padding: 2px 6px;
+        background: transparent;
+        color: #999;
+        font-size: 10px;
+        font-weight: 600;
+        border-radius: 4px;
+        border: 1px solid #ddd;
         flex-shrink: 0;
         letter-spacing: -.02em;
       }
@@ -22365,25 +22366,25 @@ function PagePDF({
         display: flex;
         align-items: baseline;
         gap: 0;
-        font-size: 13px;
+        font-size: 15px;
         flex: 1;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
       .pdf-table .cell-series {
-        font-size: 13px;
-        font-weight: 800;
+        font-size: 16px;
+        font-weight: 900;
         color: #1a1a2e;
       }
       .pdf-table .cell-series::after {
         content: '×';
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
-        color: #999;
-        margin: 0 1px;
+        color: #bbb;
+        margin: 0 2px;
       }
       .pdf-table .cell-reps {
-        font-size: 13px;
-        font-weight: 800;
+        font-size: 16px;
+        font-weight: 900;
         color: #1a1a2e;
       }
       .pdf-table .cell-reps::after {
@@ -22391,17 +22392,17 @@ function PagePDF({
         margin: 0;
       }
       .pdf-table .cell-kg {
-        font-size: 12px;
-        font-weight: 600;
-        color: #777;
-        margin-left: 8px;
+        font-size: 15px;
+        font-weight: 800;
+        color: #1a1a2e;
+        margin-left: 10px;
       }
       .pdf-table .cell-kg::after {
         content: 'kg';
-        font-size: 9px;
+        font-size: 10px;
         font-weight: 500;
         color: #aaa;
-        margin-left: 1px;
+        margin-left: 2px;
       }
       .pdf-table .cell-data .cell-note {
         font-size: 10px;
