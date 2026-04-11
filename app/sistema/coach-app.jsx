@@ -30621,6 +30621,8 @@ function LoginScreen({ onAuth }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
+  const [rol, setRol] = useState("atleta");
+  const [codigoCoach, setCodigoCoach] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -30657,11 +30659,33 @@ function LoginScreen({ onAuth }) {
     }
     setLoading(true);
     setError("");
+
+    // Si es coach, verificar código de autorización
+    if (rol === "coach") {
+      if (!codigoCoach.trim()) {
+        setLoading(false);
+        setError("Ingresá el código de autorización para registrarte como coach.");
+        return;
+      }
+      try {
+        const { data: valid, error: rpcErr } = await sb.rpc("verify_coach_code", { input_code: codigoCoach.trim() });
+        if (rpcErr || !valid) {
+          setLoading(false);
+          setError("Código de autorización inválido. Contactá al administrador.");
+          return;
+        }
+      } catch {
+        setLoading(false);
+        setError("No se pudo verificar el código. Intentá más tarde.");
+        return;
+      }
+    }
+
     const { data, error } = await sb.auth.signUp({
       email,
       password,
       options: {
-        data: { nombre: nombre || email.split("@")[0], tipo: "coach" },
+        data: { nombre: nombre || email.split("@")[0], tipo: rol },
       },
     });
     setLoading(false);
@@ -30669,7 +30693,10 @@ function LoginScreen({ onAuth }) {
       setError(error.message);
       return;
     }
-    setMsg("Revisá tu email para confirmar tu cuenta.");
+    setMsg(rol === "coach"
+      ? "Revisá tu email para confirmar tu cuenta de coach."
+      : "Revisá tu email para confirmar tu cuenta."
+    );
   };
 
   const handleForgot = async () => {
@@ -30752,6 +30779,8 @@ function LoginScreen({ onAuth }) {
                   setMode(v);
                   setError("");
                   setMsg("");
+                  setRol("atleta");
+                  setCodigoCoach("");
                 }}
                 style={{
                   flex: 1,
@@ -30775,16 +30804,61 @@ function LoginScreen({ onAuth }) {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {mode === "register" && (
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Nombre completo</label>
-                <input
-                  name="field_91"
-                  className="form-input"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Tu nombre"
-                />
-              </div>
+              <>
+                {/* Selector de rol */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Tipo de cuenta</label>
+                  <div style={{
+                    display: "flex", gap: 0,
+                    background: "var(--surface2)", borderRadius: 10, padding: 4
+                  }}>
+                    {[["atleta", "Atleta"], ["coach", "Coach"]].map(([v, l]) => (
+                      <button key={v} type="button" onClick={() => { setRol(v); setError(""); }}
+                        style={{
+                          flex: 1, padding: "8px 0", border: "none", cursor: "pointer",
+                          borderRadius: 8, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700,
+                          transition: "all .2s",
+                          background: rol === v ? "var(--surface)" : "transparent",
+                          color: rol === v ? (v === "coach" ? "var(--gold)" : "var(--green)") : "var(--muted)",
+                          boxShadow: rol === v ? "0 1px 4px rgba(0,0,0,.3)" : "none"
+                        }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                    {rol === "coach"
+                      ? "Requiere código de autorización del administrador"
+                      : "Cuenta gratuita para atletas"}
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Nombre completo</label>
+                  <input
+                    name="field_91"
+                    className="form-input"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Tu nombre"
+                  />
+                </div>
+
+                {/* Código de autorización para coaches */}
+                {rol === "coach" && (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Código de autorización</label>
+                    <input
+                      name="field_94"
+                      className="form-input"
+                      value={codigoCoach}
+                      onChange={(e) => setCodigoCoach(e.target.value)}
+                      placeholder="Ingresá el código proporcionado"
+                      style={{ letterSpacing: ".15em", textTransform: "uppercase" }}
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -30860,7 +30934,7 @@ function LoginScreen({ onAuth }) {
                 fontSize: 14,
               }}
             >
-              {mode === "login" ? "Ingresar" : "Crear cuenta"}
+              {mode === "login" ? "Ingresar" : (rol === "coach" ? "Crear cuenta Coach" : "Crear cuenta Atleta")}
             </button>
 
             {mode === "login" && (
