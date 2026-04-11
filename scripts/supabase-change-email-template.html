@@ -1,0 +1,93 @@
+<!--
+  Template para Supabase: Change Email Address
+  Pegar en: Supabase Dashboard → Authentication → Email Templates → Change Email Address
+  Subject sugerido: Confirmá tu nuevo email — Sistema Ironlifting
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirmá tu nuevo email</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0c12;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0c12;min-height:100vh;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#161a24;border:1px solid #2a2e3a;border-radius:12px;overflow:hidden;">
+
+          <!-- Header con franja dorada -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#e8c547,#f5d96a);padding:4px 0;"></td>
+          </tr>
+
+          <!-- Logo / Título -->
+          <tr>
+            <td align="center" style="padding:36px 32px 8px;">
+              <h1 style="margin:0;font-family:'Bebas Neue','Impact',sans-serif;font-size:28px;letter-spacing:0.08em;color:#e8c547;">
+                SISTEMA IRONLIFTING
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Contenido principal -->
+          <tr>
+            <td style="padding:16px 32px 32px;">
+              <h2 style="margin:0 0 16px;font-size:20px;font-weight:600;color:#f0f0f0;text-align:center;">
+                Cambio de email
+              </h2>
+              <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#a0a8be;">
+                Recibimos una solicitud para cambiar el email asociado a tu cuenta en el Sistema Ironlifting.
+              </p>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#a0a8be;">
+                Para confirmar este cambio, hacé clic en el siguiente botón:
+              </p>
+
+              <!-- Botón CTA -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding:8px 0 28px;">
+                    <a href="{{ .ConfirmationURL }}"
+                       target="_blank"
+                       style="display:inline-block;padding:14px 40px;background-color:#e8c547;color:#0a0c12;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.03em;">
+                      CONFIRMAR NUEVO EMAIL
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback link -->
+              <p style="margin:0 0 8px;font-size:13px;color:#6b7590;">
+                Si el botón no funciona, copiá y pegá este enlace en tu navegador:
+              </p>
+              <p style="margin:0 0 24px;font-size:12px;line-height:1.5;word-break:break-all;">
+                <a href="{{ .ConfirmationURL }}" style="color:#f5d96a;text-decoration:underline;">
+                  {{ .ConfirmationURL }}
+                </a>
+              </p>
+
+              <!-- Separador -->
+              <hr style="border:none;border-top:1px solid #2a2e3a;margin:24px 0;" />
+
+              <!-- Nota de seguridad -->
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#6b7590;">
+                Si no solicitaste este cambio, ignorá este email. Tu cuenta seguirá usando el email actual.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:16px 32px 24px;border-top:1px solid #2a2e3a;">
+              <p style="margin:0;font-size:11px;color:#4a5068;letter-spacing:0.05em;">
+                © 2026 Sistema Ironlifting — Halterofilia Olímpica
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
