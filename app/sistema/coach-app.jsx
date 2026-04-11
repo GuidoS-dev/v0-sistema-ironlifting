@@ -22258,7 +22258,7 @@ function PagePDF({
         font-size: 11px;
       }
 
-      /* ── Tabla ejercicios — card layout en móvil ── */
+      /* ── Tabla ejercicios — dark premium cards en móvil ── */
       .pdf-table,
       .pdf-table thead,
       .pdf-table tbody,
@@ -22271,17 +22271,17 @@ function PagePDF({
         display: none;
       }
 
-      /* Cada ejercicio = una card */
+      /* Cada ejercicio = una card dark premium */
       .pdf-table tr {
-        background: #fff;
-        border: 1px solid #e0e0e0;
+        background: #0d1117;
+        border: 1px solid #1e2733;
         border-radius: 10px;
         margin-bottom: 10px;
         padding: 0;
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        box-shadow: 0 2px 8px rgba(0,0,0,.18);
       }
       .pdf-table tr.last-ej td {
         border-bottom: none;
@@ -22295,21 +22295,22 @@ function PagePDF({
       /* ID badge + nombre: header de la card */
       .pdf-table td:first-child {
         position: static;
-        padding: 10px 0 10px 12px;
+        padding: 12px 0 12px 12px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
       }
       .pdf-table td:first-child span {
-        font-size: 10px !important;
-        padding: 2px 6px !important;
-        border-radius: 4px !important;
+        font-size: 9px !important;
+        padding: 2px 5px !important;
+        border-radius: 3px !important;
+        opacity: .8;
       }
       .pdf-table td.left {
         width: auto;
         flex: 1;
         min-width: 0;
-        padding: 10px 12px 10px 8px;
+        padding: 12px 12px 12px 8px;
         display: flex;
         align-items: center;
       }
@@ -22319,111 +22320,119 @@ function PagePDF({
       }
       .pdf-table td:first-child,
       .pdf-table td.left {
-        border-bottom: 1px solid #eee;
-        background: #fafafa;
+        border-bottom: 1px solid #1e2733;
+        background: #0d1117;
       }
       .pdf-table .ej-nombre {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 700;
         line-height: 1.2;
+        color: #e8e8e8;
+        letter-spacing: .01em;
       }
 
-      /* Cada celda de intensidad = una fila labeled dentro de la card */
+      /* Cada celda de intensidad = una fila dentro de la card */
       .pdf-table td[data-label] {
         display: flex;
         align-items: center;
-        padding: 8px 12px;
-        border-bottom: 1px solid #f0f0f0;
-        gap: 10px;
-        min-height: 38px;
+        padding: 0;
+        border-bottom: 1px solid #1a2030;
+        gap: 0;
+        min-height: 42px;
         width: 100%;
         flex-basis: 100%;
+        background: #0f1520;
       }
       .pdf-table td[data-label]:last-child {
         border-bottom: none;
       }
 
-      /* Label del porcentaje de intensidad via ::before */
+      /* Label del porcentaje — columna fija a la izquierda */
       .pdf-table td[data-label]::before {
         content: attr(data-label);
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 32px;
-        padding: 2px 6px;
-        background: transparent;
-        color: #999;
-        font-size: 10px;
-        font-weight: 600;
-        border-radius: 4px;
-        border: 1px solid #ddd;
+        width: 48px;
+        min-width: 48px;
+        padding: 0;
+        background: #141c28;
+        color: #f0b429;
+        font-size: 11px;
+        font-weight: 700;
         flex-shrink: 0;
         letter-spacing: -.02em;
+        align-self: stretch;
+        border-right: 1px solid #1e2733;
       }
 
-      /* Cell data: horizontal flow S×R @ Kg */
+      /* Cell data: S × R — Kg layout */
       .pdf-table .cell-data {
         display: flex;
-        align-items: baseline;
+        align-items: center;
         gap: 0;
         font-size: 15px;
         flex: 1;
+        padding: 10px 14px;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
       .pdf-table .cell-series {
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 900;
-        color: #1a1a2e;
+        color: #fff;
+        letter-spacing: -.5px;
       }
       .pdf-table .cell-series::after {
         content: '×';
         font-size: 12px;
-        font-weight: 600;
-        color: #bbb;
-        margin: 0 2px;
+        font-weight: 500;
+        color: #4a5568;
+        margin: 0 3px;
       }
       .pdf-table .cell-reps {
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 900;
-        color: #1a1a2e;
+        color: #fff;
+        letter-spacing: -.5px;
       }
       .pdf-table .cell-reps::after {
         content: '';
         margin: 0;
       }
       .pdf-table .cell-kg {
-        font-size: 15px;
-        font-weight: 800;
-        color: #1a1a2e;
-        margin-left: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #f0b429;
+        margin-left: auto;
       }
       .pdf-table .cell-kg::after {
         content: 'kg';
         font-size: 10px;
         font-weight: 500;
-        color: #aaa;
+        color: #8a7430;
         margin-left: 2px;
+        vertical-align: baseline;
       }
       .pdf-table .cell-data .cell-note {
         font-size: 10px;
         white-space: normal;
         overflow: visible;
         text-overflow: unset;
-        color: #888;
-        margin-left: auto;
+        color: #5a6577;
+        margin-left: 12px;
         text-align: right;
         font-style: italic;
         flex-shrink: 1;
       }
 
-      /* Empty cells: hide dashes, just show the label muted */
+      /* Empty cells: hide */
       .pdf-table td[data-label]:has(.cell-empty) {
         display: none;
       }
 
       .pdf-table .cell-empty {
         font-size: 14px;
-        color: #ccc;
+        color: #333;
       }
 
       /* Separator rows */
@@ -22509,18 +22518,16 @@ function PagePDF({
         grid-template-columns: 1fr;
       }
       .pdf-table td[data-label]::before {
-        min-width: 36px;
-        font-size: 11px;
-        padding: 2px 6px;
+        width: 40px;
+        min-width: 40px;
+        font-size: 10px;
       }
-      .pdf-table .cell-series {
-        font-size: 12px;
-      }
+      .pdf-table .cell-series,
       .pdf-table .cell-reps {
-        font-size: 12px;
+        font-size: 16px;
       }
       .pdf-table .cell-kg {
-        font-size: 11px;
+        font-size: 14px;
       }
     }
   `;
