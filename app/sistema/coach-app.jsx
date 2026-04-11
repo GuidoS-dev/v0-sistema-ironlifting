@@ -95,7 +95,8 @@ function clearSession() {
 }
 function saveProfileLocal(p) {
   try {
-    if (p?.id) localStorage.setItem(PROFILE_KEY_PREFIX + p.id, JSON.stringify(p));
+    if (p?.id)
+      localStorage.setItem(PROFILE_KEY_PREFIX + p.id, JSON.stringify(p));
   } catch {}
 }
 function loadProfileLocal(userId) {
@@ -21592,6 +21593,7 @@ function PagePDF({
   irm_env,
   normativos: normativosProp = null,
   tablas: tablasProp = null,
+  hideActions = false,
 }) {
   const previewRef = React.useRef(null);
   const normativos =
@@ -21606,16 +21608,18 @@ function PagePDF({
         return EJERCICIOS;
       }
     })();
-  const tablas = tablasProp ?? (() => {
-    try {
-      return (
-        JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
-        TABLA_DEFAULT
-      );
-    } catch {
-      return TABLA_DEFAULT;
-    }
-  })();
+  const tablas =
+    tablasProp ??
+    (() => {
+      try {
+        return (
+          JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
+          TABLA_DEFAULT
+        );
+      } catch {
+        return TABLA_DEFAULT;
+      }
+    })();
   const repsEditSaved = (() => {
     try {
       return (
@@ -22801,7 +22805,7 @@ window.addEventListener('load',updateStickyTurnos);
       <style>{pdfStyle}</style>
 
       {/* Barra de acciones */}
-      <div
+      {!hideActions && <div
         className="no-print"
         style={{
           display: "flex",
@@ -22905,7 +22909,7 @@ window.addEventListener('load',updateStickyTurnos);
             {downloading ? "Generando..." : "Descargar PDF"}
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Preview */}
       <div
@@ -32405,11 +32409,26 @@ function AtletaPanel({ session, profile, onLogout }) {
               .eq("coach_id", atleta.coach_id);
             if (settingsData) {
               settingsData.forEach((s) => {
-                if (s.setting_key === "normativos_globales" && s.setting_value) {
-                  try { setCoachNormativos(typeof s.setting_value === "string" ? JSON.parse(s.setting_value) : s.setting_value); } catch {}
+                if (
+                  s.setting_key === "normativos_globales" &&
+                  s.setting_value
+                ) {
+                  try {
+                    setCoachNormativos(
+                      typeof s.setting_value === "string"
+                        ? JSON.parse(s.setting_value)
+                        : s.setting_value,
+                    );
+                  } catch {}
                 }
                 if (s.setting_key === "tablas_calculadora" && s.setting_value) {
-                  try { setCoachTablas(typeof s.setting_value === "string" ? JSON.parse(s.setting_value) : s.setting_value); } catch {}
+                  try {
+                    setCoachTablas(
+                      typeof s.setting_value === "string"
+                        ? JSON.parse(s.setting_value)
+                        : s.setting_value,
+                    );
+                  } catch {}
                 }
               });
             }
@@ -32530,11 +32549,24 @@ function AtletaPanel({ session, profile, onLogout }) {
   if (selectedMeso) {
     const meso = selectedMeso;
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px" }}>
+      <div
+        style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px" }}
+      >
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           {/* Navigation header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <button className="btn btn-ghost" onClick={() => setSelectedMeso(null)} style={{ gap: 6 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 16,
+            }}
+          >
+            <button
+              className="btn btn-ghost"
+              onClick={() => setSelectedMeso(null)}
+              style={{ gap: 6 }}
+            >
               <ChevronLeft size={14} /> Volver
             </button>
             <button className="btn btn-ghost" onClick={onLogout}>
@@ -32548,6 +32580,7 @@ function AtletaPanel({ session, profile, onLogout }) {
             irm_env={meso.irm_envion}
             normativos={coachNormativos || EJERCICIOS}
             tablas={coachTablas || TABLA_DEFAULT}
+            hideActions
           />
         </div>
       </div>
@@ -32576,37 +32609,82 @@ function AtletaPanel({ session, profile, onLogout }) {
         overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "14px 18px",
+        }}
+      >
         {/* Avatar */}
-        <div style={{
-          width: 44, height: 44, borderRadius: "50%",
-          background: isActive ? "rgba(232,197,71,.15)" : "var(--surface3)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "'Bebas Neue',sans-serif", fontSize: 18,
-          color: isActive ? "var(--gold)" : "var(--muted)", flexShrink: 0,
-        }}>
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            background: isActive ? "rgba(232,197,71,.15)" : "var(--surface3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "'Bebas Neue',sans-serif",
+            fontSize: 18,
+            color: isActive ? "var(--gold)" : "var(--muted)",
+            flexShrink: 0,
+          }}
+        >
           {(m.nombre || "M").charAt(0).toUpperCase()}
         </div>
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
             {m.nombre || "Mesociclo"}
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6, alignItems: "center" }}>
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20,
-              background: m.modo === "Competitivo" ? "rgba(232,80,71,.15)" : "rgba(100,180,232,.15)",
-              color: m.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
-              border: `1px solid ${m.modo === "Competitivo" ? "var(--red)" : "var(--blue)"}30`,
-            }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              marginTop: 6,
+              alignItems: "center",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "2px 10px",
+                borderRadius: 20,
+                background:
+                  m.modo === "Competitivo"
+                    ? "rgba(232,80,71,.15)"
+                    : "rgba(100,180,232,.15)",
+                color: m.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
+                border: `1px solid ${m.modo === "Competitivo" ? "var(--red)" : "var(--blue)"}30`,
+              }}
+            >
               {m.modo}
             </span>
             {isActive && (
-              <span style={{
-                fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20,
-                background: "rgba(71,232,160,.15)", color: "var(--green)",
-                border: "1px solid rgba(71,232,160,.3)",
-              }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "2px 10px",
+                  borderRadius: 20,
+                  background: "rgba(71,232,160,.15)",
+                  color: "var(--green)",
+                  border: "1px solid rgba(71,232,160,.3)",
+                }}
+              >
                 Activo
               </span>
             )}
@@ -32623,42 +32701,86 @@ function AtletaPanel({ session, profile, onLogout }) {
           </div>
           {/* IRM values */}
           {(m.irm_arranque || m.irm_envion) && (
-            <div style={{ display: "flex", gap: 12, marginTop: 6, alignItems: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                marginTop: 6,
+                alignItems: "center",
+              }}
+            >
               {m.irm_arranque && (
                 <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                  ARR: <strong style={{ color: "var(--gold)" }}>{m.irm_arranque}</strong>kg
+                  ARR:{" "}
+                  <strong style={{ color: "var(--gold)" }}>
+                    {m.irm_arranque}
+                  </strong>
+                  kg
                 </span>
               )}
               {m.irm_envion && (
                 <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                  ENV: <strong style={{ color: "var(--blue)" }}>{m.irm_envion}</strong>kg
+                  ENV:{" "}
+                  <strong style={{ color: "var(--blue)" }}>
+                    {m.irm_envion}
+                  </strong>
+                  kg
                 </span>
               )}
             </div>
           )}
         </div>
         {/* Arrow */}
-        <ChevronLeft size={16} style={{ color: "var(--muted)", transform: "rotate(180deg)", flexShrink: 0 }} />
+        <ChevronLeft
+          size={16}
+          style={{
+            color: "var(--muted)",
+            transform: "rotate(180deg)",
+            flexShrink: 0,
+          }}
+        />
       </div>
     </button>
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}>
+    <div
+      style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}
+    >
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 28,
+          }}
+        >
           <LogoHorizontal height={36} />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+              <div
+                style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}
+              >
                 {profile.nombre || session?.user?.email}
               </div>
-              <div style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, letterSpacing: ".04em" }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--gold)",
+                  fontWeight: 600,
+                  letterSpacing: ".04em",
+                }}
+              >
                 ATLETA
               </div>
             </div>
-            <button className="btn btn-ghost" onClick={onLogout} style={{ padding: "6px 10px" }}>
+            <button
+              className="btn btn-ghost"
+              onClick={onLogout}
+              style={{ padding: "6px 10px" }}
+            >
               <LogOut size={14} />
             </button>
           </div>
@@ -32667,48 +32789,84 @@ function AtletaPanel({ session, profile, onLogout }) {
         {/* Active mesociclos */}
         {activeMesos.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 14,
-              paddingBottom: 8, borderBottom: "2px solid var(--gold)",
-            }}>
-              <div style={{
-                fontFamily: "'Bebas Neue'", fontSize: 20, color: "var(--gold)",
-                letterSpacing: ".04em",
-              }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                paddingBottom: 8,
+                borderBottom: "2px solid var(--gold)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Bebas Neue'",
+                  fontSize: 20,
+                  color: "var(--gold)",
+                  letterSpacing: ".04em",
+                }}
+              >
                 MESOCICLO ACTIVO
               </div>
-              <span style={{
-                fontSize: 11, fontWeight: 700, background: "rgba(232,197,71,.15)",
-                color: "var(--gold)", padding: "2px 10px", borderRadius: 20,
-              }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: "rgba(232,197,71,.15)",
+                  color: "var(--gold)",
+                  padding: "2px 10px",
+                  borderRadius: 20,
+                }}
+              >
                 {activeMesos.length}
               </span>
             </div>
-            {activeMesos.map((m) => <MesoCard key={m.id} m={m} isActive />)}
+            {activeMesos.map((m) => (
+              <MesoCard key={m.id} m={m} isActive />
+            ))}
           </div>
         )}
 
         {/* Inactive / past mesociclos */}
         {inactiveMesos.length > 0 && (
           <div>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 14,
-              paddingBottom: 8, borderBottom: "1px solid var(--border)",
-            }}>
-              <div style={{
-                fontFamily: "'Bebas Neue'", fontSize: 18, color: "var(--muted)",
-                letterSpacing: ".04em",
-              }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                paddingBottom: 8,
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Bebas Neue'",
+                  fontSize: 18,
+                  color: "var(--muted)",
+                  letterSpacing: ".04em",
+                }}
+              >
                 MESOCICLOS ANTERIORES
               </div>
-              <span style={{
-                fontSize: 11, fontWeight: 700, background: "var(--surface2)",
-                color: "var(--muted)", padding: "2px 10px", borderRadius: 20,
-              }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: "var(--surface2)",
+                  color: "var(--muted)",
+                  padding: "2px 10px",
+                  borderRadius: 20,
+                }}
+              >
                 {inactiveMesos.length}
               </span>
             </div>
-            {inactiveMesos.map((m) => <MesoCard key={m.id} m={m} isActive={false} />)}
+            {inactiveMesos.map((m) => (
+              <MesoCard key={m.id} m={m} isActive={false} />
+            ))}
           </div>
         )}
 
