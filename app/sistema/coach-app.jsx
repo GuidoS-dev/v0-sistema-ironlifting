@@ -19349,8 +19349,12 @@ function PageAtleta({
                     noteEdit={noteEdit}
                     setNoteEdit={setNoteEditRaw}
                     normativos={atletaNormativos}
-                    initialSemActiva={planillaNavRef.current[mesoVisto.id]?.semActiva ?? 0}
-                    initialTurnoActivo={planillaNavRef.current[mesoVisto.id]?.turnoActivo ?? 0}
+                    initialSemActiva={
+                      planillaNavRef.current[mesoVisto.id]?.semActiva ?? 0
+                    }
+                    initialTurnoActivo={
+                      planillaNavRef.current[mesoVisto.id]?.turnoActivo ?? 0
+                    }
                     onNavChange={(nav) => {
                       planillaNavRef.current[mesoVisto.id] = nav;
                     }}
@@ -22266,67 +22270,176 @@ function PagePDF({
       .pdf-table thead {
         display: none;
       }
+
+      /* Cada ejercicio = una card */
       .pdf-table tr {
         background: #fff;
-        border: 1px solid #e8e8e8;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        padding: 10px 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        padding: 0;
+        overflow: hidden;
         display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 4px 8px;
+        flex-direction: column;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
       }
       .pdf-table tr.last-ej td {
         border-bottom: none;
       }
       .pdf-table td {
         border: none;
-        padding: 2px 0;
+        padding: 0;
         text-align: left;
       }
+
+      /* ID badge + nombre: header de la card */
+      .pdf-table td:first-child {
+        position: static;
+        padding: 10px 0 10px 12px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+      }
+      .pdf-table td:first-child span {
+        font-size: 10px !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+      }
       .pdf-table td.left {
+        width: auto;
+        flex: 1;
+        min-width: 0;
+        padding: 10px 12px 10px 8px;
+        display: flex;
+        align-items: center;
+      }
+      /* Wrap ID + name in same row */
+      .pdf-table tr {
+        flex-flow: row wrap;
+      }
+      .pdf-table td:first-child,
+      .pdf-table td.left {
+        border-bottom: 1px solid #eee;
+        background: #fafafa;
+      }
+      .pdf-table .ej-nombre {
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      /* Cada celda de intensidad = una fila labeled dentro de la card */
+      .pdf-table td[data-label] {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        gap: 10px;
+        min-height: 38px;
         width: 100%;
         flex-basis: 100%;
       }
-      /* ID badge */
-      .pdf-table td:first-child {
-        flex-shrink: 0;
+      .pdf-table td[data-label]:last-child {
+        border-bottom: none;
       }
-      /* Nombre ejercicio */
-      .pdf-table .ej-nombre {
-        font-size: 13px;
-        font-weight: 700;
-      }
-      /* Celdas de intensidad como pills */
-      .pdf-table td:not(:first-child):not(.left) {
-        background: #f5f5f5;
-        border-radius: 6px;
-        padding: 6px 8px;
-        min-width: 0;
-        flex: 1 1 70px;
-      }
-      .pdf-table .cell-data {
+
+      /* Label del porcentaje de intensidad via ::before */
+      .pdf-table td[data-label]::before {
+        content: attr(data-label);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 42px;
+        padding: 3px 8px;
+        background: #0d1117;
+        color: #f0b429;
         font-size: 12px;
-        gap: 2px;
+        font-weight: 800;
+        border-radius: 5px;
+        flex-shrink: 0;
+        letter-spacing: -.02em;
+      }
+
+      /* Cell data: horizontal flow S×R @ Kg */
+      .pdf-table .cell-data {
+        display: flex;
+        align-items: baseline;
+        gap: 0;
+        font-size: 14px;
+        flex: 1;
+      }
+      .pdf-table .cell-series {
+        font-size: 16px;
+        font-weight: 900;
+        color: #1a1a2e;
+      }
+      .pdf-table .cell-series::after {
+        content: '×';
+        font-size: 12px;
+        font-weight: 400;
+        color: #aaa;
+        margin: 0 2px;
+      }
+      .pdf-table .cell-reps {
+        font-size: 15px;
+        font-weight: 700;
+        color: #333;
+      }
+      .pdf-table .cell-reps::after {
+        content: '·';
+        font-size: 14px;
+        font-weight: 400;
+        color: #ccc;
+        margin: 0 6px;
+      }
+      .pdf-table .cell-kg {
+        font-size: 14px;
+        font-weight: 600;
+        color: #666;
+      }
+      .pdf-table .cell-kg::after {
+        content: 'kg';
+        font-size: 10px;
+        font-weight: 400;
+        color: #999;
+        margin-left: 1px;
       }
       .pdf-table .cell-data .cell-note {
-        font-size: 9px;
+        font-size: 10px;
         white-space: normal;
         overflow: visible;
         text-overflow: unset;
+        color: #888;
+        margin-left: auto;
+        text-align: right;
+        font-style: italic;
+        flex-shrink: 1;
       }
-      .pdf-table .cell-series {
-        font-size: 14px;
+
+      /* Empty cells: hide dashes, just show the label muted */
+      .pdf-table td[data-label]:has(.cell-empty) {
+        display: none;
       }
-      .pdf-table .cell-reps {
-        font-size: 12px;
-      }
-      .pdf-table .cell-kg {
-        font-size: 11px;
-      }
+
       .pdf-table .cell-empty {
         font-size: 14px;
+        color: #ccc;
+      }
+
+      /* Separator rows */
+      .pdf-table tr[style*="height: 2px"],
+      .pdf-table tr[style*="height:2px"] {
+        height: 0 !important;
+        margin: 4px 0;
+        background: none !important;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .pdf-table tr[style*="height: 2px"] td,
+      .pdf-table tr[style*="height:2px"] td {
+        padding: 0;
+        height: 0;
       }
 
       /* ── Páginas ── */
@@ -22385,11 +22498,6 @@ function PagePDF({
         padding-top: 10px;
         margin-top: 12px;
       }
-
-      /* ── Grupo bar ── */
-      .pdf-sem-header div[style*="fontSize: 7"] {
-        font-size: 9px !important;
-      }
     }
 
     /* ══ Extra-small screens (≤ 400px) ══ */
@@ -22400,11 +22508,19 @@ function PagePDF({
       .pdf-resumen-grid {
         grid-template-columns: 1fr;
       }
-      .pdf-table tr {
-        padding: 8px 10px;
+      .pdf-table td[data-label]::before {
+        min-width: 36px;
+        font-size: 11px;
+        padding: 2px 6px;
       }
-      .pdf-table td:not(:first-child):not(.left) {
-        flex: 1 1 60px;
+      .pdf-table .cell-series {
+        font-size: 15px;
+      }
+      .pdf-table .cell-reps {
+        font-size: 14px;
+      }
+      .pdf-table .cell-kg {
+        font-size: 13px;
       }
     }
   `;
@@ -22940,7 +23056,7 @@ ${previewEl.outerHTML}
                                           !hasComplementarioBlockContent(col)
                                         ) {
                                           return (
-                                            <td key={bIdx}>
+                                            <td key={bIdx} data-label={`B${bIdx + 1}`}>
                                               <span className="cell-empty">
                                                 –
                                               </span>
@@ -22950,6 +23066,7 @@ ${previewEl.outerHTML}
                                         return (
                                           <td
                                             key={bIdx}
+                                            data-label={`B${bIdx + 1}`}
                                             style={{ background: gb }}
                                           >
                                             <div className="cell-data">
@@ -22980,7 +23097,7 @@ ${previewEl.outerHTML}
                                       );
                                       if (!col || !col.s) {
                                         return (
-                                          <td key={intens}>
+                                          <td key={intens} data-label={`${intens}%`}>
                                             <span className="cell-empty">
                                               –
                                             </span>
@@ -22990,6 +23107,7 @@ ${previewEl.outerHTML}
                                       return (
                                         <td
                                           key={intens}
+                                          data-label={`${intens}%`}
                                           style={{ background: gb }}
                                         >
                                           <div className="cell-data">
