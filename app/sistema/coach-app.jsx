@@ -33200,8 +33200,38 @@ export default function App() {
     );
   }
 
+  // Logged in but profile not yet loaded — show loading
+  if (!profile) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
+        <style>{`
+          :root{--bg:#0a0c10;--surface:#12151c;--surface2:#1a1e27;--surface3:#222732;
+          --border:#2a303c;--text:#e8eaf0;--muted:#6b7280;--gold:#e8c547;
+          --blue:#64b4e8;--green:#47e8a0;--red:#e85047}
+          body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin:0}
+        `}</style>
+        <LogoHorizontal height={60} />
+        <div
+          style={{ fontSize: 12, color: "var(--muted)", letterSpacing: ".1em" }}
+        >
+          CARGANDO...
+        </div>
+      </div>
+    );
+  }
+
   // Logged in — check role before showing the appropriate panel
-  if (profile && profile.rol !== "coach") {
+  if (profile.rol !== "coach") {
     return (
       <>
         <style>{`
