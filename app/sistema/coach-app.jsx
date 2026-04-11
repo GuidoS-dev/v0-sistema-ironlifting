@@ -22357,7 +22357,7 @@ function PagePDF({
         min-width: 48px;
         padding: 0;
         background: #141c28;
-        color: #f0b429;
+        color: #d4a832;
         font-size: 11px;
         font-weight: 700;
         flex-shrink: 0;
@@ -22366,7 +22366,7 @@ function PagePDF({
         border-right: 1px solid #1e2733;
       }
 
-      /* Cell data: S × R — Kg layout */
+      /* Cell data: 3-zone layout — [S×R] [Kg] [Note] */
       .pdf-table .cell-data {
         display: flex;
         align-items: center;
@@ -22379,21 +22379,22 @@ function PagePDF({
       .pdf-table .cell-series {
         font-size: 18px;
         font-weight: 900;
-        color: #fff;
+        color: #f0f0f0;
         letter-spacing: -.5px;
       }
       .pdf-table .cell-series::after {
         content: '×';
         font-size: 12px;
         font-weight: 500;
-        color: #4a5568;
+        color: #5a6577;
         margin: 0 3px;
       }
       .pdf-table .cell-reps {
         font-size: 18px;
         font-weight: 900;
-        color: #fff;
+        color: #f0f0f0;
         letter-spacing: -.5px;
+        min-width: 28px;
       }
       .pdf-table .cell-reps::after {
         content: '';
@@ -22402,14 +22403,16 @@ function PagePDF({
       .pdf-table .cell-kg {
         font-size: 16px;
         font-weight: 700;
-        color: #f0b429;
-        margin-left: auto;
+        color: #e8c547;
+        margin-left: 20px;
+        min-width: 55px;
+        text-align: right;
       }
       .pdf-table .cell-kg::after {
         content: 'kg';
         font-size: 10px;
         font-weight: 500;
-        color: #8a7430;
+        color: #a89240;
         margin-left: 2px;
         vertical-align: baseline;
       }
@@ -22418,11 +22421,12 @@ function PagePDF({
         white-space: normal;
         overflow: visible;
         text-overflow: unset;
-        color: #5a6577;
-        margin-left: 12px;
+        color: #8a95a8;
+        margin-left: auto;
         text-align: right;
         font-style: italic;
         flex-shrink: 1;
+        padding-left: 10px;
       }
 
       /* Empty cells: hide */
