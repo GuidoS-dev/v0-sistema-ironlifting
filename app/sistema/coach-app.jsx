@@ -22369,7 +22369,7 @@ function PagePDF({
       .pdf-table .cell-data {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 0;
         font-size: 15px;
         flex: 1;
         padding: 0;
@@ -22409,6 +22409,7 @@ function PagePDF({
         padding: 5px 10px;
         border-radius: 6px;
         white-space: nowrap;
+        margin-left: 6px;
       }
       .pdf-table .cell-kg::after {
         content: ' kg';
