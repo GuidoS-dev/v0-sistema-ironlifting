@@ -21482,6 +21482,8 @@ function PagePDF({
   normativos: normativosProp = null,
 }) {
   const previewRef = React.useRef(null);
+  const [semHeaderHeights, setSemHeaderHeights] = React.useState({});
+  const semHeaderRefs = React.useRef({});
   const normativos =
     normativosProp ??
     (() => {
@@ -21953,6 +21955,25 @@ function PagePDF({
       })
       .filter(Boolean);
     return { sem, semIdx, turnos, met: metricas[semIdx] };
+  });
+
+  // Medir alturas de sem-headers para sticky stacking
+  React.useEffect(() => {
+    const ro = new ResizeObserver(() => {
+      const heights = {};
+      Object.entries(semHeaderRefs.current).forEach(([key, el]) => {
+        if (el) heights[key] = el.getBoundingClientRect().height;
+      });
+      setSemHeaderHeights((prev) => {
+        const same = Object.keys(heights).length === Object.keys(prev).length &&
+          Object.entries(heights).every(([k, v]) => prev[k] === v);
+        return same ? prev : heights;
+      });
+    });
+    Object.values(semHeaderRefs.current).forEach((el) => {
+      if (el) ro.observe(el);
+    });
+    return () => ro.disconnect();
   });
 
   const pdfStyle = `
@@ -22834,7 +22855,7 @@ ${previewEl.outerHTML}
               style={{ padding: "0 12px 16px" }}
             >
               {/* Sem header */}
-              <div className="pdf-sem-header">
+              <div className="pdf-sem-header" ref={(el) => { semHeaderRefs.current[semIdx] = el; }}>
                 <div className="pdf-sem-num">S{sem.numero}</div>
                 <div className="pdf-sem-info">
                   <div className="pdf-sem-title">SEMANA {sem.numero}</div>
@@ -22882,7 +22903,7 @@ ${previewEl.outerHTML}
               {/* Turnos */}
               {turnos.map(({ tIdx, dia, momento, rows }) => (
                 <React.Fragment key={tIdx}>
-                  <div className="pdf-turno-header">
+                  <div className="pdf-turno-header" style={semHeaderHeights[semIdx] ? { top: semHeaderHeights[semIdx] } : undefined}>
                     <span className="pdf-turno-num">Turno {tIdx + 1}</span>
                     {dia && (
                       <span className="pdf-turno-dia">
