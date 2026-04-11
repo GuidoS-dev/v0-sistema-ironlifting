@@ -21956,23 +21956,18 @@ function PagePDF({
   });
 
   // Medir sem-headers y setear --sem-h en cada pdf-page para sticky turno
-  React.useEffect(() => {
+  // Medir sem-header y posicionar turno-headers debajo (sincrónico, antes del paint)
+  React.useLayoutEffect(() => {
     const container = previewRef.current;
     if (!container) return;
-    const update = () => {
-      container.querySelectorAll('.pdf-page').forEach((page) => {
-        const semH = page.querySelector('.pdf-sem-header');
-        if (semH) {
-          const h = semH.offsetHeight;
-          page.style.setProperty('--sem-h', h + 'px');
-        }
+    container.querySelectorAll('.pdf-page').forEach((page) => {
+      const semH = page.querySelector('.pdf-sem-header');
+      if (!semH) return;
+      const h = semH.offsetHeight;
+      page.querySelectorAll('.pdf-turno-header').forEach((t) => {
+        t.style.top = h + 'px';
       });
-    };
-    // Esperar al layout completo
-    const timer = setTimeout(update, 100);
-    const ro = new ResizeObserver(update);
-    container.querySelectorAll('.pdf-sem-header').forEach((el) => ro.observe(el));
-    return () => { clearTimeout(timer); ro.disconnect(); };
+    });
   });
 
   const pdfStyle = `
@@ -22277,7 +22272,7 @@ function PagePDF({
         border-radius: 6px;
         box-shadow: 0 2px 10px rgba(0,0,0,.25);
         position: sticky;
-        top: var(--sem-h, 0px);
+        top: 0;
         z-index: 30;
       }
       .pdf-turno-num {
