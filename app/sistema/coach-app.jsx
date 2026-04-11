@@ -22149,6 +22149,264 @@ function PagePDF({
       font-size: 7px; color: #aaa;
     }
     .pdf-footer strong { color: #1a1a2e; }
+
+    /* ══════════════════════════════════════════════
+       RESPONSIVE — Mobile-first (≤ 768px)
+       ══════════════════════════════════════════════ */
+    @media screen and (max-width: 768px) {
+      #pdf-preview {
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      /* ── Portada ── */
+      .pdf-cover {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px 14px 14px;
+        gap: 14px;
+      }
+      .pdf-cover-name {
+        font-size: 20px;
+        word-break: break-word;
+      }
+      .pdf-cover-meso {
+        font-size: 13px;
+      }
+      .pdf-cover-sub {
+        font-size: 11px;
+      }
+      .pdf-cover-right {
+        text-align: left;
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+      .pdf-cover-right > div:first-child {
+        font-size: 10px;
+      }
+      .pdf-irm-box {
+        gap: 20px;
+      }
+      .pdf-irm-val {
+        font-size: 22px;
+      }
+      .pdf-irm-lbl {
+        font-size: 9px;
+      }
+      .pdf-cover svg {
+        max-width: 160px;
+        height: auto;
+      }
+
+      /* ── Semana header ── */
+      .pdf-sem-header {
+        flex-direction: column;
+        border-radius: 8px;
+      }
+      .pdf-sem-num {
+        font-size: 16px;
+        padding: 8px 12px;
+        min-width: unset;
+        justify-content: flex-start;
+      }
+      .pdf-sem-info {
+        padding: 10px 12px;
+      }
+      .pdf-sem-title {
+        font-size: 13px;
+      }
+      .pdf-sem-details {
+        font-size: 11px;
+        margin-top: 4px;
+      }
+      .pdf-sem-metrics {
+        flex-wrap: wrap;
+        gap: 1px;
+        border-radius: 0 0 8px 8px;
+        overflow: hidden;
+      }
+      .pdf-sem-metric {
+        flex: 1 1 auto;
+        min-width: 60px;
+        padding: 8px 6px;
+      }
+      .pdf-sem-metric-val {
+        font-size: 15px;
+      }
+      .pdf-sem-metric-lbl {
+        font-size: 8px;
+        margin-top: 2px;
+      }
+
+      /* ── Turno ── */
+      .pdf-turno-header {
+        padding: 8px 12px;
+        margin: 10px 0 4px;
+        border-radius: 6px;
+      }
+      .pdf-turno-num {
+        font-size: 13px;
+      }
+      .pdf-turno-dia {
+        font-size: 11px;
+      }
+
+      /* ── Tabla ejercicios — card layout en móvil ── */
+      .pdf-table,
+      .pdf-table thead,
+      .pdf-table tbody,
+      .pdf-table th,
+      .pdf-table td,
+      .pdf-table tr {
+        display: block;
+      }
+      .pdf-table thead {
+        display: none;
+      }
+      .pdf-table tr {
+        background: #fff;
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        padding: 10px 12px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 8px;
+      }
+      .pdf-table tr.last-ej td {
+        border-bottom: none;
+      }
+      .pdf-table td {
+        border: none;
+        padding: 2px 0;
+        text-align: left;
+      }
+      .pdf-table td.left {
+        width: 100%;
+        flex-basis: 100%;
+      }
+      /* ID badge */
+      .pdf-table td:first-child {
+        flex-shrink: 0;
+      }
+      /* Nombre ejercicio */
+      .pdf-table .ej-nombre {
+        font-size: 13px;
+        font-weight: 700;
+      }
+      /* Celdas de intensidad como pills */
+      .pdf-table td:not(:first-child):not(.left) {
+        background: #f5f5f5;
+        border-radius: 6px;
+        padding: 6px 8px;
+        min-width: 0;
+        flex: 1 1 70px;
+      }
+      .pdf-table .cell-data {
+        font-size: 12px;
+        gap: 2px;
+      }
+      .pdf-table .cell-data .cell-note {
+        font-size: 9px;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+      }
+      .pdf-table .cell-series {
+        font-size: 14px;
+      }
+      .pdf-table .cell-reps {
+        font-size: 12px;
+      }
+      .pdf-table .cell-kg {
+        font-size: 11px;
+      }
+      .pdf-table .cell-empty {
+        font-size: 14px;
+      }
+
+      /* ── Páginas ── */
+      .pdf-page {
+        padding: 0 8px 20px !important;
+        page-break-after: auto;
+      }
+
+      /* ── Resumen ── */
+      .pdf-resumen-page {
+        padding: 16px 8px 20px !important;
+      }
+      .pdf-resumen-title {
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+      .pdf-resumen-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .pdf-kpi {
+        padding: 12px 14px;
+        border-radius: 8px;
+      }
+      .pdf-kpi-val {
+        font-size: 22px;
+      }
+      .pdf-kpi-lbl {
+        font-size: 9px;
+        margin-top: 4px;
+      }
+
+      /* ── Tabla resumen por semana ── */
+      .pdf-sem-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .pdf-sem-table th {
+        font-size: 9px;
+        padding: 8px 6px;
+        white-space: nowrap;
+      }
+      .pdf-sem-table td {
+        font-size: 12px;
+        padding: 8px 6px;
+        white-space: nowrap;
+      }
+
+      /* ── Footer ── */
+      .pdf-footer {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+        font-size: 10px;
+        padding-top: 10px;
+        margin-top: 12px;
+      }
+
+      /* ── Grupo bar ── */
+      .pdf-sem-header div[style*="fontSize: 7"] {
+        font-size: 9px !important;
+      }
+    }
+
+    /* ══ Extra-small screens (≤ 400px) ══ */
+    @media screen and (max-width: 400px) {
+      .pdf-cover-name {
+        font-size: 17px;
+      }
+      .pdf-resumen-grid {
+        grid-template-columns: 1fr;
+      }
+      .pdf-table tr {
+        padding: 8px 10px;
+      }
+      .pdf-table td:not(:first-child):not(.left) {
+        flex: 1 1 60px;
+      }
+    }
   `;
 
   const [sharing, setSharing] = useState(false);
@@ -22181,17 +22439,22 @@ function PagePDF({
       const html = `<!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0d1117"/>
 <title>${atleta.nombre} — ${meso.nombre || "Mesociclo"}</title>
 <style>
-body{margin:0;padding:16px;background:#fff;font-family:Helvetica,Arial,sans-serif;}
-@media print{@page{size:A4 landscape;margin:8mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;padding:0;background:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+@media screen and (min-width:769px){body{padding:16px}}
+@media screen and (max-width:768px){body{padding:0}}
+@media print{@page{size:A4 landscape;margin:8mm}body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 ${pdfStyle}
 </style>
 </head>
 <body>
 ${previewEl.outerHTML}
-<script>window.onload=function(){window.print()}<\/script>
 </body></html>`;
       // Crear blob y link de descarga — funciona en la mayoría de browsers modernos
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
