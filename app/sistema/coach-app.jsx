@@ -21591,6 +21591,7 @@ function PagePDF({
   irm_arr,
   irm_env,
   normativos: normativosProp = null,
+  tablas: tablasProp = null,
 }) {
   const previewRef = React.useRef(null);
   const normativos =
@@ -21605,7 +21606,7 @@ function PagePDF({
         return EJERCICIOS;
       }
     })();
-  const tablas = (() => {
+  const tablas = tablasProp ?? (() => {
     try {
       return (
         JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
@@ -32366,6 +32367,8 @@ function AtletaPanel({ session, profile, onLogout }) {
   const [atletaInfo, setAtletaInfo] = useState(null);
   const [mesociclos, setMesociclos] = useState([]);
   const [selectedMeso, setSelectedMeso] = useState(null);
+  const [coachNormativos, setCoachNormativos] = useState(null);
+  const [coachTablas, setCoachTablas] = useState(null);
 
   useEffect(() => {
     if (!SUPA_CONFIG_OK || !session?.user?.id) {
@@ -32392,6 +32395,24 @@ function AtletaPanel({ session, profile, onLogout }) {
             .order("updated_at", { ascending: false });
           if (mesosData) {
             setMesociclos(mesosData.map(mesoFromDb));
+          }
+
+          // Load coach settings (normativos and tablas) for PDF rendering
+          if (atleta.coach_id) {
+            const { data: settingsData } = await sb
+              .from("coach_settings")
+              .select("setting_key, setting_value")
+              .eq("coach_id", atleta.coach_id);
+            if (settingsData) {
+              settingsData.forEach((s) => {
+                if (s.setting_key === "normativos_globales" && s.setting_value) {
+                  try { setCoachNormativos(typeof s.setting_value === "string" ? JSON.parse(s.setting_value) : s.setting_value); } catch {}
+                }
+                if (s.setting_key === "tablas_calculadora" && s.setting_value) {
+                  try { setCoachTablas(typeof s.setting_value === "string" ? JSON.parse(s.setting_value) : s.setting_value); } catch {}
+                }
+              });
+            }
           }
         }
       } catch (e) {
@@ -32505,289 +32526,29 @@ function AtletaPanel({ session, profile, onLogout }) {
     );
   }
 
-  // Show selected mesociclo detail
+  // Show selected mesociclo detail — render the PDF-style view
   if (selectedMeso) {
     const meso = selectedMeso;
     return (
-      <div
-        style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}
-      >
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          {/* Header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 24,
-            }}
-          >
-            <button
-              className="btn btn-ghost"
-              onClick={() => setSelectedMeso(null)}
-              style={{ gap: 6 }}
-            >
+      <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px" }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+          {/* Navigation header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <button className="btn btn-ghost" onClick={() => setSelectedMeso(null)} style={{ gap: 6 }}>
               <ChevronLeft size={14} /> Volver
             </button>
             <button className="btn btn-ghost" onClick={onLogout}>
               <LogOut size={14} /> Salir
             </button>
           </div>
-
-          {/* Meso title */}
-          <div
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: 14,
-              padding: "20px 24px",
-              marginBottom: 20,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Bebas Neue'",
-                fontSize: 24,
-                color: "var(--gold)",
-                marginBottom: 4,
-              }}
-            >
-              {meso.nombre || "Mesociclo"}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-                fontSize: 12,
-              }}
-            >
-              <span
-                style={{
-                  background:
-                    meso.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
-                  color: "#fff",
-                  padding: "2px 10px",
-                  borderRadius: 20,
-                  fontWeight: 700,
-                }}
-              >
-                {meso.modo}
-              </span>
-              {meso.fecha_inicio && (
-                <span style={{ color: "var(--muted)" }}>
-                  Inicio: {meso.fecha_inicio}
-                </span>
-              )}
-              {meso.irm_arranque && (
-                <span style={{ color: "var(--muted)" }}>
-                  ARR: {meso.irm_arranque}kg
-                </span>
-              )}
-              {meso.irm_envion && (
-                <span style={{ color: "var(--muted)" }}>
-                  ENV: {meso.irm_envion}kg
-                </span>
-              )}
-            </div>
-            {meso.descripcion && (
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "var(--muted)",
-                  marginTop: 10,
-                  lineHeight: 1.5,
-                }}
-              >
-                {meso.descripcion}
-              </p>
-            )}
-          </div>
-
-          {/* Weeks */}
-          {(meso.semanas || []).map((sem, si) => (
-            <div
-              key={sem.id || si}
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 14,
-                padding: "16px 20px",
-                marginBottom: 12,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "'Bebas Neue'",
-                  fontSize: 16,
-                  color: "var(--text)",
-                  marginBottom: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                SEMANA {sem.numero || si + 1}
-                {sem.pct_volumen && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontFamily: "'DM Sans'",
-                      color: "var(--gold)",
-                      background: "var(--surface2)",
-                      padding: "2px 8px",
-                      borderRadius: 12,
-                    }}
-                  >
-                    {sem.pct_volumen}%
-                  </span>
-                )}
-              </div>
-              {(sem.turnos || []).map((turno, ti) => (
-                <div
-                  key={turno.id || ti}
-                  style={{
-                    background: "var(--surface2)",
-                    borderRadius: 10,
-                    padding: "12px 14px",
-                    marginBottom: 8,
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: "var(--gold)",
-                      marginBottom: 8,
-                      textTransform: "uppercase",
-                      letterSpacing: ".05em",
-                    }}
-                  >
-                    {turno.dia || `Turno ${ti + 1}`}
-                    {turno.momento && (
-                      <span style={{ color: "var(--muted)", fontWeight: 400 }}>
-                        {" "}
-                        — {turno.momento}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Complementarios before */}
-                  {(turno.complementarios_before || []).length > 0 && (
-                    <div style={{ marginBottom: 6 }}>
-                      {turno.complementarios_before.map((c, ci) => (
-                        <div
-                          key={ci}
-                          style={{
-                            fontSize: 12,
-                            color: "var(--muted)",
-                            padding: "3px 0",
-                            display: "flex",
-                            gap: 6,
-                          }}
-                        >
-                          <span style={{ color: "var(--green)", fontSize: 10 }}>
-                            ●
-                          </span>
-                          {c.nombre || c.ejercicio_id || "Complementario"}
-                          {c.detalle && (
-                            <span
-                              style={{ color: "var(--muted)", fontSize: 11 }}
-                            >
-                              {" "}
-                              — {c.detalle}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Main exercises */}
-                  {(turno.ejercicios || []).map((ej, ei) => (
-                    <div
-                      key={ej.id || ei}
-                      style={{
-                        padding: "6px 0",
-                        borderBottom:
-                          ei < turno.ejercicios.length - 1
-                            ? "1px solid var(--border)"
-                            : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "var(--text)",
-                          marginBottom: 4,
-                        }}
-                      >
-                        {ej.nombre_custom ||
-                          ej.ejercicio_id ||
-                          `Ejercicio ${ei + 1}`}
-                      </div>
-                      {(ej.bloques || []).length > 0 && (
-                        <div
-                          style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
-                        >
-                          {ej.bloques.map((b, bi) => (
-                            <span
-                              key={bi}
-                              style={{
-                                fontSize: 11,
-                                background: "var(--surface)",
-                                padding: "2px 8px",
-                                borderRadius: 6,
-                                color: "var(--muted)",
-                                border: "1px solid var(--border)",
-                              }}
-                            >
-                              {b.series && b.reps
-                                ? `${b.series}×${b.reps}${b.peso ? ` @${b.peso}kg` : ""}${b.pct ? ` ${b.pct}%` : ""}`
-                                : b.texto || JSON.stringify(b)}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {/* Complementarios after */}
-                  {(turno.complementarios_after || []).length > 0 && (
-                    <div style={{ marginTop: 6 }}>
-                      {turno.complementarios_after.map((c, ci) => (
-                        <div
-                          key={ci}
-                          style={{
-                            fontSize: 12,
-                            color: "var(--muted)",
-                            padding: "3px 0",
-                            display: "flex",
-                            gap: 6,
-                          }}
-                        >
-                          <span style={{ color: "var(--blue)", fontSize: 10 }}>
-                            ●
-                          </span>
-                          {c.nombre || c.ejercicio_id || "Complementario"}
-                          {c.detalle && (
-                            <span
-                              style={{ color: "var(--muted)", fontSize: 11 }}
-                            >
-                              {" "}
-                              — {c.detalle}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
+          <PagePDF
+            meso={meso}
+            atleta={atletaInfo}
+            irm_arr={meso.irm_arranque}
+            irm_env={meso.irm_envion}
+            normativos={coachNormativos || EJERCICIOS}
+            tablas={coachTablas || TABLA_DEFAULT}
+          />
         </div>
       </div>
     );
@@ -32797,41 +32558,107 @@ function AtletaPanel({ session, profile, onLogout }) {
   const activeMesos = mesociclos.filter((m) => m.activo);
   const inactiveMesos = mesociclos.filter((m) => !m.activo);
 
-  return (
-    <div
-      style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}
+  const MesoCard = ({ m, isActive }) => (
+    <button
+      onClick={() => setSelectedMeso(m)}
+      style={{
+        width: "100%",
+        textAlign: "left",
+        cursor: "pointer",
+        background: "var(--surface)",
+        border: isActive ? "2px solid var(--gold)" : "1px solid var(--border)",
+        borderRadius: 12,
+        padding: 0,
+        marginBottom: 10,
+        fontFamily: "'DM Sans'",
+        color: "var(--text)",
+        transition: "all .2s",
+        overflow: "hidden",
+      }}
     >
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px" }}>
+        {/* Avatar */}
+        <div style={{
+          width: 44, height: 44, borderRadius: "50%",
+          background: isActive ? "rgba(232,197,71,.15)" : "var(--surface3)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "'Bebas Neue',sans-serif", fontSize: 18,
+          color: isActive ? "var(--gold)" : "var(--muted)", flexShrink: 0,
+        }}>
+          {(m.nombre || "M").charAt(0).toUpperCase()}
+        </div>
+        {/* Info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {m.nombre || "Mesociclo"}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6, alignItems: "center" }}>
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20,
+              background: m.modo === "Competitivo" ? "rgba(232,80,71,.15)" : "rgba(100,180,232,.15)",
+              color: m.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
+              border: `1px solid ${m.modo === "Competitivo" ? "var(--red)" : "var(--blue)"}30`,
+            }}>
+              {m.modo}
+            </span>
+            {isActive && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20,
+                background: "rgba(71,232,160,.15)", color: "var(--green)",
+                border: "1px solid rgba(71,232,160,.3)",
+              }}>
+                Activo
+              </span>
+            )}
+            {m.semanas && (
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                {m.semanas.length} semanas
+              </span>
+            )}
+            {m.fecha_inicio && (
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                Inicio: {m.fecha_inicio}
+              </span>
+            )}
+          </div>
+          {/* IRM values */}
+          {(m.irm_arranque || m.irm_envion) && (
+            <div style={{ display: "flex", gap: 12, marginTop: 6, alignItems: "center" }}>
+              {m.irm_arranque && (
+                <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                  ARR: <strong style={{ color: "var(--gold)" }}>{m.irm_arranque}</strong>kg
+                </span>
+              )}
+              {m.irm_envion && (
+                <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                  ENV: <strong style={{ color: "var(--blue)" }}>{m.irm_envion}</strong>kg
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Arrow */}
+        <ChevronLeft size={16} style={{ color: "var(--muted)", transform: "rotate(180deg)", flexShrink: 0 }} />
+      </div>
+    </button>
+  );
+
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}>
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 24,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+          <LogoHorizontal height={36} />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <LogoHorizontal height={36} />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                fontSize: 12,
-                color: "var(--muted)",
-                textAlign: "right",
-              }}
-            >
-              <div style={{ fontWeight: 600, color: "var(--text)" }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
                 {profile.nombre || session?.user?.email}
               </div>
-              <div style={{ fontSize: 11 }}>Atleta</div>
+              <div style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, letterSpacing: ".04em" }}>
+                ATLETA
+              </div>
             </div>
-            <button
-              className="btn btn-ghost"
-              onClick={onLogout}
-              style={{ padding: "6px 10px" }}
-            >
+            <button className="btn btn-ghost" onClick={onLogout} style={{ padding: "6px 10px" }}>
               <LogOut size={14} />
             </button>
           </div>
@@ -32840,148 +32667,48 @@ function AtletaPanel({ session, profile, onLogout }) {
         {/* Active mesociclos */}
         {activeMesos.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <div
-              style={{
-                fontFamily: "'Bebas Neue'",
-                fontSize: 18,
-                color: "var(--gold)",
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 14,
+              paddingBottom: 8, borderBottom: "2px solid var(--gold)",
+            }}>
+              <div style={{
+                fontFamily: "'Bebas Neue'", fontSize: 20, color: "var(--gold)",
                 letterSpacing: ".04em",
-                marginBottom: 12,
-              }}
-            >
-              MESOCICLO ACTIVO
+              }}>
+                MESOCICLO ACTIVO
+              </div>
+              <span style={{
+                fontSize: 11, fontWeight: 700, background: "rgba(232,197,71,.15)",
+                color: "var(--gold)", padding: "2px 10px", borderRadius: 20,
+              }}>
+                {activeMesos.length}
+              </span>
             </div>
-            {activeMesos.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMeso(m)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  background: "var(--surface)",
-                  border: "2px solid var(--gold)",
-                  borderRadius: 14,
-                  padding: "16px 20px",
-                  marginBottom: 8,
-                  fontFamily: "'DM Sans'",
-                  color: "var(--text)",
-                  transition: "all .2s",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 700,
-                    marginBottom: 4,
-                  }}
-                >
-                  {m.nombre || "Mesociclo"}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    fontSize: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span
-                    style={{
-                      background:
-                        m.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
-                      color: "#fff",
-                      padding: "2px 8px",
-                      borderRadius: 20,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {m.modo}
-                  </span>
-                  {m.semanas && (
-                    <span style={{ color: "var(--muted)" }}>
-                      {m.semanas.length} semanas
-                    </span>
-                  )}
-                  {m.irm_arranque && (
-                    <span style={{ color: "var(--muted)" }}>
-                      ARR: {m.irm_arranque}kg
-                    </span>
-                  )}
-                  {m.irm_envion && (
-                    <span style={{ color: "var(--muted)" }}>
-                      ENV: {m.irm_envion}kg
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
+            {activeMesos.map((m) => <MesoCard key={m.id} m={m} isActive />)}
           </div>
         )}
 
         {/* Inactive / past mesociclos */}
         {inactiveMesos.length > 0 && (
           <div>
-            <div
-              style={{
-                fontFamily: "'Bebas Neue'",
-                fontSize: 16,
-                color: "var(--muted)",
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 14,
+              paddingBottom: 8, borderBottom: "1px solid var(--border)",
+            }}>
+              <div style={{
+                fontFamily: "'Bebas Neue'", fontSize: 18, color: "var(--muted)",
                 letterSpacing: ".04em",
-                marginBottom: 12,
-              }}
-            >
-              MESOCICLOS ANTERIORES
+              }}>
+                MESOCICLOS ANTERIORES
+              </div>
+              <span style={{
+                fontSize: 11, fontWeight: 700, background: "var(--surface2)",
+                color: "var(--muted)", padding: "2px 10px", borderRadius: 20,
+              }}>
+                {inactiveMesos.length}
+              </span>
             </div>
-            {inactiveMesos.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMeso(m)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 12,
-                  padding: "14px 18px",
-                  marginBottom: 8,
-                  fontFamily: "'DM Sans'",
-                  color: "var(--text)",
-                  transition: "all .2s",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    marginBottom: 4,
-                  }}
-                >
-                  {m.nombre || "Mesociclo"}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    fontSize: 11,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span style={{ color: "var(--muted)" }}>{m.modo}</span>
-                  {m.fecha_inicio && (
-                    <span style={{ color: "var(--muted)" }}>
-                      Inicio: {m.fecha_inicio}
-                    </span>
-                  )}
-                  {m.semanas && (
-                    <span style={{ color: "var(--muted)" }}>
-                      {m.semanas.length} sem.
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
+            {inactiveMesos.map((m) => <MesoCard key={m.id} m={m} isActive={false} />)}
           </div>
         )}
 

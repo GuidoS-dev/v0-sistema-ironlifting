@@ -25,3 +25,12 @@ CREATE POLICY "Coaches can read athlete profiles" ON public.profiles
     rol = 'atleta'
     AND (auth.jwt() -> 'user_metadata' ->> 'tipo') = 'coach'
   );
+
+-- Allow athletes to read their coach's settings (normativos, tablas for PDF rendering)
+CREATE POLICY "atleta_read_coach_settings" ON public.coach_settings
+  FOR SELECT
+  USING (
+    coach_id IN (
+      SELECT a.coach_id FROM public.atletas a WHERE a.profile_id = auth.uid()
+    )
+  );
