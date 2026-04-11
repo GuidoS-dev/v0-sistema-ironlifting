@@ -22365,43 +22365,42 @@ function PagePDF({
         display: flex;
         align-items: baseline;
         gap: 0;
-        font-size: 14px;
+        font-size: 13px;
         flex: 1;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       }
       .pdf-table .cell-series {
-        font-size: 16px;
-        font-weight: 900;
+        font-size: 13px;
+        font-weight: 800;
         color: #1a1a2e;
       }
       .pdf-table .cell-series::after {
         content: '×';
-        font-size: 12px;
-        font-weight: 400;
-        color: #aaa;
-        margin: 0 2px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #999;
+        margin: 0 1px;
       }
       .pdf-table .cell-reps {
-        font-size: 15px;
-        font-weight: 700;
-        color: #333;
+        font-size: 13px;
+        font-weight: 800;
+        color: #1a1a2e;
       }
       .pdf-table .cell-reps::after {
-        content: '·';
-        font-size: 14px;
-        font-weight: 400;
-        color: #ccc;
-        margin: 0 6px;
+        content: '';
+        margin: 0;
       }
       .pdf-table .cell-kg {
-        font-size: 14px;
+        font-size: 12px;
         font-weight: 600;
-        color: #666;
+        color: #777;
+        margin-left: 8px;
       }
       .pdf-table .cell-kg::after {
         content: 'kg';
-        font-size: 10px;
-        font-weight: 400;
-        color: #999;
+        font-size: 9px;
+        font-weight: 500;
+        color: #aaa;
         margin-left: 1px;
       }
       .pdf-table .cell-data .cell-note {
@@ -22514,13 +22513,13 @@ function PagePDF({
         padding: 2px 6px;
       }
       .pdf-table .cell-series {
-        font-size: 15px;
+        font-size: 12px;
       }
       .pdf-table .cell-reps {
-        font-size: 14px;
+        font-size: 12px;
       }
       .pdf-table .cell-kg {
-        font-size: 13px;
+        font-size: 11px;
       }
     }
   `;
