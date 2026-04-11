@@ -22250,6 +22250,7 @@ function PagePDF({
         padding: 8px 12px;
         margin: 10px 0 4px;
         border-radius: 6px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.25);
       }
       .pdf-turno-num {
         font-size: 13px;
@@ -22281,7 +22282,7 @@ function PagePDF({
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 2px 8px rgba(0,0,0,.18);
+        box-shadow: 0 3px 12px rgba(0,0,0,.28);
       }
       .pdf-table tr.last-ej td {
         border-bottom: none;
@@ -22295,10 +22296,11 @@ function PagePDF({
       /* ID badge + nombre: header de la card */
       .pdf-table td:first-child {
         position: static;
-        padding: 12px 0 12px 12px;
+        padding: 0 0 0 12px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
+        align-self: stretch;
       }
       .pdf-table td:first-child span {
         font-size: 9px !important;
@@ -22313,6 +22315,7 @@ function PagePDF({
         padding: 12px 12px 12px 8px;
         display: flex;
         align-items: center;
+        align-self: stretch;
       }
       /* Wrap ID + name in same row */
       .pdf-table tr {
