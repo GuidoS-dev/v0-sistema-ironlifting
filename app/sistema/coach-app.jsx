@@ -34,6 +34,13 @@ const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPA_CONFIG_OK = Boolean(SUPA_URL && SUPA_ANON);
 const SUPA_TIMEOUT_MS = 10000;
 
+function toTitleCase(str) {
+  if (typeof str !== "string") return str;
+  return str
+    .toLowerCase()
+    .replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
+}
+
 function sanitizeStringInput(value) {
   if (typeof value !== "string") return value;
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
@@ -850,7 +857,7 @@ function atletaToDb(a, coachId, options = {}) {
   return {
     coach_id: coachId,
     app_id: a.id,
-    nombre: a.nombre || "",
+    nombre: toTitleCase(a.nombre) || "",
     email: a.email || "",
     telefono: a.telefono || "",
     fecha_nacimiento: a.fecha_nacimiento || null,
@@ -876,7 +883,7 @@ function atletaFromDb(r) {
   }
   return {
     id: r.app_id,
-    nombre: r.nombre,
+    nombre: toTitleCase(r.nombre) || r.nombre,
     email: r.email,
     telefono: r.telefono,
     fecha_nacimiento: r.fecha_nacimiento,
@@ -3367,7 +3374,7 @@ function AtletaForm({
         <button
           className="btn btn-gold"
           onClick={() => {
-            if (form.nombre) onSave(form);
+            if (form.nombre) onSave({ ...form, nombre: toTitleCase(form.nombre) });
           }}
         >
           Guardar
@@ -31262,7 +31269,7 @@ function LoginScreen({ onAuth }) {
       email,
       password,
       options: {
-        data: { nombre: nombre || email.split("@")[0], rol },
+        data: { nombre: toTitleCase(nombre || email.split("@")[0]), rol },
       },
     });
     setLoading(false);
