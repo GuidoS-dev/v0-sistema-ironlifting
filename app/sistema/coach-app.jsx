@@ -74,7 +74,7 @@ function sanitizeRequestBody(body, contentType) {
 
 // Storage keys for session persistence
 const SESSION_KEY = "sb_session";
-const PROFILE_KEY = "sb_profile";
+const PROFILE_KEY_PREFIX = "sb_profile_";
 
 function saveSession(s) {
   try {
@@ -95,15 +95,21 @@ function clearSession() {
 }
 function saveProfileLocal(p) {
   try {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+    if (p?.id) localStorage.setItem(PROFILE_KEY_PREFIX + p.id, JSON.stringify(p));
   } catch {}
 }
-function loadProfileLocal() {
+function loadProfileLocal(userId) {
   try {
-    return JSON.parse(localStorage.getItem(PROFILE_KEY));
+    if (!userId) return null;
+    return JSON.parse(localStorage.getItem(PROFILE_KEY_PREFIX + userId));
   } catch {
     return null;
   }
+}
+function clearProfileLocal(userId) {
+  try {
+    if (userId) localStorage.removeItem(PROFILE_KEY_PREFIX + userId);
+  } catch {}
 }
 
 // Auth listeners
@@ -33037,7 +33043,7 @@ export default function App() {
             "Auth timeout — entrando en modo offline con sesión cacheada",
           );
           setSession(cached);
-          const cachedProfile = loadProfileLocal();
+          const cachedProfile = loadProfileLocal(cached.user.id);
           if (cachedProfile) setProfile(cachedProfile);
         }
         setAuthLoading(false);
@@ -33079,7 +33085,7 @@ export default function App() {
               "Supabase no disponible — modo offline con sesión cacheada",
             );
             setSession(cached);
-            const cachedProfile = loadProfileLocal();
+            const cachedProfile = loadProfileLocal(cached.user.id);
             if (cachedProfile) setProfile(cachedProfile);
           }
           setAuthLoading(false);
@@ -33121,23 +33127,22 @@ export default function App() {
         saveProfileLocal(data);
       } else {
         // DB no devolvió perfil — usar cache local
-        const cached = loadProfileLocal();
+        const cached = loadProfileLocal(userId);
         if (cached) setProfile(cached);
       }
     } catch (e) {
       // Falló la carga de perfil — usar cache local
-      const cached = loadProfileLocal();
+      const cached = loadProfileLocal(userId);
       if (cached) setProfile(cached);
     }
     setAuthLoading(false);
   };
 
   const handleLogout = async () => {
+    const userId = session?.user?.id;
     await sb.auth.signOut();
     clearSession();
-    try {
-      localStorage.removeItem(PROFILE_KEY);
-    } catch {}
+    clearProfileLocal(userId);
     setSession(null);
     setProfile(null);
   };
