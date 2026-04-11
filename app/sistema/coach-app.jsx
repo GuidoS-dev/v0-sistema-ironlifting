@@ -22516,7 +22516,7 @@ function PagePDF({
         min-height: 42px;
         width: 100%;
         flex-basis: 100%;
-        background: #0f1520;
+        background: #0f1520 !important;
       }
       .pdf-table td[data-label]:last-child {
         border-bottom: none;
