@@ -21956,20 +21956,16 @@ function PagePDF({
     return { sem, semIdx, turnos, met: metricas[semIdx] };
   });
 
-  // Callback ref para medir sem-header y actualizar top de turnos hermanos
+  // Callback ref para medir sem-header y setear CSS var en pdf-page
   const semHeaderRefCallback = React.useCallback((el) => {
     if (!el) return;
+    const page = el.closest('.pdf-page');
+    if (!page) return;
     const update = () => {
-      const h = el.getBoundingClientRect().height;
-      const page = el.parentElement;
-      if (!page) return;
-      page.querySelectorAll('.pdf-turno-header').forEach((th) => {
-        th.style.top = h + 'px';
-      });
+      const h = el.offsetHeight;
+      page.style.setProperty('--sem-h', h + 'px');
     };
-    // Medir después del layout completo
-    requestAnimationFrame(() => requestAnimationFrame(update));
-    // Observar cambios de tamaño
+    update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
   }, []);
@@ -22276,7 +22272,7 @@ function PagePDF({
         border-radius: 6px;
         box-shadow: 0 2px 10px rgba(0,0,0,.25);
         position: sticky;
-        top: 0;
+        top: var(--sem-h, 0px);
         z-index: 30;
       }
       .pdf-turno-num {
