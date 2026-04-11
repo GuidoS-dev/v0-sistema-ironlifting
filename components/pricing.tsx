@@ -28,6 +28,9 @@ Quiero agendar una cita para que revisemos mi caso en detalle y empecemos con el
 Gracias!`,
 };
 
+const formatPrice = (n: number) =>
+  n.toLocaleString("es-AR");
+
 const getWhatsAppUrl = (planName: string) => {
   const message = encodeURIComponent(whatsappMessages[planName] || "");
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
@@ -146,6 +149,9 @@ export function Pricing() {
               const originalMonthly = isAnnual
                 ? Math.round(plan.originalPrice * 12)
                 : plan.originalPrice;
+              const dailyPrice = Math.round(
+                (isAnnual ? price : plan.discountedPrice * 12) / 365
+              );
 
               return (
                 <Card
@@ -175,17 +181,20 @@ export function Pricing() {
                     {/* Pricing */}
                     <div className="mb-6 text-center">
                       <div className="mb-1 text-lg text-muted-foreground line-through">
-                        ${originalMonthly}
+                        ${formatPrice(originalMonthly)}
                         {isAnnual ? "/año" : "/mes"}
                       </div>
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-bold text-foreground">
-                          ${price}
+                          ${formatPrice(price)}
                         </span>
                         <span className="text-muted-foreground">
                           {isAnnual ? "/año" : "/mes"}
                         </span>
                       </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Solo ${formatPrice(dailyPrice)} por día
+                      </p>
                       <Badge
                         variant="outline"
                         className="mt-2 border-[#e8c547]/50 bg-[#e8c547]/10 text-[#e8c547]"
