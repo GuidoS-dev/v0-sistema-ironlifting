@@ -7,7 +7,7 @@ const CoachApp = dynamic(() => import('./coach-app'), {
   ssr: false,
   loading: () => (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: '#0a0c10',
       display: 'flex',
       alignItems: 'center',

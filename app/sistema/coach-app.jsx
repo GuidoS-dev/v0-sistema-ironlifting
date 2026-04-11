@@ -2125,7 +2125,7 @@ const css = `
   }
   :root{--nav-h:64px}
   @media(max-width:480px){:root{--nav-h:48px}}
-  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100dvh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
   
   /* ── Scrollbars ── */
   *{scrollbar-width:thin;scrollbar-color:rgba(232,197,71,.25) transparent}
@@ -2136,7 +2136,7 @@ const css = `
   *::-webkit-scrollbar-corner{background:transparent}
   h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em}
   
-  .app{display:flex;flex-direction:column;min-height:100vh;height:100vh;overflow:hidden}
+  .app{display:flex;flex-direction:column;min-height:100dvh;height:100dvh;overflow:hidden}
   
   /* NAV */
   .nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:64px;position:sticky;top:0;z-index:100;overflow-x:hidden}
