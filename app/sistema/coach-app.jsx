@@ -22751,7 +22751,6 @@ ${previewEl.outerHTML}
         style={{
           background: "#fff",
           borderRadius: 12,
-          overflowX: "clip",
           border: "1px solid var(--border)",
           boxShadow: "0 8px 40px rgba(0,0,0,.4)",
         }}
