@@ -22048,7 +22048,7 @@ function PagePDF({
 
     /* ── Turno ── */
     .pdf-turno-header {
-      background: #1a1a2e; color: #fff;
+      background: #0d1117; color: #fff;
       padding: 3px 8px; margin: 6px 0 2px;
       display: flex; align-items: center; gap: 6px;
       border-radius: 3px;
@@ -22209,6 +22209,11 @@ function PagePDF({
       .pdf-sem-header {
         flex-direction: column;
         border-radius: 8px;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        box-shadow: 0 2px 8px rgba(0,0,0,.3);
+        background: #fafafa;
       }
       .pdf-sem-num {
         font-size: 16px;
@@ -22251,6 +22256,9 @@ function PagePDF({
         margin: 10px 0 4px;
         border-radius: 6px;
         box-shadow: 0 2px 10px rgba(0,0,0,.25);
+        position: sticky;
+        top: 0;
+        z-index: 10;
       }
       .pdf-turno-num {
         font-size: 13px;
