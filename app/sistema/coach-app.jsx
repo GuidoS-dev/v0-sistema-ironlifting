@@ -510,7 +510,9 @@ const _bc = (() => {
 })();
 
 function markDbSync() {
-  try { localStorage.setItem("liftplan_last_db_sync", Date.now().toString()); } catch {}
+  try {
+    localStorage.setItem("liftplan_last_db_sync", Date.now().toString());
+  } catch {}
 }
 
 function broadcastDbWrite(type) {
@@ -528,11 +530,20 @@ function getLastDbSync() {
   try {
     const v = localStorage.getItem("liftplan_last_db_sync");
     return v ? Number(v) : 0;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 }
 
 function collectBackupData() {
-  const get = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch { return fb; } };
+  const get = (k, fb) => {
+    try {
+      const r = localStorage.getItem(k);
+      return r ? JSON.parse(r) : fb;
+    } catch {
+      return fb;
+    }
+  };
   return {
     _backup_version: 1,
     _created_at: new Date().toISOString(),
@@ -556,7 +567,9 @@ function downloadBackup() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  try { localStorage.setItem(BACKUP_PROMPTED_KEY, Date.now().toString()); } catch {}
+  try {
+    localStorage.setItem(BACKUP_PROMPTED_KEY, Date.now().toString());
+  } catch {}
 }
 
 function emitLocalSyncEvent(key) {
@@ -5091,9 +5104,37 @@ function PlanillaTurno({
   noteEdit,
   setNoteEdit: setNoteEditProp,
   normativos: normativosProp = null,
+  initialSemActiva = 0,
+  initialTurnoActivo = 0,
+  onNavChange,
 }) {
-  const [semActiva, setSemActiva] = useState(0);
-  const [turnoActivo, setTurnoActivo] = useState(0);
+  const [semActiva, setSemActivaRaw] = useState(() => {
+    const maxSem = (semanas?.length || 1) - 1;
+    return Math.max(0, Math.min(initialSemActiva, maxSem));
+  });
+  const [turnoActivo, setTurnoActivoRaw] = useState(() => {
+    const maxTurno = (semanas?.[initialSemActiva]?.turnos?.length || 1) - 1;
+    return Math.max(0, Math.min(initialTurnoActivo, maxTurno));
+  });
+
+  // Wrappers that also report navigation changes to parent
+  const setSemActiva = (v) => {
+    setSemActivaRaw((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      return next;
+    });
+  };
+  const setTurnoActivo = (v) => {
+    setTurnoActivoRaw((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      return next;
+    });
+  };
+
+  // Report navigation changes back to parent
+  useEffect(() => {
+    onNavChange?.({ semActiva, turnoActivo });
+  }, [semActiva, turnoActivo]);
   const [tipSem, setTipSem] = useState(null);
   const [tipTurno, setTipTurno] = useState(null);
   const [compPickerOpen, setCompPickerOpen] = useState(null); // compId | null
@@ -16090,7 +16131,14 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
 
 // ─── PAGES ───────────────────────────────────────────────────────────────────
 
-function AtletaCardItem({ a, mesociclos, coachId, onSelect, onEdit, onDelete }) {
+function AtletaCardItem({
+  a,
+  mesociclos,
+  coachId,
+  onSelect,
+  onEdit,
+  onDelete,
+}) {
   const mesoAtleta = mesociclos
     .filter((m) => m.atleta_id === a.id)
     .sort(
@@ -16208,7 +16256,14 @@ function AtletaCardItem({ a, mesociclos, coachId, onSelect, onEdit, onDelete }) 
           </div>
         )}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 4,
+        }}
+      >
         <div className="flex gap8">
           <button
             className="btn btn-ghost btn-sm"
@@ -16239,8 +16294,20 @@ function AtletaCardItem({ a, mesociclos, coachId, onSelect, onEdit, onDelete }) 
             }}
             title={`Última edición: ${new Date(mesoActivo._updated_at).toLocaleString()}`}
           >
-            ed. {new Date(mesoActivo._updated_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}{" "}
-            <span style={{ fontWeight: 700, color: coachId ? "var(--green)" : "var(--blue)" }}>
+            ed.{" "}
+            {new Date(mesoActivo._updated_at).toLocaleDateString("es-AR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}{" "}
+            <span
+              style={{
+                fontWeight: 700,
+                color: coachId ? "var(--green)" : "var(--blue)",
+              }}
+            >
               {coachId ? "DB" : "LO"}
             </span>
           </span>
@@ -17230,6 +17297,7 @@ function PageAtleta({
   openRequest,
 }) {
   const latestMesoRef = useRef(null); // always-current meso for cleanup save
+  const planillaNavRef = useRef({}); // { [mesoId]: { semActiva, turnoActivo } }
   const [showMeso, setShowMeso] = useState(false);
   const [showEditMeso, setShowEditMeso] = useState(false);
   const [showGuardarPlantilla, setShowGuardarPlantilla] = useState(null); // null | "meso" | "semana"
@@ -19243,6 +19311,7 @@ function PageAtleta({
                     onBeforeChange={(forced) => pushSnap(forced)}
                   />
                   <PlanillaTurno
+                    key={mesoVisto.id}
                     scrollIdPrefix={planillaScrollPrefix}
                     semanas={mesoVisto.semanas}
                     irm_arr={irm_arr}
@@ -19280,6 +19349,11 @@ function PageAtleta({
                     noteEdit={noteEdit}
                     setNoteEdit={setNoteEditRaw}
                     normativos={atletaNormativos}
+                    initialSemActiva={planillaNavRef.current[mesoVisto.id]?.semActiva ?? 0}
+                    initialTurnoActivo={planillaNavRef.current[mesoVisto.id]?.turnoActivo ?? 0}
+                    onNavChange={(nav) => {
+                      planillaNavRef.current[mesoVisto.id] = nav;
+                    }}
                   />
                 </div>
               </>
@@ -31014,15 +31088,23 @@ function CoachApp({ session, profile, onLogout }) {
   useEffect(() => {
     const check = () => {
       const lastSync = getLastDbSync();
-      const lastPrompted = Number(localStorage.getItem(BACKUP_PROMPTED_KEY) || "0");
+      const lastPrompted = Number(
+        localStorage.getItem(BACKUP_PROMPTED_KEY) || "0",
+      );
       const now = Date.now();
       // Mostrar si: pasaron 5h desde último sync Y no se descargó backup recientemente
-      if (lastSync > 0 && (now - lastSync) > BACKUP_INTERVAL_MS && (now - lastPrompted) > BACKUP_INTERVAL_MS) {
+      if (
+        lastSync > 0 &&
+        now - lastSync > BACKUP_INTERVAL_MS &&
+        now - lastPrompted > BACKUP_INTERVAL_MS
+      ) {
         setShowBackupBanner(true);
       }
     };
     check();
-    const onVisible = () => { if (document.visibilityState === "visible") check(); };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") check();
+    };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
@@ -31306,7 +31388,10 @@ function CoachApp({ session, profile, onLogout }) {
           </button>
 
           <button
-            onClick={() => { downloadBackup(); setShowBackupBanner(false); }}
+            onClick={() => {
+              downloadBackup();
+              setShowBackupBanner(false);
+            }}
             title="Descargar respaldo local (JSON)"
             style={{
               flexShrink: 0,
@@ -31400,20 +31485,28 @@ function CoachApp({ session, profile, onLogout }) {
 
         {/* Banner de respaldo automático */}
         {showBackupBanner && (
-          <div style={{
-            background: "rgba(232,80,71,.12)",
-            borderBottom: "1px solid var(--red)",
-            padding: "8px 16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            fontSize: 13,
-            color: "var(--text)",
-          }}>
-            <span>⚠️ Hace más de 5 horas sin sincronizar con la base de datos. Descargá un respaldo por seguridad.</span>
+          <div
+            style={{
+              background: "rgba(232,80,71,.12)",
+              borderBottom: "1px solid var(--red)",
+              padding: "8px 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              fontSize: 13,
+              color: "var(--text)",
+            }}
+          >
+            <span>
+              ⚠️ Hace más de 5 horas sin sincronizar con la base de datos.
+              Descargá un respaldo por seguridad.
+            </span>
             <button
-              onClick={() => { downloadBackup(); setShowBackupBanner(false); }}
+              onClick={() => {
+                downloadBackup();
+                setShowBackupBanner(false);
+              }}
               style={{
                 padding: "4px 14px",
                 borderRadius: 6,
@@ -31426,7 +31519,10 @@ function CoachApp({ session, profile, onLogout }) {
                 whiteSpace: "nowrap",
               }}
             >
-              <Download size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
+              <Download
+                size={12}
+                style={{ verticalAlign: -2, marginRight: 4 }}
+              />
               Descargar respaldo
             </button>
             <button
@@ -31571,7 +31667,9 @@ export default function App() {
         // Watchdog: si Supabase no respondió, intentar modo offline
         const cached = loadSession();
         if (cached?.user?.id) {
-          console.warn("Auth timeout — entrando en modo offline con sesión cacheada");
+          console.warn(
+            "Auth timeout — entrando en modo offline con sesión cacheada",
+          );
           setSession(cached);
           const cachedProfile = loadProfileLocal();
           if (cachedProfile) setProfile(cachedProfile);
@@ -31601,7 +31699,9 @@ export default function App() {
         if (mounted) {
           const cached = loadSession();
           if (cached?.user?.id) {
-            console.warn("Supabase no disponible — modo offline con sesión cacheada");
+            console.warn(
+              "Supabase no disponible — modo offline con sesión cacheada",
+            );
             setSession(cached);
             const cachedProfile = loadProfileLocal();
             if (cachedProfile) setProfile(cachedProfile);
@@ -31659,7 +31759,9 @@ export default function App() {
   const handleLogout = async () => {
     await sb.auth.signOut();
     clearSession();
-    try { localStorage.removeItem(PROFILE_KEY); } catch {}
+    try {
+      localStorage.removeItem(PROFILE_KEY);
+    } catch {}
     setSession(null);
     setProfile(null);
   };
