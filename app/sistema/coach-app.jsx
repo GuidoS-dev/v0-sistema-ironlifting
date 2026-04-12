@@ -32054,29 +32054,41 @@ function CoachApp({ session, profile, onLogout }) {
     };
   }, [coachId]);
 
-  // ── Sincronizar atletas con DB cuando cambian (debounce 1.5s) ───────────
+  // ── Sincronizar atletas con DB cuando cambian (debounce 5s) ───────────
   useEffect(() => {
     if (!coachId || prevAtletasRef.current === null) return;
     const curr = atletas;
+    const prev = prevAtletasRef.current;
+
+    // Detectar borrados INMEDIATAMENTE (sin debounce) y ejecutar ya
+    const deletedIds = prev
+      .filter((p) => !curr.find((a) => a.id === p.id))
+      .map((p) => p.id);
+    if (deletedIds.length > 0) {
+      deletedIds.forEach((id) => pendingDeleteAtletaIdsRef.current.add(id));
+      // Borrar de DB inmediatamente (sin esperar debounce)
+      for (const id of deletedIds) {
+        sb.from("atletas")
+          .eq("app_id", id)
+          .delete()
+          .then(() => pendingDeleteAtletaIdsRef.current.delete(id))
+          .catch(() => {});
+      }
+      prevAtletasRef.current = curr;
+    }
 
     if (atletaSyncTimerRef.current) clearTimeout(atletaSyncTimerRef.current);
     atletaSyncTimerRef.current = setTimeout(async () => {
       atletaSyncTimerRef.current = null;
-      const prev = prevAtletasRef.current;
+      const prev2 = prevAtletasRef.current;
       prevAtletasRef.current = curr;
 
-      const deletedIds = prev
-        .filter((p) => !curr.find((a) => a.id === p.id))
-        .map((p) => p.id);
-      // Registrar IDs pendientes de borrado para que pull no los restaure
-      deletedIds.forEach((id) => pendingDeleteAtletaIdsRef.current.add(id));
       const now = new Date().toISOString();
       const toUpsert = curr.filter((a) => {
-        const old = prev.find((p) => p.id === a.id);
+        const old = prev2.find((p) => p.id === a.id);
         return !old || JSON.stringify(old) !== JSON.stringify(a);
       });
-      // Skip DB sync if nothing changed
-      if (deletedIds.length === 0 && toUpsert.length === 0) return;
+      if (toUpsert.length === 0) return;
 
       if (toUpsert.length > 0) {
         setAtletasRaw((s) =>
@@ -32088,24 +32100,14 @@ function CoachApp({ session, profile, onLogout }) {
         );
       }
 
-      for (const id of deletedIds) {
-        await sb
-          .from("atletas")
-          .eq("app_id", id)
-          .delete()
-          .catch(() => {});
-        pendingDeleteAtletaIdsRef.current.delete(id);
-      }
-      if (toUpsert.length > 0) {
-        await sb
-          .from("atletas")
-          .upsert(
-            toUpsert.map((a) => atletaToDb(a, coachId)),
-            { onConflict: "app_id" },
-          )
-          .catch((e) => console.warn("DB sync atletas failed:", e));
-        broadcastDbWrite("atletas");
-      }
+      await sb
+        .from("atletas")
+        .upsert(
+          toUpsert.map((a) => atletaToDb(a, coachId)),
+          { onConflict: "app_id" },
+        )
+        .catch((e) => console.warn("DB sync atletas failed:", e));
+      broadcastDbWrite("atletas");
     }, 5000);
   }, [atletas]);
 
@@ -32113,42 +32115,44 @@ function CoachApp({ session, profile, onLogout }) {
   useEffect(() => {
     if (!coachId || prevMesociclosRef.current === null) return;
     const curr = mesociclos;
+    const prev = prevMesociclosRef.current;
+
+    // Detectar borrados INMEDIATAMENTE (sin debounce) y ejecutar ya
+    const deletedIds = prev
+      .filter((p) => !curr.find((m) => m.id === p.id))
+      .map((p) => p.id);
+    if (deletedIds.length > 0) {
+      deletedIds.forEach((id) => pendingDeleteMesoIdsRef.current.add(id));
+      for (const id of deletedIds) {
+        sb.from("mesociclos")
+          .eq("app_id", id)
+          .delete()
+          .then(() => pendingDeleteMesoIdsRef.current.delete(id))
+          .catch(() => {});
+      }
+      prevMesociclosRef.current = curr;
+    }
 
     if (mesoSyncTimerRef.current) clearTimeout(mesoSyncTimerRef.current);
     mesoSyncTimerRef.current = setTimeout(async () => {
       mesoSyncTimerRef.current = null;
-      const prev = prevMesociclosRef.current;
+      const prev2 = prevMesociclosRef.current;
       prevMesociclosRef.current = curr;
 
-      const deletedIds = prev
-        .filter((p) => !curr.find((m) => m.id === p.id))
-        .map((p) => p.id);
-      // Registrar IDs pendientes de borrado para que pull no los restaure
-      deletedIds.forEach((id) => pendingDeleteMesoIdsRef.current.add(id));
       const toUpsert = curr.filter((m) => {
-        const old = prev.find((p) => p.id === m.id);
+        const old = prev2.find((p) => p.id === m.id);
         return !old || JSON.stringify(old) !== JSON.stringify(m);
       });
-      if (deletedIds.length === 0 && toUpsert.length === 0) return;
+      if (toUpsert.length === 0) return;
 
-      for (const id of deletedIds) {
-        await sb
-          .from("mesociclos")
-          .eq("app_id", id)
-          .delete()
-          .catch(() => {});
-        pendingDeleteMesoIdsRef.current.delete(id);
-      }
-      if (toUpsert.length > 0) {
-        await sb
-          .from("mesociclos")
-          .upsert(
-            toUpsert.map((m) => mesoToDb(m, coachId)),
-            { onConflict: "app_id" },
-          )
-          .catch((e) => console.warn("DB sync mesociclos failed:", e));
-        broadcastDbWrite("mesociclos");
-      }
+      await sb
+        .from("mesociclos")
+        .upsert(
+          toUpsert.map((m) => mesoToDb(m, coachId)),
+          { onConflict: "app_id" },
+        )
+        .catch((e) => console.warn("DB sync mesociclos failed:", e));
+      broadcastDbWrite("mesociclos");
     }, 5000);
   }, [mesociclos, coachId]);
 
@@ -32227,8 +32231,11 @@ function CoachApp({ session, profile, onLogout }) {
 
   // Wrappers que persisten automáticamente
   const setAtletas = (val) => {
-    setAtletasRaw(val);
-    save("liftplan_atletas", typeof val === "function" ? val([]) : val);
+    setAtletasRaw((prev) => {
+      const next = typeof val === "function" ? val(prev) : val;
+      save("liftplan_atletas", next);
+      return next;
+    });
   };
   const setMesociclos = (val) => {
     setMesociclosRaw((prev) => {
