@@ -186,6 +186,17 @@ async function _fetchWithTimeout(
     }
   } catch {}
 
+  // keepalive mode: skip abort controller, let browser finish request after page unload
+  if (options.keepalive) {
+    const nextOptions = { ...options };
+    const headers = new Headers(options?.headers || {});
+    const contentType = headers.get("content-type") || "";
+    if (typeof nextOptions.body === "string") {
+      nextOptions.body = sanitizeRequestBody(nextOptions.body, contentType);
+    }
+    return await fetch(requestUrl, nextOptions);
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -24913,7 +24924,22 @@ function usePlantillas(coachId) {
         .catch((e) => console.warn("DELETE plantilla exception:", id, e));
     }
   };
-  return { plantillas, add, update, remove };
+  const flushSync = useCallback(() => {
+    // Flush all pending plantilla sync timers and push current state
+    if (plantillaSyncTimersRef.current.size > 0) {
+      plantillaSyncTimersRef.current.forEach((timer) => clearTimeout(timer));
+      plantillaSyncTimersRef.current.clear();
+    }
+    if (coachId && plantillas.length > 0) {
+      sb.from("plantillas")
+        .upsert(
+          plantillas.map((p) => plantillaToDb(p, coachId)),
+          { onConflict: "app_id" },
+        )
+        .catch(() => {});
+    }
+  }, [coachId, plantillas]);
+  return { plantillas, add, update, remove, flushSync };
 }
 
 // ── Modal para guardar plantilla desde un mesociclo/semana/distribución ──────
@@ -31954,6 +31980,7 @@ function CoachApp({ session, profile, onLogout }) {
     add: addPlantillaRaw,
     update: updatePlantilla,
     remove: removePlantilla,
+    flushSync: flushPlantillaSync,
   } = usePlantillas(coachId);
   const mesoOverrideSyncTimersRef = useRef(new Map());
   const atletaOverrideSyncTimersRef = useRef(new Map());
@@ -32186,11 +32213,6 @@ function CoachApp({ session, profile, onLogout }) {
 
       markDbSync();
 
-      appAtletas.forEach((r) => {
-        restoreAtletaPctOverrides(r.app_id, r.pct_overrides);
-        restoreAtletaNormOverrides(r.app_id, r.normativos_overrides);
-      });
-
       const loaded = appAtletas.map(atletaFromDb);
       setAtletasRaw((prev) => {
         const pendingDel = pendingDeleteAtletaIdsRef.current;
@@ -32199,14 +32221,32 @@ function CoachApp({ session, profile, onLogout }) {
           .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
           .map((dbItem) => {
           const local = prev.find((p) => p.id === dbItem.id);
-          if (!local) return dbItem; // nuevo en DB
+          if (!local) {
+            // Nuevo en DB — restaurar overrides
+            const raw = appAtletas.find((r) => r.app_id === dbItem.id);
+            if (raw) {
+              restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
+              restoreAtletaNormOverrides(raw.app_id, raw.normativos_overrides);
+            }
+            return dbItem;
+          }
           const dbTs = dbItem._updated_at
             ? new Date(dbItem._updated_at).getTime()
             : 0;
           const localTs = local._updated_at
             ? new Date(local._updated_at).getTime()
             : 0;
-          return dbTs >= localTs ? dbItem : local;
+          if (dbTs >= localTs) {
+            // DB gana — restaurar overrides de DB
+            const raw = appAtletas.find((r) => r.app_id === dbItem.id);
+            if (raw) {
+              restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
+              restoreAtletaNormOverrides(raw.app_id, raw.normativos_overrides);
+            }
+            return dbItem;
+          }
+          // Local gana — mantener overrides locales
+          return local;
         });
         // agregar items locales que aún no están en DB
         prev.forEach((localItem) => {
@@ -32255,8 +32295,6 @@ function CoachApp({ session, profile, onLogout }) {
 
       markDbSync();
 
-      appMesos.forEach((r) => restoreMesoOverrides(r.app_id, r.overrides));
-
       const loaded = appMesos.map(mesoFromDb);
       setMesociclosRaw((prev) => {
         const pendingDel = pendingDeleteMesoIdsRef.current;
@@ -32265,14 +32303,26 @@ function CoachApp({ session, profile, onLogout }) {
           .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
           .map((dbItem) => {
           const local = prev.find((p) => p.id === dbItem.id);
-          if (!local) return dbItem;
+          if (!local) {
+            // Nuevo en DB — restaurar overrides
+            const raw = appMesos.find((r) => r.app_id === dbItem.id);
+            if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
+            return dbItem;
+          }
           const dbTs = dbItem._updated_at
             ? new Date(dbItem._updated_at).getTime()
             : 0;
           const localTs = local._updated_at
             ? new Date(local._updated_at).getTime()
             : 0;
-          return dbTs >= localTs ? dbItem : local;
+          if (dbTs >= localTs) {
+            // DB gana — restaurar overrides de DB
+            const raw = appMesos.find((r) => r.app_id === dbItem.id);
+            if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
+            return dbItem;
+          }
+          // Local gana — mantener overrides locales
+          return local;
         });
         prev.forEach((localItem) => {
           if (!pendingDel.has(localItem.id) && !merged.find((m) => m.id === localItem.id))
@@ -32303,7 +32353,7 @@ function CoachApp({ session, profile, onLogout }) {
     };
   }, [coachId]);
 
-  // ── Sincronizar atletas con DB cuando cambian (debounce 5s) ───────────
+  // ── Sincronizar atletas con DB cuando cambian (debounce 2s) ───────────
   useEffect(() => {
     if (!coachId || prevAtletasRef.current === null) return;
     const curr = atletas;
@@ -32363,10 +32413,10 @@ function CoachApp({ session, profile, onLogout }) {
         )
         .catch((e) => console.warn("DB sync atletas failed:", e));
       broadcastDbWrite("atletas");
-    }, 5000);
+    }, 2000);
   }, [atletas]);
 
-  // ── Sincronizar mesociclos con DB cuando cambian (debounce 5s) ──────────
+  // ── Sincronizar mesociclos con DB cuando cambian (debounce 2s) ──────────
   useEffect(() => {
     if (!coachId || prevMesociclosRef.current === null) return;
     const curr = mesociclos;
@@ -32414,7 +32464,7 @@ function CoachApp({ session, profile, onLogout }) {
         )
         .catch((e) => console.warn("DB sync mesociclos failed:", e));
       broadcastDbWrite("mesociclos");
-    }, 5000);
+    }, 2000);
   }, [mesociclos, coachId]);
 
   // ── Sincronizar overrides al ocultar/cerrar (sin polling periódico) ───────
@@ -32449,7 +32499,7 @@ function CoachApp({ session, profile, onLogout }) {
       prevMesociclosRef.current = currMesos;
     };
 
-    const syncOverrides = () => {
+    const syncOverrides = (useKeepalive = false) => {
       if (prevMesociclosRef.current === null) return;
       flushPendingDeletes();
       const curr = mesociclosRef.current;
@@ -32461,8 +32511,20 @@ function CoachApp({ session, profile, onLogout }) {
           )
           .catch(() => {});
       }
+      // Sincronizar atletas también (antes se omitía causando pérdida de datos)
       const currAtletas = atletasRef.current;
-      void currAtletas;
+      if (currAtletas.length > 0) {
+        const now = new Date().toISOString();
+        sb.from("atletas")
+          .upsert(
+            currAtletas.map((a) => atletaToDb({ ...a, _updated_at: a._updated_at || now }, coachId)),
+            { onConflict: "app_id" },
+          )
+          .catch(() => {});
+        broadcastDbWrite("atletas");
+      }
+      // Flush pending plantilla timers
+      flushPlantillaSync();
     };
 
     const onHide = () => {
@@ -32483,7 +32545,7 @@ function CoachApp({ session, profile, onLogout }) {
     const onBeforeUnload = () => {
       if (atletaSyncTimerRef.current) clearTimeout(atletaSyncTimerRef.current);
       if (mesoSyncTimerRef.current) clearTimeout(mesoSyncTimerRef.current);
-      syncOverrides();
+      syncOverrides(true);
     };
 
     document.addEventListener("visibilitychange", onHide);
@@ -32492,14 +32554,23 @@ function CoachApp({ session, profile, onLogout }) {
       document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("beforeunload", onBeforeUnload);
     };
-  }, [coachId]);
+  }, [coachId, flushPlantillaSync]);
 
   // Wrappers que persisten automáticamente
   const setAtletas = (val) => {
     setAtletasRaw((prev) => {
       const next = typeof val === "function" ? val(prev) : val;
-      save("liftplan_atletas", next);
-      return next;
+      // Stamp _updated_at on changed items so LWW keeps local edits
+      const now = new Date().toISOString();
+      const stamped = next.map((a) => {
+        const old = prev.find((p) => p.id === a.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(a)) {
+          return { ...a, _updated_at: now };
+        }
+        return a;
+      });
+      save("liftplan_atletas", stamped);
+      return stamped;
     });
   };
   const setMesociclos = (val) => {
@@ -32543,8 +32614,16 @@ function CoachApp({ session, profile, onLogout }) {
   const setAtletasFn = (val) => {
     setAtletasRaw((prev) => {
       const next = typeof val === "function" ? val(prev) : val;
-      save("liftplan_atletas", next);
-      return next;
+      const now = new Date().toISOString();
+      const stamped = next.map((a) => {
+        const old = prev.find((p) => p.id === a.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(a)) {
+          return { ...a, _updated_at: now };
+        }
+        return a;
+      });
+      save("liftplan_atletas", stamped);
+      return stamped;
     });
   };
 
