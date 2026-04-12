@@ -529,6 +529,7 @@ const sb = {
       },
       delete: async () => {
         const h = await _headers();
+        delete h["Content-Type"];
         h["Prefer"] = "return=minimal";
         const p = new URLSearchParams();
         _q.filters.forEach((f) => p.append(f.col, f.val));

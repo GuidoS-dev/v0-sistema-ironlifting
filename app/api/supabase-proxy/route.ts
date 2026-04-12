@@ -84,12 +84,14 @@ async function handleProxy(req: NextRequest) {
   const headers = new Headers();
   headers.set("apikey", SUPABASE_ANON_KEY);
 
-  const contentType = req.headers.get("content-type");
   const prefer = req.headers.get("prefer");
   const accept = req.headers.get("accept");
   const authorization = req.headers.get("authorization");
 
-  if (contentType) headers.set("content-type", contentType);
+  // Only forward content-type when there's actually a body
+  const isBodyMethod = req.method !== "GET" && req.method !== "HEAD" && req.method !== "DELETE";
+  const contentType = req.headers.get("content-type");
+  if (contentType && isBodyMethod) headers.set("content-type", contentType);
   if (prefer) headers.set("prefer", prefer);
   if (accept) headers.set("accept", accept);
   if (authorization) headers.set("authorization", authorization);
@@ -98,9 +100,8 @@ async function handleProxy(req: NextRequest) {
   const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const hasBody = req.method !== "GET" && req.method !== "HEAD" && req.method !== "DELETE";
     let body: string | undefined;
-    if (hasBody) {
+    if (isBodyMethod) {
       const rawBody = await req.text();
       if (rawBody) {
         const contentType = req.headers.get("content-type");
@@ -118,13 +119,14 @@ async function handleProxy(req: NextRequest) {
       }
     }
 
-    const upstream = await fetch(target, {
+    const fetchOptions: RequestInit = {
       method: req.method,
       headers,
-      body,
       signal: controller.signal,
-      cache: "no-store",
-    });
+    };
+    if (body !== undefined) fetchOptions.body = body;
+
+    const upstream = await fetch(target, fetchOptions);
 
     const text = await upstream.text();
     const responseHeaders = new Headers();
@@ -138,15 +140,20 @@ async function handleProxy(req: NextRequest) {
       headers: responseHeaders,
     });
   } catch (error) {
-    const message =
-      (error as Error)?.name === "AbortError"
-        ? "Supabase upstream timeout"
-        : "Supabase proxy failed";
+    const isTimeout = (error as Error)?.name === "AbortError";
+    const message = isTimeout
+      ? "Supabase upstream timeout"
+      : "Supabase proxy failed";
 
-    return new Response(JSON.stringify({ error: message }), {
-      status: 504,
-      headers: { "content-type": "application/json" },
-    });
+    console.error(`[supabase-proxy] ${req.method} ${path} → ${message}:`, (error as Error)?.message || error);
+
+    return new Response(
+      JSON.stringify({ error: message, detail: (error as Error)?.message }),
+      {
+        status: 504,
+        headers: { "content-type": "application/json" },
+      },
+    );
   } finally {
     clearTimeout(timeoutId);
   }
