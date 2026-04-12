@@ -24,6 +24,8 @@ import {
   CloudMoon,
   LogOut,
   Shield,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -33261,6 +33263,9 @@ function AtletaPanel({ session, profile, onLogout }) {
   const [selectedMeso, setSelectedMeso] = useState(null);
   const [coachNormativos, setCoachNormativos] = useState(null);
   const [coachTablas, setCoachTablas] = useState(null);
+  const [showResumen, setShowResumen] = useState(false);
+  const [showNormativos, setShowNormativos] = useState(false);
+  const [normSearch, setNormSearch] = useState("");
 
   useEffect(() => {
     if (!SUPA_CONFIG_OK || !session?.user?.id) {
@@ -33847,14 +33852,21 @@ function AtletaPanel({ session, profile, onLogout }) {
         {/* Resumen del mesociclo activo */}
         {primaryMeso && primaryMeso.semanas?.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <div
+            <button
+              onClick={() => setShowResumen(!showResumen)}
               style={{
+                width: "100%",
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                marginBottom: 14,
-                paddingBottom: 8,
+                paddingBottom: 10,
                 borderBottom: "2px solid var(--blue)",
+                background: "none",
+                border: "none",
+                borderBottom: "2px solid var(--blue)",
+                cursor: "pointer",
+                padding: 0,
+                paddingBottom: 10,
               }}
             >
               <div
@@ -33870,14 +33882,27 @@ function AtletaPanel({ session, profile, onLogout }) {
               <div style={{ fontSize: 11, color: "var(--muted)" }}>
                 {primaryMeso.nombre || "Mesociclo"}
               </div>
-            </div>
-            <PageResumen
-              meso={primaryMeso}
-              atleta={atletaInfo}
-              irm_arr={primaryMeso.irm_arranque}
-              irm_env={primaryMeso.irm_envion}
-              normativos={coachNormativos || EJERCICIOS}
-            />
+              <ChevronDown
+                size={18}
+                style={{
+                  color: "var(--blue)",
+                  marginLeft: "auto",
+                  transition: "transform .2s",
+                  transform: showResumen ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            </button>
+            {showResumen && (
+              <div style={{ marginTop: 14 }}>
+                <PageResumen
+                  meso={primaryMeso}
+                  atleta={atletaInfo}
+                  irm_arr={primaryMeso.irm_arranque}
+                  irm_env={primaryMeso.irm_envion}
+                  normativos={coachNormativos || EJERCICIOS}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -33886,23 +33911,36 @@ function AtletaPanel({ session, profile, onLogout }) {
           const norms = coachNormativos || EJERCICIOS;
           if (!norms || norms.length === 0) return null;
           const categories = ["Arranque", "Envion", "Tirones", "Piernas", "Complementarios"];
+          const searchLower = normSearch.trim().toLowerCase();
+          const filteredNorms = searchLower
+            ? norms.filter(ej =>
+                ej.nombre.toLowerCase().includes(searchLower) ||
+                String(ej.id).includes(searchLower) ||
+                (ej.categoria || "").toLowerCase().includes(searchLower)
+              )
+            : norms;
           const grouped = {};
           categories.forEach(c => { grouped[c] = []; });
-          norms.forEach(ej => {
+          filteredNorms.forEach(ej => {
             const cat = ej.categoria || "Complementarios";
             if (grouped[cat]) grouped[cat].push(ej);
             else grouped["Complementarios"].push(ej);
           });
           return (
             <div style={{ marginBottom: 20 }}>
-              <div
+              <button
+                onClick={() => setShowNormativos(!showNormativos)}
                 style={{
+                  width: "100%",
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  marginBottom: 14,
-                  paddingBottom: 8,
+                  background: "none",
+                  border: "none",
                   borderBottom: "2px solid #9b87e8",
+                  cursor: "pointer",
+                  padding: 0,
+                  paddingBottom: 10,
                 }}
               >
                 <div
@@ -33915,6 +33953,41 @@ function AtletaPanel({ session, profile, onLogout }) {
                 >
                   NORMATIVOS
                 </div>
+                <ChevronDown
+                  size={18}
+                  style={{
+                    color: "#9b87e8",
+                    marginLeft: "auto",
+                    transition: "transform .2s",
+                    transform: showNormativos ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              </button>
+              {showNormativos && (
+              <div style={{ marginTop: 14 }}>
+              {/* Search/filter */}
+              <div style={{
+                position: "relative",
+                marginBottom: 12,
+              }}>
+                <Search size={14} style={{
+                  position: "absolute",
+                  left: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--muted)",
+                  pointerEvents: "none",
+                }} />
+                <input
+                  type="text"
+                  placeholder="Buscar ejercicio..."
+                  value={normSearch}
+                  onChange={e => setNormSearch(e.target.value)}
+                  className="form-input"
+                  style={{
+                    paddingLeft: 34,
+                  }}
+                />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {categories.map(cat => {
@@ -34016,6 +34089,18 @@ function AtletaPanel({ session, profile, onLogout }) {
                   );
                 })}
               </div>
+              {filteredNorms.length === 0 && (
+                <div style={{
+                  textAlign: "center",
+                  padding: 24,
+                  color: "var(--muted)",
+                  fontSize: 13,
+                }}>
+                  No se encontraron ejercicios para "{normSearch}"
+                </div>
+              )}
+              </div>
+              )}
             </div>
           );
         })()}
