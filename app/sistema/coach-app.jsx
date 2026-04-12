@@ -26255,7 +26255,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
           boxShadow: "0 6px 16px rgba(0,0,0,.5)",
         }}
       >
-        {(esBasica
+        {(esBasica || esPretempPlt
           ? [{ id: "planilla", label: "Planilla" }]
           : [
               { id: "planilla", label: "Planilla" },
@@ -31582,7 +31582,10 @@ function PanelReferencia({
           flexShrink: 0,
         }}
       >
-        {["planilla", "resumen", "pdf"].map((id) => (
+        {(fuente?.pretemporada === true || fuente?.pretemporada === "true"
+          ? ["planilla", "pdf"]
+          : ["planilla", "resumen", "pdf"]
+        ).map((id) => (
           <button
             key={id}
             onClick={() => {
