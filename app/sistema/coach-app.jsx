@@ -771,11 +771,11 @@ async function resolveSharedCoachId(coachId) {
     .from("coach_shared_workspace")
     .select("workspace_owner_id")
     .eq("coach_id", coachId)
-    .single()
+    .limit(1)
     .exec();
 
-  if (error || !data?.workspace_owner_id) return coachId;
-  return data.workspace_owner_id;
+  if (error || !data || !data[0]?.workspace_owner_id) return coachId;
+  return data[0].workspace_owner_id;
 }
 
 // ─── DB SYNC HELPERS ─────────────────────────────────────────────────────────
