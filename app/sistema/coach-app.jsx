@@ -33407,7 +33407,9 @@ function AtletaPanel({ session, profile, onLogout }) {
             textAlign: "center",
           }}
         >
-          <LogoHorizontal height={60} />
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <LogoHorizontal height={60} />
+          </div>
           <div
             style={{
               fontFamily: "'Bebas Neue'",
