@@ -128,6 +128,11 @@ async function handleProxy(req: NextRequest) {
 
     const upstream = await fetch(target, fetchOptions);
 
+    // 204 No Content: return empty response (body not allowed for 204)
+    if (upstream.status === 204) {
+      return new Response(null, { status: 204 });
+    }
+
     const text = await upstream.text();
     const responseHeaders = new Headers();
     responseHeaders.set(
