@@ -18947,7 +18947,7 @@ function PageAtleta({
           <div style={{ display: "flex", height: 44, flexShrink: 0 }}>
             {[
               { id: "meso", label: "Planilla" },
-              { id: "resumen", label: "Resumen" },
+              ...((mesoVisto?.pretemporada === true || mesoVisto?.pretemporada === "true") ? [] : [{ id: "resumen", label: "Resumen" }]),
               { id: "pdf", label: "PDF" },
               { id: "normativos", label: "Normativos A" },
             ].map((t) => (
@@ -18982,7 +18982,8 @@ function PageAtleta({
           </div>
           {vistaActual === "meso" &&
             mesoVisto &&
-            !(mesoVisto.escuela === true || mesoVisto.escuela === "true") && (
+            !(mesoVisto.escuela === true || mesoVisto.escuela === "true") &&
+            !(mesoVisto.pretemporada === true || mesoVisto.pretemporada === "true") && (
               <div
                 style={{
                   display: "flex",
@@ -22554,6 +22555,59 @@ function PagePDF({
     };
   };
 
+  // Helper para convertir ejercicio de pretemporada (ejercicio_ids + bloques) a row
+  const buildPretemporadaRow = (ej) => {
+    const ejercicio_ids = ej.ejercicio_ids || [];
+    const hasAnyEid = ejercicio_ids.some((sub) => sub.eid);
+    const hasCustomText = ej.nombre_custom || ej.aclaracion;
+    if (!hasAnyEid && !hasCustomText) return null;
+
+    // Build name from ejercicio_ids (same pattern as PlanillaPretemporada's buildAutoName)
+    let nombre;
+    if (ej.nombre_custom) {
+      nombre = resolveExerciseName(ej.nombre_custom, "");
+    } else {
+      nombre = ejercicio_ids
+        .map((sub, i) => {
+          const ejData = sub.eid
+            ? normativos.find((e) => e.id === Number(sub.eid))
+            : null;
+          const name = ejData?.nombre || "";
+          if (i === 0) return name;
+          const sep = sub.link === "c" ? " c/ " : " + ";
+          return sep + name;
+        })
+        .join("");
+    }
+    const aclaracion = ej.aclaracion ? ` (${ej.aclaracion})` : "";
+
+    // Determine categoria from first valid eid
+    let categoria = "Complementarios";
+    for (const sub of ejercicio_ids) {
+      if (!sub.eid) continue;
+      const ejData = normativos.find((e) => e.id === Number(sub.eid));
+      if (ejData?.categoria) { categoria = ejData.categoria; break; }
+    }
+
+    const cols = (ej.bloques || [])
+      .map((bloque) => ({
+        pct: bloque.pct,
+        s: bloque.series,
+        r: bloque.reps,
+        kg: bloque.kg,
+        note: bloque.nota || "",
+      }))
+      .filter(hasComplementarioBlockContent);
+
+    return {
+      id: ejercicio_ids[0]?.eid || null,
+      nombre: nombre + aclaracion,
+      categoria,
+      cols,
+      isCompBloques: true,
+    };
+  };
+
   // Helper para convertir ejercicio a row
   const buildEjercicioRow = (ej, semIdx, tIdx, isComplementario = false) => {
     const ejData = normativos.find((e) => e.id === Number(ej.ejercicio_id));
@@ -22590,44 +22644,59 @@ function PagePDF({
     };
   };
 
+  const isPretemp = meso.pretemporada === true || meso.pretemporada === "true";
+
   const semTurnos = meso.semanas.map((sem, semIdx) => {
     const turnos = sem.turnos
       .map((t, tIdx) => {
-        // Primero verificar si hay ejercicios principales
-        const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
-        const hasEjerciciosPrincipales = ejs.length > 0;
-
-        // Si no hay ejercicios principales, no procesar complementarios
-        if (!hasEjerciciosPrincipales) return null;
-
         const rows = [];
 
-        // Complementarios ANTES
-        if (t.complementarios_before?.length > 0) {
-          const compBefore = t.complementarios_before.filter(
-            (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
+        if (isPretemp) {
+          // Pretemporada: ejercicios usan ejercicio_ids + bloques
+          const ejsPretemp = (t.ejercicios || []).filter(
+            (e) =>
+              (e.ejercicio_ids && e.ejercicio_ids.some((sub) => sub.eid)) ||
+              e.nombre_custom ||
+              e.aclaracion,
           );
-          compBefore.forEach((comp) => {
-            const row = buildComplementarioRow(comp, semIdx, tIdx);
-            if (row) rows.push({ ...row, isComplementarioBefore: true });
+          if (!ejsPretemp.length) return null;
+          ejsPretemp.forEach((ej) => {
+            const row = buildPretemporadaRow(ej);
+            if (row) rows.push(row);
           });
-        }
+        } else {
+          // Regular: ejercicios usan ejercicio_id + intensidades
+          const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
+          const hasEjerciciosPrincipales = ejs.length > 0;
+          if (!hasEjerciciosPrincipales) return null;
 
-        // Ejercicios principales
-        ejs.forEach((ej) => {
-          const row = buildEjercicioRow(ej, semIdx, tIdx, false);
-          if (row) rows.push(row);
-        });
+          // Complementarios ANTES
+          if (t.complementarios_before?.length > 0) {
+            const compBefore = t.complementarios_before.filter(
+              (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
+            );
+            compBefore.forEach((comp) => {
+              const row = buildComplementarioRow(comp, semIdx, tIdx);
+              if (row) rows.push({ ...row, isComplementarioBefore: true });
+            });
+          }
 
-        // Complementarios DESPUÉS
-        if (t.complementarios_after?.length > 0) {
-          const compAfter = t.complementarios_after.filter(
-            (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
-          );
-          compAfter.forEach((comp) => {
-            const row = buildComplementarioRow(comp, semIdx, tIdx);
-            if (row) rows.push({ ...row, isComplementarioAfter: true });
+          // Ejercicios principales
+          ejs.forEach((ej) => {
+            const row = buildEjercicioRow(ej, semIdx, tIdx, false);
+            if (row) rows.push(row);
           });
+
+          // Complementarios DESPUÉS
+          if (t.complementarios_after?.length > 0) {
+            const compAfter = t.complementarios_after.filter(
+              (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
+            );
+            compAfter.forEach((comp) => {
+              const row = buildComplementarioRow(comp, semIdx, tIdx);
+              if (row) rows.push({ ...row, isComplementarioAfter: true });
+            });
+          }
         }
 
         if (!rows.length) return null;
@@ -23693,11 +23762,12 @@ window.addEventListener('load',updateStickyTurnos);
               </div>
             </div>
             <div className="pdf-cover-meso">
-              {meso.nombre || "Mesociclo de Entrenamiento"}
+              {meso.nombre || (isPretemp ? "Pretemporada" : "Mesociclo de Entrenamiento")}
             </div>
             <div className="pdf-cover-sub">
-              {meso.fecha_inicio} &nbsp;·&nbsp; {meso.modo}
-              &nbsp;·&nbsp; {meso.volumen_total.toLocaleString()} reps totales
+              {meso.fecha_inicio}
+              {meso.modo ? <>&nbsp;·&nbsp; {meso.modo}</> : null}
+              {meso.volumen_total ? <>&nbsp;·&nbsp; {meso.volumen_total.toLocaleString()} reps totales</> : null}
             </div>
           </div>
           <div className="pdf-cover-right">
@@ -23754,17 +23824,26 @@ window.addEventListener('load',updateStickyTurnos);
               <div className="pdf-sem-header">
                 <div className="pdf-sem-info">
                   <div className="pdf-sem-title">SEMANA {sem.numero}</div>
-                  <div className="pdf-sem-details">
-                    {sem.pct_volumen}% del volumen total &nbsp;·&nbsp;
-                    {sem.reps_ajustadas ||
-                      sem.reps_calculadas ||
-                      Math.round(
-                        (meso.volumen_total * sem.pct_volumen) / 100,
-                      )}{" "}
-                    reps planificadas
-                  </div>
-                  {met && <GrupoBar levGrupo={met.levGrupo} />}
+                  {isPretemp ? (
+                    <div className="pdf-sem-details">
+                      {turnos.length} turno{turnos.length !== 1 ? "s" : ""}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="pdf-sem-details">
+                        {sem.pct_volumen}% del volumen total &nbsp;·&nbsp;
+                        {sem.reps_ajustadas ||
+                          sem.reps_calculadas ||
+                          Math.round(
+                            (meso.volumen_total * sem.pct_volumen) / 100,
+                          )}{" "}
+                        reps planificadas
+                      </div>
+                      {met && <GrupoBar levGrupo={met.levGrupo} />}
+                    </>
+                  )}
                 </div>
+                {!isPretemp && (
                 <div className="pdf-sem-metrics">
                   {met?.volReps > 0 && (
                     <>
@@ -23793,6 +23872,7 @@ window.addEventListener('load',updateStickyTurnos);
                     </>
                   )}
                 </div>
+                )}
               </div>
 
               {/* Turnos */}
@@ -24125,6 +24205,7 @@ window.addEventListener('load',updateStickyTurnos);
         })}
 
         {/* ── PÁGINA DE RESUMEN FINAL ── */}
+        {!isPretemp && (
         <div
           className="pdf-page pdf-resumen-page"
           style={{ padding: "14px 12px 16px" }}
@@ -24293,6 +24374,7 @@ window.addEventListener('load',updateStickyTurnos);
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* ── Mobile bottom navigation ── */}
