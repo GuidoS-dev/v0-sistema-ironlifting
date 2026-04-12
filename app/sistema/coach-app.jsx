@@ -34098,21 +34098,7 @@ function AtletaPanel({ session, profile, onLogout }) {
                 Activo
               </span>
             )}
-            {currentWeek != null && m.semanas?.length > 0 && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: "2px 10px",
-                  borderRadius: 20,
-                  background: "rgba(232,197,71,.1)",
-                  color: "var(--gold)",
-                  border: "1px solid rgba(232,197,71,.25)",
-                }}
-              >
-                Sem {currentWeek + 1}/{m.semanas.length}
-              </span>
-            )}
+
           </div>
           {/* IRM values */}
           {(m.irm_arranque || m.irm_envion) && (
@@ -34142,28 +34128,6 @@ function AtletaPanel({ session, profile, onLogout }) {
                   kg
                 </span>
               )}
-            </div>
-          )}
-          {/* Week progress bar */}
-          {currentWeek != null && m.semanas?.length > 0 && (
-            <div
-              style={{
-                marginTop: 8,
-                height: 4,
-                borderRadius: 2,
-                background: "var(--surface3)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${((currentWeek + 1) / m.semanas.length) * 100}%`,
-                  background: "var(--gold)",
-                  borderRadius: 2,
-                  transition: "width .3s",
-                }}
-              />
             </div>
           )}
         </div>
