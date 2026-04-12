@@ -98,21 +98,23 @@ async function handleProxy(req: NextRequest) {
   const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const hasBody = req.method !== "GET" && req.method !== "HEAD";
+    const hasBody = req.method !== "GET" && req.method !== "HEAD" && req.method !== "DELETE";
     let body: string | undefined;
     if (hasBody) {
       const rawBody = await req.text();
-      const contentType = req.headers.get("content-type");
-      try {
-        body = sanitizeRequestBody(rawBody, contentType);
-      } catch {
-        return new Response(
-          JSON.stringify({ error: "Invalid request body." }),
-          {
-            status: 400,
-            headers: { "content-type": "application/json" },
-          },
-        );
+      if (rawBody) {
+        const contentType = req.headers.get("content-type");
+        try {
+          body = sanitizeRequestBody(rawBody, contentType);
+        } catch {
+          return new Response(
+            JSON.stringify({ error: "Invalid request body." }),
+            {
+              status: 400,
+              headers: { "content-type": "application/json" },
+            },
+          );
+        }
       }
     }
 
