@@ -31849,6 +31849,7 @@ function LoginScreen({ onAuth }) {
                 name="field_93"
                 className="form-input"
                 type="password"
+                autoComplete={mode === "register" ? "new-password" : "current-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={
