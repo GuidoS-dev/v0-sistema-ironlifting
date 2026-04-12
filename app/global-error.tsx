@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 export default function GlobalError({
   error,
   reset,
@@ -7,6 +9,18 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    // Auto-reload on ChunkLoadError (stale deployment cache)
+    if (
+      error?.name === "ChunkLoadError" ||
+      error?.message?.includes("ChunkLoadError") ||
+      error?.message?.includes("Failed to load chunk") ||
+      error?.message?.includes("Loading chunk")
+    ) {
+      window.location.reload();
+    }
+  }, [error]);
+
   return (
     <html lang="es">
       <body
