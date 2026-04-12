@@ -23864,8 +23864,19 @@ window.addEventListener('load',updateStickyTurnos);
         <div className="pdf-accent-bar" />
 
         {/* ── SEMANAS ── */}
-        {semTurnos.map(({ sem, semIdx, turnos, met }) => {
+        {(() => {
+          // Compute cumulative turno offsets per semana for pretemporada labeling
+          const turnoOffsets = [];
+          let cumTurnos = 0;
+          (meso.semanas || []).forEach((s) => {
+            turnoOffsets.push(cumTurnos);
+            cumTurnos += (s.turnos || []).length;
+          });
+          return semTurnos.map(({ sem, semIdx, turnos, met }) => {
           if (!turnos.length) return null;
+          const tOff = turnoOffsets[semIdx] || 0;
+          const tFirst = tOff + 1;
+          const tLast = tOff + (sem.turnos || []).length;
           return (
             <div
               key={sem.id}
@@ -23877,7 +23888,7 @@ window.addEventListener('load',updateStickyTurnos);
               {/* Sem header */}
               <div className="pdf-sem-header">
                 <div className="pdf-sem-info">
-                  <div className="pdf-sem-title">SEMANA {sem.numero}</div>
+                  <div className="pdf-sem-title">{isPretemp ? `TURNOS ${tFirst}-${tLast}` : `SEMANA ${sem.numero}`}</div>
                   {isPretemp ? (
                     <div className="pdf-sem-details">
                       {turnos.length} turno{turnos.length !== 1 ? "s" : ""}
@@ -23936,7 +23947,7 @@ window.addEventListener('load',updateStickyTurnos);
                     className="pdf-turno-header"
                     id={`pdf-turno-${semIdx}-${tIdx}`}
                   >
-                    <span className="pdf-turno-num">Turno {tIdx + 1}</span>
+                    <span className="pdf-turno-num">Turno {isPretemp ? (tOff + tIdx + 1) : (tIdx + 1)}</span>
                     {dia && (
                       <span className="pdf-turno-dia">
                         {dia}
@@ -24297,12 +24308,13 @@ window.addEventListener('load',updateStickyTurnos);
                   <strong>{atleta.nombre}</strong>
                 </div>
                 <div>
-                  Semana {sem.numero} de {meso.semanas.length}
+                  {isPretemp ? `Turnos ${tFirst}-${tLast}` : `Semana ${sem.numero} de ${meso.semanas.length}`}
                 </div>
               </div>
             </div>
           );
-        })}
+        });
+        })()}
 
         {/* ── PÁGINA DE RESUMEN FINAL ── */}
         {!isPretemp && (
@@ -24482,12 +24494,23 @@ window.addEventListener('load',updateStickyTurnos);
         (() => {
           const validSems = semTurnos.filter((s) => s.turnos.length > 0);
           if (!validSems.length) return null;
+          // Compute cumulative turno offsets for pretemporada labeling
+          const mobTurnoOffsets = [];
+          let mobCum = 0;
+          (meso.semanas || []).forEach((s) => {
+            mobTurnoOffsets.push(mobCum);
+            mobCum += (s.turnos || []).length;
+          });
           const activeSem =
             validSems.find((s) => s.semIdx === mobNavActive) || validSems[0];
           return (
             <div className="pdf-mobile-nav no-print">
               <div className="pdf-mobile-nav-row">
-                {validSems.map(({ sem, semIdx: sIdx }) => (
+                {validSems.map(({ sem, semIdx: sIdx }) => {
+                  const mOff = mobTurnoOffsets[sIdx] || 0;
+                  const mFirst = mOff + 1;
+                  const mLast = mOff + (sem.turnos || []).length;
+                  return (
                   <button
                     key={sIdx}
                     className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? " active" : ""}`}
@@ -24505,13 +24528,16 @@ window.addEventListener('load',updateStickyTurnos);
                       setMobActiveTurno(-1);
                     }}
                   >
-                    S{sem.numero}
+                    {isPretemp ? `T${mFirst}-${mLast}` : `S${sem.numero}`}
                   </button>
-                ))}
+                  );
+                })}
               </div>
               {mobNavTurnos && activeSem.turnos.length > 0 && (
                 <div className="pdf-mobile-nav-turnos">
-                  {activeSem.turnos.map(({ tIdx, dia }) => (
+                  {activeSem.turnos.map(({ tIdx, dia }) => {
+                    const activeOff = mobTurnoOffsets[activeSem.semIdx] || 0;
+                    return (
                     <button
                       key={tIdx}
                       className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? " active" : ""}`}
@@ -24532,10 +24558,11 @@ window.addEventListener('load',updateStickyTurnos);
                         setMobActiveTurno(tIdx);
                       }}
                     >
-                      T{tIdx + 1}
+                      T{isPretemp ? (activeOff + tIdx + 1) : (tIdx + 1)}
                       {dia ? ` · ${dia}` : ""}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
