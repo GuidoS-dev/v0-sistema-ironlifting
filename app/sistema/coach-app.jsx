@@ -529,15 +529,16 @@ const sb = {
       },
       delete: async () => {
         const h = await _headers();
+        h["Prefer"] = "return=minimal";
         const p = new URLSearchParams();
         _q.filters.forEach((f) => p.append(f.col, f.val));
         const r = await _fetchWithTimeout(`${_url()}?${p}`, {
           method: "DELETE",
           headers: h,
         });
-        return r.ok
-          ? { data: null, error: null }
-          : { data: null, error: await r.json() };
+        if (r.ok) return { data: null, error: null };
+        const errBody = await r.json().catch(() => ({}));
+        return { data: null, error: errBody };
       },
     };
     return builder;
