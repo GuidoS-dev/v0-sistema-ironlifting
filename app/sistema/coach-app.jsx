@@ -17667,6 +17667,19 @@ function PageAtleta({
     };
   }, [atleta.id]);
 
+  // ── Re-render cuando cambian normativos globales (ej: edición en PageNormativos) ──
+  const [globalNormRev, setGlobalNormRev] = useState(0);
+  useEffect(() => {
+    const onSync = (e) => {
+      if (e?.detail?.key === "liftplan_normativos") {
+        setGlobalNormRev((v) => v + 1);
+      }
+    };
+    window.addEventListener(LIFTPLAN_LOCAL_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(LIFTPLAN_LOCAL_SYNC_EVENT, onSync);
+  }, []);
+  void globalNormRev;
+
   // ── Overrides de porcentajes — persisten en localStorage por mesociclo ───────
   // Compute initial meso ID so we can initialize pct states from localStorage
   // (avoids one-frame flash of empty overrides on first render)
