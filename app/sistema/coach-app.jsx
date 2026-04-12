@@ -33696,9 +33696,6 @@ function AtletaPanel({ session, profile, onLogout }) {
   // Get the primary active meso for the IRM cards
   const primaryMeso = activeMesos[0] || null;
 
-  // Last completed (inactive) mesociclo for summary
-  const lastCompletedMeso = mesociclos.find((m) => !m.activo) || null;
-
   return (
     <div
       style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px" }}
@@ -33731,7 +33728,7 @@ function AtletaPanel({ session, profile, onLogout }) {
             </div>
           </div>
           <div style={{ flex: "0 0 auto" }}>
-            <LogoHorizontal height={36} />
+            <LogoHorizontal height={48} />
           </div>
           <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
             <button
@@ -33746,6 +33743,28 @@ function AtletaPanel({ session, profile, onLogout }) {
 
         {/* IRM Summary Card */}
         {primaryMeso && (primaryMeso.irm_arranque || primaryMeso.irm_envion) && (
+          <>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 14,
+              paddingBottom: 8,
+              borderBottom: "2px solid var(--gold)",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'Bebas Neue'",
+                fontSize: 20,
+                color: "var(--gold)",
+                letterSpacing: ".04em",
+              }}
+            >
+              MARCAS HISTÓRICAS
+            </div>
+          </div>
           <div
             style={{
               display: "grid",
@@ -33791,7 +33810,7 @@ function AtletaPanel({ session, profile, onLogout }) {
               </div>
             )}
           </div>
-        )}
+        </>)}
 
         {/* Active mesociclos */}
         {activeMesos.length > 0 && (
@@ -33825,8 +33844,8 @@ function AtletaPanel({ session, profile, onLogout }) {
           </div>
         )}
 
-        {/* Last completed mesociclo summary */}
-        {lastCompletedMeso && (
+        {/* Resumen del mesociclo activo */}
+        {primaryMeso && primaryMeso.semanas?.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div
               style={{
@@ -33835,161 +33854,171 @@ function AtletaPanel({ session, profile, onLogout }) {
                 gap: 10,
                 marginBottom: 14,
                 paddingBottom: 8,
-                borderBottom: "2px solid var(--muted)",
+                borderBottom: "2px solid var(--blue)",
               }}
             >
               <div
                 style={{
                   fontFamily: "'Bebas Neue'",
                   fontSize: 20,
-                  color: "var(--muted)",
+                  color: "var(--blue)",
                   letterSpacing: ".04em",
                 }}
               >
-                ÚLTIMO MESOCICLO
+                RESUMEN
+              </div>
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                {primaryMeso.nombre || "Mesociclo"}
               </div>
             </div>
-            <button
-              onClick={() => setSelectedMeso(lastCompletedMeso)}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                cursor: "pointer",
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 12,
-                padding: 0,
-                marginBottom: 10,
-                fontFamily: "'DM Sans'",
-                color: "var(--text)",
-                transition: "all .2s",
-                overflow: "hidden",
-                opacity: 0.75,
-              }}
-            >
+            <PageResumen
+              meso={primaryMeso}
+              atleta={atletaInfo}
+              irm_arr={primaryMeso.irm_arranque}
+              irm_env={primaryMeso.irm_envion}
+              normativos={coachNormativos || EJERCICIOS}
+            />
+          </div>
+        )}
+
+        {/* Normativos del atleta */}
+        {(() => {
+          const norms = coachNormativos || EJERCICIOS;
+          if (!norms || norms.length === 0) return null;
+          const categories = ["Arranque", "Envion", "Tirones", "Piernas", "Complementarios"];
+          const grouped = {};
+          categories.forEach(c => { grouped[c] = []; });
+          norms.forEach(ej => {
+            const cat = ej.categoria || "Complementarios";
+            if (grouped[cat]) grouped[cat].push(ej);
+            else grouped["Complementarios"].push(ej);
+          });
+          return (
+            <div style={{ marginBottom: 20 }}>
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 14,
-                  padding: "14px 18px",
+                  gap: 10,
+                  marginBottom: 14,
+                  paddingBottom: 8,
+                  borderBottom: "2px solid #9b87e8",
                 }}
               >
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    background: "var(--surface3)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontFamily: "'Bebas Neue',sans-serif",
-                    fontSize: 18,
-                    color: "var(--muted)",
-                    flexShrink: 0,
+                    fontFamily: "'Bebas Neue'",
+                    fontSize: 20,
+                    color: "#9b87e8",
+                    letterSpacing: ".04em",
                   }}
                 >
-                  {(lastCompletedMeso.nombre || "M").charAt(0).toUpperCase()}
+                  NORMATIVOS
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {lastCompletedMeso.nombre || "Mesociclo"}
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      flexWrap: "wrap",
-                      marginTop: 6,
-                      alignItems: "center",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "2px 10px",
-                        borderRadius: 20,
-                        background:
-                          lastCompletedMeso.modo === "Competitivo"
-                            ? "rgba(232,80,71,.15)"
-                            : "rgba(100,180,232,.15)",
-                        color: lastCompletedMeso.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
-                        border: `1px solid ${lastCompletedMeso.modo === "Competitivo" ? "var(--red)" : "var(--blue)"}30`,
-                      }}
-                    >
-                      {lastCompletedMeso.modo}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "2px 10px",
-                        borderRadius: 20,
-                        background: "rgba(107,114,128,.15)",
-                        color: "var(--muted)",
-                        border: "1px solid rgba(107,114,128,.25)",
-                      }}
-                    >
-                      Finalizado
-                    </span>
-                    {lastCompletedMeso.semanas && (
-                      <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                        {lastCompletedMeso.semanas.length} semanas
-                      </span>
-                    )}
-                  </div>
-                  {(lastCompletedMeso.irm_arranque || lastCompletedMeso.irm_envion) && (
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 12,
-                        marginTop: 6,
-                        alignItems: "center",
-                      }}
-                    >
-                      {lastCompletedMeso.irm_arranque && (
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                          ARR:{" "}
-                          <strong style={{ color: "var(--gold)" }}>
-                            {lastCompletedMeso.irm_arranque}
-                          </strong>
-                          kg
-                        </span>
-                      )}
-                      {lastCompletedMeso.irm_envion && (
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                          ENV:{" "}
-                          <strong style={{ color: "var(--blue)" }}>
-                            {lastCompletedMeso.irm_envion}
-                          </strong>
-                          kg
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <ChevronLeft
-                  size={16}
-                  style={{
-                    color: "var(--muted)",
-                    transform: "rotate(180deg)",
-                    flexShrink: 0,
-                  }}
-                />
               </div>
-            </button>
-          </div>
-        )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {categories.map(cat => {
+                  const items = grouped[cat];
+                  if (!items || items.length === 0) return null;
+                  const catColor = CAT_COLOR[cat] || "#9b87e8";
+                  return (
+                    <div key={cat} style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 12,
+                      overflow: "hidden",
+                    }}>
+                      <div style={{
+                        padding: "10px 16px",
+                        background: "var(--surface2)",
+                        borderBottom: "1px solid var(--border)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}>
+                        <div style={{
+                          width: 4,
+                          height: 16,
+                          borderRadius: 2,
+                          background: catColor,
+                          flexShrink: 0,
+                        }} />
+                        <div style={{
+                          fontFamily: "'Bebas Neue'",
+                          fontSize: 16,
+                          color: catColor,
+                          letterSpacing: ".04em",
+                        }}>
+                          {cat.toUpperCase()}
+                        </div>
+                        <div style={{
+                          fontSize: 11,
+                          color: "var(--muted)",
+                          marginLeft: "auto",
+                        }}>
+                          {items.length} ejercicio{items.length !== 1 ? "s" : ""}
+                        </div>
+                      </div>
+                      <div style={{ padding: "4px 0" }}>
+                        {items.map((ej, idx) => (
+                          <div key={ej.id} style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "8px 16px",
+                            borderBottom: idx < items.length - 1 ? "1px solid var(--border)" : "none",
+                          }}>
+                            <div style={{
+                              fontFamily: "'Bebas Neue'",
+                              fontSize: 16,
+                              color: "var(--muted)",
+                              minWidth: 28,
+                              textAlign: "right",
+                            }}>
+                              {ej.id}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{
+                                fontSize: 13,
+                                fontWeight: 500,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}>
+                                {ej.nombre}
+                              </div>
+                            </div>
+                            <div style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: catColor,
+                              minWidth: 40,
+                              textAlign: "center",
+                            }}>
+                              {ej.pct_base}%
+                            </div>
+                            {ej.base && (
+                              <div style={{
+                                fontSize: 10,
+                                color: ej.base === "arranque" ? "var(--gold)" : "var(--blue)",
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: ".04em",
+                                minWidth: 30,
+                              }}>
+                                {ej.base === "arranque" ? "ARR" : "ENV"}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* No active mesociclos */}
         {activeMesos.length === 0 && (
