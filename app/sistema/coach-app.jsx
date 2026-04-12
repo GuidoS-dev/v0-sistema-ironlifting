@@ -22581,6 +22581,16 @@ function PagePDF({
     }
     const aclaracion = ej.aclaracion ? ` (${ej.aclaracion})` : "";
 
+    // Build combined ID string like "27 + 34" or "27 c 74"
+    const idDisplay = ejercicio_ids
+      .map((sub, i) => {
+        if (!sub.eid) return "";
+        if (i === 0) return String(sub.eid);
+        const sep = sub.link === "c" ? " c " : " + ";
+        return sep + sub.eid;
+      })
+      .join("");
+
     // Determine categoria from first valid eid
     let categoria = "Complementarios";
     for (const sub of ejercicio_ids) {
@@ -22589,22 +22599,45 @@ function PagePDF({
       if (ejData?.categoria) { categoria = ejData.categoria; break; }
     }
 
+    // Calc kg using LOWEST pct_base among all ejercicio_ids (same as PlanillaPretemporada)
+    const calcKgPretempPdf = (pct) => {
+      if (!ejercicio_ids || !ejercicio_ids.length || !pct) return null;
+      let lowestKgBase = null;
+      for (const { eid } of ejercicio_ids) {
+        if (!eid) continue;
+        const ejData = normativos.find((e) => e.id === Number(eid));
+        if (!ejData || !ejData.pct_base) continue;
+        const irm =
+          ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+        if (!irm) continue;
+        const kgBase = (irm * ejData.pct_base) / 100;
+        if (lowestKgBase === null || kgBase < lowestKgBase) lowestKgBase = kgBase;
+      }
+      if (lowestKgBase === null) return null;
+      return Math.round(((lowestKgBase * pct) / 100) * 2) / 2;
+    };
+
     const cols = (ej.bloques || [])
-      .map((bloque) => ({
-        pct: bloque.pct,
-        s: bloque.series,
-        r: bloque.reps,
-        kg: bloque.kg,
-        note: bloque.nota || "",
-      }))
+      .map((bloque) => {
+        const pct = bloque.pct;
+        const kg = pct ? calcKgPretempPdf(pct) : bloque.kg;
+        return {
+          pct,
+          s: bloque.series,
+          r: bloque.reps,
+          kg: kg != null ? kg : bloque.kg,
+          note: bloque.nota || "",
+        };
+      })
       .filter(hasComplementarioBlockContent);
 
     return {
-      id: ejercicio_ids[0]?.eid || null,
+      id: idDisplay || null,
       nombre: nombre + aclaracion,
       categoria,
       cols,
       isCompBloques: true,
+      isPretemporadaRow: true,
     };
   };
 
@@ -23912,6 +23945,9 @@ window.addEventListener('load',updateStickyTurnos);
                             const hasRegularIntensidades = rows.some(
                               (r) => !r.isCompBloques,
                             );
+                            const hasPretemporadaRows = rows.some(
+                              (r) => r.isPretemporadaRow,
+                            );
 
                             if (hasCompBloques && !hasRegularIntensidades) {
                               // Solo complementarios con bloques - mostrar headers dinámicos
@@ -23923,7 +23959,7 @@ window.addEventListener('load',updateStickyTurnos);
                                   <th
                                     key={bIdx}
                                     className="intens-header"
-                                    style={{ width: 58 }}
+                                    style={{ width: hasPretemporadaRows ? 72 : 58 }}
                                   >
                                     Bloque{bIdx + 1}
                                   </th>
@@ -23952,6 +23988,9 @@ window.addEventListener('load',updateStickyTurnos);
                             const hasRegularIntensidades = rows.some(
                               (r) => !r.isCompBloques,
                             );
+                            const hasPretemporadaRows = rows.some(
+                              (r) => r.isPretemporadaRow,
+                            );
 
                             if (hasCompBloques && !hasRegularIntensidades) {
                               // Solo complementarios - mostrar headers de bloque
@@ -23964,11 +24003,12 @@ window.addEventListener('load',updateStickyTurnos);
                                     <div
                                       style={{
                                         display: "grid",
-                                        gridTemplateColumns: "1fr 1fr 1fr",
+                                        gridTemplateColumns: hasPretemporadaRows ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr",
                                         gap: 0,
                                         fontSize: 6.5,
                                       }}
                                     >
+                                      {hasPretemporadaRows && <span>%</span>}
                                       <span>Ser</span>
                                       <span>Rep</span>
                                       <span>Kg</span>
@@ -24005,6 +24045,9 @@ window.addEventListener('load',updateStickyTurnos);
                           );
                           const hasRegularIntensidades = rows.some(
                             (r) => !r.isCompBloques,
+                          );
+                          const hasPretemporadaRows = rows.some(
+                            (r) => r.isPretemporadaRow,
                           );
                           const maxBloques = hasCompBloques
                             ? Math.max(...rows.map((r) => r.cols?.length || 0))
@@ -24110,7 +24153,12 @@ window.addEventListener('load',updateStickyTurnos);
                                             data-label={`B${bIdx + 1}`}
                                             style={{ background: gb }}
                                           >
-                                            <div className="cell-data">
+                                            <div className="cell-data" style={hasPretemporadaRows ? { gridTemplateColumns: "1fr 1fr 1fr 1fr" } : undefined}>
+                                              {hasPretemporadaRows && col.pct != null && (
+                                                <span className="cell-series" style={{ color: "#f0b429", fontSize: 8 }}>
+                                                  {col.pct}%
+                                                </span>
+                                              )}
                                               <span className="cell-series">
                                                 {col.s}
                                               </span>
