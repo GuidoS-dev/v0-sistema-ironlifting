@@ -33264,6 +33264,8 @@ function AtletaPanel({ session, profile, onLogout }) {
   const [coachTablas, setCoachTablas] = useState(null);
   const [atletaView, setAtletaView] = useState(null); // "resumen" | "normativos" | null
   const [normSearch, setNormSearch] = useState("");
+  const mesoScrollRef = useRef(0);
+  const mesoIdRef = useRef(null);
 
   useEffect(() => {
     if (!SUPA_CONFIG_OK || !session?.user?.id) {
@@ -33439,23 +33441,34 @@ function AtletaPanel({ session, profile, onLogout }) {
   // Show selected mesociclo detail — render the PDF-style view
   if (selectedMeso) {
     const meso = selectedMeso;
+    // Reset scroll if different meso
+    if (mesoIdRef.current !== meso.id) {
+      mesoScrollRef.current = 0;
+      mesoIdRef.current = meso.id;
+    }
+    const savedScroll = mesoScrollRef.current;
+    if (savedScroll > 0) {
+      setTimeout(() => window.scrollTo(0, savedScroll), 0);
+    }
     return (
       <div
-        style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px" }}
+        style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px", paddingTop: 0 }}
       >
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          {/* Navigation header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 16,
-            }}
-          >
+        {/* Sticky navigation header */}
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+            background: "var(--bg)",
+            padding: "12px 0",
+            marginBottom: 4,
+          }}
+        >
+          <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <button
               className="btn btn-ghost"
-              onClick={() => setSelectedMeso(null)}
+              onClick={() => { mesoScrollRef.current = window.scrollY; setSelectedMeso(null); }}
               style={{ gap: 6 }}
             >
               <ChevronLeft size={14} /> Volver
@@ -33464,6 +33477,8 @@ function AtletaPanel({ session, profile, onLogout }) {
               <LogOut size={14} /> Salir
             </button>
           </div>
+        </div>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <PagePDF
             meso={meso}
             atleta={atletaInfo}
@@ -33485,9 +33500,13 @@ function AtletaPanel({ session, profile, onLogout }) {
     if (!primaryMeso) { setAtletaView(null); }
     else {
       return (
-        <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px" }}>
-          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px", paddingTop: 0 }}>
+          {/* Sticky navigation header */}
+          <div style={{
+            position: "sticky", top: 0, zIndex: 50,
+            background: "var(--bg)", padding: "12px 0", marginBottom: 4,
+          }}>
+            <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <button className="btn btn-ghost" onClick={() => setAtletaView(null)} style={{ gap: 6 }}>
                 <ChevronLeft size={14} /> Volver
               </button>
@@ -33495,6 +33514,8 @@ function AtletaPanel({ session, profile, onLogout }) {
                 <LogOut size={14} /> Salir
               </button>
             </div>
+          </div>
+          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
             <div style={{
               fontFamily: "'Bebas Neue'",
               fontSize: 22,
@@ -33539,9 +33560,13 @@ function AtletaPanel({ session, profile, onLogout }) {
       else grouped["Complementarios"].push(ej);
     });
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px", paddingTop: 0 }}>
+        {/* Sticky navigation header */}
+        <div style={{
+          position: "sticky", top: 0, zIndex: 50,
+          background: "var(--bg)", padding: "12px 0", marginBottom: 4,
+        }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <button className="btn btn-ghost" onClick={() => { setAtletaView(null); setNormSearch(""); }} style={{ gap: 6 }}>
               <ChevronLeft size={14} /> Volver
             </button>
@@ -33549,6 +33574,8 @@ function AtletaPanel({ session, profile, onLogout }) {
               <LogOut size={14} /> Salir
             </button>
           </div>
+        </div>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <div style={{
             fontFamily: "'Bebas Neue'",
             fontSize: 22,
