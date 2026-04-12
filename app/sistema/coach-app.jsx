@@ -24099,33 +24099,64 @@ window.addEventListener('load',updateStickyTurnos);
                                   key={rIdx}
                                   className={isLast ? "last-ej" : ""}
                                 >
-                                  <td style={{ padding: "3px 4px" }}>
-                                    <span
-                                      style={{
-                                        background: gc,
-                                        color: "#fff",
-                                        fontSize: 8,
-                                        fontWeight: 800,
-                                        padding: "1px 4px",
-                                        borderRadius: 2,
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {row.id}
-                                    </span>
-                                  </td>
-                                  <td className="left">
-                                    <span
-                                      className="ej-nombre"
-                                      style={{
-                                        fontStyle: row.isComplementario
-                                          ? "italic"
-                                          : "normal",
-                                      }}
-                                    >
-                                      {row.nombre}
-                                    </span>
-                                  </td>
+                                  {row.isPretemporadaRow ? (
+                                    <>
+                                      <td colSpan={2} className="left" style={{ padding: "3px 4px" }}>
+                                        <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+                                          <span
+                                            style={{
+                                              background: gc,
+                                              color: "#fff",
+                                              fontSize: 8,
+                                              fontWeight: 800,
+                                              padding: "1px 4px",
+                                              borderRadius: 2,
+                                              whiteSpace: "nowrap",
+                                              flexShrink: 0,
+                                            }}
+                                          >
+                                            {row.id}
+                                          </span>
+                                          <span
+                                            className="ej-nombre"
+                                            style={{ whiteSpace: "normal", wordBreak: "break-word" }}
+                                          >
+                                            {row.nombre}
+                                          </span>
+                                        </div>
+                                      </td>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <td style={{ padding: "3px 4px" }}>
+                                        <span
+                                          style={{
+                                            background: gc,
+                                            color: "#fff",
+                                            fontSize: 8,
+                                            fontWeight: 800,
+                                            padding: "1px 4px",
+                                            borderRadius: 2,
+                                            whiteSpace: "nowrap",
+                                          }}
+                                        >
+                                          {row.id}
+                                        </span>
+                                      </td>
+                                      <td className="left">
+                                        <span
+                                          className="ej-nombre"
+                                          style={{
+                                            fontStyle: row.isComplementario
+                                              ? "italic"
+                                              : "normal",
+                                          }}
+                                        >
+                                          {row.nombre}
+                                        </span>
+                                      </td>
+                                    </>
+                                  )}
                                   {(() => {
                                     // Si es complementario con bloques
                                     if (row.isCompBloques) {
