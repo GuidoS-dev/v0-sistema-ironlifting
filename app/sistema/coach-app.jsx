@@ -23258,7 +23258,8 @@ function PagePDF({
       .pdf-table .cell-data {
         background: transparent;
       }
-      .pdf-table .cell-data > .cell-series:first-child {
+      .pdf-table .cell-data > .cell-series:first-child,
+      .pdf-table .cell-data > .cell-pct-pretemp + .cell-series {
         background: #1a1a2e;
         padding: 5px 0 5px 10px;
         border-radius: 6px 0 0 6px;
