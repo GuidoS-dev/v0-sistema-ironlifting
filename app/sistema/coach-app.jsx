@@ -33455,7 +33455,7 @@ function AtletaPanel({ session, profile, onLogout }) {
           <button
             className="btn btn-ghost"
             onClick={onLogout}
-            style={{ width: "100%" }}
+            style={{ width: "100%", justifyContent: "center" }}
           >
             <LogOut size={14} /> Cerrar sesión
           </button>
