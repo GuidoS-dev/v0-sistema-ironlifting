@@ -24102,7 +24102,7 @@ window.addEventListener('load',updateStickyTurnos);
                                   {row.isPretemporadaRow ? (
                                     <>
                                       <td colSpan={2} className="left" style={{ padding: "3px 4px" }}>
-                                        <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
                                           <span
                                             style={{
                                               background: gc,
@@ -24119,7 +24119,7 @@ window.addEventListener('load',updateStickyTurnos);
                                           </span>
                                           <span
                                             className="ej-nombre"
-                                            style={{ whiteSpace: "normal", wordBreak: "break-word" }}
+                                            style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                                           >
                                             {row.nombre}
                                           </span>
