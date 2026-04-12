@@ -220,7 +220,10 @@ async function _fetchWithTimeout(
   }
 }
 
-// Token refresh helper
+// Token refresh helper — with dedup and cooldown to avoid POST loops
+let _refreshPromise = null;
+let _refreshCooldownUntil = 0;
+
 async function _refreshToken(refresh_token) {
   try {
     const r = await _fetchWithTimeout(
@@ -231,9 +234,18 @@ async function _refreshToken(refresh_token) {
         body: JSON.stringify({ refresh_token }),
       },
     );
-    if (!r.ok) return null;
+    if (!r.ok) {
+      // Don't retry for 30s after a failed refresh
+      _refreshCooldownUntil = Date.now() + 30000;
+      _session = null;
+      return null;
+    }
     const { data } = await _readResponseSafe(r);
-    if (!data?.access_token) return null;
+    if (!data?.access_token) {
+      _refreshCooldownUntil = Date.now() + 30000;
+      _session = null;
+      return null;
+    }
     const s = {
       access_token: data.access_token,
       refresh_token: data.refresh_token,
@@ -245,6 +257,8 @@ async function _refreshToken(refresh_token) {
     _emitAuth("TOKEN_REFRESHED", s);
     return s;
   } catch {
+    _refreshCooldownUntil = Date.now() + 30000;
+    _session = null;
     return null;
   }
 }
@@ -253,7 +267,15 @@ async function _getValidSession() {
   if (!_session) return null;
   // Refresh if expiring in < 60s
   if (_session.expires_at && Date.now() > _session.expires_at - 60000) {
-    return await _refreshToken(_session.refresh_token);
+    // Cooldown: skip refresh if we recently failed
+    if (Date.now() < _refreshCooldownUntil) return null;
+    // Dedup: reuse in-flight refresh promise
+    if (!_refreshPromise) {
+      _refreshPromise = _refreshToken(_session.refresh_token).finally(() => {
+        _refreshPromise = null;
+      });
+    }
+    return await _refreshPromise;
   }
   return _session;
 }
@@ -31713,7 +31735,7 @@ function LoginScreen({ onAuth }) {
             ))}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <form onSubmit={(e) => { e.preventDefault(); mode === "login" ? handleLogin() : handleRegister(); }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {mode === "register" && (
               <>
                 {/* Selector de rol */}
@@ -31818,10 +31840,6 @@ function LoginScreen({ onAuth }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@ejemplo.com"
-                onKeyDown={(e) =>
-                  e.key === "Enter" &&
-                  (mode === "login" ? handleLogin() : handleRegister())
-                }
               />
             </div>
 
@@ -31835,10 +31853,6 @@ function LoginScreen({ onAuth }) {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={
                   mode === "register" ? "Mínimo 6 caracteres" : "Tu contraseña"
-                }
-                onKeyDown={(e) =>
-                  e.key === "Enter" &&
-                  (mode === "login" ? handleLogin() : handleRegister())
                 }
               />
             </div>
@@ -31874,7 +31888,7 @@ function LoginScreen({ onAuth }) {
 
             <button
               className="btn btn-gold"
-              onClick={mode === "login" ? handleLogin : handleRegister}
+              type="submit"
               style={{
                 width: "100%",
                 justifyContent: "center",
@@ -31891,6 +31905,7 @@ function LoginScreen({ onAuth }) {
 
             {mode === "login" && (
               <button
+                type="button"
                 onClick={handleForgot}
                 style={{
                   background: "none",
@@ -31905,7 +31920,7 @@ function LoginScreen({ onAuth }) {
                 Olvidé mi contraseña
               </button>
             )}
-          </div>
+          </form>
         </div>
 
         <div
