@@ -23146,6 +23146,14 @@ function PagePDF({
         border-bottom: 1px solid #1e2733;
         background: #0d1117;
       }
+      /* Pretemporada merged ID+name cell: override first-child narrow width */
+      .pdf-table td.pdf-pretemp-ej {
+        width: auto !important;
+        min-width: 0 !important;
+        flex: 1 !important;
+        justify-content: flex-start !important;
+        padding: 10px 12px !important;
+      }
       .pdf-table .ej-nombre {
         font-size: 13px;
         font-weight: 700;
@@ -24101,7 +24109,7 @@ window.addEventListener('load',updateStickyTurnos);
                                 >
                                   {row.isPretemporadaRow ? (
                                     <>
-                                      <td colSpan={2} className="left" style={{ padding: "3px 4px" }}>
+                                      <td colSpan={2} className="left pdf-pretemp-ej" style={{ padding: "3px 4px" }}>
                                         <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
                                           <span
                                             style={{
