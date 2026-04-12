@@ -24,7 +24,6 @@ import {
   CloudMoon,
   LogOut,
   Shield,
-  ChevronDown,
   Search,
 } from "lucide-react";
 
@@ -33263,8 +33262,7 @@ function AtletaPanel({ session, profile, onLogout }) {
   const [selectedMeso, setSelectedMeso] = useState(null);
   const [coachNormativos, setCoachNormativos] = useState(null);
   const [coachTablas, setCoachTablas] = useState(null);
-  const [showResumen, setShowResumen] = useState(false);
-  const [showNormativos, setShowNormativos] = useState(false);
+  const [atletaView, setAtletaView] = useState(null); // "resumen" | "normativos" | null
   const [normSearch, setNormSearch] = useState("");
 
   useEffect(() => {
@@ -33475,6 +33473,186 @@ function AtletaPanel({ session, profile, onLogout }) {
             tablas={coachTablas || TABLA_DEFAULT}
             hideActions
           />
+        </div>
+      </div>
+    );
+  }
+
+  // Show Resumen full-page view
+  if (atletaView === "resumen") {
+    const activeMesos = mesociclos.filter((m) => m.activo);
+    const primaryMeso = activeMesos[0] || null;
+    if (!primaryMeso) { setAtletaView(null); }
+    else {
+      return (
+        <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px" }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <button className="btn btn-ghost" onClick={() => setAtletaView(null)} style={{ gap: 6 }}>
+                <ChevronLeft size={14} /> Volver
+              </button>
+              <button className="btn btn-ghost" onClick={onLogout}>
+                <LogOut size={14} /> Salir
+              </button>
+            </div>
+            <div style={{
+              fontFamily: "'Bebas Neue'",
+              fontSize: 22,
+              color: "var(--blue)",
+              letterSpacing: ".04em",
+              marginBottom: 16,
+              paddingBottom: 10,
+              borderBottom: "2px solid var(--blue)",
+            }}>
+              RESUMEN — {primaryMeso.nombre || "Mesociclo"}
+            </div>
+            <PageResumen
+              meso={primaryMeso}
+              atleta={atletaInfo}
+              irm_arr={primaryMeso.irm_arranque}
+              irm_env={primaryMeso.irm_envion}
+              normativos={coachNormativos || EJERCICIOS}
+            />
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Show Normativos full-page view
+  if (atletaView === "normativos") {
+    const norms = coachNormativos || EJERCICIOS;
+    const categories = ["Arranque", "Envion", "Tirones", "Piernas", "Complementarios"];
+    const searchLower = normSearch.trim().toLowerCase();
+    const filteredNorms = searchLower
+      ? norms.filter(ej =>
+          ej.nombre.toLowerCase().includes(searchLower) ||
+          String(ej.id).includes(searchLower) ||
+          (ej.categoria || "").toLowerCase().includes(searchLower)
+        )
+      : norms;
+    const grouped = {};
+    categories.forEach(c => { grouped[c] = []; });
+    filteredNorms.forEach(ej => {
+      const cat = ej.categoria || "Complementarios";
+      if (grouped[cat]) grouped[cat].push(ej);
+      else grouped["Complementarios"].push(ej);
+    });
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px" }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <button className="btn btn-ghost" onClick={() => { setAtletaView(null); setNormSearch(""); }} style={{ gap: 6 }}>
+              <ChevronLeft size={14} /> Volver
+            </button>
+            <button className="btn btn-ghost" onClick={onLogout}>
+              <LogOut size={14} /> Salir
+            </button>
+          </div>
+          <div style={{
+            fontFamily: "'Bebas Neue'",
+            fontSize: 22,
+            color: "#9b87e8",
+            letterSpacing: ".04em",
+            marginBottom: 16,
+            paddingBottom: 10,
+            borderBottom: "2px solid #9b87e8",
+          }}>
+            NORMATIVOS
+          </div>
+          {/* Search/filter */}
+          <div style={{ position: "relative", marginBottom: 12 }}>
+            <Search size={14} style={{
+              position: "absolute", left: 12, top: "50%",
+              transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none",
+            }} />
+            <input
+              type="text"
+              placeholder="Buscar ejercicio..."
+              value={normSearch}
+              onChange={e => setNormSearch(e.target.value)}
+              className="form-input"
+              style={{ paddingLeft: 34 }}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {categories.map(cat => {
+              const items = grouped[cat];
+              if (!items || items.length === 0) return null;
+              const catColor = CAT_COLOR[cat] || "#9b87e8";
+              return (
+                <div key={cat} style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                }}>
+                  <div style={{
+                    padding: "10px 16px",
+                    background: "var(--surface2)",
+                    borderBottom: "1px solid var(--border)",
+                    display: "flex", alignItems: "center", gap: 8,
+                  }}>
+                    <div style={{ width: 4, height: 16, borderRadius: 2, background: catColor, flexShrink: 0 }} />
+                    <div style={{
+                      fontFamily: "'Bebas Neue'", fontSize: 16,
+                      color: catColor, letterSpacing: ".04em",
+                    }}>
+                      {cat.toUpperCase()}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}>
+                      {items.length} ejercicio{items.length !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                  <div style={{ padding: "4px 0" }}>
+                    {items.map((ej, idx) => (
+                      <div key={ej.id} style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "8px 16px",
+                        borderBottom: idx < items.length - 1 ? "1px solid var(--border)" : "none",
+                      }}>
+                        <div style={{
+                          fontFamily: "'Bebas Neue'", fontSize: 16,
+                          color: "var(--muted)", minWidth: 28, textAlign: "right",
+                        }}>
+                          {ej.id}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontSize: 13, fontWeight: 500,
+                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                          }}>
+                            {ej.nombre}
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: 13, fontWeight: 700, color: catColor,
+                          minWidth: 40, textAlign: "center",
+                        }}>
+                          {ej.pct_base}%
+                        </div>
+                        {ej.base && (
+                          <div style={{
+                            fontSize: 10,
+                            color: ej.base === "arranque" ? "var(--gold)" : "var(--blue)",
+                            fontWeight: 700, textTransform: "uppercase",
+                            letterSpacing: ".04em", minWidth: 30,
+                          }}>
+                            {ej.base === "arranque" ? "ARR" : "ENV"}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {filteredNorms.length === 0 && (
+            <div style={{ textAlign: "center", padding: 24, color: "var(--muted)", fontSize: 13 }}>
+              No se encontraron ejercicios para "{normSearch}"
+            </div>
+          )}
         </div>
       </div>
     );
@@ -33849,259 +34027,91 @@ function AtletaPanel({ session, profile, onLogout }) {
           </div>
         )}
 
-        {/* Resumen del mesociclo activo */}
+        {/* Resumen — navigation card */}
         {primaryMeso && primaryMeso.semanas?.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <button
-              onClick={() => setShowResumen(!showResumen)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                paddingBottom: 10,
-                borderBottom: "2px solid var(--blue)",
-                background: "none",
-                border: "none",
-                borderBottom: "2px solid var(--blue)",
-                cursor: "pointer",
-                padding: 0,
-                paddingBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "'Bebas Neue'",
-                  fontSize: 20,
-                  color: "var(--blue)",
-                  letterSpacing: ".04em",
-                }}
-              >
+          <button
+            onClick={() => setAtletaView("resumen")}
+            style={{
+              width: "100%",
+              textAlign: "left",
+              cursor: "pointer",
+              background: "var(--surface)",
+              border: "1px solid var(--blue)",
+              borderRadius: 12,
+              padding: "16px 20px",
+              marginBottom: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              transition: "all .2s",
+            }}
+          >
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: "var(--blue)22",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <FileText size={20} style={{ color: "var(--blue)" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: "'Bebas Neue'", fontSize: 18,
+                color: "var(--blue)", letterSpacing: ".04em",
+              }}>
                 RESUMEN
               </div>
               <div style={{ fontSize: 11, color: "var(--muted)" }}>
                 {primaryMeso.nombre || "Mesociclo"}
               </div>
-              <ChevronDown
-                size={18}
-                style={{
-                  color: "var(--blue)",
-                  marginLeft: "auto",
-                  transition: "transform .2s",
-                  transform: showResumen ? "rotate(180deg)" : "rotate(0deg)",
-                }}
-              />
-            </button>
-            {showResumen && (
-              <div style={{ marginTop: 14 }}>
-                <PageResumen
-                  meso={primaryMeso}
-                  atleta={atletaInfo}
-                  irm_arr={primaryMeso.irm_arranque}
-                  irm_env={primaryMeso.irm_envion}
-                  normativos={coachNormativos || EJERCICIOS}
-                />
-              </div>
-            )}
-          </div>
+            </div>
+            <ChevronLeft size={16} style={{ color: "var(--blue)", transform: "rotate(180deg)" }} />
+          </button>
         )}
 
-        {/* Normativos del atleta */}
+        {/* Normativos — navigation card */}
         {(() => {
           const norms = coachNormativos || EJERCICIOS;
           if (!norms || norms.length === 0) return null;
-          const categories = ["Arranque", "Envion", "Tirones", "Piernas", "Complementarios"];
-          const searchLower = normSearch.trim().toLowerCase();
-          const filteredNorms = searchLower
-            ? norms.filter(ej =>
-                ej.nombre.toLowerCase().includes(searchLower) ||
-                String(ej.id).includes(searchLower) ||
-                (ej.categoria || "").toLowerCase().includes(searchLower)
-              )
-            : norms;
-          const grouped = {};
-          categories.forEach(c => { grouped[c] = []; });
-          filteredNorms.forEach(ej => {
-            const cat = ej.categoria || "Complementarios";
-            if (grouped[cat]) grouped[cat].push(ej);
-            else grouped["Complementarios"].push(ej);
-          });
           return (
-            <div style={{ marginBottom: 20 }}>
-              <button
-                onClick={() => setShowNormativos(!showNormativos)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  background: "none",
-                  border: "none",
-                  borderBottom: "2px solid #9b87e8",
-                  cursor: "pointer",
-                  padding: 0,
-                  paddingBottom: 10,
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "'Bebas Neue'",
-                    fontSize: 20,
-                    color: "#9b87e8",
-                    letterSpacing: ".04em",
-                  }}
-                >
+            <button
+              onClick={() => setAtletaView("normativos")}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                cursor: "pointer",
+                background: "var(--surface)",
+                border: "1px solid #9b87e8",
+                borderRadius: 12,
+                padding: "16px 20px",
+                marginBottom: 20,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                transition: "all .2s",
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: "#9b87e822",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                <Library size={20} style={{ color: "#9b87e8" }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: "'Bebas Neue'", fontSize: 18,
+                  color: "#9b87e8", letterSpacing: ".04em",
+                }}>
                   NORMATIVOS
                 </div>
-                <ChevronDown
-                  size={18}
-                  style={{
-                    color: "#9b87e8",
-                    marginLeft: "auto",
-                    transition: "transform .2s",
-                    transform: showNormativos ? "rotate(180deg)" : "rotate(0deg)",
-                  }}
-                />
-              </button>
-              {showNormativos && (
-              <div style={{ marginTop: 14 }}>
-              {/* Search/filter */}
-              <div style={{
-                position: "relative",
-                marginBottom: 12,
-              }}>
-                <Search size={14} style={{
-                  position: "absolute",
-                  left: 12,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "var(--muted)",
-                  pointerEvents: "none",
-                }} />
-                <input
-                  type="text"
-                  placeholder="Buscar ejercicio..."
-                  value={normSearch}
-                  onChange={e => setNormSearch(e.target.value)}
-                  className="form-input"
-                  style={{
-                    paddingLeft: 34,
-                  }}
-                />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {categories.map(cat => {
-                  const items = grouped[cat];
-                  if (!items || items.length === 0) return null;
-                  const catColor = CAT_COLOR[cat] || "#9b87e8";
-                  return (
-                    <div key={cat} style={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                      overflow: "hidden",
-                    }}>
-                      <div style={{
-                        padding: "10px 16px",
-                        background: "var(--surface2)",
-                        borderBottom: "1px solid var(--border)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                      }}>
-                        <div style={{
-                          width: 4,
-                          height: 16,
-                          borderRadius: 2,
-                          background: catColor,
-                          flexShrink: 0,
-                        }} />
-                        <div style={{
-                          fontFamily: "'Bebas Neue'",
-                          fontSize: 16,
-                          color: catColor,
-                          letterSpacing: ".04em",
-                        }}>
-                          {cat.toUpperCase()}
-                        </div>
-                        <div style={{
-                          fontSize: 11,
-                          color: "var(--muted)",
-                          marginLeft: "auto",
-                        }}>
-                          {items.length} ejercicio{items.length !== 1 ? "s" : ""}
-                        </div>
-                      </div>
-                      <div style={{ padding: "4px 0" }}>
-                        {items.map((ej, idx) => (
-                          <div key={ej.id} style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            padding: "8px 16px",
-                            borderBottom: idx < items.length - 1 ? "1px solid var(--border)" : "none",
-                          }}>
-                            <div style={{
-                              fontFamily: "'Bebas Neue'",
-                              fontSize: 16,
-                              color: "var(--muted)",
-                              minWidth: 28,
-                              textAlign: "right",
-                            }}>
-                              {ej.id}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{
-                                fontSize: 13,
-                                fontWeight: 500,
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                              }}>
-                                {ej.nombre}
-                              </div>
-                            </div>
-                            <div style={{
-                              fontSize: 13,
-                              fontWeight: 700,
-                              color: catColor,
-                              minWidth: 40,
-                              textAlign: "center",
-                            }}>
-                              {ej.pct_base}%
-                            </div>
-                            {ej.base && (
-                              <div style={{
-                                fontSize: 10,
-                                color: ej.base === "arranque" ? "var(--gold)" : "var(--blue)",
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: ".04em",
-                                minWidth: 30,
-                              }}>
-                                {ej.base === "arranque" ? "ARR" : "ENV"}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {filteredNorms.length === 0 && (
-                <div style={{
-                  textAlign: "center",
-                  padding: 24,
-                  color: "var(--muted)",
-                  fontSize: 13,
-                }}>
-                  No se encontraron ejercicios para "{normSearch}"
+                <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                  {norms.length} ejercicio{norms.length !== 1 ? "s" : ""}
                 </div>
-              )}
               </div>
-              )}
-            </div>
+              <ChevronLeft size={16} style={{ color: "#9b87e8", transform: "rotate(180deg)" }} />
+            </button>
           );
         })()}
 
