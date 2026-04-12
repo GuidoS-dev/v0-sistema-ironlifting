@@ -80,6 +80,51 @@ function sanitizeRequestBody(body, contentType) {
   }
 }
 
+// ── Safe localStorage helper (handles QuotaExceededError) ────────────────────
+function _freeLocalStorageSpace() {
+  // Remove expendable keys to reclaim space:
+  // 1. Plantilla undo/redo history stacks (largest savings)
+  // 2. Plantilla draft snapshots (redundant when synced to Supabase)
+  const toRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (
+      k &&
+      (k.startsWith("liftplan_hist_plt_") ||
+        k.startsWith("liftplan_hist_meso_") ||
+        k.startsWith("liftplan_plt_draft_"))
+    )
+      toRemove.push(k);
+  }
+  toRemove.forEach((k) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {}
+  });
+  return toRemove.length;
+}
+
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    if (e?.name === "QuotaExceededError" || e?.code === 22) {
+      // Try to free space and retry once
+      const freed = _freeLocalStorageSpace();
+      if (freed > 0) {
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch {}
+      }
+      console.warn("localStorage quota exceeded, data saved to server only");
+      return false;
+    }
+    return false;
+  }
+}
+
 // Storage keys for session persistence
 const SESSION_KEY = "sb_session";
 const PROFILE_KEY_PREFIX = "sb_profile_";
@@ -16456,7 +16501,7 @@ function SemanaView({ semana, irm_arr, irm_env, meso, onChange }) {
                     })),
                   },
                 };
-                localStorage.setItem(
+                safeSetItem(
                   "liftplan_plantillas",
                   JSON.stringify([...stored, nuevo]),
                 );
@@ -18451,15 +18496,13 @@ function PageAtleta({
 
   const persistHistStack = () => {
     if (!histStorageKey) return;
-    try {
-      localStorage.setItem(
-        histStorageKey,
-        JSON.stringify({
-          stack: histStackRef.current,
-          idx: histIdxRef.current,
-        }),
-      );
-    } catch {}
+    safeSetItem(
+      histStorageKey,
+      JSON.stringify({
+        stack: histStackRef.current,
+        idx: histIdxRef.current,
+      }),
+    );
   };
 
   // Captura snapshot desde React state (no localStorage — siempre consistente)
@@ -18496,7 +18539,7 @@ function PageAtleta({
     }
     const snap = captureSnapshot();
     const base = histStackRef.current.slice(0, histIdxRef.current + 1);
-    const next = [...base, snap].slice(-30);
+    const next = [...base, snap].slice(-15);
     histStackRef.current = next;
     histIdxRef.current = next.length - 1;
     persistHistStack();
@@ -18507,9 +18550,7 @@ function PageAtleta({
     if (!snap || !mesoVisto) return;
     const id = mesoVisto.id;
     const ls = (k, v) => {
-      try {
-        localStorage.setItem(k, JSON.stringify(v));
-      } catch {}
+      safeSetItem(k, JSON.stringify(v));
     };
     // 1. Mesociclo
     setMesociclos((prev) =>
@@ -19913,7 +19954,7 @@ function PageAtleta({
                             nivel: "intermedio",
                             distribucion: dist,
                           };
-                          localStorage.setItem(
+                          safeSetItem(
                             "liftplan_plantillas",
                             JSON.stringify([...stored, nuevo]),
                           );
@@ -24713,7 +24754,7 @@ const LogoILSolo = ({ size = 28 }) => (
 );
 
 // ── Hook de historial de modificaciones (persiste en localStorage) ───────────
-function useHistory(key, initial, maxLen = 30) {
+function useHistory(key, initial, maxLen = 15) {
   // stack: array de snapshots, idx apunta al estado actual
   const storageKey = `liftplan_hist_${key}`;
 
@@ -24727,9 +24768,7 @@ function useHistory(key, initial, maxLen = 30) {
   });
 
   const persist = (s) => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(s));
-    } catch {}
+    safeSetItem(storageKey, JSON.stringify(s));
   };
 
   // Push nuevo estado — descarta el "futuro" si estábamos en medio del historial
@@ -24865,9 +24904,7 @@ function usePlantillas(coachId) {
               merged.push(localItem);
           });
           if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
-          try {
-            localStorage.setItem("liftplan_plantillas", JSON.stringify(merged));
-          } catch {}
+          safeSetItem("liftplan_plantillas", JSON.stringify(merged));
           return merged;
         });
       } else {
@@ -24912,11 +24949,7 @@ function usePlantillas(coachId) {
     };
     setPlantillas((prev) => {
       const next = [...prev, item];
-      try {
-        localStorage.setItem("liftplan_plantillas", JSON.stringify(next));
-      } catch (e) {
-        console.warn("localStorage save failed:", e);
-      }
+      safeSetItem("liftplan_plantillas", JSON.stringify(next));
       return next;
     });
     queuePlantillaSync(item, 1000);
@@ -24929,17 +24962,8 @@ function usePlantillas(coachId) {
       const next = exists
         ? prev.map((x) => (x.id === stamped.id ? stamped : x))
         : [...prev, stamped];
-      try {
-        localStorage.setItem(
-          `liftplan_plt_draft_${stamped.id}`,
-          JSON.stringify(stamped),
-        );
-      } catch {}
-      try {
-        localStorage.setItem("liftplan_plantillas", JSON.stringify(next));
-      } catch (e) {
-        console.warn("localStorage save failed:", e);
-      }
+      safeSetItem(`liftplan_plt_draft_${stamped.id}`, JSON.stringify(stamped));
+      safeSetItem("liftplan_plantillas", JSON.stringify(next));
       return next;
     });
     queuePlantillaSync(stamped, 4000);
@@ -24953,11 +24977,7 @@ function usePlantillas(coachId) {
     pendingDeletePlantillaIdsRef.current.add(id);
     setPlantillas((prev) => {
       const next = prev.filter((x) => x.id !== id);
-      try {
-        localStorage.setItem("liftplan_plantillas", JSON.stringify(next));
-      } catch (e) {
-        console.warn("localStorage save failed:", e);
-      }
+      safeSetItem("liftplan_plantillas", JSON.stringify(next));
       return next;
     });
     try {
@@ -25681,17 +25701,13 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
     if (!snap) return;
     const id = plt.id;
     const ls = (k, v) => {
-      try {
-        localStorage.setItem(k, JSON.stringify(v));
-      } catch {}
+      safeSetItem(k, JSON.stringify(v));
     };
     // Handle both new {form:{...}} and old {semanas:...} formats
     const f = snap.form || (snap.semanas ? snap : null) || initialForm;
     latestFormRef.current = f;
     setFormState(f);
-    try {
-      localStorage.setItem(`liftplan_plt_draft_${plt.id}`, JSON.stringify(f));
-    } catch {}
+    safeSetItem(`liftplan_plt_draft_${plt.id}`, JSON.stringify(f));
     try {
       onUpdate(f);
     } catch {}
@@ -25753,15 +25769,13 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   const canRedo = pHistState.canRedo;
 
   const pPersist = () => {
-    try {
-      localStorage.setItem(
-        pStorageKey,
-        JSON.stringify({
-          stack: pHistRef.current,
-          idx: pIdxRef.current,
-        }),
-      );
-    } catch {}
+    safeSetItem(
+      pStorageKey,
+      JSON.stringify({
+        stack: pHistRef.current,
+        idx: pIdxRef.current,
+      }),
+    );
   };
 
   const _pLastPush = useRef(0);
@@ -25771,7 +25785,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
     _pLastPush.current = now;
     const snap = pCaptureSnap(form);
     const base = pHistRef.current.slice(0, pIdxRef.current + 1);
-    const next = [...base, snap].slice(-30);
+    const next = [...base, snap].slice(-15);
     pHistRef.current = next;
     pIdxRef.current = next.length - 1;
     pPersist();
@@ -25788,12 +25802,10 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
     latestFormRef.current = next;
     pendingSaveRef.current = true;
     // Guardar borrador directo siempre (síncrono)
-    try {
-      localStorage.setItem(
-        `liftplan_plt_draft_${plt.id}`,
-        JSON.stringify(next),
-      );
-    } catch {}
+    safeSetItem(
+      `liftplan_plt_draft_${plt.id}`,
+      JSON.stringify(next),
+    );
     // Propagar al store (síncrono)
     try {
       onUpdate(next);
@@ -25806,12 +25818,10 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   const handleClose = () => {
     const next = latestFormRef.current || form;
     if (next) {
-      try {
-        localStorage.setItem(
-          `liftplan_plt_draft_${plt.id}`,
-          JSON.stringify(next),
-        );
-      } catch {}
+      safeSetItem(
+        `liftplan_plt_draft_${plt.id}`,
+        JSON.stringify(next),
+      );
       try {
         onUpdate(next);
       } catch {}
@@ -30209,7 +30219,7 @@ const load = (key, fallback) => {
 };
 const save = (key, val) => {
   try {
-    localStorage.setItem(key, JSON.stringify(val));
+    safeSetItem(key, JSON.stringify(val));
     emitLocalSyncEvent(key);
   } catch {}
 };
