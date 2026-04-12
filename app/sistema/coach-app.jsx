@@ -23362,6 +23362,32 @@ function PagePDF({
     return () => observer.disconnect();
   }, [isMob]);
 
+  // Track which turno is currently visible via IntersectionObserver
+  React.useEffect(() => {
+    if (!isMob) return;
+    const container = previewRef.current;
+    if (!container) return;
+    const turnoEls = container.querySelectorAll(".pdf-turno-header[id]");
+    if (!turnoEls.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            const parts = e.target.id.match(/^pdf-turno-(\d+)-(\d+)$/);
+            if (parts) {
+              const tIdx = parseInt(parts[2], 10);
+              setMobActiveTurno(tIdx);
+              setMobNavTurnos(true);
+            }
+          }
+        });
+      },
+      { rootMargin: "-10% 0px -70% 0px", threshold: 0 },
+    );
+    turnoEls.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [isMob]);
+
   const handleShareWhatsApp = () => {
     const phone = atleta.telefono ? atleta.telefono.replace(/\D/g, "") : "";
     const nombre = atleta.nombre;
