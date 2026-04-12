@@ -5253,16 +5253,21 @@ function PlanillaTurno({
   const [compPasteSemanasSel, setCompPasteSemanasSel] = useState([]);
   const [compTurnosDropdownOpen, setCompTurnosDropdownOpen] = useState(false);
   const [compSemanasDropdownOpen, setCompSemanasDropdownOpen] = useState(false);
+  const [compIntraTargetSel, setCompIntraTargetSel] = useState([]);
+  const [compIntraDropdownOpen, setCompIntraDropdownOpen] = useState(false);
+  const [compIntraFeedback, setCompIntraFeedback] = useState(false);
   const [importSemOrigen, setImportSemOrigen] = useState("");
   const [importSemFeedback, setImportSemFeedback] = useState(false);
   const [recalcFeedback, setRecalcFeedback] = useState(false);
   const compPasteTimerRef = useRef(null);
+  const compIntraTimerRef = useRef(null);
   const importSemTimerRef = useRef(null);
   const recalcTimerRef = useRef(null);
   const compPickerListRef = useRef(null);
   const compPickerModalRef = useRef(null);
   const compTurnosDropdownRef = useRef(null);
   const compSemanasDropdownRef = useRef(null);
+  const compIntraDropdownRef = useRef(null);
   const spreadsheetNavRef = useRef(null);
 
   useEffect(() => {
@@ -5652,6 +5657,12 @@ function PlanillaTurno({
       ) {
         setCompSemanasDropdownOpen(false);
       }
+      if (
+        compIntraDropdownRef.current &&
+        !compIntraDropdownRef.current.contains(t)
+      ) {
+        setCompIntraDropdownOpen(false);
+      }
     };
     document.addEventListener("click", onDocPointerDown);
     return () => {
@@ -5752,6 +5763,71 @@ function PlanillaTurno({
       if ((prev || []).includes(k)) return prev.filter((v) => v !== k);
       return [...(prev || []), k];
     });
+  };
+
+  const toggleCompIntraTargetSel = (idx) => {
+    const k = String(idx);
+    setCompIntraTargetSel((prev) => {
+      if ((prev || []).includes(k)) return prev.filter((v) => v !== k);
+      return [...(prev || []), k];
+    });
+  };
+
+  const pegarCompEnTurnosMismaSemana = () => {
+    const targetTurnos = (compIntraTargetSel || [])
+      .map((v) => Number(v))
+      .filter(
+        (idx) =>
+          Number.isInteger(idx) &&
+          idx >= 0 &&
+          idx < (sem?.turnos?.length || 0) &&
+          idx !== turnoActivo,
+      );
+    if (targetTurnos.length === 0) return;
+
+    const sourceTurno = sem?.turnos?.[turnoActivo];
+    if (!sourceTurno) return;
+
+    _beforeChangeForced();
+
+    const cloneCompList = (list) => JSON.parse(JSON.stringify(list || []));
+
+    if (onChangeTodasSemanas) {
+      const nextSemanas = JSON.parse(JSON.stringify(semanas));
+      targetTurnos.forEach((tIdx) => {
+        const targetTurno = nextSemanas[semActiva]?.turnos?.[tIdx];
+        if (!targetTurno) return;
+        targetTurno.num_bloques_comp = sourceTurno.num_bloques_comp || 1;
+        targetTurno.complementarios_before = cloneCompList(
+          sourceTurno.complementarios_before,
+        );
+        targetTurno.complementarios_after = cloneCompList(
+          sourceTurno.complementarios_after,
+        );
+      });
+      onChangeTodasSemanas(nextSemanas);
+    } else {
+      targetTurnos.forEach((tIdx) => {
+        const targetTurno = sem?.turnos?.[tIdx];
+        if (!targetTurno) return;
+        onChangeTurno?.(semActiva, tIdx, {
+          ...targetTurno,
+          num_bloques_comp: sourceTurno.num_bloques_comp || 1,
+          complementarios_before: cloneCompList(
+            sourceTurno.complementarios_before,
+          ),
+          complementarios_after: cloneCompList(
+            sourceTurno.complementarios_after,
+          ),
+        });
+      });
+    }
+
+    if (compIntraTimerRef.current) clearTimeout(compIntraTimerRef.current);
+    setCompIntraFeedback(true);
+    compIntraTimerRef.current = setTimeout(() => {
+      setCompIntraFeedback(false);
+    }, 1500);
   };
 
   const importarSemanaEnActual = () => {
@@ -8351,6 +8427,157 @@ function PlanillaTurno({
                             >
                               {compPasteFeedback ? "Pegado" : "Pegar"}
                             </button>
+
+                            {(sem?.turnos?.length || 0) > 1 && (
+                              <>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    color: "var(--muted)",
+                                    borderLeft: "1px solid var(--border)",
+                                    paddingLeft: 6,
+                                    marginLeft: 2,
+                                  }}
+                                >
+                                  Turno {turnoActivo + 1} →
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    color: "var(--muted)",
+                                  }}
+                                >
+                                  Turnos destino
+                                </span>
+                                <div
+                                  ref={compIntraDropdownRef}
+                                  style={{ position: "relative" }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setCompIntraDropdownOpen((prev) => !prev)
+                                    }
+                                    style={{
+                                      background: "var(--surface2)",
+                                      border: "1px solid var(--border)",
+                                      borderRadius: 6,
+                                      color: "var(--text)",
+                                      fontSize: 11,
+                                      padding: "4px 8px",
+                                      cursor: "pointer",
+                                      minWidth: 148,
+                                    }}
+                                  >
+                                    {compIntraTargetSel.length > 0
+                                      ? `${compIntraTargetSel.length} turno(s)`
+                                      : "Seleccionar turnos"}
+                                  </button>
+                                  {compIntraDropdownOpen && (
+                                    <div
+                                      style={{
+                                        position: "absolute",
+                                        zIndex: 40,
+                                        top: "calc(100% + 4px)",
+                                        left: 0,
+                                        minWidth: 170,
+                                        background: "var(--surface)",
+                                        border: "1px solid var(--border)",
+                                        borderRadius: 8,
+                                        padding: 8,
+                                        boxShadow:
+                                          "0 8px 24px rgba(0,0,0,.35)",
+                                        display: "grid",
+                                        gap: 6,
+                                      }}
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          const allOther = (sem?.turnos || [])
+                                            .map((_, i) => i)
+                                            .filter((i) => i !== turnoActivo)
+                                            .map(String);
+                                          const allSelected =
+                                            allOther.length > 0 &&
+                                            allOther.every((v) =>
+                                              compIntraTargetSel.includes(v),
+                                            );
+                                          setCompIntraTargetSel(
+                                            allSelected ? [] : allOther,
+                                          );
+                                        }}
+                                        className="btn btn-ghost btn-xs"
+                                      >
+                                        {(sem?.turnos || [])
+                                          .map((_, i) => i)
+                                          .filter((i) => i !== turnoActivo)
+                                          .every((i) =>
+                                            compIntraTargetSel.includes(
+                                              String(i),
+                                            ),
+                                          )
+                                          ? "Deseleccionar todos"
+                                          : "Tildar todos"}
+                                      </button>
+                                      {(sem?.turnos || [])
+                                        .map((t, i) => ({ t, i }))
+                                        .filter(({ i }) => i !== turnoActivo)
+                                        .map(({ t, i }) => {
+                                          const checked =
+                                            compIntraTargetSel.includes(
+                                              String(i),
+                                            );
+                                          return (
+                                            <label
+                                              key={`comp-intra-turno-opt-${t.id}`}
+                                              style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 6,
+                                                fontSize: 12,
+                                                color: "var(--text)",
+                                                cursor: "pointer",
+                                              }}
+                                            >
+                                              <input
+                                                name="field_intra_turno"
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() =>
+                                                  toggleCompIntraTargetSel(i)
+                                                }
+                                                style={{
+                                                  accentColor: "var(--gold)",
+                                                }}
+                                              />
+                                              Turno {i + 1}
+                                            </label>
+                                          );
+                                        })}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs"
+                                  onClick={pegarCompEnTurnosMismaSemana}
+                                  disabled={compIntraTargetSel.length === 0}
+                                  style={{
+                                    border: compIntraFeedback
+                                      ? "1px solid rgba(77,182,172,.45)"
+                                      : undefined,
+                                    color: compIntraFeedback
+                                      ? "#4db6ac"
+                                      : undefined,
+                                  }}
+                                  title="Pegar complementarios del turno actual en otros turnos de la misma semana"
+                                >
+                                  {compIntraFeedback ? "Pegado" : "Pegar"}
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
 
