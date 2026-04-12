@@ -22601,7 +22601,8 @@ function PagePDF({
 
     // Calc kg using LOWEST pct_base among all ejercicio_ids (same as PlanillaPretemporada)
     const calcKgPretempPdf = (pct) => {
-      if (!ejercicio_ids || !ejercicio_ids.length || !pct) return null;
+      if (!ejercicio_ids || !ejercicio_ids.length || pct == null) return null;
+      if (pct === 0) return 0;
       let lowestKgBase = null;
       for (const { eid } of ejercicio_ids) {
         if (!eid) continue;
@@ -22620,7 +22621,7 @@ function PagePDF({
     const cols = (ej.bloques || [])
       .map((bloque) => {
         const pct = bloque.pct;
-        const kg = pct ? calcKgPretempPdf(pct) : bloque.kg;
+        const kg = pct != null ? calcKgPretempPdf(pct) : bloque.kg;
         return {
           pct,
           s: bloque.series,
@@ -33730,6 +33731,7 @@ function AtletaPanel({ session, profile, onLogout }) {
             background: "var(--bg)",
             padding: "12px 0",
             marginBottom: 4,
+            borderBottom: "1px solid var(--border)",
           }}
         >
           <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -33959,6 +33961,7 @@ function AtletaPanel({ session, profile, onLogout }) {
   const getCurrentWeek = (meso) => {
     if (!meso.fecha_inicio || !meso.semanas?.length) return null;
     const start = new Date(meso.fecha_inicio + "T00:00:00");
+    if (isNaN(start.getTime())) return null;
     const now = new Date();
     const diffMs = now - start;
     if (diffMs < 0) return 0; // hasn't started
