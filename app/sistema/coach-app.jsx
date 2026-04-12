@@ -24775,12 +24775,16 @@ function usePlantillas(coachId) {
     };
   }, []);
 
-  // Cargar plantillas desde Supabase + polling cada 10s
+  // Cargar plantillas desde Supabase + pull on visibility
+  const lastPullPlantillasRef = useRef(0);
   useEffect(() => {
     if (!coachId) return;
     let cancelled = false;
 
     const pullPlantillas = async () => {
+      const now = Date.now();
+      if (now - lastPullPlantillasRef.current < 5000) return; // throttle 5s
+      lastPullPlantillasRef.current = now;
       const { data, error } = await sb
         .from("plantillas")
         .select("*")
@@ -32057,8 +32061,16 @@ function CoachApp({ session, profile, onLogout }) {
     [coachId],
   );
 
+  const prevLiveMesoDataRef = useRef({});
   useEffect(() => {
-    Object.values(liveMesoData).forEach(queueMesoOverrideSync);
+    // Solo sincronizar mesos que realmente cambiaron, no todos
+    const prev = prevLiveMesoDataRef.current;
+    Object.entries(liveMesoData).forEach(([key, val]) => {
+      if (prev[key] !== val) {
+        queueMesoOverrideSync(val);
+      }
+    });
+    prevLiveMesoDataRef.current = liveMesoData;
   }, [liveMesoData, queueMesoOverrideSync]);
 
   useEffect(() => {
@@ -32196,11 +32208,17 @@ function CoachApp({ session, profile, onLogout }) {
   }, [coachId]);
 
   // ── Pull remoto de atletas (incluye overrides normativos) ─────────────────
+  const lastPullAtletasRef = useRef(0);
+  const lastPullMesosRef = useRef(0);
+  const PULL_THROTTLE_MS = 5000; // mínimo 5s entre pulls
   useEffect(() => {
     if (!coachId) return;
     let cancelled = false;
 
     const pullAtletas = async () => {
+      const now = Date.now();
+      if (now - lastPullAtletasRef.current < PULL_THROTTLE_MS) return;
+      lastPullAtletasRef.current = now;
       const { data, error } = await sb
         .from("atletas")
         .select("*")
@@ -32283,6 +32301,9 @@ function CoachApp({ session, profile, onLogout }) {
     let cancelled = false;
 
     const pullMesociclos = async () => {
+      const now = Date.now();
+      if (now - lastPullMesosRef.current < PULL_THROTTLE_MS) return;
+      lastPullMesosRef.current = now;
       const { data, error } = await sb
         .from("mesociclos")
         .select("*")
@@ -32388,22 +32409,14 @@ function CoachApp({ session, profile, onLogout }) {
       const prev2 = prevAtletasRef.current;
       prevAtletasRef.current = curr;
 
-      const now = new Date().toISOString();
       const toUpsert = curr.filter((a) => {
         const old = prev2.find((p) => p.id === a.id);
         return !old || JSON.stringify(old) !== JSON.stringify(a);
       });
       if (toUpsert.length === 0) return;
 
-      if (toUpsert.length > 0) {
-        setAtletasRaw((s) =>
-          s.map((a) =>
-            toUpsert.find((u) => u.id === a.id)
-              ? { ...a, _updated_at: now }
-              : a,
-          ),
-        );
-      }
+      // _updated_at ya fue estampado por setAtletas() wrapper — no re-estampar
+      // para evitar loop infinito (re-stamp → state change → re-trigger)
 
       await sb
         .from("atletas")
@@ -32502,26 +32515,30 @@ function CoachApp({ session, profile, onLogout }) {
     const syncOverrides = (useKeepalive = false) => {
       if (prevMesociclosRef.current === null) return;
       flushPendingDeletes();
-      const curr = mesociclosRef.current;
-      if (curr.length > 0) {
-        sb.from("mesociclos")
-          .upsert(
-            curr.map((m) => mesoToDb(m, coachId)),
-            { onConflict: "app_id" },
-          )
-          .catch(() => {});
+      // Solo sincronizar si hay timers pendientes (cambios no guardados)
+      const hadPendingMesos = mesoSyncTimerRef.current !== null;
+      const hadPendingAtletas = atletaSyncTimerRef.current !== null;
+      if (hadPendingMesos) {
+        const curr = mesociclosRef.current;
+        if (curr.length > 0) {
+          sb.from("mesociclos")
+            .upsert(
+              curr.map((m) => mesoToDb(m, coachId)),
+              { onConflict: "app_id" },
+            )
+            .catch(() => {});
+        }
       }
-      // Sincronizar atletas también (antes se omitía causando pérdida de datos)
-      const currAtletas = atletasRef.current;
-      if (currAtletas.length > 0) {
-        const now = new Date().toISOString();
-        sb.from("atletas")
-          .upsert(
-            currAtletas.map((a) => atletaToDb({ ...a, _updated_at: a._updated_at || now }, coachId)),
-            { onConflict: "app_id" },
-          )
-          .catch(() => {});
-        broadcastDbWrite("atletas");
+      if (hadPendingAtletas) {
+        const currAtletas = atletasRef.current;
+        if (currAtletas.length > 0) {
+          sb.from("atletas")
+            .upsert(
+              currAtletas.map((a) => atletaToDb(a, coachId)),
+              { onConflict: "app_id" },
+            )
+            .catch(() => {});
+        }
       }
       // Flush pending plantilla timers
       flushPlantillaSync();
