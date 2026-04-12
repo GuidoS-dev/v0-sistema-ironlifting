@@ -23284,9 +23284,17 @@ function PagePDF({
         padding-left: 10px;
       }
 
-      /* Empty cells: hide */
+      /* Empty cells: hide (except pretemporada rows) */
       .pdf-table td[data-label]:has(.cell-empty) {
         display: none;
+      }
+      .pdf-table tr.pretemporada-row td[data-label]:has(.cell-empty) {
+        display: flex;
+      }
+      .pdf-table tr.pretemporada-row td[data-label]:has(.cell-empty) .cell-empty {
+        color: #333;
+        font-size: 13px;
+        padding: 10px 14px;
       }
 
       .pdf-table .cell-empty {
@@ -24131,7 +24139,7 @@ window.addEventListener('load',updateStickyTurnos);
                               rowArr.push(
                                 <tr
                                   key={rIdx}
-                                  className={isLast ? "last-ej" : ""}
+                                  className={`${isLast ? "last-ej" : ""} ${row.isPretemporadaRow ? "pretemporada-row" : ""}`}
                                 >
                                   {row.isPretemporadaRow ? (
                                     <>
@@ -24204,7 +24212,7 @@ window.addEventListener('load',updateStickyTurnos);
                                           return (
                                             <td
                                               key={bIdx}
-                                              data-label={col?.pct != null ? `${col.pct}%` : ""}
+                                              data-label={col?.pct != null ? `${col.pct}%` : (row.isPretemporadaRow ? `B${bIdx + 1}` : "")}
                                             >
                                               <span className="cell-empty">
                                                 –
@@ -24215,7 +24223,7 @@ window.addEventListener('load',updateStickyTurnos);
                                         return (
                                           <td
                                             key={bIdx}
-                                            data-label={col?.pct != null ? `${col.pct}%` : ""}
+                                            data-label={col?.pct != null ? `${col.pct}%` : (row.isPretemporadaRow ? `B${bIdx + 1}` : "")}
                                             style={{ background: gb }}
                                           >
                                             <div className="cell-data">
