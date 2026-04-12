@@ -24203,7 +24203,7 @@ window.addEventListener('load',updateStickyTurnos);
                                           return (
                                             <td
                                               key={bIdx}
-                                              data-label={`B${bIdx + 1}`}
+                                              data-label={col?.pct != null ? `${col.pct}%` : ""}
                                             >
                                               <span className="cell-empty">
                                                 –
@@ -24214,7 +24214,7 @@ window.addEventListener('load',updateStickyTurnos);
                                         return (
                                           <td
                                             key={bIdx}
-                                            data-label={row.isPretemporadaRow && col?.pct != null ? `${col.pct}%` : `B${bIdx + 1}`}
+                                            data-label={col?.pct != null ? `${col.pct}%` : ""}
                                             style={{ background: gb }}
                                           >
                                             <div className="cell-data">
