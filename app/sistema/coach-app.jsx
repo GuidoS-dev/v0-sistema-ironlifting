@@ -538,6 +538,7 @@ const sb = {
         });
         if (r.ok) return { data: null, error: null };
         const errBody = await r.json().catch(() => ({}));
+        console.warn(`DELETE ${_q.table} failed (${r.status}):`, errBody);
         return { data: null, error: errBody };
       },
     };
@@ -24661,8 +24662,14 @@ function usePlantillas(coachId) {
       sb.from("plantillas")
         .eq("app_id", id)
         .delete()
-        .then(() => pendingDeletePlantillaIdsRef.current.delete(id))
-        .catch(() => {});
+        .then((res) => {
+          if (res?.error) {
+            console.warn("DELETE plantilla failed, keeping pending:", id, res.error);
+          } else {
+            pendingDeletePlantillaIdsRef.current.delete(id);
+          }
+        })
+        .catch((e) => console.warn("DELETE plantilla exception:", id, e));
     }
   };
   return { plantillas, add, update, remove };
@@ -32072,8 +32079,14 @@ function CoachApp({ session, profile, onLogout }) {
         sb.from("atletas")
           .eq("app_id", id)
           .delete()
-          .then(() => pendingDeleteAtletaIdsRef.current.delete(id))
-          .catch(() => {});
+          .then((res) => {
+            if (res?.error) {
+              console.warn("DELETE atleta failed, keeping pending:", id, res.error);
+            } else {
+              pendingDeleteAtletaIdsRef.current.delete(id);
+            }
+          })
+          .catch((e) => console.warn("DELETE atleta exception:", id, e));
       }
       prevAtletasRef.current = curr;
     }
@@ -32128,8 +32141,14 @@ function CoachApp({ session, profile, onLogout }) {
         sb.from("mesociclos")
           .eq("app_id", id)
           .delete()
-          .then(() => pendingDeleteMesoIdsRef.current.delete(id))
-          .catch(() => {});
+          .then((res) => {
+            if (res?.error) {
+              console.warn("DELETE mesociclo failed, keeping pending:", id, res.error);
+            } else {
+              pendingDeleteMesoIdsRef.current.delete(id);
+            }
+          })
+          .catch((e) => console.warn("DELETE mesociclo exception:", id, e));
       }
       prevMesociclosRef.current = curr;
     }
@@ -32169,7 +32188,9 @@ function CoachApp({ session, profile, onLogout }) {
         .map((p) => p.id);
       for (const id of deletedAtletaIds) {
         pendingDeleteAtletaIdsRef.current.add(id);
-        sb.from("atletas").eq("app_id", id).delete().catch(() => {});
+        sb.from("atletas").eq("app_id", id).delete()
+          .then((res) => { if (res?.error) console.warn("flush DELETE atleta failed:", id, res.error); })
+          .catch((e) => console.warn("flush DELETE atleta exception:", id, e));
       }
       prevAtletasRef.current = currAtletas;
 
@@ -32180,7 +32201,9 @@ function CoachApp({ session, profile, onLogout }) {
         .map((p) => p.id);
       for (const id of deletedMesoIds) {
         pendingDeleteMesoIdsRef.current.add(id);
-        sb.from("mesociclos").eq("app_id", id).delete().catch(() => {});
+        sb.from("mesociclos").eq("app_id", id).delete()
+          .then((res) => { if (res?.error) console.warn("flush DELETE meso failed:", id, res.error); })
+          .catch((e) => console.warn("flush DELETE meso exception:", id, e));
       }
       prevMesociclosRef.current = currMesos;
     };
