@@ -16738,7 +16738,7 @@ function PageAtletas({
     if (!SUPA_CONFIG_OK) return;
     sb.from("profiles")
       .select("id, nombre, email")
-      .eq("tipo", "atleta")
+      .eq("rol", "atleta")
       .then(({ data }) => {
         if (data) setRegisteredUsers(data);
       })
