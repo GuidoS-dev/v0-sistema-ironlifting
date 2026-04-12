@@ -23154,6 +23154,9 @@ function PagePDF({
         justify-content: flex-start !important;
         padding: 10px 12px !important;
       }
+      .pdf-table .cell-pct-pretemp {
+        display: none;
+      }
       .pdf-table .ej-nombre {
         font-size: 13px;
         font-weight: 700;
@@ -23287,6 +23290,16 @@ function PagePDF({
       .pdf-table .cell-empty {
         font-size: 14px;
         color: #333;
+      }
+      .pdf-table .cell-pct-pretemp {
+        font-size: 9px;
+        font-weight: 700;
+        color: #f0b429;
+        background: #1a1a2e;
+        padding: 3px 6px;
+        border-radius: 4px;
+        margin-right: 4px;
+        white-space: nowrap;
       }
 
       /* Separator rows */
@@ -23807,8 +23820,8 @@ window.addEventListener('load',updateStickyTurnos);
             </div>
             <div className="pdf-cover-sub">
               {meso.fecha_inicio}
-              {meso.modo ? <>&nbsp;·&nbsp; {meso.modo}</> : null}
-              {meso.volumen_total ? <>&nbsp;·&nbsp; {meso.volumen_total.toLocaleString()} reps totales</> : null}
+              {!isPretemp && meso.modo ? <>&nbsp;·&nbsp; {meso.modo}</> : null}
+              {!isPretemp && meso.volumen_total ? <>&nbsp;·&nbsp; {meso.volumen_total.toLocaleString()} reps totales</> : null}
             </div>
           </div>
           <div className="pdf-cover-right">
@@ -24189,12 +24202,12 @@ window.addEventListener('load',updateStickyTurnos);
                                         return (
                                           <td
                                             key={bIdx}
-                                            data-label={`B${bIdx + 1}`}
+                                            data-label={row.isPretemporadaRow && col?.pct != null ? `${col.pct}%` : `B${bIdx + 1}`}
                                             style={{ background: gb }}
                                           >
-                                            <div className="cell-data" style={hasPretemporadaRows ? { gridTemplateColumns: "1fr 1fr 1fr 1fr" } : undefined}>
-                                              {hasPretemporadaRows && col.pct != null && (
-                                                <span className="cell-series" style={{ color: "#f0b429", fontSize: 8 }}>
+                                            <div className="cell-data">
+                                              {row.isPretemporadaRow && col.pct != null && (
+                                                <span className="cell-pct-pretemp">
                                                   {col.pct}%
                                                 </span>
                                               )}
