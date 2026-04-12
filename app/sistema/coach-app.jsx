@@ -24494,6 +24494,7 @@ function usePlantillas(coachId) {
     }
   });
   const plantillaSyncTimersRef = useRef(new Map());
+  const pendingDeletePlantillaIdsRef = useRef(new Set());
 
   const queuePlantillaSync = useCallback(
     (item, delay = 4000) => {
@@ -24536,8 +24537,11 @@ function usePlantillas(coachId) {
       if (appPlantillas.length > 0) {
         const loaded = appPlantillas.map(plantillaFromDb);
         setPlantillas((prev) => {
+          const pendingDel = pendingDeletePlantillaIdsRef.current;
           // LWW per-item: only overwrite items where DB is actually newer
-          const merged = loaded.map((dbItem) => {
+          const merged = loaded
+            .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
+            .map((dbItem) => {
             const local = prev.find((p) => p.id === dbItem.id);
             if (!local) return dbItem;
             const dbTs = dbItem._updated_at
@@ -24550,7 +24554,7 @@ function usePlantillas(coachId) {
           });
           // Keep local items not yet in DB
           prev.forEach((localItem) => {
-            if (!merged.find((m) => m.id === localItem.id))
+            if (!pendingDel.has(localItem.id) && !merged.find((m) => m.id === localItem.id))
               merged.push(localItem);
           });
           if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
@@ -24639,6 +24643,7 @@ function usePlantillas(coachId) {
       clearTimeout(pending);
       plantillaSyncTimersRef.current.delete(id);
     }
+    pendingDeletePlantillaIdsRef.current.add(id);
     setPlantillas((prev) => {
       const next = prev.filter((x) => x.id !== id);
       try {
@@ -24655,6 +24660,7 @@ function usePlantillas(coachId) {
       sb.from("plantillas")
         .eq("app_id", id)
         .delete()
+        .then(() => pendingDeletePlantillaIdsRef.current.delete(id))
         .catch(() => {});
     }
   };
@@ -31710,6 +31716,9 @@ function CoachApp({ session, profile, onLogout }) {
   const prevMesociclosRef = useRef(null);
   const atletasRef = useRef(atletas);
   const mesociclosRef = useRef(mesociclos);
+  // IDs pendientes de borrado en DB (evita que pull restaure items eliminados)
+  const pendingDeleteAtletaIdsRef = useRef(new Set());
+  const pendingDeleteMesoIdsRef = useRef(new Set());
   useEffect(() => {
     atletasRef.current = atletas;
   }, [atletas]);
@@ -31935,8 +31944,11 @@ function CoachApp({ session, profile, onLogout }) {
 
       const loaded = appAtletas.map(atletaFromDb);
       setAtletasRaw((prev) => {
+        const pendingDel = pendingDeleteAtletaIdsRef.current;
         // LWW: solo actualizar items donde DB es más reciente que local
-        const merged = loaded.map((dbItem) => {
+        const merged = loaded
+          .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
+          .map((dbItem) => {
           const local = prev.find((p) => p.id === dbItem.id);
           if (!local) return dbItem; // nuevo en DB
           const dbTs = dbItem._updated_at
@@ -31949,7 +31961,7 @@ function CoachApp({ session, profile, onLogout }) {
         });
         // agregar items locales que aún no están en DB
         prev.forEach((localItem) => {
-          if (!merged.find((m) => m.id === localItem.id))
+          if (!pendingDel.has(localItem.id) && !merged.find((m) => m.id === localItem.id))
             merged.push(localItem);
         });
         if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
@@ -31998,8 +32010,11 @@ function CoachApp({ session, profile, onLogout }) {
 
       const loaded = appMesos.map(mesoFromDb);
       setMesociclosRaw((prev) => {
+        const pendingDel = pendingDeleteMesoIdsRef.current;
         // LWW: solo actualizar items donde DB es más reciente que local
-        const merged = loaded.map((dbItem) => {
+        const merged = loaded
+          .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
+          .map((dbItem) => {
           const local = prev.find((p) => p.id === dbItem.id);
           if (!local) return dbItem;
           const dbTs = dbItem._updated_at
@@ -32011,7 +32026,7 @@ function CoachApp({ session, profile, onLogout }) {
           return dbTs >= localTs ? dbItem : local;
         });
         prev.forEach((localItem) => {
-          if (!merged.find((m) => m.id === localItem.id))
+          if (!pendingDel.has(localItem.id) && !merged.find((m) => m.id === localItem.id))
             merged.push(localItem);
         });
         if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
@@ -32053,13 +32068,14 @@ function CoachApp({ session, profile, onLogout }) {
       const deletedIds = prev
         .filter((p) => !curr.find((a) => a.id === p.id))
         .map((p) => p.id);
+      // Registrar IDs pendientes de borrado para que pull no los restaure
+      deletedIds.forEach((id) => pendingDeleteAtletaIdsRef.current.add(id));
       const now = new Date().toISOString();
       const toUpsert = curr.filter((a) => {
         const old = prev.find((p) => p.id === a.id);
         return !old || JSON.stringify(old) !== JSON.stringify(a);
       });
       // Skip DB sync if nothing changed
-      if (deletedIds.length === 0 && toUpsert.length === 0) return;
       if (deletedIds.length === 0 && toUpsert.length === 0) return;
 
       if (toUpsert.length > 0) {
@@ -32078,6 +32094,7 @@ function CoachApp({ session, profile, onLogout }) {
           .eq("app_id", id)
           .delete()
           .catch(() => {});
+        pendingDeleteAtletaIdsRef.current.delete(id);
       }
       if (toUpsert.length > 0) {
         await sb
@@ -32106,6 +32123,8 @@ function CoachApp({ session, profile, onLogout }) {
       const deletedIds = prev
         .filter((p) => !curr.find((m) => m.id === p.id))
         .map((p) => p.id);
+      // Registrar IDs pendientes de borrado para que pull no los restaure
+      deletedIds.forEach((id) => pendingDeleteMesoIdsRef.current.add(id));
       const toUpsert = curr.filter((m) => {
         const old = prev.find((p) => p.id === m.id);
         return !old || JSON.stringify(old) !== JSON.stringify(m);
@@ -32118,6 +32137,7 @@ function CoachApp({ session, profile, onLogout }) {
           .eq("app_id", id)
           .delete()
           .catch(() => {});
+        pendingDeleteMesoIdsRef.current.delete(id);
       }
       if (toUpsert.length > 0) {
         await sb
@@ -32135,8 +32155,34 @@ function CoachApp({ session, profile, onLogout }) {
   // ── Sincronizar overrides al ocultar/cerrar (sin polling periódico) ───────
   useEffect(() => {
     if (!coachId) return;
+    const flushPendingDeletes = () => {
+      // Ejecutar borrados pendientes que no se enviaron aún a DB
+      const prevAtletas = prevAtletasRef.current || [];
+      const currAtletas = atletasRef.current;
+      const deletedAtletaIds = prevAtletas
+        .filter((p) => !currAtletas.find((a) => a.id === p.id))
+        .map((p) => p.id);
+      for (const id of deletedAtletaIds) {
+        pendingDeleteAtletaIdsRef.current.add(id);
+        sb.from("atletas").eq("app_id", id).delete().catch(() => {});
+      }
+      prevAtletasRef.current = currAtletas;
+
+      const prevMesos = prevMesociclosRef.current || [];
+      const currMesos = mesociclosRef.current;
+      const deletedMesoIds = prevMesos
+        .filter((p) => !currMesos.find((m) => m.id === p.id))
+        .map((p) => p.id);
+      for (const id of deletedMesoIds) {
+        pendingDeleteMesoIdsRef.current.add(id);
+        sb.from("mesociclos").eq("app_id", id).delete().catch(() => {});
+      }
+      prevMesociclosRef.current = currMesos;
+    };
+
     const syncOverrides = () => {
       if (prevMesociclosRef.current === null) return;
+      flushPendingDeletes();
       const curr = mesociclosRef.current;
       if (curr.length > 0) {
         sb.from("mesociclos")
