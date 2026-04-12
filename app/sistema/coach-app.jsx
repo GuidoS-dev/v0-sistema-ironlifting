@@ -2185,11 +2185,11 @@ const css = `
   /* FORM */
   .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-width:0;width:100%;max-width:100%}
   .form-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-  .form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:border .2s;width:100%;box-sizing:border-box;min-width:0;max-width:100%}
+  .form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;padding:9px 12px;outline:none;transition:border .2s;width:100%;box-sizing:border-box;min-width:0;max-width:100%}
   .form-input:focus{border-color:var(--gold)}
   input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   input[type=number]{-moz-appearance:textfield}
-  .form-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;cursor:pointer;width:100%;box-sizing:border-box;min-width:0;max-width:100%}
+  .form-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;padding:9px 12px;outline:none;cursor:pointer;width:100%;box-sizing:border-box;min-width:0;max-width:100%}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
   .form-row .form-group{flex:none;min-width:0;margin-bottom:0;width:100%}
 
@@ -2244,7 +2244,7 @@ const css = `
   .grupo-item{background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid}
   .grupo-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
   .grupo-pct{display:flex;align-items:center;gap:6px}
-  .grupo-pct input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;font-weight:600;padding:4px 8px;width:60px;text-align:center;outline:none}
+  .grupo-pct input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;font-weight:600;padding:4px 8px;width:60px;text-align:center;outline:none}
   .grupo-reps{font-size:11px;color:var(--muted);margin-top:4px}
 
   /* TURNOS */
@@ -2253,7 +2253,7 @@ const css = `
   .turno-header:hover{background:var(--surface3)}
   .turno-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold);min-width:36px}
   .turno-dia{flex:1;display:flex;gap:8px;align-items:center}
-  .turno-dia select{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:4px 8px;outline:none;cursor:pointer}
+  .turno-dia select{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;padding:4px 8px;outline:none;cursor:pointer}
   .turno-stats{display:flex;gap:12px;margin-left:auto}
   .turno-stat{text-align:center}
   .turno-stat-val{font-family:'Bebas Neue',sans-serif;font-size:16px}
@@ -2269,8 +2269,8 @@ const css = `
   .comp-row{display:grid;grid-template-columns:28px 1fr 80px 70px 70px 80px 150px 20px auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
   .comp-row:last-child{border-bottom:none}
   .ej-num{font-size:11px;color:var(--muted);text-align:center}
-  .ej-select{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;width:100%}
-  .ej-input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;text-align:center;width:100%}
+  .ej-select{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;padding:5px 8px;outline:none;width:100%}
+  .ej-input{background:var(--surface3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;padding:5px 8px;outline:none;text-align:center;width:100%}
   .ej-cat{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
   .ej-kg{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);text-align:center}
   .sembrado-kb-nav{transition:all .12s}
@@ -2364,7 +2364,7 @@ const css = `
     .form-row{grid-template-columns:1fr}
     .modal-overlay{padding:12px}
     .modal-title{font-size:20px}
-    .form-input,.form-select{padding:8px 10px;font-size:13px}
+    .form-input,.form-select{padding:8px 10px;font-size:16px}
     .page-title{font-size:26px}
     .turno-card{border-radius:8px}
     .turno-num{font-size:18px;min-width:28px}
@@ -34194,7 +34194,7 @@ export default function App() {
           body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin:0}
           .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
           .form-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-          .form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans';font-size:13px;padding:9px 12px;outline:none;transition:border .2s;width:100%;box-sizing:border-box}
+          .form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans';font-size:16px;padding:9px 12px;outline:none;transition:border .2s;width:100%;box-sizing:border-box}
           .form-input:focus{border-color:var(--gold)}
           .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans';font-size:13px;font-weight:600;transition:all .2s}
           .btn-gold{background:var(--gold);color:#0a0c10}
