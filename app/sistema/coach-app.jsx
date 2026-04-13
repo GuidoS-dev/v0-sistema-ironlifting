@@ -3213,7 +3213,18 @@ function formatFechaSemana(isoDate) {
   if (!isoDate) return "";
   const d = parseAppDate(isoDate);
   if (!d) return isoDate;
-  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}-${mm}-${d.getFullYear()}`;
+}
+
+function formatDateDisplay(isoDate) {
+  if (!isoDate) return "";
+  const d = parseAppDate(isoDate);
+  if (!d) return isoDate;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}-${mm}-${d.getFullYear()}`;
 }
 
 function AtletaForm({
@@ -3728,10 +3739,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
           <input
             className="form-input"
             name="meso_fecha_inicio"
-            type="text"
+            type="date"
             value={form.fecha_inicio}
             onChange={(e) => set("fecha_inicio", e.target.value)}
-            placeholder="AAAA-MM-DD"
           />
         </div>
         <div className="form-group">
@@ -3912,7 +3922,7 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
                   Semana {sem.numero}
                 </div>
                 <div style={{ fontSize: 11, color: sem.fecha_override ? "var(--gold)" : "var(--muted)", marginBottom: 6 }}>
-                  {sem.fecha_override || fechaAuto || "—"}
+                  {formatDateDisplay(sem.fecha_override || fechaAuto) || "—"}
                   {sem.fecha_override && (
                     <button
                       type="button"
@@ -16650,7 +16660,7 @@ function AtletaCardItem({
               </span>
             )}
             <span className="text-sm text-muted">
-              {mesoActivo.fecha_inicio}
+              {formatDateDisplay(mesoActivo.fecha_inicio)}
             </span>
             {(mesoActivo.irm_arranque || mesoActivo.irm_envion) && (
               <span
@@ -16757,13 +16767,7 @@ function AtletaCardItem({
             title={`Última edición: ${new Date(mesoActivo._updated_at).toLocaleString()}`}
           >
             ed.{" "}
-            {new Date(mesoActivo._updated_at).toLocaleDateString("es-AR", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}{" "}
+            {(() => { const _d = new Date(mesoActivo._updated_at); return `${String(_d.getDate()).padStart(2,"0")}-${String(_d.getMonth()+1).padStart(2,"0")}-${_d.getFullYear()} ${String(_d.getHours()).padStart(2,"0")}:${String(_d.getMinutes()).padStart(2,"0")}`; })()}{" "}
             <span
               style={{
                 fontWeight: 700,
@@ -17351,7 +17355,7 @@ function PageAtletas({
                     background: m.activo ? "rgba(71,232,160,.04)" : undefined,
                   }}
                 >
-                  <div className="historial-fecha">{m.fecha_inicio}</div>
+                  <div className="historial-fecha">{formatDateDisplay(m.fecha_inicio)}</div>
                   <div className="historial-info">
                     <div className="historial-name">
                       {m.nombre || "Mesociclo sin nombre"}
@@ -17508,9 +17512,8 @@ function EditMesoModal({ meso, onSave, onClose }) {
           <input
             name="field_40"
             className="form-input"
-            type="text"
+            type="date"
             value={form.fecha_inicio}
-            placeholder="AAAA-MM-DD"
             onChange={(e) => set("fecha_inicio", e.target.value)}
           />
         </div>
@@ -17757,7 +17760,7 @@ function EditVolModal({ meso, onSave, onClose }) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <span style={{ fontSize: 11, color: s.fecha_override ? "var(--gold)" : "var(--muted)" }}>
-                {s.fecha_override || getFechaSemana(meso.fecha_inicio, s.numero) || "—"}
+                {formatDateDisplay(s.fecha_override || getFechaSemana(meso.fecha_inicio, s.numero)) || "—"}
               </span>
               <input
                 className="form-input"
@@ -19210,7 +19213,7 @@ function PageAtleta({
               {mesoAtleta.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.nombre ? `${m.nombre} — ` : ""}
-                  {m.fecha_inicio} · {m.modo}
+                  {formatDateDisplay(m.fecha_inicio)} · {m.modo}
                   {m.activo ? " ✓" : ""}
                 </option>
               ))}
@@ -19328,7 +19331,7 @@ function PageAtleta({
                     minWidth: 110,
                   }}
                 >
-                  {m.fecha_inicio}
+                  {formatDateDisplay(m.fecha_inicio)}
                 </div>
 
                 <div
@@ -23904,7 +23907,7 @@ window.addEventListener('load',updateStickyTurnos);
               {meso.nombre || (isPretemp ? "Pretemporada" : "Mesociclo de Entrenamiento")}
             </div>
             <div className="pdf-cover-sub">
-              {meso.fecha_inicio}
+              {formatDateDisplay(meso.fecha_inicio)}
               {!isPretemp && meso.modo ? <>&nbsp;·&nbsp; {meso.modo}</> : null}
               {!isPretemp && meso.volumen_total ? <>&nbsp;·&nbsp; {meso.volumen_total.toLocaleString()} reps totales</> : null}
             </div>
@@ -23938,11 +23941,7 @@ window.addEventListener('load',updateStickyTurnos);
               )}
             </div>
             <div style={{ fontSize: 7, color: "#555", marginTop: 10 }}>
-              {new Date().toLocaleDateString("es-AR", {
-                day: "2-digit",
-                month: "long",
-                year: "numeric",
-              })}
+              {formatDateDisplay(new Date().toISOString().slice(0, 10))}
             </div>
           </div>
         </div>
@@ -24573,11 +24572,7 @@ window.addEventListener('load',updateStickyTurnos);
               <span style={{ color: "#aaa" }}>·</span> {atleta.nombre}
             </div>
             <div>
-              {new Date().toLocaleDateString("es-AR", {
-                day: "2-digit",
-                month: "long",
-                year: "numeric",
-              })}
+              {formatDateDisplay(new Date().toISOString().slice(0, 10))}
             </div>
           </div>
         </div>
@@ -31638,7 +31633,7 @@ function PanelReferencia({
               ) : (
                 misMesos.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.nombre || "Sin nombre"} · {m.fecha_inicio} · {m.modo}
+                    {m.nombre || "Sin nombre"} · {formatDateDisplay(m.fecha_inicio)} · {m.modo}
                   </option>
                 ))
               )}
