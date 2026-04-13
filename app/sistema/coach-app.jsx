@@ -3077,6 +3077,13 @@ function parseAppDate(value) {
   const raw = String(value).trim();
   if (!raw) return null;
 
+  // YYYY-MM-DD → parse as local time (not UTC)
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d));
+  }
+
   const direct = new Date(raw);
   if (!isNaN(direct.getTime())) return direct;
 
@@ -3201,7 +3208,9 @@ function getFechaSemana(mesoFechaInicio, semanaNum) {
   if (isNaN(num)) return null;
   d.setDate(d.getDate() + (num - 1) * 7);
   if (isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 function getFechaSemanaEfectiva(mesoFechaInicio, sem) {
