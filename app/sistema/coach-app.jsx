@@ -2145,6 +2145,7 @@ const mkSemanas = () =>
     pct_volumen: 25,
     reps_calculadas: 0,
     reps_ajustadas: 0,
+    fecha_override: "",
     pct_grupos: { Arranque: 25, Envion: 35, Tirones: 20, Piernas: 20 },
     turnos: mkTurnos(),
   }));
@@ -2178,6 +2179,7 @@ const mkSemanasBasica = (numSem = 4, numBloques = 3) =>
   Array.from({ length: numSem }, (_, i) => ({
     id: mkId(),
     numero: i + 1,
+    fecha_override: "",
     turnos: mkTurnosBasica(numBloques),
   }));
 
@@ -2200,6 +2202,7 @@ const mkSemanasPretemp = (numSem = 4, numBloques = 3) =>
   Array.from({ length: numSem }, (_, i) => ({
     id: mkId(),
     numero: i + 1,
+    fecha_override: "",
     turnos: mkTurnosPretemp(numBloques),
   }));
 
@@ -3201,6 +3204,18 @@ function getFechaSemana(mesoFechaInicio, semanaNum) {
   return d.toISOString().slice(0, 10);
 }
 
+function getFechaSemanaEfectiva(mesoFechaInicio, sem) {
+  if (sem.fecha_override) return sem.fecha_override;
+  return getFechaSemana(mesoFechaInicio, sem.numero);
+}
+
+function formatFechaSemana(isoDate) {
+  if (!isoDate) return "";
+  const d = parseAppDate(isoDate);
+  if (!d) return isoDate;
+  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 function AtletaForm({
   atleta,
   tipoInicial = "atleta",
@@ -3881,7 +3896,9 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
               gap: 10,
             }}
           >
-            {form.semanas.map((sem, i) => (
+            {form.semanas.map((sem, i) => {
+              const fechaAuto = getFechaSemana(form.fecha_inicio, sem.numero);
+              return (
               <div
                 key={sem.id}
                 style={{
@@ -3894,6 +3911,34 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
                 <div className="text-sm text-muted mb8">
                   Semana {sem.numero}
                 </div>
+                <div style={{ fontSize: 11, color: sem.fecha_override ? "var(--gold)" : "var(--muted)", marginBottom: 6 }}>
+                  {sem.fecha_override || fechaAuto || "—"}
+                  {sem.fecha_override && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const s = [...form.semanas];
+                        s[i] = { ...s[i], fecha_override: "" };
+                        set("semanas", s);
+                      }}
+                      style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 10, marginLeft: 4 }}
+                      title="Restaurar fecha automática"
+                    >✕</button>
+                  )}
+                </div>
+                <input
+                  className="form-input"
+                  name={`semana_fecha_${i}`}
+                  type="date"
+                  value={sem.fecha_override || ""}
+                  onChange={(e) => {
+                    const s = [...form.semanas];
+                    s[i] = { ...s[i], fecha_override: e.target.value };
+                    set("semanas", s);
+                  }}
+                  style={{ width: "100%", fontSize: 11, marginBottom: 6 }}
+                  placeholder="Sobreescribir fecha"
+                />
                 <div className="flex gap8" style={{ alignItems: "center" }}>
                   <input
                     className="form-input"
@@ -3919,7 +3964,8 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
                   <span className="text-sm text-muted">reps</span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           <div
             className="mt12 text-sm"
@@ -17703,11 +17749,40 @@ function EditVolModal({ meso, onSave, onClose }) {
                 fontFamily: "'Bebas Neue'",
                 fontSize: 16,
                 color: "var(--gold)",
-                marginBottom: 10,
+                marginBottom: 4,
                 letterSpacing: ".05em",
               }}
             >
               SEMANA {s.numero}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 11, color: s.fecha_override ? "var(--gold)" : "var(--muted)" }}>
+                {s.fecha_override || getFechaSemana(meso.fecha_inicio, s.numero) || "—"}
+              </span>
+              <input
+                className="form-input"
+                type="date"
+                value={s.fecha_override || ""}
+                onChange={(e) => {
+                  const ns = [...semanas];
+                  ns[i] = { ...ns[i], fecha_override: e.target.value };
+                  setSemanas(ns);
+                }}
+                style={{ width: 130, fontSize: 11 }}
+              />
+              {s.fecha_override && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => {
+                    const ns = [...semanas];
+                    ns[i] = { ...ns[i], fecha_override: "" };
+                    setSemanas(ns);
+                  }}
+                  title="Restaurar fecha automática"
+                  style={{ minWidth: 22, padding: "2px 4px", fontSize: 10 }}
+                >✕</button>
+              )}
             </div>
             <div
               style={{
@@ -23898,7 +23973,17 @@ window.addEventListener('load',updateStickyTurnos);
               {/* Sem header */}
               <div className="pdf-sem-header">
                 <div className="pdf-sem-info">
-                  <div className="pdf-sem-title">{isPretemp ? `TURNOS ${tFirst}-${tLast}` : `SEMANA ${sem.numero}`}</div>
+                  <div className="pdf-sem-title">
+                    {isPretemp ? `TURNOS ${tFirst}-${tLast}` : `SEMANA ${sem.numero}`}
+                    {!isPretemp && (() => {
+                      const fechaSem = getFechaSemanaEfectiva(meso.fecha_inicio, sem);
+                      return fechaSem ? (
+                        <span style={{ fontWeight: 400, fontSize: 9, color: "#666", marginLeft: 8 }}>
+                          {formatFechaSemana(fechaSem)}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
                   {isPretemp ? (
                     <div className="pdf-sem-details">
                       {turnos.length} turno{turnos.length !== 1 ? "s" : ""}
