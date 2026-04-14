@@ -6,11 +6,16 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NOTIFY_EMAIL = "guido.tpc@gmail.com";
 
 export async function POST(request: NextRequest) {
-  const rateLimitResponse = checkRateLimit(request, {
+  const rateLimit = checkRateLimit(request, "notify-registration", {
     maxRequests: 5,
     windowMs: 60_000,
   });
-  if (rateLimitResponse) return rateLimitResponse;
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } },
+    );
+  }
 
   if (!RESEND_API_KEY) {
     return NextResponse.json(
