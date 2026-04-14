@@ -33681,6 +33681,11 @@ function AtletaPanel({ session, profile, onLogout }) {
             .eq("app_atleta_id", atleta.app_id)
             .order("updated_at", { ascending: false });
           if (mesosData) {
+            // Restore overrides (repsEdit, cellEdit, etc.) into localStorage
+            // so PagePDF can read them — same as CoachApp does on pull
+            mesosData.forEach((r) => {
+              if (r.app_id && r.overrides) restoreMesoOverrides(r.app_id, r.overrides);
+            });
             setMesociclos(mesosData.map(mesoFromDb));
           }
 
