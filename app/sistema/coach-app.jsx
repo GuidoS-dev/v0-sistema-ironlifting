@@ -31932,11 +31932,12 @@ function LoginScreen({ onAuth }) {
       }
     }
 
+    const registeredNombre = toTitleCase(nombre || email.split("@")[0]);
     const { data, error } = await sb.auth.signUp({
       email,
       password,
       options: {
-        data: { nombre: toTitleCase(nombre || email.split("@")[0]), rol },
+        data: { nombre: registeredNombre, rol },
       },
     });
     setLoading(false);
@@ -31945,6 +31946,12 @@ function LoginScreen({ onAuth }) {
       setMsg("");
       return;
     }
+    // Notify admin of new registration (fire-and-forget)
+    fetch("/api/notify-registration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, nombre: registeredNombre, tipo: rol }),
+    }).catch(() => {});
     setError("");
     setMsg(
       rol === "coach"
