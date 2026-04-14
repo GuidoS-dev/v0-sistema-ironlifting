@@ -4,13 +4,54 @@ import { checkRateLimit } from "@/lib/rate-limit";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const RATE_LIMIT_MAX_REQUESTS = Number(
-  process.env.API_RATE_LIMIT_MAX_REQUESTS || 60,
+  process.env.API_RATE_LIMIT_MAX_REQUESTS || 30,
 );
 const RATE_LIMIT_WINDOW_MS = Number(
   process.env.API_RATE_LIMIT_WINDOW_MS || 60_000,
 );
 
 const ALLOWED_PREFIXES = ["/auth/v1/", "/rest/v1/"];
+
+// Allowed origins — add your custom domain here if you have one
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+);
+
+function isAllowedOrigin(req: NextRequest): boolean {
+  const origin = req.headers.get("origin");
+  const referer = req.headers.get("referer");
+
+  // Allow same-origin requests (no origin header = same-origin navigation)
+  if (!origin && !referer) return true;
+
+  // Check origin header
+  if (origin) {
+    if (ALLOWED_ORIGINS.has(origin)) return true;
+    // Allow Vercel preview deployments and the production URL
+    try {
+      const url = new URL(origin);
+      if (url.hostname.endsWith(".vercel.app")) return true;
+      if (url.hostname === "localhost") return true;
+    } catch {}
+    return false;
+  }
+
+  // Fallback: check referer
+  if (referer) {
+    try {
+      const url = new URL(referer);
+      if (ALLOWED_ORIGINS.has(url.origin)) return true;
+      if (url.hostname.endsWith(".vercel.app")) return true;
+      if (url.hostname === "localhost") return true;
+    } catch {}
+    return false;
+  }
+
+  return false;
+}
 
 function sanitizeStringInput(value: string) {
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
@@ -49,6 +90,14 @@ function getTargetUrl(path: string) {
 }
 
 async function handleProxy(req: NextRequest) {
+  // Block requests from unknown origins (bots, scrapers)
+  if (!isAllowedOrigin(req)) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
   const rateLimit = checkRateLimit(req, "supabase-proxy", {
     maxRequests: RATE_LIMIT_MAX_REQUESTS,
     windowMs: RATE_LIMIT_WINDOW_MS,
@@ -139,6 +188,14 @@ async function handleProxy(req: NextRequest) {
       "content-type",
       upstream.headers.get("content-type") || "application/json",
     );
+
+    // Cache GET responses at the edge for 10s, stale-while-revalidate for 50s
+    if (req.method === "GET") {
+      responseHeaders.set(
+        "cache-control",
+        "public, s-maxage=10, stale-while-revalidate=50",
+      );
+    }
 
     return new Response(text, {
       status: upstream.status,
