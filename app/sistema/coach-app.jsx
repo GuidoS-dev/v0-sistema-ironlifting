@@ -16629,15 +16629,35 @@ function AtletaCardItem({
   const edad = getAgeFromBirthDate(a.fecha_nacimiento);
   return (
     <div className="atleta-card" onClick={() => onSelect(a)}>
-      <div
-        className="atleta-avatar"
-        style={{
-          background:
-            a.tipo === "asesoria" ? "rgba(71,180,232,.15)" : "var(--surface3)",
-          color: a.tipo === "asesoria" ? "var(--blue)" : "var(--gold)",
-        }}
-      >
-        {a.nombre.charAt(0).toUpperCase()}
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <div
+          className="atleta-avatar"
+          style={{
+            background:
+              a.tipo === "asesoria" ? "rgba(71,180,232,.15)" : "var(--surface3)",
+            color: a.tipo === "asesoria" ? "var(--blue)" : "var(--gold)",
+          }}
+        >
+          {a.nombre.charAt(0).toUpperCase()}
+        </div>
+        <div
+          title={a.profile_id ? "Vinculado a cuenta de usuario" : "Sin cuenta vinculada"}
+          style={{
+            position: "absolute",
+            bottom: -2,
+            right: -2,
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            background: "var(--bg)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "2px solid var(--surface)",
+          }}
+        >
+          <User size={10} style={{ color: a.profile_id ? "var(--green)" : "var(--muted)" }} />
+        </div>
       </div>
       <div className="atleta-info">
         <div className="atleta-name">{a.nombre}</div>
