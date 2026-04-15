@@ -36,7 +36,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.0.9";
+const APP_VERSION = "1.0.10";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23716,16 +23716,16 @@ function PagePDF({
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Auto-hide mobile nav after 2s of no scrolling (athlete view only)
+  // Auto-hide mobile nav after 1s of no scrolling (athlete view only)
   React.useEffect(() => {
     if (!isMob || !hideActions) return;
     const onScroll = () => {
       setMobNavHidden(false);
       clearTimeout(mobNavTimerRef.current);
-      mobNavTimerRef.current = setTimeout(() => setMobNavHidden(true), 2000);
+      mobNavTimerRef.current = setTimeout(() => setMobNavHidden(true), 1000);
     };
     // Start the initial timer
-    mobNavTimerRef.current = setTimeout(() => setMobNavHidden(true), 2000);
+    mobNavTimerRef.current = setTimeout(() => setMobNavHidden(true), 1000);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
