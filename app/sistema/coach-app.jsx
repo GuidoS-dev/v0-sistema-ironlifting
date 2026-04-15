@@ -36,7 +36,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.0.10";
+const APP_VERSION = "1.0.11";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23687,6 +23687,34 @@ function PagePDF({
       .pdf-table tr:hover td {
         background: inherit !important;
       }
+      /* Floating indicator when nav is hidden */
+      .mob-nav-indicator {
+        position: fixed;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        right: 12px;
+        z-index: 99;
+        background: rgba(13,17,23,.88);
+        -webkit-backdrop-filter: blur(12px) saturate(1.3);
+        backdrop-filter: blur(12px) saturate(1.3);
+        border: 1px solid rgba(240,180,41,.3);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: 'DM Sans', sans-serif;
+        color: #f0b429;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(0,0,0,.5);
+        transition: opacity .25s ease, transform .25s ease;
+        -webkit-tap-highlight-color: transparent;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .mob-nav-indicator.hidden {
+        opacity: 0;
+        transform: translateY(20px);
+        pointer-events: none;
+      }
       /* Padding inferior para que el contenido no quede tapado por la barra */
       #pdf-preview {
         padding-bottom: 80px !important;
@@ -24784,10 +24812,36 @@ window.addEventListener('load',updateStickyTurnos);
           });
           const activeSem =
             validSems.find((s) => s.semIdx === mobNavActive) || validSems[0];
+          const indicatorLabel = (() => {
+            const semLabel = isPretemp
+              ? (() => { const off = mobTurnoOffsets[activeSem.semIdx] || 0; return `T${off + 1}-${off + (activeSem.sem.turnos || []).length}`; })()
+              : `S${activeSem.sem.numero}`;
+            if (mobActiveTurno >= 0) {
+              const tLabel = isPretemp
+                ? `T${(mobTurnoOffsets[activeSem.semIdx] || 0) + mobActiveTurno + 1}`
+                : `T${mobActiveTurno + 1}`;
+              const dia = activeSem.turnos.find(t => t.tIdx === mobActiveTurno)?.dia;
+              return `${semLabel} · ${tLabel}${dia ? ` · ${dia}` : ""}`;
+            }
+            return semLabel;
+          })();
           return (
-            <div
-              className={`pdf-mobile-nav no-print${mobNavHidden ? " mob-nav-hidden" : ""}`}
-            >
+            <>
+              {hideActions && (
+                <div
+                  className={`mob-nav-indicator no-print${!mobNavHidden ? " hidden" : ""}`}
+                  onClick={() => {
+                    setMobNavHidden(false);
+                    clearTimeout(mobNavTimerRef.current);
+                    mobNavTimerRef.current = setTimeout(() => setMobNavHidden(true), 1000);
+                  }}
+                >
+                  {indicatorLabel}
+                </div>
+              )}
+              <div
+                className={`pdf-mobile-nav no-print${mobNavHidden ? " mob-nav-hidden" : ""}`}
+              >
               <div className="pdf-mobile-nav-row">
                 {validSems.map(({ sem, semIdx: sIdx }) => {
                   const mOff = mobTurnoOffsets[sIdx] || 0;
@@ -24849,6 +24903,7 @@ window.addEventListener('load',updateStickyTurnos);
                 </div>
               )}
             </div>
+            </>
           );
         })()}
     </div>
