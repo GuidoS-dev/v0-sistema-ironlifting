@@ -36,7 +36,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.1.1";
+const APP_VERSION = "1.1.2";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -25464,10 +25464,7 @@ function usePlantillas(coachId) {
       const now = Date.now();
       if (now - lastPullPlantillasRef.current < 5000) return; // throttle 5s
       lastPullPlantillasRef.current = now;
-      const q = sb
-        .from("plantillas")
-        .select("*")
-        .eq("coach_id", coachId);
+      const q = sb.from("plantillas").select("*").eq("coach_id", coachId);
       // Delta sync
       if (lastSyncTsPlantillasRef.current) {
         q.gt("updated_at", lastSyncTsPlantillasRef.current);
@@ -32880,10 +32877,7 @@ function CoachApp({ session, profile, onLogout }) {
       const now = Date.now();
       if (now - lastPullAtletasRef.current < PULL_THROTTLE_MS) return;
       lastPullAtletasRef.current = now;
-      const q = sb
-        .from("atletas")
-        .select("*")
-        .eq("coach_id", coachId);
+      const q = sb.from("atletas").select("*").eq("coach_id", coachId);
       // Delta sync: solo traer filas modificadas desde último pull exitoso
       if (lastSyncTsAtletasRef.current) {
         q.gt("updated_at", lastSyncTsAtletasRef.current);
@@ -32985,10 +32979,7 @@ function CoachApp({ session, profile, onLogout }) {
       const now = Date.now();
       if (now - lastPullMesosRef.current < PULL_THROTTLE_MS) return;
       lastPullMesosRef.current = now;
-      const q = sb
-        .from("mesociclos")
-        .select("*")
-        .eq("coach_id", coachId);
+      const q = sb.from("mesociclos").select("*").eq("coach_id", coachId);
       // Delta sync: solo traer filas modificadas desde último pull exitoso
       if (lastSyncTsMesosRef.current) {
         q.gt("updated_at", lastSyncTsMesosRef.current);
