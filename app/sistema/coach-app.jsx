@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   Download,
   Send,
@@ -39,9 +45,7 @@ const SUPA_TIMEOUT_MS = 10000;
 
 function toTitleCase(str) {
   if (typeof str !== "string") return str;
-  return str
-    .toLowerCase()
-    .replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
+  return str.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
 }
 
 function sanitizeStringInput(value) {
@@ -3494,7 +3498,8 @@ function AtletaForm({
         <button
           className="btn btn-gold"
           onClick={() => {
-            if (form.nombre) onSave({ ...form, nombre: toTitleCase(form.nombre) });
+            if (form.nombre)
+              onSave({ ...form, nombre: toTitleCase(form.nombre) });
           }}
         >
           Guardar
@@ -3921,71 +3926,88 @@ function MesocicloForm({ atleta, meso, onSave, onClose }) {
             {form.semanas.map((sem, i) => {
               const fechaAuto = getFechaSemana(form.fecha_inicio, sem.numero);
               return (
-              <div
-                key={sem.id}
-                style={{
-                  background: "var(--surface2)",
-                  borderRadius: 8,
-                  padding: 12,
-                  border: "1px solid var(--border)",
-                }}
-              >
-                <div className="text-sm text-muted mb8">
-                  Semana {sem.numero}
-                </div>
-                <div style={{ fontSize: 11, color: sem.fecha_override ? "var(--gold)" : "var(--muted)", marginBottom: 6 }}>
-                  {formatDateDisplay(sem.fecha_override || fechaAuto) || "—"}
-                  {sem.fecha_override && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const s = [...form.semanas];
-                        s[i] = { ...s[i], fecha_override: "" };
-                        set("semanas", s);
-                      }}
-                      style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 10, marginLeft: 4 }}
-                      title="Restaurar fecha automática"
-                    >✕</button>
-                  )}
-                </div>
-                <input
-                  className="form-input"
-                  name={`semana_fecha_${i}`}
-                  type="date"
-                  value={sem.fecha_override || ""}
-                  onChange={(e) => {
-                    const s = [...form.semanas];
-                    s[i] = { ...s[i], fecha_override: e.target.value };
-                    set("semanas", s);
+                <div
+                  key={sem.id}
+                  style={{
+                    background: "var(--surface2)",
+                    borderRadius: 8,
+                    padding: 12,
+                    border: "1px solid var(--border)",
                   }}
-                  style={{ width: "100%", fontSize: 11, marginBottom: 6 }}
-                  placeholder="Sobreescribir fecha"
-                />
-                <div className="flex gap8" style={{ alignItems: "center" }}>
+                >
+                  <div className="text-sm text-muted mb8">
+                    Semana {sem.numero}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: sem.fecha_override
+                        ? "var(--gold)"
+                        : "var(--muted)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {formatDateDisplay(sem.fecha_override || fechaAuto) || "—"}
+                    {sem.fecha_override && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const s = [...form.semanas];
+                          s[i] = { ...s[i], fecha_override: "" };
+                          set("semanas", s);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "var(--muted)",
+                          cursor: "pointer",
+                          fontSize: 10,
+                          marginLeft: 4,
+                        }}
+                        title="Restaurar fecha automática"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                   <input
                     className="form-input"
-                    name={`semana_pct_${i}`}
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={sem.pct_volumen}
+                    name={`semana_fecha_${i}`}
+                    type="date"
+                    value={sem.fecha_override || ""}
                     onChange={(e) => {
                       const s = [...form.semanas];
-                      s[i] = { ...s[i], pct_volumen: Number(e.target.value) };
+                      s[i] = { ...s[i], fecha_override: e.target.value };
                       set("semanas", s);
                     }}
-                    style={{ width: 70 }}
+                    style={{ width: "100%", fontSize: 11, marginBottom: 6 }}
+                    placeholder="Sobreescribir fecha"
                   />
-                  <span className="text-muted">%</span>
-                  <span
-                    className="text-gold"
-                    style={{ fontFamily: "'Bebas Neue'", fontSize: 18 }}
-                  >
-                    {calcVolumenSemana(form.volumen_total, sem.pct_volumen)}
-                  </span>
-                  <span className="text-sm text-muted">reps</span>
+                  <div className="flex gap8" style={{ alignItems: "center" }}>
+                    <input
+                      className="form-input"
+                      name={`semana_pct_${i}`}
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={sem.pct_volumen}
+                      onChange={(e) => {
+                        const s = [...form.semanas];
+                        s[i] = { ...s[i], pct_volumen: Number(e.target.value) };
+                        set("semanas", s);
+                      }}
+                      style={{ width: 70 }}
+                    />
+                    <span className="text-muted">%</span>
+                    <span
+                      className="text-gold"
+                      style={{ fontFamily: "'Bebas Neue'", fontSize: 18 }}
+                    >
+                      {calcVolumenSemana(form.volumen_total, sem.pct_volumen)}
+                    </span>
+                    <span className="text-sm text-muted">reps</span>
+                  </div>
                 </div>
-              </div>
               );
             })}
           </div>
@@ -8632,8 +8654,7 @@ function PlanillaTurno({
                                         border: "1px solid var(--border)",
                                         borderRadius: 8,
                                         padding: 8,
-                                        boxShadow:
-                                          "0 8px 24px rgba(0,0,0,.35)",
+                                        boxShadow: "0 8px 24px rgba(0,0,0,.35)",
                                         display: "grid",
                                         gap: 6,
                                       }}
@@ -16637,14 +16658,20 @@ function AtletaCardItem({
           className="atleta-avatar"
           style={{
             background:
-              a.tipo === "asesoria" ? "rgba(71,180,232,.15)" : "var(--surface3)",
+              a.tipo === "asesoria"
+                ? "rgba(71,180,232,.15)"
+                : "var(--surface3)",
             color: a.tipo === "asesoria" ? "var(--blue)" : "var(--gold)",
           }}
         >
           {a.nombre.charAt(0).toUpperCase()}
         </div>
         <div
-          title={a.profile_id ? "Vinculado a cuenta de usuario" : "Sin cuenta vinculada"}
+          title={
+            a.profile_id
+              ? "Vinculado a cuenta de usuario"
+              : "Sin cuenta vinculada"
+          }
           style={{
             position: "absolute",
             bottom: -2,
@@ -16659,7 +16686,10 @@ function AtletaCardItem({
             border: "2px solid var(--surface)",
           }}
         >
-          <User size={10} style={{ color: a.profile_id ? "var(--green)" : "var(--muted)" }} />
+          <User
+            size={10}
+            style={{ color: a.profile_id ? "var(--green)" : "var(--muted)" }}
+          />
         </div>
       </div>
       <div className="atleta-info">
@@ -16799,7 +16829,10 @@ function AtletaCardItem({
             title={`Última edición: ${new Date(mesoActivo._updated_at).toLocaleString()}`}
           >
             ed.{" "}
-            {(() => { const _d = new Date(mesoActivo._updated_at); return `${String(_d.getDate()).padStart(2,"0")}-${String(_d.getMonth()+1).padStart(2,"0")}-${_d.getFullYear()} ${String(_d.getHours()).padStart(2,"0")}:${String(_d.getMinutes()).padStart(2,"0")}`; })()}{" "}
+            {(() => {
+              const _d = new Date(mesoActivo._updated_at);
+              return `${String(_d.getDate()).padStart(2, "0")}-${String(_d.getMonth() + 1).padStart(2, "0")}-${_d.getFullYear()} ${String(_d.getHours()).padStart(2, "0")}:${String(_d.getMinutes()).padStart(2, "0")}`;
+            })()}{" "}
             <span
               style={{
                 fontWeight: 700,
@@ -17387,7 +17420,9 @@ function PageAtletas({
                     background: m.activo ? "rgba(71,232,160,.04)" : undefined,
                   }}
                 >
-                  <div className="historial-fecha">{formatDateDisplay(m.fecha_inicio)}</div>
+                  <div className="historial-fecha">
+                    {formatDateDisplay(m.fecha_inicio)}
+                  </div>
                   <div className="historial-info">
                     <div className="historial-name">
                       {m.nombre || "Mesociclo sin nombre"}
@@ -17790,9 +17825,24 @@ function EditVolModal({ meso, onSave, onClose }) {
             >
               SEMANA {s.numero}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 11, color: s.fecha_override ? "var(--gold)" : "var(--muted)" }}>
-                {formatDateDisplay(s.fecha_override || getFechaSemana(meso.fecha_inicio, s.numero)) || "—"}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  color: s.fecha_override ? "var(--gold)" : "var(--muted)",
+                }}
+              >
+                {formatDateDisplay(
+                  s.fecha_override ||
+                    getFechaSemana(meso.fecha_inicio, s.numero),
+                ) || "—"}
               </span>
               <input
                 className="form-input"
@@ -17816,7 +17866,9 @@ function EditVolModal({ meso, onSave, onClose }) {
                   }}
                   title="Restaurar fecha automática"
                   style={{ minWidth: 22, padding: "2px 4px", fontSize: 10 }}
-                >✕</button>
+                >
+                  ✕
+                </button>
               )}
             </div>
             <div
@@ -19057,7 +19109,10 @@ function PageAtleta({
           <div style={{ display: "flex", height: 44, flexShrink: 0 }}>
             {[
               { id: "meso", label: "Planilla" },
-              ...((mesoVisto?.pretemporada === true || mesoVisto?.pretemporada === "true") ? [] : [{ id: "resumen", label: "Resumen" }]),
+              ...(mesoVisto?.pretemporada === true ||
+              mesoVisto?.pretemporada === "true"
+                ? []
+                : [{ id: "resumen", label: "Resumen" }]),
               { id: "pdf", label: "PDF" },
               { id: "normativos", label: "Normativos A" },
             ].map((t) => (
@@ -19093,7 +19148,10 @@ function PageAtleta({
           {vistaActual === "meso" &&
             mesoVisto &&
             !(mesoVisto.escuela === true || mesoVisto.escuela === "true") &&
-            !(mesoVisto.pretemporada === true || mesoVisto.pretemporada === "true") && (
+            !(
+              mesoVisto.pretemporada === true ||
+              mesoVisto.pretemporada === "true"
+            ) && (
               <div
                 style={{
                   display: "flex",
@@ -22706,7 +22764,10 @@ function PagePDF({
     for (const sub of ejercicio_ids) {
       if (!sub.eid) continue;
       const ejData = normativos.find((e) => e.id === Number(sub.eid));
-      if (ejData?.categoria) { categoria = ejData.categoria; break; }
+      if (ejData?.categoria) {
+        categoria = ejData.categoria;
+        break;
+      }
     }
 
     // Calc kg using LOWEST pct_base among all ejercicio_ids (same as PlanillaPretemporada)
@@ -22722,7 +22783,8 @@ function PagePDF({
           ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
         if (!irm) continue;
         const kgBase = (irm * ejData.pct_base) / 100;
-        if (lowestKgBase === null || kgBase < lowestKgBase) lowestKgBase = kgBase;
+        if (lowestKgBase === null || kgBase < lowestKgBase)
+          lowestKgBase = kgBase;
       }
       if (lowestKgBase === null) return null;
       return Math.round(((lowestKgBase * pct) / 100) * 2) / 2;
@@ -23936,12 +23998,18 @@ window.addEventListener('load',updateStickyTurnos);
               </div>
             </div>
             <div className="pdf-cover-meso">
-              {meso.nombre || (isPretemp ? "Pretemporada" : "Mesociclo de Entrenamiento")}
+              {meso.nombre ||
+                (isPretemp ? "Pretemporada" : "Mesociclo de Entrenamiento")}
             </div>
             <div className="pdf-cover-sub">
               {formatDateDisplay(meso.fecha_inicio)}
               {!isPretemp && meso.modo ? <>&nbsp;·&nbsp; {meso.modo}</> : null}
-              {!isPretemp && meso.volumen_total ? <>&nbsp;·&nbsp; {meso.volumen_total.toLocaleString()} reps totales</> : null}
+              {!isPretemp && meso.volumen_total ? (
+                <>
+                  &nbsp;·&nbsp; {meso.volumen_total.toLocaleString()} reps
+                  totales
+                </>
+              ) : null}
             </div>
           </div>
           <div className="pdf-cover-right">
@@ -23989,278 +24057,349 @@ window.addEventListener('load',updateStickyTurnos);
             cumTurnos += (s.turnos || []).length;
           });
           return semTurnos.map(({ sem, semIdx, turnos, met }) => {
-          if (!turnos.length) return null;
-          const tOff = turnoOffsets[semIdx] || 0;
-          const tFirst = tOff + 1;
-          const tLast = tOff + (sem.turnos || []).length;
-          return (
-            <div
-              key={sem.id}
-              id={`pdf-sem-${semIdx}`}
-              data-sem-idx={semIdx}
-              className="pdf-page"
-              style={{ padding: "0 12px 16px" }}
-            >
-              {/* Sem header */}
-              <div className="pdf-sem-header">
-                <div className="pdf-sem-info">
-                  <div className="pdf-sem-title">
-                    {isPretemp ? `TURNOS ${tFirst}-${tLast}` : `SEMANA ${sem.numero}`}
-                    {!isPretemp && (() => {
-                      const fechaSem = getFechaSemanaEfectiva(meso.fecha_inicio, sem);
-                      return fechaSem ? (
-                        <span style={{ fontWeight: 400, fontSize: 9, color: "#666", marginLeft: 8 }}>
-                          {formatFechaSemana(fechaSem)}
-                        </span>
-                      ) : null;
-                    })()}
-                  </div>
-                  {isPretemp ? (
-                    <div className="pdf-sem-details">
-                      {turnos.length} turno{turnos.length !== 1 ? "s" : ""}
+            if (!turnos.length) return null;
+            const tOff = turnoOffsets[semIdx] || 0;
+            const tFirst = tOff + 1;
+            const tLast = tOff + (sem.turnos || []).length;
+            return (
+              <div
+                key={sem.id}
+                id={`pdf-sem-${semIdx}`}
+                data-sem-idx={semIdx}
+                className="pdf-page"
+                style={{ padding: "0 12px 16px" }}
+              >
+                {/* Sem header */}
+                <div className="pdf-sem-header">
+                  <div className="pdf-sem-info">
+                    <div className="pdf-sem-title">
+                      {isPretemp
+                        ? `TURNOS ${tFirst}-${tLast}`
+                        : `SEMANA ${sem.numero}`}
+                      {!isPretemp &&
+                        (() => {
+                          const fechaSem = getFechaSemanaEfectiva(
+                            meso.fecha_inicio,
+                            sem,
+                          );
+                          return fechaSem ? (
+                            <span
+                              style={{
+                                fontWeight: 400,
+                                fontSize: 9,
+                                color: "#666",
+                                marginLeft: 8,
+                              }}
+                            >
+                              {formatFechaSemana(fechaSem)}
+                            </span>
+                          ) : null;
+                        })()}
                     </div>
-                  ) : (
-                    <>
+                    {isPretemp ? (
                       <div className="pdf-sem-details">
-                        {sem.pct_volumen}% del volumen total &nbsp;·&nbsp;
-                        {sem.reps_ajustadas ||
-                          sem.reps_calculadas ||
-                          Math.round(
-                            (meso.volumen_total * sem.pct_volumen) / 100,
-                          )}{" "}
-                        reps planificadas
+                        {turnos.length} turno{turnos.length !== 1 ? "s" : ""}
                       </div>
-                      {met && <GrupoBar levGrupo={met.levGrupo} />}
-                    </>
-                  )}
-                </div>
-                {!isPretemp && (
-                <div className="pdf-sem-metrics">
-                  {met?.volReps > 0 && (
-                    <>
-                      <div className="pdf-sem-metric">
-                        <div className="pdf-sem-metric-val">{met.volReps}</div>
-                        <div className="pdf-sem-metric-lbl">Vol. Reps</div>
-                      </div>
-                      <div className="pdf-sem-metric">
-                        <div className="pdf-sem-metric-val">{met.volKg}</div>
-                        <div className="pdf-sem-metric-lbl">Vol. Kg</div>
-                      </div>
-                      <div className="pdf-sem-metric">
-                        <div className="pdf-sem-metric-val">
-                          {met.pesoMedio}
+                    ) : (
+                      <>
+                        <div className="pdf-sem-details">
+                          {sem.pct_volumen}% del volumen total &nbsp;·&nbsp;
+                          {sem.reps_ajustadas ||
+                            sem.reps_calculadas ||
+                            Math.round(
+                              (meso.volumen_total * sem.pct_volumen) / 100,
+                            )}{" "}
+                          reps planificadas
                         </div>
-                        <div className="pdf-sem-metric-lbl">Peso Medio</div>
-                      </div>
-                      {met.intMedia > 0 && (
-                        <div className="pdf-sem-metric">
-                          <div className="pdf-sem-metric-val">
-                            {met.intMedia}%
-                          </div>
-                          <div className="pdf-sem-metric-lbl">Int. Media</div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-                )}
-              </div>
-
-              {/* Turnos */}
-              {turnos.map(({ tIdx, dia, momento, rows }) => (
-                <React.Fragment key={tIdx}>
-                  <div
-                    className="pdf-turno-header"
-                    id={`pdf-turno-${semIdx}-${tIdx}`}
-                  >
-                    <span className="pdf-turno-num">Turno {isPretemp ? (tOff + tIdx + 1) : (tIdx + 1)}</span>
-                    {dia && (
-                      <span className="pdf-turno-dia">
-                        {dia}
-                        {momento ? ` · ${momento}` : ""}
-                      </span>
+                        {met && <GrupoBar levGrupo={met.levGrupo} />}
+                      </>
                     )}
                   </div>
+                  {!isPretemp && (
+                    <div className="pdf-sem-metrics">
+                      {met?.volReps > 0 && (
+                        <>
+                          <div className="pdf-sem-metric">
+                            <div className="pdf-sem-metric-val">
+                              {met.volReps}
+                            </div>
+                            <div className="pdf-sem-metric-lbl">Vol. Reps</div>
+                          </div>
+                          <div className="pdf-sem-metric">
+                            <div className="pdf-sem-metric-val">
+                              {met.volKg}
+                            </div>
+                            <div className="pdf-sem-metric-lbl">Vol. Kg</div>
+                          </div>
+                          <div className="pdf-sem-metric">
+                            <div className="pdf-sem-metric-val">
+                              {met.pesoMedio}
+                            </div>
+                            <div className="pdf-sem-metric-lbl">Peso Medio</div>
+                          </div>
+                          {met.intMedia > 0 && (
+                            <div className="pdf-sem-metric">
+                              <div className="pdf-sem-metric-val">
+                                {met.intMedia}%
+                              </div>
+                              <div className="pdf-sem-metric-lbl">
+                                Int. Media
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-                  <div
-                    style={{
-                      overflowX: "auto",
-                      WebkitOverflowScrolling: "touch",
-                    }}
-                  >
-                    <table className="pdf-table">
-                      <thead>
-                        <tr>
-                          <th style={{ width: 20 }} className="left" />
-                          <th className="left" style={{ minWidth: 130 }}>
-                            Ejercicio
-                          </th>
-                          {(() => {
-                            // Detectar si tenemos complementarios con bloques
-                            const hasCompBloques = rows.some(
-                              (r) => r.isCompBloques,
-                            );
-                            const hasRegularIntensidades = rows.some(
-                              (r) => !r.isCompBloques,
-                            );
-                            const hasPretemporadaRows = rows.some(
-                              (r) => r.isPretemporadaRow,
-                            );
+                {/* Turnos */}
+                {turnos.map(({ tIdx, dia, momento, rows }) => (
+                  <React.Fragment key={tIdx}>
+                    <div
+                      className="pdf-turno-header"
+                      id={`pdf-turno-${semIdx}-${tIdx}`}
+                    >
+                      <span className="pdf-turno-num">
+                        Turno {isPretemp ? tOff + tIdx + 1 : tIdx + 1}
+                      </span>
+                      {dia && (
+                        <span className="pdf-turno-dia">
+                          {dia}
+                          {momento ? ` · ${momento}` : ""}
+                        </span>
+                      )}
+                    </div>
 
-                            if (hasCompBloques && !hasRegularIntensidades) {
-                              // Solo complementarios con bloques - mostrar headers dinámicos
-                              const maxBloques = Math.max(
-                                ...rows.map((r) => r.cols?.length || 0),
+                    <div
+                      style={{
+                        overflowX: "auto",
+                        WebkitOverflowScrolling: "touch",
+                      }}
+                    >
+                      <table className="pdf-table">
+                        <thead>
+                          <tr>
+                            <th style={{ width: 20 }} className="left" />
+                            <th className="left" style={{ minWidth: 130 }}>
+                              Ejercicio
+                            </th>
+                            {(() => {
+                              // Detectar si tenemos complementarios con bloques
+                              const hasCompBloques = rows.some(
+                                (r) => r.isCompBloques,
                               );
-                              return Array.from({ length: maxBloques }).map(
-                                (_, bIdx) => (
-                                  <th
-                                    key={bIdx}
-                                    className="intens-header"
-                                    style={{ width: hasPretemporadaRows ? 72 : 58 }}
-                                  >
-                                    Bloque{bIdx + 1}
-                                  </th>
-                                ),
+                              const hasRegularIntensidades = rows.some(
+                                (r) => !r.isCompBloques,
                               );
-                            }
-                            // Regular con intensidades
-                            return INTENSIDADES.map((v) => (
-                              <th
-                                key={v}
-                                className="intens-header"
-                                style={{ width: 58 }}
-                              >
-                                {v}%
-                              </th>
-                            ));
-                          })()}
-                        </tr>
-                        <tr>
-                          <th />
-                          <th />
-                          {(() => {
-                            const hasCompBloques = rows.some(
-                              (r) => r.isCompBloques,
-                            );
-                            const hasRegularIntensidades = rows.some(
-                              (r) => !r.isCompBloques,
-                            );
-                            const hasPretemporadaRows = rows.some(
-                              (r) => r.isPretemporadaRow,
-                            );
+                              const hasPretemporadaRows = rows.some(
+                                (r) => r.isPretemporadaRow,
+                              );
 
-                            if (hasCompBloques && !hasRegularIntensidades) {
-                              // Solo complementarios - mostrar headers de bloque
-                              const maxBloques = Math.max(
-                                ...rows.map((r) => r.cols?.length || 0),
-                              );
-                              return Array.from({ length: maxBloques }).map(
-                                (_, bIdx) => (
-                                  <th key={bIdx} className="sub-header">
-                                    <div
+                              if (hasCompBloques && !hasRegularIntensidades) {
+                                // Solo complementarios con bloques - mostrar headers dinámicos
+                                const maxBloques = Math.max(
+                                  ...rows.map((r) => r.cols?.length || 0),
+                                );
+                                return Array.from({ length: maxBloques }).map(
+                                  (_, bIdx) => (
+                                    <th
+                                      key={bIdx}
+                                      className="intens-header"
                                       style={{
-                                        display: "grid",
-                                        gridTemplateColumns: hasPretemporadaRows ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr",
-                                        gap: 0,
-                                        fontSize: 6.5,
+                                        width: hasPretemporadaRows ? 72 : 58,
                                       }}
                                     >
-                                      {hasPretemporadaRows && <span>%</span>}
-                                      <span>Ser</span>
-                                      <span>Rep</span>
-                                      <span>Kg</span>
-                                    </div>
-                                  </th>
-                                ),
-                              );
-                            }
-                            // Regular con intensidades
-                            return INTENSIDADES.map((v) => (
-                              <th key={v} className="sub-header">
-                                <div
-                                  style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr 1fr 1fr",
-                                    gap: 0,
-                                    fontSize: 6.5,
-                                  }}
+                                      Bloque{bIdx + 1}
+                                    </th>
+                                  ),
+                                );
+                              }
+                              // Regular con intensidades
+                              return INTENSIDADES.map((v) => (
+                                <th
+                                  key={v}
+                                  className="intens-header"
+                                  style={{ width: 58 }}
                                 >
-                                  <span>Ser</span>
-                                  <span>Rep</span>
-                                  <span>Kg</span>
-                                </div>
-                              </th>
-                            ));
-                          })()}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          let section = null;
-                          const hasCompBloques = rows.some(
-                            (r) => r.isCompBloques,
-                          );
-                          const hasRegularIntensidades = rows.some(
-                            (r) => !r.isCompBloques,
-                          );
-                          const hasPretemporadaRows = rows.some(
-                            (r) => r.isPretemporadaRow,
-                          );
-                          const maxBloques = hasCompBloques
-                            ? Math.max(...rows.map((r) => r.cols?.length || 0))
-                            : 0;
+                                  {v}%
+                                </th>
+                              ));
+                            })()}
+                          </tr>
+                          <tr>
+                            <th />
+                            <th />
+                            {(() => {
+                              const hasCompBloques = rows.some(
+                                (r) => r.isCompBloques,
+                              );
+                              const hasRegularIntensidades = rows.some(
+                                (r) => !r.isCompBloques,
+                              );
+                              const hasPretemporadaRows = rows.some(
+                                (r) => r.isPretemporadaRow,
+                              );
 
-                          return rows
-                            .map((row, rIdx) => {
-                              const rowArr = [];
+                              if (hasCompBloques && !hasRegularIntensidades) {
+                                // Solo complementarios - mostrar headers de bloque
+                                const maxBloques = Math.max(
+                                  ...rows.map((r) => r.cols?.length || 0),
+                                );
+                                return Array.from({ length: maxBloques }).map(
+                                  (_, bIdx) => (
+                                    <th key={bIdx} className="sub-header">
+                                      <div
+                                        style={{
+                                          display: "grid",
+                                          gridTemplateColumns:
+                                            hasPretemporadaRows
+                                              ? "1fr 1fr 1fr 1fr"
+                                              : "1fr 1fr 1fr",
+                                          gap: 0,
+                                          fontSize: 6.5,
+                                        }}
+                                      >
+                                        {hasPretemporadaRows && <span>%</span>}
+                                        <span>Ser</span>
+                                        <span>Rep</span>
+                                        <span>Kg</span>
+                                      </div>
+                                    </th>
+                                  ),
+                                );
+                              }
+                              // Regular con intensidades
+                              return INTENSIDADES.map((v) => (
+                                <th key={v} className="sub-header">
+                                  <div
+                                    style={{
+                                      display: "grid",
+                                      gridTemplateColumns: "1fr 1fr 1fr",
+                                      gap: 0,
+                                      fontSize: 6.5,
+                                    }}
+                                  >
+                                    <span>Ser</span>
+                                    <span>Rep</span>
+                                    <span>Kg</span>
+                                  </div>
+                                </th>
+                              ));
+                            })()}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            let section = null;
+                            const hasCompBloques = rows.some(
+                              (r) => r.isCompBloques,
+                            );
+                            const hasRegularIntensidades = rows.some(
+                              (r) => !r.isCompBloques,
+                            );
+                            const hasPretemporadaRows = rows.some(
+                              (r) => r.isPretemporadaRow,
+                            );
+                            const maxBloques = hasCompBloques
+                              ? Math.max(
+                                  ...rows.map((r) => r.cols?.length || 0),
+                                )
+                              : 0;
 
-                              // Detectar cambios de sección
-                              let newSection = null;
-                              if (row.isComplementarioBefore)
-                                newSection = "ANTES";
-                              else if (row.isComplementarioAfter)
-                                newSection = "DESPUÉS";
-                              else newSection = "PRINCIPAL";
+                            return rows
+                              .map((row, rIdx) => {
+                                const rowArr = [];
 
-                              if (newSection !== section && rIdx > 0) {
-                                section = newSection;
-                                const sectionColors = {
-                                  ANTES: { bg: "#e3f2fd", text: "#1565c0" },
-                                  PRINCIPAL: { bg: "#fff8e1", text: "#b8860b" },
-                                  DESPUÉS: { bg: "#e8f5e9", text: "#1b5e20" },
-                                };
-                                const colors = sectionColors[newSection];
-                                const colSpan =
-                                  2 +
-                                  (hasCompBloques && !hasRegularIntensidades
-                                    ? maxBloques
-                                    : INTENSIDADES.length);
+                                // Detectar cambios de sección
+                                let newSection = null;
+                                if (row.isComplementarioBefore)
+                                  newSection = "ANTES";
+                                else if (row.isComplementarioAfter)
+                                  newSection = "DESPUÉS";
+                                else newSection = "PRINCIPAL";
+
+                                if (newSection !== section && rIdx > 0) {
+                                  section = newSection;
+                                  const sectionColors = {
+                                    ANTES: { bg: "#e3f2fd", text: "#1565c0" },
+                                    PRINCIPAL: {
+                                      bg: "#fff8e1",
+                                      text: "#b8860b",
+                                    },
+                                    DESPUÉS: { bg: "#e8f5e9", text: "#1b5e20" },
+                                  };
+                                  const colors = sectionColors[newSection];
+                                  const colSpan =
+                                    2 +
+                                    (hasCompBloques && !hasRegularIntensidades
+                                      ? maxBloques
+                                      : INTENSIDADES.length);
+                                  rowArr.push(
+                                    <tr
+                                      key={`sep-${rIdx}`}
+                                      style={{ height: 2, background: "#ddd" }}
+                                    >
+                                      <td colSpan={colSpan}></td>
+                                    </tr>,
+                                  );
+                                } else if (rIdx === 0) {
+                                  section = newSection;
+                                }
+
+                                const gc = GC[row.categoria] || "#555";
+                                const gb = GB[row.categoria] || "#fafafa";
+                                const isLast = rIdx === rows.length - 1;
+
                                 rowArr.push(
                                   <tr
-                                    key={`sep-${rIdx}`}
-                                    style={{ height: 2, background: "#ddd" }}
+                                    key={rIdx}
+                                    className={`${isLast ? "last-ej" : ""} ${row.isPretemporadaRow ? "pretemporada-row" : ""}`}
                                   >
-                                    <td colSpan={colSpan}></td>
-                                  </tr>,
-                                );
-                              } else if (rIdx === 0) {
-                                section = newSection;
-                              }
-
-                              const gc = GC[row.categoria] || "#555";
-                              const gb = GB[row.categoria] || "#fafafa";
-                              const isLast = rIdx === rows.length - 1;
-
-                              rowArr.push(
-                                <tr
-                                  key={rIdx}
-                                  className={`${isLast ? "last-ej" : ""} ${row.isPretemporadaRow ? "pretemporada-row" : ""}`}
-                                >
-                                  {row.isPretemporadaRow ? (
-                                    <>
-                                      <td colSpan={2} className="left pdf-pretemp-ej" style={{ padding: "3px 4px" }}>
-                                        <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+                                    {row.isPretemporadaRow ? (
+                                      <>
+                                        <td
+                                          colSpan={2}
+                                          className="left pdf-pretemp-ej"
+                                          style={{ padding: "3px 4px" }}
+                                        >
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "baseline",
+                                              gap: 4,
+                                              flexWrap: "wrap",
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                background: gc,
+                                                color: "#fff",
+                                                fontSize: 8,
+                                                fontWeight: 800,
+                                                padding: "1px 4px",
+                                                borderRadius: 2,
+                                                whiteSpace: "nowrap",
+                                                flexShrink: 0,
+                                              }}
+                                            >
+                                              {row.id}
+                                            </span>
+                                            <span
+                                              className="ej-nombre"
+                                              style={{
+                                                whiteSpace: "normal",
+                                                wordBreak: "break-word",
+                                              }}
+                                            >
+                                              {row.nombre}
+                                            </span>
+                                          </div>
+                                        </td>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <td style={{ padding: "3px 4px" }}>
                                           <span
                                             style={{
                                               background: gc,
@@ -24270,65 +24409,101 @@ window.addEventListener('load',updateStickyTurnos);
                                               padding: "1px 4px",
                                               borderRadius: 2,
                                               whiteSpace: "nowrap",
-                                              flexShrink: 0,
                                             }}
                                           >
                                             {row.id}
                                           </span>
+                                        </td>
+                                        <td className="left">
                                           <span
                                             className="ej-nombre"
-                                            style={{ whiteSpace: "normal", wordBreak: "break-word" }}
+                                            style={{
+                                              fontStyle: row.isComplementario
+                                                ? "italic"
+                                                : "normal",
+                                            }}
                                           >
                                             {row.nombre}
                                           </span>
-                                        </div>
-                                      </td>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <td style={{ padding: "3px 4px" }}>
-                                        <span
-                                          style={{
-                                            background: gc,
-                                            color: "#fff",
-                                            fontSize: 8,
-                                            fontWeight: 800,
-                                            padding: "1px 4px",
-                                            borderRadius: 2,
-                                            whiteSpace: "nowrap",
-                                          }}
-                                        >
-                                          {row.id}
-                                        </span>
-                                      </td>
-                                      <td className="left">
-                                        <span
-                                          className="ej-nombre"
-                                          style={{
-                                            fontStyle: row.isComplementario
-                                              ? "italic"
-                                              : "normal",
-                                          }}
-                                        >
-                                          {row.nombre}
-                                        </span>
-                                      </td>
-                                    </>
-                                  )}
-                                  {(() => {
-                                    // Si es complementario con bloques
-                                    if (row.isCompBloques) {
-                                      return Array.from({
-                                        length: maxBloques,
-                                      }).map((_, bIdx) => {
-                                        const col = row.cols[bIdx];
-                                        if (
-                                          !hasComplementarioBlockContent(col)
-                                        ) {
+                                        </td>
+                                      </>
+                                    )}
+                                    {(() => {
+                                      // Si es complementario con bloques
+                                      if (row.isCompBloques) {
+                                        return Array.from({
+                                          length: maxBloques,
+                                        }).map((_, bIdx) => {
+                                          const col = row.cols[bIdx];
+                                          if (
+                                            !hasComplementarioBlockContent(col)
+                                          ) {
+                                            return (
+                                              <td
+                                                key={bIdx}
+                                                data-label={
+                                                  col?.pct != null
+                                                    ? `${col.pct}%`
+                                                    : row.isPretemporadaRow
+                                                      ? `B${bIdx + 1}`
+                                                      : ""
+                                                }
+                                              >
+                                                <span className="cell-empty">
+                                                  –
+                                                </span>
+                                              </td>
+                                            );
+                                          }
                                           return (
                                             <td
                                               key={bIdx}
-                                              data-label={col?.pct != null ? `${col.pct}%` : (row.isPretemporadaRow ? `B${bIdx + 1}` : "")}
+                                              data-label={
+                                                col?.pct != null
+                                                  ? `${col.pct}%`
+                                                  : row.isPretemporadaRow
+                                                    ? `B${bIdx + 1}`
+                                                    : ""
+                                              }
+                                              style={{ background: gb }}
+                                            >
+                                              <div className="cell-data">
+                                                {row.isPretemporadaRow &&
+                                                  col.pct != null && (
+                                                    <span className="cell-pct-pretemp">
+                                                      {col.pct}%
+                                                    </span>
+                                                  )}
+                                                <span className="cell-series">
+                                                  {col.s}
+                                                </span>
+                                                <span className="cell-reps">
+                                                  {col.r}
+                                                </span>
+                                                <span className="cell-kg">
+                                                  {col.kg}
+                                                </span>
+                                                {col.note && (
+                                                  <span className="cell-note">
+                                                    {col.note}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </td>
+                                          );
+                                        });
+                                      }
+
+                                      // Regular con intensidades
+                                      return INTENSIDADES.map((intens) => {
+                                        const col = row.cols.find(
+                                          (c) => c.intens === intens,
+                                        );
+                                        if (!col || !col.s) {
+                                          return (
+                                            <td
+                                              key={intens}
+                                              data-label={`${intens}%`}
                                             >
                                               <span className="cell-empty">
                                                 –
@@ -24338,16 +24513,11 @@ window.addEventListener('load',updateStickyTurnos);
                                         }
                                         return (
                                           <td
-                                            key={bIdx}
-                                            data-label={col?.pct != null ? `${col.pct}%` : (row.isPretemporadaRow ? `B${bIdx + 1}` : "")}
+                                            key={intens}
+                                            data-label={`${intens}%`}
                                             style={{ background: gb }}
                                           >
                                             <div className="cell-data">
-                                              {row.isPretemporadaRow && col.pct != null && (
-                                                <span className="cell-pct-pretemp">
-                                                  {col.pct}%
-                                                </span>
-                                              )}
                                               <span className="cell-series">
                                                 {col.s}
                                               </span>
@@ -24366,248 +24536,212 @@ window.addEventListener('load',updateStickyTurnos);
                                           </td>
                                         );
                                       });
-                                    }
+                                    })()}
+                                  </tr>,
+                                );
 
-                                    // Regular con intensidades
-                                    return INTENSIDADES.map((intens) => {
-                                      const col = row.cols.find(
-                                        (c) => c.intens === intens,
-                                      );
-                                      if (!col || !col.s) {
-                                        return (
-                                          <td
-                                            key={intens}
-                                            data-label={`${intens}%`}
-                                          >
-                                            <span className="cell-empty">
-                                              –
-                                            </span>
-                                          </td>
-                                        );
-                                      }
-                                      return (
-                                        <td
-                                          key={intens}
-                                          data-label={`${intens}%`}
-                                          style={{ background: gb }}
-                                        >
-                                          <div className="cell-data">
-                                            <span className="cell-series">
-                                              {col.s}
-                                            </span>
-                                            <span className="cell-reps">
-                                              {col.r}
-                                            </span>
-                                            <span className="cell-kg">
-                                              {col.kg}
-                                            </span>
-                                            {col.note && (
-                                              <span className="cell-note">
-                                                {col.note}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </td>
-                                      );
-                                    });
-                                  })()}
-                                </tr>,
-                              );
+                                return rowArr;
+                              })
+                              .flat();
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </React.Fragment>
+                ))}
 
-                              return rowArr;
-                            })
-                            .flat();
-                        })()}
-                      </tbody>
-                    </table>
+                <div className="pdf-footer">
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 5 }}
+                  >
+                    <span
+                      dangerouslySetInnerHTML={{
+                        __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="14" height="13.3"><defs><linearGradient id="pfs-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f8e47a"/><stop offset="100%" stop-color="#9a7010"/></linearGradient><linearGradient id="pfs-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient></defs><text x="200" y="100" font-family="Arial Black,sans-serif" font-size="32" letter-spacing="14" fill="url(#pfs-g)" text-anchor="middle">SISTEMA</text><rect x="100" y="112" width="200" height="1.5" fill="url(#pfs-gh)" opacity="0.5"/><text x="218" y="300" font-family="Arial Black,sans-serif" font-size="240" letter-spacing="-4" fill="url(#pfs-g)" text-anchor="middle">IL</text><text x="200" y="344" font-family="Arial Black,sans-serif" font-size="15" letter-spacing="9" fill="url(#pfs-g)" text-anchor="middle">IRONLIFTING</text></svg>`,
+                      }}
+                    />
+                    <strong>{atleta.nombre}</strong>
                   </div>
-                </React.Fragment>
-              ))}
-
-              <div className="pdf-footer">
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="14" height="13.3"><defs><linearGradient id="pfs-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f8e47a"/><stop offset="100%" stop-color="#9a7010"/></linearGradient><linearGradient id="pfs-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient></defs><text x="200" y="100" font-family="Arial Black,sans-serif" font-size="32" letter-spacing="14" fill="url(#pfs-g)" text-anchor="middle">SISTEMA</text><rect x="100" y="112" width="200" height="1.5" fill="url(#pfs-gh)" opacity="0.5"/><text x="218" y="300" font-family="Arial Black,sans-serif" font-size="240" letter-spacing="-4" fill="url(#pfs-g)" text-anchor="middle">IL</text><text x="200" y="344" font-family="Arial Black,sans-serif" font-size="15" letter-spacing="9" fill="url(#pfs-g)" text-anchor="middle">IRONLIFTING</text></svg>`,
-                    }}
-                  />
-                  <strong>{atleta.nombre}</strong>
-                </div>
-                <div>
-                  {isPretemp ? `Turnos ${tFirst}-${tLast}` : `Semana ${sem.numero} de ${meso.semanas.length}`}
+                  <div>
+                    {isPretemp
+                      ? `Turnos ${tFirst}-${tLast}`
+                      : `Semana ${sem.numero} de ${meso.semanas.length}`}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        });
+            );
+          });
         })()}
 
         {/* ── PÁGINA DE RESUMEN FINAL ── */}
         {!isPretemp && (
-        <div
-          className="pdf-page pdf-resumen-page"
-          style={{ padding: "14px 12px 16px" }}
-        >
-          <div className="pdf-resumen-title">Resumen del Mesociclo</div>
-
-          {/* KPIs */}
-          <div className="pdf-resumen-grid">
-            <div className="pdf-kpi">
-              <div className="pdf-kpi-val">{totalVolReps.toLocaleString()}</div>
-              <div className="pdf-kpi-lbl">Volumen Total (reps)</div>
-            </div>
-            <div className="pdf-kpi">
-              <div className="pdf-kpi-val" style={{ color: "#3090e0" }}>
-                {totalVolKg.toLocaleString()}
-              </div>
-              <div className="pdf-kpi-lbl">Tonelaje Total (kg)</div>
-            </div>
-            <div className="pdf-kpi">
-              <div className="pdf-kpi-val" style={{ color: "#30c080" }}>
-                {pesoMedioTotal ? `${pesoMedioTotal} kg` : "—"}
-              </div>
-              <div className="pdf-kpi-lbl">Peso Medio</div>
-            </div>
-            <div className="pdf-kpi">
-              <div className="pdf-kpi-val" style={{ color: "#c080f0" }}>
-                {irm_arr && irm_env
-                  ? `${irm_arr} / ${irm_env}`
-                  : irm_arr || irm_env || "—"}
-              </div>
-              <div className="pdf-kpi-lbl">IRM Arr / Env (kg)</div>
-            </div>
-          </div>
-
-          {/* Tabla resumen por semana */}
-          <table className="pdf-sem-table">
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left" }}>Semana</th>
-                <th>% Vol</th>
-                <th>Planificado</th>
-                <th>Vol. Reps</th>
-                <th>Vol. Kg</th>
-                <th>Peso Medio</th>
-                <th>Int. Media</th>
-              </tr>
-            </thead>
-            <tbody>
-              {meso.semanas.map((sem, i) => {
-                const m = metricas[i];
-                return (
-                  <tr key={sem.id}>
-                    <td style={{ textAlign: "left", fontWeight: 700 }}>
-                      Semana {sem.numero}
-                    </td>
-                    <td>{sem.pct_volumen}%</td>
-                    <td>
-                      {Math.round((meso.volumen_total * sem.pct_volumen) / 100)}
-                    </td>
-                    <td style={{ fontWeight: 700, color: "#b8860b" }}>
-                      {m.volReps || "—"}
-                    </td>
-                    <td style={{ fontWeight: 700, color: "#1565c0" }}>
-                      {m.volKg || "—"}
-                    </td>
-                    <td style={{ color: "#1b5e20" }}>{m.pesoMedio || "—"}</td>
-                    <td style={{ color: "#4a148c" }}>
-                      {m.intMedia ? `${m.intMedia}%` : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-              <tr>
-                <td style={{ textAlign: "left" }}>TOTAL</td>
-                <td>100%</td>
-                <td>{meso.volumen_total}</td>
-                <td style={{ color: "#b8860b" }}>{totalVolReps || "—"}</td>
-                <td style={{ color: "#1565c0" }}>{totalVolKg || "—"}</td>
-                <td style={{ color: "#1b5e20" }}>
-                  {pesoMedioTotal ? `${pesoMedioTotal} kg` : "—"}
-                </td>
-                <td>—</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Gráfico de barras de volumen por semana */}
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))",
-              gap: 12,
-              marginTop: 8,
-            }}
+            className="pdf-page pdf-resumen-page"
+            style={{ padding: "14px 12px 16px" }}
           >
-            <div>
-              <div
-                style={{
-                  fontSize: 8,
-                  fontWeight: 800,
-                  color: "#1a1a2e",
-                  textTransform: "uppercase",
-                  letterSpacing: ".08em",
-                  marginBottom: 8,
-                  borderBottom: "1px solid #e0e0e0",
-                  paddingBottom: 4,
-                }}
-              >
-                Volumen de Repeticiones por Semana
-              </div>
-              <BarChartSVG
-                data={meso.semanas.map((s, i) => ({
-                  v: metricas[i].volReps,
-                  l: `S${s.numero}`,
-                }))}
-                color="#b8860b"
-                width={240}
-                height={60}
-              />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 8,
-                  fontWeight: 800,
-                  color: "#1a1a2e",
-                  textTransform: "uppercase",
-                  letterSpacing: ".08em",
-                  marginBottom: 8,
-                  borderBottom: "1px solid #e0e0e0",
-                  paddingBottom: 4,
-                }}
-              >
-                Tonelaje (kg) por Semana
-              </div>
-              <BarChartSVG
-                data={meso.semanas.map((s, i) => ({
-                  v: metricas[i].volKg,
-                  l: `S${s.numero}`,
-                }))}
-                color="#1565c0"
-                width={240}
-                height={60}
-              />
-            </div>
-          </div>
+            <div className="pdf-resumen-title">Resumen del Mesociclo</div>
 
-          <div className="pdf-footer" style={{ marginTop: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="20" height="19"><defs><linearGradient id="pfm-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f8e47a"/><stop offset="100%" stop-color="#9a7010"/></linearGradient><linearGradient id="pfm-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient></defs><text x="200" y="100" font-family="Arial Black,sans-serif" font-size="32" letter-spacing="14" fill="url(#pfm-g)" text-anchor="middle">SISTEMA</text><rect x="100" y="112" width="200" height="1.5" fill="url(#pfm-gh)" opacity="0.5"/><text x="218" y="300" font-family="Arial Black,sans-serif" font-size="240" letter-spacing="-4" fill="url(#pfm-g)" text-anchor="middle">IL</text><text x="200" y="344" font-family="Arial Black,sans-serif" font-size="15" letter-spacing="9" fill="url(#pfm-g)" text-anchor="middle">IRONLIFTING</text></svg>`,
-                }}
-              />
-              <span style={{ fontSize: 9, color: "#888" }}>
-                Sistema IronLifting
-              </span>{" "}
-              <span style={{ color: "#aaa" }}>·</span> {atleta.nombre}
+            {/* KPIs */}
+            <div className="pdf-resumen-grid">
+              <div className="pdf-kpi">
+                <div className="pdf-kpi-val">
+                  {totalVolReps.toLocaleString()}
+                </div>
+                <div className="pdf-kpi-lbl">Volumen Total (reps)</div>
+              </div>
+              <div className="pdf-kpi">
+                <div className="pdf-kpi-val" style={{ color: "#3090e0" }}>
+                  {totalVolKg.toLocaleString()}
+                </div>
+                <div className="pdf-kpi-lbl">Tonelaje Total (kg)</div>
+              </div>
+              <div className="pdf-kpi">
+                <div className="pdf-kpi-val" style={{ color: "#30c080" }}>
+                  {pesoMedioTotal ? `${pesoMedioTotal} kg` : "—"}
+                </div>
+                <div className="pdf-kpi-lbl">Peso Medio</div>
+              </div>
+              <div className="pdf-kpi">
+                <div className="pdf-kpi-val" style={{ color: "#c080f0" }}>
+                  {irm_arr && irm_env
+                    ? `${irm_arr} / ${irm_env}`
+                    : irm_arr || irm_env || "—"}
+                </div>
+                <div className="pdf-kpi-lbl">IRM Arr / Env (kg)</div>
+              </div>
             </div>
-            <div>
-              {formatDateDisplay(new Date().toISOString().slice(0, 10))}
+
+            {/* Tabla resumen por semana */}
+            <table className="pdf-sem-table">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left" }}>Semana</th>
+                  <th>% Vol</th>
+                  <th>Planificado</th>
+                  <th>Vol. Reps</th>
+                  <th>Vol. Kg</th>
+                  <th>Peso Medio</th>
+                  <th>Int. Media</th>
+                </tr>
+              </thead>
+              <tbody>
+                {meso.semanas.map((sem, i) => {
+                  const m = metricas[i];
+                  return (
+                    <tr key={sem.id}>
+                      <td style={{ textAlign: "left", fontWeight: 700 }}>
+                        Semana {sem.numero}
+                      </td>
+                      <td>{sem.pct_volumen}%</td>
+                      <td>
+                        {Math.round(
+                          (meso.volumen_total * sem.pct_volumen) / 100,
+                        )}
+                      </td>
+                      <td style={{ fontWeight: 700, color: "#b8860b" }}>
+                        {m.volReps || "—"}
+                      </td>
+                      <td style={{ fontWeight: 700, color: "#1565c0" }}>
+                        {m.volKg || "—"}
+                      </td>
+                      <td style={{ color: "#1b5e20" }}>{m.pesoMedio || "—"}</td>
+                      <td style={{ color: "#4a148c" }}>
+                        {m.intMedia ? `${m.intMedia}%` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr>
+                  <td style={{ textAlign: "left" }}>TOTAL</td>
+                  <td>100%</td>
+                  <td>{meso.volumen_total}</td>
+                  <td style={{ color: "#b8860b" }}>{totalVolReps || "—"}</td>
+                  <td style={{ color: "#1565c0" }}>{totalVolKg || "—"}</td>
+                  <td style={{ color: "#1b5e20" }}>
+                    {pesoMedioTotal ? `${pesoMedioTotal} kg` : "—"}
+                  </td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* Gráfico de barras de volumen por semana */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))",
+                gap: 12,
+                marginTop: 8,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 8,
+                    fontWeight: 800,
+                    color: "#1a1a2e",
+                    textTransform: "uppercase",
+                    letterSpacing: ".08em",
+                    marginBottom: 8,
+                    borderBottom: "1px solid #e0e0e0",
+                    paddingBottom: 4,
+                  }}
+                >
+                  Volumen de Repeticiones por Semana
+                </div>
+                <BarChartSVG
+                  data={meso.semanas.map((s, i) => ({
+                    v: metricas[i].volReps,
+                    l: `S${s.numero}`,
+                  }))}
+                  color="#b8860b"
+                  width={240}
+                  height={60}
+                />
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: 8,
+                    fontWeight: 800,
+                    color: "#1a1a2e",
+                    textTransform: "uppercase",
+                    letterSpacing: ".08em",
+                    marginBottom: 8,
+                    borderBottom: "1px solid #e0e0e0",
+                    paddingBottom: 4,
+                  }}
+                >
+                  Tonelaje (kg) por Semana
+                </div>
+                <BarChartSVG
+                  data={meso.semanas.map((s, i) => ({
+                    v: metricas[i].volKg,
+                    l: `S${s.numero}`,
+                  }))}
+                  color="#1565c0"
+                  width={240}
+                  height={60}
+                />
+              </div>
+            </div>
+
+            <div className="pdf-footer" style={{ marginTop: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 380" width="20" height="19"><defs><linearGradient id="pfm-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f8e47a"/><stop offset="100%" stop-color="#9a7010"/></linearGradient><linearGradient id="pfm-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient></defs><text x="200" y="100" font-family="Arial Black,sans-serif" font-size="32" letter-spacing="14" fill="url(#pfm-g)" text-anchor="middle">SISTEMA</text><rect x="100" y="112" width="200" height="1.5" fill="url(#pfm-gh)" opacity="0.5"/><text x="218" y="300" font-family="Arial Black,sans-serif" font-size="240" letter-spacing="-4" fill="url(#pfm-g)" text-anchor="middle">IL</text><text x="200" y="344" font-family="Arial Black,sans-serif" font-size="15" letter-spacing="9" fill="url(#pfm-g)" text-anchor="middle">IRONLIFTING</text></svg>`,
+                  }}
+                />
+                <span style={{ fontSize: 9, color: "#888" }}>
+                  Sistema IronLifting
+                </span>{" "}
+                <span style={{ color: "#aaa" }}>·</span> {atleta.nombre}
+              </div>
+              <div>
+                {formatDateDisplay(new Date().toISOString().slice(0, 10))}
+              </div>
             </div>
           </div>
-        </div>
         )}
       </div>
 
@@ -24633,25 +24767,25 @@ window.addEventListener('load',updateStickyTurnos);
                   const mFirst = mOff + 1;
                   const mLast = mOff + (sem.turnos || []).length;
                   return (
-                  <button
-                    key={sIdx}
-                    className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? " active" : ""}`}
-                    onClick={() => {
-                      const el = document.getElementById(`pdf-sem-${sIdx}`);
-                      if (el)
-                        el.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                      setMobNavTurnos(
-                        activeSem.semIdx === sIdx ? !mobNavTurnos : true,
-                      );
-                      setMobNavActive(sIdx);
-                      setMobActiveTurno(-1);
-                    }}
-                  >
-                    {isPretemp ? `T${mFirst}-${mLast}` : `S${sem.numero}`}
-                  </button>
+                    <button
+                      key={sIdx}
+                      className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? " active" : ""}`}
+                      onClick={() => {
+                        const el = document.getElementById(`pdf-sem-${sIdx}`);
+                        if (el)
+                          el.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                        setMobNavTurnos(
+                          activeSem.semIdx === sIdx ? !mobNavTurnos : true,
+                        );
+                        setMobNavActive(sIdx);
+                        setMobActiveTurno(-1);
+                      }}
+                    >
+                      {isPretemp ? `T${mFirst}-${mLast}` : `S${sem.numero}`}
+                    </button>
                   );
                 })}
               </div>
@@ -24660,29 +24794,29 @@ window.addEventListener('load',updateStickyTurnos);
                   {activeSem.turnos.map(({ tIdx, dia }) => {
                     const activeOff = mobTurnoOffsets[activeSem.semIdx] || 0;
                     return (
-                    <button
-                      key={tIdx}
-                      className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? " active" : ""}`}
-                      onClick={() => {
-                        if (mobActiveTurno === tIdx) {
-                          setMobNavTurnos(false);
-                          setMobActiveTurno(-1);
-                          return;
-                        }
-                        const el = document.getElementById(
-                          `pdf-turno-${activeSem.semIdx}-${tIdx}`,
-                        );
-                        if (el)
-                          el.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                          });
-                        setMobActiveTurno(tIdx);
-                      }}
-                    >
-                      T{isPretemp ? (activeOff + tIdx + 1) : (tIdx + 1)}
-                      {dia ? ` · ${dia}` : ""}
-                    </button>
+                      <button
+                        key={tIdx}
+                        className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? " active" : ""}`}
+                        onClick={() => {
+                          if (mobActiveTurno === tIdx) {
+                            setMobNavTurnos(false);
+                            setMobActiveTurno(-1);
+                            return;
+                          }
+                          const el = document.getElementById(
+                            `pdf-turno-${activeSem.semIdx}-${tIdx}`,
+                          );
+                          if (el)
+                            el.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            });
+                          setMobActiveTurno(tIdx);
+                        }}
+                      >
+                        T{isPretemp ? activeOff + tIdx + 1 : tIdx + 1}
+                        {dia ? ` · ${dia}` : ""}
+                      </button>
                     );
                   })}
                 </div>
@@ -25219,19 +25353,22 @@ function usePlantillas(coachId) {
           const merged = loaded
             .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
             .map((dbItem) => {
-            const local = prev.find((p) => p.id === dbItem.id);
-            if (!local) return dbItem;
-            const dbTs = dbItem._updated_at
-              ? new Date(dbItem._updated_at).getTime()
-              : 0;
-            const localTs = local._updated_at
-              ? new Date(local._updated_at).getTime()
-              : 0;
-            return dbTs >= localTs ? dbItem : local;
-          });
+              const local = prev.find((p) => p.id === dbItem.id);
+              if (!local) return dbItem;
+              const dbTs = dbItem._updated_at
+                ? new Date(dbItem._updated_at).getTime()
+                : 0;
+              const localTs = local._updated_at
+                ? new Date(local._updated_at).getTime()
+                : 0;
+              return dbTs >= localTs ? dbItem : local;
+            });
           // Keep local items not yet in DB
           prev.forEach((localItem) => {
-            if (!pendingDel.has(localItem.id) && !merged.find((m) => m.id === localItem.id))
+            if (
+              !pendingDel.has(localItem.id) &&
+              !merged.find((m) => m.id === localItem.id)
+            )
               merged.push(localItem);
           });
           if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
@@ -25320,7 +25457,11 @@ function usePlantillas(coachId) {
         .delete()
         .then((res) => {
           if (res?.error) {
-            console.warn("DELETE plantilla failed, keeping pending:", id, res.error);
+            console.warn(
+              "DELETE plantilla failed, keeping pending:",
+              id,
+              res.error,
+            );
           } else {
             pendingDeletePlantillaIdsRef.current.delete(id);
           }
@@ -26133,10 +26274,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
     latestFormRef.current = next;
     pendingSaveRef.current = true;
     // Guardar borrador directo siempre (síncrono)
-    safeSetItem(
-      `liftplan_plt_draft_${plt.id}`,
-      JSON.stringify(next),
-    );
+    safeSetItem(`liftplan_plt_draft_${plt.id}`, JSON.stringify(next));
     // Propagar al store (síncrono)
     try {
       onUpdate(next);
@@ -26149,10 +26287,7 @@ function PagePlantilla({ plt, onUpdate, onClose }) {
   const handleClose = () => {
     const next = latestFormRef.current || form;
     if (next) {
-      safeSetItem(
-        `liftplan_plt_draft_${plt.id}`,
-        JSON.stringify(next),
-      );
+      safeSetItem(`liftplan_plt_draft_${plt.id}`, JSON.stringify(next));
       try {
         onUpdate(next);
       } catch {}
@@ -31665,7 +31800,8 @@ function PanelReferencia({
               ) : (
                 misMesos.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.nombre || "Sin nombre"} · {formatDateDisplay(m.fecha_inicio)} · {m.modo}
+                    {m.nombre || "Sin nombre"} ·{" "}
+                    {formatDateDisplay(m.fecha_inicio)} · {m.modo}
                   </option>
                 ))
               )}
@@ -32086,7 +32222,13 @@ function LoginScreen({ onAuth }) {
             ))}
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); mode === "login" ? handleLogin() : handleRegister(); }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              mode === "login" ? handleLogin() : handleRegister();
+            }}
+            style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          >
             {mode === "register" && (
               <>
                 {/* Selector de rol */}
@@ -32200,7 +32342,9 @@ function LoginScreen({ onAuth }) {
                 name="field_93"
                 className="form-input"
                 type="password"
-                autoComplete={mode === "register" ? "new-password" : "current-password"}
+                autoComplete={
+                  mode === "register" ? "new-password" : "current-password"
+                }
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={
@@ -32632,37 +32776,46 @@ function CoachApp({ session, profile, onLogout }) {
         const merged = loaded
           .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
           .map((dbItem) => {
-          const local = prev.find((p) => p.id === dbItem.id);
-          if (!local) {
-            // Nuevo en DB — restaurar overrides
-            const raw = appAtletas.find((r) => r.app_id === dbItem.id);
-            if (raw) {
-              restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
-              restoreAtletaNormOverrides(raw.app_id, raw.normativos_overrides);
+            const local = prev.find((p) => p.id === dbItem.id);
+            if (!local) {
+              // Nuevo en DB — restaurar overrides
+              const raw = appAtletas.find((r) => r.app_id === dbItem.id);
+              if (raw) {
+                restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
+                restoreAtletaNormOverrides(
+                  raw.app_id,
+                  raw.normativos_overrides,
+                );
+              }
+              return dbItem;
             }
-            return dbItem;
-          }
-          const dbTs = dbItem._updated_at
-            ? new Date(dbItem._updated_at).getTime()
-            : 0;
-          const localTs = local._updated_at
-            ? new Date(local._updated_at).getTime()
-            : 0;
-          if (dbTs >= localTs) {
-            // DB gana — restaurar overrides de DB
-            const raw = appAtletas.find((r) => r.app_id === dbItem.id);
-            if (raw) {
-              restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
-              restoreAtletaNormOverrides(raw.app_id, raw.normativos_overrides);
+            const dbTs = dbItem._updated_at
+              ? new Date(dbItem._updated_at).getTime()
+              : 0;
+            const localTs = local._updated_at
+              ? new Date(local._updated_at).getTime()
+              : 0;
+            if (dbTs >= localTs) {
+              // DB gana — restaurar overrides de DB
+              const raw = appAtletas.find((r) => r.app_id === dbItem.id);
+              if (raw) {
+                restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
+                restoreAtletaNormOverrides(
+                  raw.app_id,
+                  raw.normativos_overrides,
+                );
+              }
+              return dbItem;
             }
-            return dbItem;
-          }
-          // Local gana — mantener overrides locales
-          return local;
-        });
+            // Local gana — mantener overrides locales
+            return local;
+          });
         // agregar items locales que aún no están en DB
         prev.forEach((localItem) => {
-          if (!pendingDel.has(localItem.id) && !merged.find((m) => m.id === localItem.id))
+          if (
+            !pendingDel.has(localItem.id) &&
+            !merged.find((m) => m.id === localItem.id)
+          )
             merged.push(localItem);
         });
         if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
@@ -32717,30 +32870,33 @@ function CoachApp({ session, profile, onLogout }) {
         const merged = loaded
           .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
           .map((dbItem) => {
-          const local = prev.find((p) => p.id === dbItem.id);
-          if (!local) {
-            // Nuevo en DB — restaurar overrides
-            const raw = appMesos.find((r) => r.app_id === dbItem.id);
-            if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
-            return dbItem;
-          }
-          const dbTs = dbItem._updated_at
-            ? new Date(dbItem._updated_at).getTime()
-            : 0;
-          const localTs = local._updated_at
-            ? new Date(local._updated_at).getTime()
-            : 0;
-          if (dbTs >= localTs) {
-            // DB gana — restaurar overrides de DB
-            const raw = appMesos.find((r) => r.app_id === dbItem.id);
-            if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
-            return dbItem;
-          }
-          // Local gana — mantener overrides locales
-          return local;
-        });
+            const local = prev.find((p) => p.id === dbItem.id);
+            if (!local) {
+              // Nuevo en DB — restaurar overrides
+              const raw = appMesos.find((r) => r.app_id === dbItem.id);
+              if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
+              return dbItem;
+            }
+            const dbTs = dbItem._updated_at
+              ? new Date(dbItem._updated_at).getTime()
+              : 0;
+            const localTs = local._updated_at
+              ? new Date(local._updated_at).getTime()
+              : 0;
+            if (dbTs >= localTs) {
+              // DB gana — restaurar overrides de DB
+              const raw = appMesos.find((r) => r.app_id === dbItem.id);
+              if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
+              return dbItem;
+            }
+            // Local gana — mantener overrides locales
+            return local;
+          });
         prev.forEach((localItem) => {
-          if (!pendingDel.has(localItem.id) && !merged.find((m) => m.id === localItem.id))
+          if (
+            !pendingDel.has(localItem.id) &&
+            !merged.find((m) => m.id === localItem.id)
+          )
             merged.push(localItem);
         });
         if (JSON.stringify(prev) === JSON.stringify(merged)) return prev;
@@ -32787,7 +32943,11 @@ function CoachApp({ session, profile, onLogout }) {
           .delete()
           .then((res) => {
             if (res?.error) {
-              console.warn("DELETE atleta failed, keeping pending:", id, res.error);
+              console.warn(
+                "DELETE atleta failed, keeping pending:",
+                id,
+                res.error,
+              );
             } else {
               pendingDeleteAtletaIdsRef.current.delete(id);
             }
@@ -32841,7 +33001,11 @@ function CoachApp({ session, profile, onLogout }) {
           .delete()
           .then((res) => {
             if (res?.error) {
-              console.warn("DELETE mesociclo failed, keeping pending:", id, res.error);
+              console.warn(
+                "DELETE mesociclo failed, keeping pending:",
+                id,
+                res.error,
+              );
             } else {
               pendingDeleteMesoIdsRef.current.delete(id);
             }
@@ -32886,8 +33050,13 @@ function CoachApp({ session, profile, onLogout }) {
         .map((p) => p.id);
       for (const id of deletedAtletaIds) {
         pendingDeleteAtletaIdsRef.current.add(id);
-        sb.from("atletas").eq("app_id", id).delete()
-          .then((res) => { if (res?.error) console.warn("flush DELETE atleta failed:", id, res.error); })
+        sb.from("atletas")
+          .eq("app_id", id)
+          .delete()
+          .then((res) => {
+            if (res?.error)
+              console.warn("flush DELETE atleta failed:", id, res.error);
+          })
           .catch((e) => console.warn("flush DELETE atleta exception:", id, e));
       }
       prevAtletasRef.current = currAtletas;
@@ -32899,8 +33068,13 @@ function CoachApp({ session, profile, onLogout }) {
         .map((p) => p.id);
       for (const id of deletedMesoIds) {
         pendingDeleteMesoIdsRef.current.add(id);
-        sb.from("mesociclos").eq("app_id", id).delete()
-          .then((res) => { if (res?.error) console.warn("flush DELETE meso failed:", id, res.error); })
+        sb.from("mesociclos")
+          .eq("app_id", id)
+          .delete()
+          .then((res) => {
+            if (res?.error)
+              console.warn("flush DELETE meso failed:", id, res.error);
+          })
           .catch((e) => console.warn("flush DELETE meso exception:", id, e));
       }
       prevMesociclosRef.current = currMesos;
@@ -33688,7 +33862,8 @@ function AtletaPanel({ session, profile, onLogout }) {
             // Restore overrides (repsEdit, cellEdit, etc.) into localStorage
             // so PagePDF can read them — same as CoachApp does on pull
             mesosData.forEach((r) => {
-              if (r.app_id && r.overrides) restoreMesoOverrides(r.app_id, r.overrides);
+              if (r.app_id && r.overrides)
+                restoreMesoOverrides(r.app_id, r.overrides);
             });
             setMesociclos(mesosData.map(mesoFromDb));
           }
@@ -33698,11 +33873,15 @@ function AtletaPanel({ session, profile, onLogout }) {
             restoreAtletaPctOverrides(atleta.app_id, atleta.pct_overrides);
           }
           if (atleta.normativos_overrides) {
-            restoreAtletaNormOverrides(atleta.app_id, atleta.normativos_overrides);
+            restoreAtletaNormOverrides(
+              atleta.app_id,
+              atleta.normativos_overrides,
+            );
             // Also store in state directly — avoids localStorage timing issues
-            const ovr = typeof atleta.normativos_overrides === "string"
-              ? JSON.parse(atleta.normativos_overrides)
-              : atleta.normativos_overrides;
+            const ovr =
+              typeof atleta.normativos_overrides === "string"
+                ? JSON.parse(atleta.normativos_overrides)
+                : atleta.normativos_overrides;
             setAtletaNormOvr(ovr || {});
           }
 
@@ -33785,7 +33964,9 @@ function AtletaPanel({ session, profile, onLogout }) {
         >
           CARGANDO TUS DATOS...
         </div>
-        <div style={{ fontSize: 10, color: "var(--muted)", opacity: .5 }}>v{APP_VERSION}</div>
+        <div style={{ fontSize: 10, color: "var(--muted)", opacity: 0.5 }}>
+          v{APP_VERSION}
+        </div>
       </div>
     );
   }
@@ -33887,7 +34068,12 @@ function AtletaPanel({ session, profile, onLogout }) {
     }
     return (
       <div
-        style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px", paddingTop: 0 }}
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          padding: "12px",
+          paddingTop: 0,
+        }}
       >
         {/* Sticky navigation header */}
         <div
@@ -33901,10 +34087,21 @@ function AtletaPanel({ session, profile, onLogout }) {
             borderBottom: "1px solid var(--border)",
           }}
         >
-          <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div
+            style={{
+              maxWidth: 1000,
+              margin: "0 auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <button
               className="btn btn-ghost"
-              onClick={() => { mesoScrollRef.current = window.scrollY; setSelectedMeso(null); }}
+              onClick={() => {
+                mesoScrollRef.current = window.scrollY;
+                setSelectedMeso(null);
+              }}
               style={{ gap: 6 }}
             >
               <ChevronLeft size={14} /> Volver
@@ -33933,17 +34130,43 @@ function AtletaPanel({ session, profile, onLogout }) {
   if (atletaView === "resumen") {
     const activeMesos = mesociclos.filter((m) => m.activo);
     const primaryMeso = activeMesos[0] || null;
-    if (!primaryMeso) { setAtletaView(null); }
-    else {
+    if (!primaryMeso) {
+      setAtletaView(null);
+    } else {
       return (
-        <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px", paddingTop: 0 }}>
+        <div
+          style={{
+            minHeight: "100vh",
+            background: "var(--bg)",
+            padding: "12px",
+            paddingTop: 0,
+          }}
+        >
           {/* Sticky navigation header */}
-          <div style={{
-            position: "sticky", top: 0, zIndex: 50,
-            background: "var(--bg)", padding: "12px 0", marginBottom: 4,
-          }}>
-            <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <button className="btn btn-ghost" onClick={() => setAtletaView(null)} style={{ gap: 6 }}>
+          <div
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 50,
+              background: "var(--bg)",
+              padding: "12px 0",
+              marginBottom: 4,
+            }}
+          >
+            <div
+              style={{
+                maxWidth: 1000,
+                margin: "0 auto",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <button
+                className="btn btn-ghost"
+                onClick={() => setAtletaView(null)}
+                style={{ gap: 6 }}
+              >
                 <ChevronLeft size={14} /> Volver
               </button>
               <button className="btn btn-ghost" onClick={onLogout}>
@@ -33952,15 +34175,17 @@ function AtletaPanel({ session, profile, onLogout }) {
             </div>
           </div>
           <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-            <div style={{
-              fontFamily: "'Bebas Neue'",
-              fontSize: 22,
-              color: "var(--blue)",
-              letterSpacing: ".04em",
-              marginBottom: 16,
-              paddingBottom: 10,
-              borderBottom: "2px solid var(--blue)",
-            }}>
+            <div
+              style={{
+                fontFamily: "'Bebas Neue'",
+                fontSize: 22,
+                color: "var(--blue)",
+                letterSpacing: ".04em",
+                marginBottom: 16,
+                paddingBottom: 10,
+                borderBottom: "2px solid var(--blue)",
+              }}
+            >
               RESUMEN — {primaryMeso.nombre || "Mesociclo"}
             </div>
             <PageResumen
@@ -33979,31 +34204,68 @@ function AtletaPanel({ session, profile, onLogout }) {
   // Show Normativos full-page view
   if (atletaView === "normativos") {
     const norms = atletaNormativos;
-    const categories = ["Arranque", "Envion", "Tirones", "Piernas", "Complementarios"];
+    const categories = [
+      "Arranque",
+      "Envion",
+      "Tirones",
+      "Piernas",
+      "Complementarios",
+    ];
     const searchLower = normSearch.trim().toLowerCase();
     const filteredNorms = searchLower
-      ? norms.filter(ej =>
-          ej.nombre.toLowerCase().includes(searchLower) ||
-          String(ej.id).includes(searchLower) ||
-          (ej.categoria || "").toLowerCase().includes(searchLower)
+      ? norms.filter(
+          (ej) =>
+            ej.nombre.toLowerCase().includes(searchLower) ||
+            String(ej.id).includes(searchLower) ||
+            (ej.categoria || "").toLowerCase().includes(searchLower),
         )
       : norms;
     const grouped = {};
-    categories.forEach(c => { grouped[c] = []; });
-    filteredNorms.forEach(ej => {
+    categories.forEach((c) => {
+      grouped[c] = [];
+    });
+    filteredNorms.forEach((ej) => {
       const cat = ej.categoria || "Complementarios";
       if (grouped[cat]) grouped[cat].push(ej);
       else grouped["Complementarios"].push(ej);
     });
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "12px", paddingTop: 0 }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          padding: "12px",
+          paddingTop: 0,
+        }}
+      >
         {/* Sticky navigation header */}
-        <div style={{
-          position: "sticky", top: 0, zIndex: 50,
-          background: "var(--bg)", padding: "12px 0", marginBottom: 4,
-        }}>
-          <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <button className="btn btn-ghost" onClick={() => { setAtletaView(null); setNormSearch(""); }} style={{ gap: 6 }}>
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+            background: "var(--bg)",
+            padding: "12px 0",
+            marginBottom: 4,
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1000,
+              margin: "0 auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                setAtletaView(null);
+                setNormSearch("");
+              }}
+              style={{ gap: 6 }}
+            >
               <ChevronLeft size={14} /> Volver
             </button>
             <button className="btn btn-ghost" onClick={onLogout}>
@@ -34012,95 +34274,159 @@ function AtletaPanel({ session, profile, onLogout }) {
           </div>
         </div>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <div style={{
-            fontFamily: "'Bebas Neue'",
-            fontSize: 22,
-            color: "#9b87e8",
-            letterSpacing: ".04em",
-            marginBottom: 16,
-            paddingBottom: 10,
-            borderBottom: "2px solid #9b87e8",
-          }}>
+          <div
+            style={{
+              fontFamily: "'Bebas Neue'",
+              fontSize: 22,
+              color: "#9b87e8",
+              letterSpacing: ".04em",
+              marginBottom: 16,
+              paddingBottom: 10,
+              borderBottom: "2px solid #9b87e8",
+            }}
+          >
             NORMATIVOS
           </div>
           {/* Search/filter */}
           <div style={{ position: "relative", marginBottom: 12 }}>
-            <Search size={14} style={{
-              position: "absolute", left: 12, top: "50%",
-              transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none",
-            }} />
+            <Search
+              size={14}
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--muted)",
+                pointerEvents: "none",
+              }}
+            />
             <input
               type="text"
               placeholder="Buscar ejercicio..."
               value={normSearch}
-              onChange={e => setNormSearch(e.target.value)}
+              onChange={(e) => setNormSearch(e.target.value)}
               className="form-input"
               style={{ paddingLeft: 34 }}
             />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {categories.map(cat => {
+            {categories.map((cat) => {
               const items = grouped[cat];
               if (!items || items.length === 0) return null;
               const catColor = CAT_COLOR[cat] || "#9b87e8";
               return (
-                <div key={cat} style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                }}>
-                  <div style={{
-                    padding: "10px 16px",
-                    background: "var(--surface2)",
-                    borderBottom: "1px solid var(--border)",
-                    display: "flex", alignItems: "center", gap: 8,
-                  }}>
-                    <div style={{ width: 4, height: 16, borderRadius: 2, background: catColor, flexShrink: 0 }} />
-                    <div style={{
-                      fontFamily: "'Bebas Neue'", fontSize: 16,
-                      color: catColor, letterSpacing: ".04em",
-                    }}>
+                <div
+                  key={cat}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 12,
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "10px 16px",
+                      background: "var(--surface2)",
+                      borderBottom: "1px solid var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 4,
+                        height: 16,
+                        borderRadius: 2,
+                        background: catColor,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div
+                      style={{
+                        fontFamily: "'Bebas Neue'",
+                        fontSize: 16,
+                        color: catColor,
+                        letterSpacing: ".04em",
+                      }}
+                    >
                       {cat.toUpperCase()}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--muted)",
+                        marginLeft: "auto",
+                      }}
+                    >
                       {items.length} ejercicio{items.length !== 1 ? "s" : ""}
                     </div>
                   </div>
                   <div style={{ padding: "4px 0" }}>
                     {items.map((ej, idx) => (
-                      <div key={ej.id} style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "8px 16px",
-                        borderBottom: idx < items.length - 1 ? "1px solid var(--border)" : "none",
-                      }}>
-                        <div style={{
-                          fontFamily: "'Bebas Neue'", fontSize: 16,
-                          color: "var(--muted)", minWidth: 28, textAlign: "right",
-                        }}>
+                      <div
+                        key={ej.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "8px 16px",
+                          borderBottom:
+                            idx < items.length - 1
+                              ? "1px solid var(--border)"
+                              : "none",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: "'Bebas Neue'",
+                            fontSize: 16,
+                            color: "var(--muted)",
+                            minWidth: 28,
+                            textAlign: "right",
+                          }}
+                        >
                           {ej.id}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            fontSize: 13, fontWeight: 500,
-                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                          }}>
+                          <div
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 500,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
                             {ej.nombre}
                           </div>
                         </div>
-                        <div style={{
-                          fontSize: 13, fontWeight: 700, color: catColor,
-                          minWidth: 40, textAlign: "center",
-                        }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: catColor,
+                            minWidth: 40,
+                            textAlign: "center",
+                          }}
+                        >
                           {ej.pct_base}%
                         </div>
                         {ej.base && (
-                          <div style={{
-                            fontSize: 10,
-                            color: ej.base === "arranque" ? "var(--gold)" : "var(--blue)",
-                            fontWeight: 700, textTransform: "uppercase",
-                            letterSpacing: ".04em", minWidth: 30,
-                          }}>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color:
+                                ej.base === "arranque"
+                                  ? "var(--gold)"
+                                  : "var(--blue)",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: ".04em",
+                              minWidth: 30,
+                            }}
+                          >
                             {ej.base === "arranque" ? "ARR" : "ENV"}
                           </div>
                         )}
@@ -34112,7 +34438,14 @@ function AtletaPanel({ session, profile, onLogout }) {
             })}
           </div>
           {filteredNorms.length === 0 && (
-            <div style={{ textAlign: "center", padding: 24, color: "var(--muted)", fontSize: 13 }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: 24,
+                color: "var(--muted)",
+                fontSize: 13,
+              }}
+            >
               No se encontraron ejercicios para "{normSearch}"
             </div>
           )}
@@ -34155,152 +34488,159 @@ function AtletaPanel({ session, profile, onLogout }) {
   };
 
   const atletaAge = calcAge(atletaInfo?.fecha_nacimiento);
-  const atletaGenero = atletaInfo?.genero === "f" ? "Femenino" : atletaInfo?.genero === "m" ? "Masculino" : null;
+  const atletaGenero =
+    atletaInfo?.genero === "f"
+      ? "Femenino"
+      : atletaInfo?.genero === "m"
+        ? "Masculino"
+        : null;
 
   const MesoCard = ({ m, isActive }) => {
     const currentWeek = getCurrentWeek(m);
     const currentSemana = currentWeek != null ? m.semanas?.[currentWeek] : null;
     return (
-    <button
-      onClick={() => setSelectedMeso(m)}
-      style={{
-        width: "100%",
-        textAlign: "left",
-        cursor: "pointer",
-        background: "var(--surface)",
-        border: isActive ? "2px solid var(--gold)" : "1px solid var(--border)",
-        borderRadius: 12,
-        padding: 0,
-        marginBottom: 10,
-        fontFamily: "'DM Sans'",
-        color: "var(--text)",
-        transition: "all .2s",
-        overflow: "hidden",
-      }}
-    >
-      <div
+      <button
+        onClick={() => setSelectedMeso(m)}
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          padding: "14px 18px",
+          width: "100%",
+          textAlign: "left",
+          cursor: "pointer",
+          background: "var(--surface)",
+          border: isActive
+            ? "2px solid var(--gold)"
+            : "1px solid var(--border)",
+          borderRadius: 12,
+          padding: 0,
+          marginBottom: 10,
+          fontFamily: "'DM Sans'",
+          color: "var(--text)",
+          transition: "all .2s",
+          overflow: "hidden",
         }}
       >
-        {/* Avatar */}
         <div
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            background: isActive ? "rgba(232,197,71,.15)" : "var(--surface3)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            fontFamily: "'Bebas Neue',sans-serif",
-            fontSize: 18,
-            color: isActive ? "var(--gold)" : "var(--muted)",
-            flexShrink: 0,
+            gap: 14,
+            padding: "14px 18px",
           }}
         >
-          {(m.nombre || "M").charAt(0).toUpperCase()}
-        </div>
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Avatar */}
           <div
             style={{
-              fontSize: 15,
-              fontWeight: 600,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {m.nombre || "Mesociclo"}
-          </div>
-          <div
-            style={{
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              background: isActive ? "rgba(232,197,71,.15)" : "var(--surface3)",
               display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              marginTop: 6,
               alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "'Bebas Neue',sans-serif",
+              fontSize: 18,
+              color: isActive ? "var(--gold)" : "var(--muted)",
+              flexShrink: 0,
             }}
           >
-            <span
+            {(m.nombre || "M").charAt(0).toUpperCase()}
+          </div>
+          {/* Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
               style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "2px 10px",
-                borderRadius: 20,
-                background:
-                  m.modo === "Competitivo"
-                    ? "rgba(232,80,71,.15)"
-                    : "rgba(100,180,232,.15)",
-                color: m.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
-                border: `1px solid ${m.modo === "Competitivo" ? "var(--red)" : "var(--blue)"}30`,
+                fontSize: 15,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
               }}
             >
-              {m.modo}
-            </span>
-            {isActive && (
+              {m.nombre || "Mesociclo"}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                marginTop: 6,
+                alignItems: "center",
+              }}
+            >
               <span
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
                   padding: "2px 10px",
                   borderRadius: 20,
-                  background: "rgba(71,232,160,.15)",
-                  color: "var(--green)",
-                  border: "1px solid rgba(71,232,160,.3)",
+                  background:
+                    m.modo === "Competitivo"
+                      ? "rgba(232,80,71,.15)"
+                      : "rgba(100,180,232,.15)",
+                  color:
+                    m.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
+                  border: `1px solid ${m.modo === "Competitivo" ? "var(--red)" : "var(--blue)"}30`,
                 }}
               >
-                Activo
+                {m.modo}
               </span>
-            )}
-
-          </div>
-          {/* IRM values */}
-          {(m.irm_arranque || m.irm_envion) && (
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                marginTop: 6,
-                alignItems: "center",
-              }}
-            >
-              {m.irm_arranque && (
-                <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                  ARR:{" "}
-                  <strong style={{ color: "var(--gold)" }}>
-                    {m.irm_arranque}
-                  </strong>
-                  kg
-                </span>
-              )}
-              {m.irm_envion && (
-                <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                  ENV:{" "}
-                  <strong style={{ color: "var(--blue)" }}>
-                    {m.irm_envion}
-                  </strong>
-                  kg
+              {isActive && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "2px 10px",
+                    borderRadius: 20,
+                    background: "rgba(71,232,160,.15)",
+                    color: "var(--green)",
+                    border: "1px solid rgba(71,232,160,.3)",
+                  }}
+                >
+                  Activo
                 </span>
               )}
             </div>
-          )}
+            {/* IRM values */}
+            {(m.irm_arranque || m.irm_envion) && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  marginTop: 6,
+                  alignItems: "center",
+                }}
+              >
+                {m.irm_arranque && (
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                    ARR:{" "}
+                    <strong style={{ color: "var(--gold)" }}>
+                      {m.irm_arranque}
+                    </strong>
+                    kg
+                  </span>
+                )}
+                {m.irm_envion && (
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                    ENV:{" "}
+                    <strong style={{ color: "var(--blue)" }}>
+                      {m.irm_envion}
+                    </strong>
+                    kg
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          {/* Arrow */}
+          <ChevronLeft
+            size={16}
+            style={{
+              color: "var(--muted)",
+              transform: "rotate(180deg)",
+              flexShrink: 0,
+            }}
+          />
         </div>
-        {/* Arrow */}
-        <ChevronLeft
-          size={16}
-          style={{
-            color: "var(--muted)",
-            transform: "rotate(180deg)",
-            flexShrink: 0,
-          }}
-        />
-      </div>
-    </button>
+      </button>
     );
   };
 
@@ -34353,75 +34693,111 @@ function AtletaPanel({ session, profile, onLogout }) {
         </div>
 
         {/* IRM Summary Card */}
-        {primaryMeso && (primaryMeso.irm_arranque || primaryMeso.irm_envion) && (
-          <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 14,
-              paddingBottom: 8,
-              borderBottom: "2px solid var(--gold)",
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Bebas Neue'",
-                fontSize: 20,
-                color: "var(--gold)",
-                letterSpacing: ".04em",
-              }}
-            >
-              MARCAS HISTÓRICAS
-            </div>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-              marginBottom: 16,
-            }}
-          >
-            {primaryMeso.irm_arranque && (
+        {primaryMeso &&
+          (primaryMeso.irm_arranque || primaryMeso.irm_envion) && (
+            <>
               <div
                 style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 12,
-                  padding: "16px",
-                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 14,
+                  paddingBottom: 8,
+                  borderBottom: "2px solid var(--gold)",
                 }}
               >
-                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>
-                  ARRANQUE
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: "var(--gold)", fontFamily: "'Bebas Neue'" }}>
-                  {primaryMeso.irm_arranque}<span style={{ fontSize: 14, color: "var(--muted)" }}>kg</span>
+                <div
+                  style={{
+                    fontFamily: "'Bebas Neue'",
+                    fontSize: 20,
+                    color: "var(--gold)",
+                    letterSpacing: ".04em",
+                  }}
+                >
+                  MARCAS HISTÓRICAS
                 </div>
               </div>
-            )}
-            {primaryMeso.irm_envion && (
               <div
                 style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 12,
-                  padding: "16px",
-                  textAlign: "center",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 10,
+                  marginBottom: 16,
                 }}
               >
-                <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4, fontWeight: 600 }}>
-                  ENVIÓN
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: "var(--blue)", fontFamily: "'Bebas Neue'" }}>
-                  {primaryMeso.irm_envion}<span style={{ fontSize: 14, color: "var(--muted)" }}>kg</span>
-                </div>
+                {primaryMeso.irm_arranque && (
+                  <div
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 12,
+                      padding: "16px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--muted)",
+                        marginBottom: 4,
+                        fontWeight: 600,
+                      }}
+                    >
+                      ARRANQUE
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 700,
+                        color: "var(--gold)",
+                        fontFamily: "'Bebas Neue'",
+                      }}
+                    >
+                      {primaryMeso.irm_arranque}
+                      <span style={{ fontSize: 14, color: "var(--muted)" }}>
+                        kg
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {primaryMeso.irm_envion && (
+                  <div
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 12,
+                      padding: "16px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--muted)",
+                        marginBottom: 4,
+                        fontWeight: 600,
+                      }}
+                    >
+                      ENVIÓN
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 700,
+                        color: "var(--blue)",
+                        fontFamily: "'Bebas Neue'",
+                      }}
+                    >
+                      {primaryMeso.irm_envion}
+                      <span style={{ fontSize: 14, color: "var(--muted)" }}>
+                        kg
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </>)}
+            </>
+          )}
 
         {/* Active mesociclos */}
         {activeMesos.length > 0 && (
@@ -34474,26 +34850,39 @@ function AtletaPanel({ session, profile, onLogout }) {
               transition: "all .2s",
             }}
           >
-            <div style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: "var(--blue)22",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: "var(--blue)22",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
               <FileText size={20} style={{ color: "var(--blue)" }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontFamily: "'Bebas Neue'", fontSize: 18,
-                color: "var(--blue)", letterSpacing: ".04em",
-              }}>
+              <div
+                style={{
+                  fontFamily: "'Bebas Neue'",
+                  fontSize: 18,
+                  color: "var(--blue)",
+                  letterSpacing: ".04em",
+                }}
+              >
                 RESUMEN
               </div>
               <div style={{ fontSize: 11, color: "var(--muted)" }}>
                 {primaryMeso.nombre || "Mesociclo"}
               </div>
             </div>
-            <ChevronLeft size={16} style={{ color: "var(--blue)", transform: "rotate(180deg)" }} />
+            <ChevronLeft
+              size={16}
+              style={{ color: "var(--blue)", transform: "rotate(180deg)" }}
+            />
           </button>
         )}
 
@@ -34519,26 +34908,39 @@ function AtletaPanel({ session, profile, onLogout }) {
                 transition: "all .2s",
               }}
             >
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: "#9b87e822",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: "#9b87e822",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
                 <Library size={20} style={{ color: "#9b87e8" }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontFamily: "'Bebas Neue'", fontSize: 18,
-                  color: "#9b87e8", letterSpacing: ".04em",
-                }}>
+                <div
+                  style={{
+                    fontFamily: "'Bebas Neue'",
+                    fontSize: 18,
+                    color: "#9b87e8",
+                    letterSpacing: ".04em",
+                  }}
+                >
                   NORMATIVOS
                 </div>
                 <div style={{ fontSize: 11, color: "var(--muted)" }}>
                   {norms.length} ejercicio{norms.length !== 1 ? "s" : ""}
                 </div>
               </div>
-              <ChevronLeft size={16} style={{ color: "#9b87e8", transform: "rotate(180deg)" }} />
+              <ChevronLeft
+                size={16}
+                style={{ color: "#9b87e8", transform: "rotate(180deg)" }}
+              />
             </button>
           );
         })()}
@@ -34731,7 +35133,9 @@ export default function App() {
         >
           CARGANDO...
         </div>
-        <div style={{ fontSize: 10, color: "var(--muted)", opacity: .5 }}>v{APP_VERSION}</div>
+        <div style={{ fontSize: 10, color: "var(--muted)", opacity: 0.5 }}>
+          v{APP_VERSION}
+        </div>
       </div>
     );
   }
@@ -34785,7 +35189,9 @@ export default function App() {
         >
           CARGANDO...
         </div>
-        <div style={{ fontSize: 10, color: "var(--muted)", opacity: .5 }}>v{APP_VERSION}</div>
+        <div style={{ fontSize: 10, color: "var(--muted)", opacity: 0.5 }}>
+          v{APP_VERSION}
+        </div>
       </div>
     );
   }
