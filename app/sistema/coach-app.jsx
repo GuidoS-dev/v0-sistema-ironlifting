@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Download,
   Send,
@@ -33692,6 +33692,11 @@ function AtletaPanel({ session, profile, onLogout }) {
             setMesociclos(mesosData.map(mesoFromDb));
           }
 
+          // Restore athlete-specific normativos overrides into localStorage
+          if (atleta.normativos_overrides) {
+            restoreAtletaNormOverrides(atleta.app_id, atleta.normativos_overrides);
+          }
+
           // Load coach settings (normativos and tablas) for PDF rendering
           if (atleta.coach_id) {
             const { data: settingsData } = await sb
@@ -33839,6 +33844,26 @@ function AtletaPanel({ session, profile, onLogout }) {
     );
   }
 
+  // Build atletaNormativos: merge coach normativos with athlete-specific overrides
+  const atletaNormativos = useMemo(() => {
+    const base = coachNormativos || EJERCICIOS;
+    if (!atletaInfo?.app_id) return base;
+    let ovrs = {};
+    try {
+      ovrs = JSON.parse(localStorage.getItem(`liftplan_normativos_atleta_${atletaInfo.app_id}`) || "null") || {};
+    } catch { ovrs = {}; }
+    if (!Object.keys(ovrs).length) return base;
+    return base.map((ej) => {
+      const ovr = ovrs[ej.id];
+      if (!ovr) return ej;
+      return {
+        ...ej,
+        ...(ovr.pct_base !== undefined ? { pct_base: ovr.pct_base } : {}),
+        ...(ovr.base !== undefined ? { base: ovr.base } : {}),
+      };
+    });
+  }, [coachNormativos, atletaInfo?.app_id]);
+
   // Show selected mesociclo detail — render the PDF-style view
   if (selectedMeso) {
     const meso = selectedMeso;
@@ -33886,7 +33911,7 @@ function AtletaPanel({ session, profile, onLogout }) {
             atleta={atletaInfo}
             irm_arr={meso.irm_arranque}
             irm_env={meso.irm_envion}
-            normativos={coachNormativos || EJERCICIOS}
+            normativos={atletaNormativos}
             tablas={coachTablas || TABLA_DEFAULT}
             hideActions
           />
@@ -33934,7 +33959,7 @@ function AtletaPanel({ session, profile, onLogout }) {
               atleta={atletaInfo}
               irm_arr={primaryMeso.irm_arranque}
               irm_env={primaryMeso.irm_envion}
-              normativos={coachNormativos || EJERCICIOS}
+              normativos={atletaNormativos}
             />
           </div>
         </div>
@@ -33944,7 +33969,7 @@ function AtletaPanel({ session, profile, onLogout }) {
 
   // Show Normativos full-page view
   if (atletaView === "normativos") {
-    const norms = coachNormativos || EJERCICIOS;
+    const norms = atletaNormativos;
     const categories = ["Arranque", "Envion", "Tirones", "Piernas", "Complementarios"];
     const searchLower = normSearch.trim().toLowerCase();
     const filteredNorms = searchLower
@@ -34104,7 +34129,7 @@ function AtletaPanel({ session, profile, onLogout }) {
 
   // Helper to get the exercise name from normativos
   const getEjercicioNombre = (ejId) => {
-    const norms = coachNormativos || EJERCICIOS;
+    const norms = atletaNormativos;
     const found = norms.find((e) => e.id === ejId);
     return found?.nombre || `Ejercicio #${ejId}`;
   };
@@ -34465,7 +34490,7 @@ function AtletaPanel({ session, profile, onLogout }) {
 
         {/* Normativos — navigation card */}
         {(() => {
-          const norms = coachNormativos || EJERCICIOS;
+          const norms = atletaNormativos;
           if (!norms || norms.length === 0) return null;
           return (
             <button

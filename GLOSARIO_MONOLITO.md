@@ -118,7 +118,7 @@
 
 ## 5. Flujo Atleta
 
-AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → renderiza PagePDF (lee overrides de localStorage → getRepsVal → calcSeriesRepsKg → buildEjercicioRow).
+AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → `restoreAtletaNormOverrides()` → computa `atletaNormativos` (useMemo: merge coachNormativos + overrides de localStorage) → renderiza PagePDF con `atletaNormativos` (lee overrides de localStorage → getRepsVal → calcSeriesRepsKg → buildEjercicioRow).
 
 ---
 
@@ -127,6 +127,7 @@ AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → renderiza Pag
 | Estado | Bug | Fix |
 |---|---|---|
 | ✅ v1.0.1 | Atleta no ve reps/kg — faltaba `restoreMesoOverrides()` en AtletaPanel | Agregado en useEffect de carga |
+| ✅ | Ejercicios con normativos overrides no renderizan en móvil (solo etiqueta) — AtletaPanel pasaba `coachNormativos` en vez de `atletaNormativos` a PagePDF. En mobile, celdas vacías se ocultan (`display:none` en `.pdf-table td:has(.cell-empty)`), dejando solo el label | Se agregó: 1) `restoreAtletaNormOverrides()` en data load, 2) `useMemo` para computar `atletaNormativos` mergeando overrides, 3) pasar `atletaNormativos` a PagePDF, PageResumen y helpers |
 | ⚠️ Pendiente | PanelReferencia hardcodea `TABLA_DEFAULT` (L30897) en vez de usar las tablas del coach | — |
 | ✅ | Franja superior transparente en algunos móviles iOS (safe-area notch/Dynamic Island) | `body::before` fijo con `background:var(--bg)` y `height:env(safe-area-inset-top)` (L2221) |
 | ✅ | Bottom nav PDF demasiado pegada al home indicator en iPhone | `padding-bottom: calc(env(safe-area-inset-bottom) + 24px)` en `.pdf-mobile-nav` (L23537) |
