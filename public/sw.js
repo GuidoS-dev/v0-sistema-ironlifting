@@ -1,4 +1,4 @@
-const CACHE_NAME = "ironlifting-v1.0.12";
+const CACHE_NAME = "ironlifting-v1.1.0";
 
 const PRECACHE_URLS = ["/sistema", "/icon-192x192.png", "/icon-512x512.png"];
 
@@ -50,8 +50,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: network-first (ensures updates are picked up immediately)
-  if (request.url.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?)$/)) {
+  // Immutable hashed assets (_next/static/): cache-first (hash changes on new builds)
+  if (request.url.includes("/_next/static/")) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((response) => {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            return response;
+          }),
+      ),
+    );
+    return;
+  }
+
+  // Other static assets (images, fonts): network-first
+  if (request.url.match(/\.(png|jpg|jpeg|svg|ico|woff2?)$/)) {
     event.respondWith(
       fetch(request)
         .then((response) => {

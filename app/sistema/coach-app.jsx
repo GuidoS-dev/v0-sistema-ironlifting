@@ -36,7 +36,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.0.12";
+const APP_VERSION = "1.1.0";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -229,14 +229,8 @@ async function _fetchWithTimeout(
     throw new Error("SUPABASE_CONFIG_MISSING");
   }
 
-  let requestUrl = url;
-  try {
-    const parsed = new URL(url);
-    if (parsed.origin === SUPA_URL) {
-      const path = `${parsed.pathname}${parsed.search}`;
-      requestUrl = `/api/supabase-proxy?path=${encodeURIComponent(path)}`;
-    }
-  } catch {}
+  // Call Supabase directly — avoids doubling bandwidth through the proxy
+  const requestUrl = url;
 
   // keepalive mode: skip abort controller, let browser finish request after page unload
   if (options.keepalive) {
@@ -660,6 +654,40 @@ const COACH_SETTING_KEYS = {
 };
 
 const LIFTPLAN_LOCAL_SYNC_EVENT = "liftplan:local-sync";
+
+// ── Global visibility-resume throttle ────────────────────────────────────────
+// Prevents 5+ data-sync pulls from all firing on every tab switch.
+// Subscribers register callbacks; on resume we fire them staggered, with a
+// minimum 30s gap between resume bursts.
+const _visResume = (() => {
+  if (typeof document === "undefined") return { sub: () => () => {}, _last: 0 };
+  const MIN_GAP_MS = 30_000;
+  const STAGGER_MS = 400;
+  const cbs = new Set();
+  let lastFire = 0;
+  let timer = null;
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    const now = Date.now();
+    if (now - lastFire < MIN_GAP_MS) return;
+    lastFire = now;
+    if (timer) clearTimeout(timer);
+    // Small debounce so rapid focus/visibility flickers don't trigger
+    timer = setTimeout(() => {
+      let i = 0;
+      cbs.forEach((fn) => {
+        setTimeout(fn, i * STAGGER_MS);
+        i++;
+      });
+    }, 300);
+  });
+
+  return {
+    sub: (fn) => { cbs.add(fn); return () => cbs.delete(fn); },
+    _last: () => lastFire,
+  };
+})();
 
 // BroadcastChannel — notifica a otras pestañas cuando hay un write a DB
 const _bc = (() => {
@@ -25480,14 +25508,10 @@ function usePlantillas(coachId) {
     };
 
     pullPlantillas().catch(() => {});
-    const onVisible = () => {
-      if (document.visibilityState === "visible")
-        pullPlantillas().catch(() => {});
-    };
-    document.addEventListener("visibilitychange", onVisible);
+    const unsub = _visResume.sub(() => pullPlantillas().catch(() => {}));
     return () => {
       cancelled = true;
-      document.removeEventListener("visibilitychange", onVisible);
+      unsub();
     };
   }, [coachId]);
 
@@ -29047,18 +29071,8 @@ function PageNormativos({ coachId, isActive = false }) {
 
   useEffect(() => {
     if (!coachId || !isActive) return;
-
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        syncFromDb().catch(() => {});
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVisible);
-    };
+    const unsub = _visResume.sub(() => syncFromDb().catch(() => {}));
+    return () => unsub();
   }, [coachId, isActive, syncFromDb]);
 
   const save = (list) => {
@@ -29718,14 +29732,10 @@ function PageCalculadora({ coachId }) {
     };
 
     syncFromDb().catch(() => {});
-    const onVisible = () => {
-      if (document.visibilityState === "visible") syncFromDb().catch(() => {});
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
+    const unsub = _visResume.sub(() => syncFromDb().catch(() => {}));
     return () => {
       cancelled = true;
-      document.removeEventListener("visibilitychange", onVisible);
+      unsub();
     };
   }, [coachId]);
 
@@ -32908,18 +32918,15 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullAtletas();
-    const onVisible = () => {
-      if (document.visibilityState === "visible") pullAtletas();
-    };
+    const unsub = _visResume.sub(() => pullAtletas());
     const onBc = (e) => {
       if (e.data?.type === "atletas" || e.data?.type === "all") pullAtletas();
     };
 
-    document.addEventListener("visibilitychange", onVisible);
     _bc?.addEventListener("message", onBc);
     return () => {
       cancelled = true;
-      document.removeEventListener("visibilitychange", onVisible);
+      unsub();
       _bc?.removeEventListener("message", onBc);
     };
   }, [coachId]);
@@ -32989,19 +32996,16 @@ function CoachApp({ session, profile, onLogout }) {
     };
 
     pullMesociclos();
-    const onVisible = () => {
-      if (document.visibilityState === "visible") pullMesociclos();
-    };
+    const unsub = _visResume.sub(() => pullMesociclos());
     const onBc = (e) => {
       if (e.data?.type === "mesociclos" || e.data?.type === "all")
         pullMesociclos();
     };
 
-    document.addEventListener("visibilitychange", onVisible);
     _bc?.addEventListener("message", onBc);
     return () => {
       cancelled = true;
-      document.removeEventListener("visibilitychange", onVisible);
+      unsub();
       _bc?.removeEventListener("message", onBc);
     };
   }, [coachId]);
