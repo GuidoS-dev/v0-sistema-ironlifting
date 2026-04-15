@@ -30,7 +30,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.0.5";
+const APP_VERSION = "1.0.6";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -33657,6 +33657,7 @@ function AtletaPanel({ session, profile, onLogout }) {
   const [coachTablas, setCoachTablas] = useState(null);
   const [atletaView, setAtletaView] = useState(null); // "resumen" | "normativos" | null
   const [normSearch, setNormSearch] = useState("");
+  const [atletaNormOvr, setAtletaNormOvr] = useState({});
   const mesoScrollRef = useRef(0);
   const mesoIdRef = useRef(null);
 
@@ -33692,9 +33693,17 @@ function AtletaPanel({ session, profile, onLogout }) {
             setMesociclos(mesosData.map(mesoFromDb));
           }
 
-          // Restore athlete-specific normativos overrides into localStorage
+          // Restore athlete-specific overrides into localStorage
+          if (atleta.pct_overrides) {
+            restoreAtletaPctOverrides(atleta.app_id, atleta.pct_overrides);
+          }
           if (atleta.normativos_overrides) {
             restoreAtletaNormOverrides(atleta.app_id, atleta.normativos_overrides);
+            // Also store in state directly — avoids localStorage timing issues
+            const ovr = typeof atleta.normativos_overrides === "string"
+              ? JSON.parse(atleta.normativos_overrides)
+              : atleta.normativos_overrides;
+            setAtletaNormOvr(ovr || {});
           }
 
           // Load coach settings (normativos and tablas) for PDF rendering
@@ -33738,16 +33747,12 @@ function AtletaPanel({ session, profile, onLogout }) {
   }, [session?.user?.id]);
 
   // Build atletaNormativos: merge coach normativos with athlete-specific overrides
+  // Uses state (atletaNormOvr) directly — no localStorage dependency
   const atletaNormativos = useMemo(() => {
     const base = coachNormativos || EJERCICIOS;
-    if (!atletaInfo?.app_id) return base;
-    let ovrs = {};
-    try {
-      ovrs = JSON.parse(localStorage.getItem(`liftplan_normativos_atleta_${atletaInfo.app_id}`) || "null") || {};
-    } catch { ovrs = {}; }
-    if (!Object.keys(ovrs).length) return base;
+    if (!Object.keys(atletaNormOvr).length) return base;
     return base.map((ej) => {
-      const ovr = ovrs[ej.id];
+      const ovr = atletaNormOvr[ej.id];
       if (!ovr) return ej;
       return {
         ...ej,
@@ -33755,7 +33760,7 @@ function AtletaPanel({ session, profile, onLogout }) {
         ...(ovr.base !== undefined ? { base: ovr.base } : {}),
       };
     });
-  }, [coachNormativos, atletaInfo?.app_id]);
+  }, [coachNormativos, atletaNormOvr]);
 
   if (loading) {
     return (
