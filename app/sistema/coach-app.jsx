@@ -32283,7 +32283,7 @@ function LoginScreen({ onAuth }) {
             color: "var(--muted)",
           }}
         >
-          Sistema IronLifting © 2026
+          Sistema IronLifting © 2026 · v{APP_VERSION}
         </div>
       </div>
     </div>
