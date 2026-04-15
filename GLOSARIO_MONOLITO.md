@@ -96,7 +96,7 @@
 | `INTENSIDADES` | 14355 | `[50, 60, 70, 75, 80, 85, 90, 95]` |
 | `EJERCICIOS[]` | 1081 | ~160 ejercicios `{id, nombre, base, pct_base, categoria}` |
 | `GRUPO_RANGES` | 14265 | Rangos legacy ID→grupo |
-| `APP_VERSION` | 33 | `"1.0.4"` — versión de la app, se muestra en loading y login |
+| `APP_VERSION` | 33 | `"1.0.5"` — versión de la app, se muestra en loading y login |
 | `COACH_SETTING_KEYS` | 651 | `{NORMATIVOS, TABLAS}` |
 
 ## 4. Overrides (localStorage ↔ DB)
