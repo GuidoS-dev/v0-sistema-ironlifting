@@ -23534,7 +23534,7 @@ function PagePDF({
         backdrop-filter: blur(16px) saturate(1.4);
         border-top: 1px solid rgba(240,180,41,.25);
         padding: 10px 12px 0;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
         gap: 0;
         align-items: stretch;
         box-shadow: 0 -8px 32px rgba(0,0,0,.6);

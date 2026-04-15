@@ -52,7 +52,7 @@
 | 17603–17954 | **EditVolModal** | Modal para editar volumen total y distribución semanal |
 | 17955–20906 | **PageAtleta** ⭐ | **Página del atleta** — vista coach con tabs (sembrado, planilla, resumen, PDF) |
 | 20907–22262 | **PageResumen** | Página de resumen del mesociclo — métricas, gráficos, tabla de totales |
-| 22263–24697 | **PagePDF** ⭐ | **Vista de plan imprimible** — renderiza la planilla completa formateada para PDF/pantalla |
+| 22263–24697 | **PagePDF** ⭐ | **Vista de plan imprimible** — renderiza la planilla completa formateada para PDF/pantalla. Incluye CSS mobile bottom nav (~L23519–23623) y state mobile (~L23633–23640) |
 | 24698–24750 | **Constantes de Plantillas** | `PERIODOS`, `OBJETIVOS`, `NIVELES`, labels y colores |
 | 24751–25083 | **Logos SVG** | `LogoHorizontal`, `LogoIL`, `LogoILSolo` — logos inline como componentes SVG |
 | 25084–25143 | **useHistory** | Hook de undo/redo con persistencia en localStorage |
@@ -127,3 +127,34 @@ AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → renderiza Pag
 | ✅ v1.0.1 | Atleta no ve reps/kg — faltaba `restoreMesoOverrides()` en AtletaPanel | Agregado en useEffect de carga |
 | ⚠️ Pendiente | PanelReferencia hardcodea `TABLA_DEFAULT` (L30897) en vez de usar las tablas del coach | — |
 | ✅ | Franja superior transparente en algunos móviles iOS (safe-area notch/Dynamic Island) | `body::before` fijo con `background:var(--bg)` y `height:env(safe-area-inset-top)` (L2221) |
+| ✅ | Bottom nav PDF demasiado pegada al home indicator en iPhone | `padding-bottom: calc(env(safe-area-inset-bottom) + 14px)` en `.pdf-mobile-nav` (L23537) |
+
+---
+
+## 7. Z-Index & Capas
+
+| Elemento | z-index | Tipo |
+|---|---|---|
+| `body::before` (safe-area top cover) | 9999 | fixed |
+| `.modal-overlay` | 200 | fixed |
+| `.nav` (header coach) | 100 | sticky |
+| `.pdf-mobile-nav` (bottom nav atleta) | 100 | fixed |
+| Sticky turnos internos | 50 / 2 | sticky |
+
+## 8. Safe-Area Insets
+
+| Ubicación | Línea | Uso |
+|---|---|---|
+| `body` padding (global) | 2220 | `padding-*: env(safe-area-inset-*)` en los 4 lados |
+| `body::before` (top cover) | 2221 | `height: env(safe-area-inset-top)` — cubre notch con color sólido |
+| `.pdf-mobile-nav` | 23537 | `padding-bottom: calc(env(safe-area-inset-bottom) + 14px)` |
+| Modal PDF body | 23743 | `padding-top: calc(safe-area-inset-top + 52px)` |
+| PDF header sticky | 23744 | `top: calc(safe-area-inset-top + 52px)` |
+
+## 9. Mobile Nav AtletaPanel (`.pdf-mobile-nav`)
+
+- **Breakpoint:** ≤768px (oculto en desktop)
+- **Estilo:** glassmorphism — `rgba(13,17,23,.92)` + `backdrop-filter: blur(16px)`
+- **2 filas:** Session tabs (S1, S2…) + Turno tabs (T1, T2…)
+- **State:** `isMob`, `mobNavActive`, `mobNavTurnos`, `mobActiveTurno` (~L23633)
+- **Content padding:** `#pdf-preview { padding-bottom: 80px }` para compensar nav fija
