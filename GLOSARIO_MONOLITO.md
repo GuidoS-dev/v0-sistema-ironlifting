@@ -7,7 +7,8 @@
 | Rango (aprox.) | Sección | Descripción |
 |---|---|---|
 | 1–31 | **Imports** | React, lucide-react icons (Download, Send, FileText, ChevronLeft, etc.) |
-| 33–36 | **Supabase Config** | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` |
+| 33 | **APP_VERSION** | Constante `"1.0.4"` — se muestra en pantallas de carga y footer del login |
+| 35–38 | **Supabase Config** | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` |
 | 38–82 | **Sanitización** | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput`, `sanitizeRequestBody` |
 | 83–128 | **localStorage Safe** | `_freeLocalStorageSpace`, `safeSetItem` — manejo de QuotaExceededError |
 | 129–210 | **Auth Helpers** | Sesión local, perfil, listeners de auth, helpers de error |
@@ -69,9 +70,9 @@
 | 28767–29455 | **PageNormativos** | Página global de normativos del coach |
 | 29456–30600 | **PageCalculadora** | Calculadora de series/reps con tablas editables |
 | 30601–31882 | **PanelReferencia** | Panel lateral de referencia rápida (atleta/plantilla side-by-side) |
-| 31883–32291 | **LoginScreen** | Pantalla de login con email/password |
-| 32292–33647 | **CoachApp** ⭐ | **Componente principal coach** — state management, routing, sync DB, tabs |
-| 33648–33590 | **AtletaPanel** ⭐ | **Vista del atleta** — carga datos desde Supabase, muestra mesos y PagePDF |
+| 31883–32291 | **LoginScreen** | Pantalla de login con email/password. Footer: `Sistema IronLifting © 2026 · v{APP_VERSION}` |
+| 32292–33647 | **CoachApp** ⭐ | **Componente principal coach** — state management, routing, sync DB, tabs. Loading screens (authLoading, profile) muestran `v{APP_VERSION}` |
+| 33648–34800 | **AtletaPanel** ⭐ | **Vista del atleta** — carga datos desde Supabase, muestra mesos y PagePDF. Loading screen muestra `v{APP_VERSION}` |
 
 ---
 
@@ -95,6 +96,7 @@
 | `INTENSIDADES` | 14355 | `[50, 60, 70, 75, 80, 85, 90, 95]` |
 | `EJERCICIOS[]` | 1081 | ~160 ejercicios `{id, nombre, base, pct_base, categoria}` |
 | `GRUPO_RANGES` | 14265 | Rangos legacy ID→grupo |
+| `APP_VERSION` | 33 | `"1.0.4"` — versión de la app, se muestra en loading y login |
 | `COACH_SETTING_KEYS` | 651 | `{NORMATIVOS, TABLAS}` |
 
 ## 4. Overrides (localStorage ↔ DB)
@@ -127,7 +129,7 @@ AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → renderiza Pag
 | ✅ v1.0.1 | Atleta no ve reps/kg — faltaba `restoreMesoOverrides()` en AtletaPanel | Agregado en useEffect de carga |
 | ⚠️ Pendiente | PanelReferencia hardcodea `TABLA_DEFAULT` (L30897) en vez de usar las tablas del coach | — |
 | ✅ | Franja superior transparente en algunos móviles iOS (safe-area notch/Dynamic Island) | `body::before` fijo con `background:var(--bg)` y `height:env(safe-area-inset-top)` (L2221) |
-| ✅ | Bottom nav PDF demasiado pegada al home indicator en iPhone | `padding-bottom: calc(env(safe-area-inset-bottom) + 14px)` en `.pdf-mobile-nav` (L23537) |
+| ✅ | Bottom nav PDF demasiado pegada al home indicator en iPhone | `padding-bottom: calc(env(safe-area-inset-bottom) + 24px)` en `.pdf-mobile-nav` (L23537) |
 
 ---
 
@@ -147,7 +149,7 @@ AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → renderiza Pag
 |---|---|---|
 | `body` padding (global) | 2220 | `padding-*: env(safe-area-inset-*)` en los 4 lados |
 | `body::before` (top cover) | 2221 | `height: env(safe-area-inset-top)` — cubre notch con color sólido |
-| `.pdf-mobile-nav` | 23537 | `padding-bottom: calc(env(safe-area-inset-bottom) + 14px)` |
+| `.pdf-mobile-nav` | 23537 | `padding-bottom: calc(env(safe-area-inset-bottom) + 24px)` |
 | Modal PDF body | 23743 | `padding-top: calc(safe-area-inset-top + 52px)` |
 | PDF header sticky | 23744 | `top: calc(safe-area-inset-top + 52px)` |
 
