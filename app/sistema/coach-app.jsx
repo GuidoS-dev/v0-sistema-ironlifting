@@ -36,7 +36,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.1.1";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -546,6 +546,10 @@ const sb = {
         _q.filters.push({ col, val: `eq.${val}` });
         return builder;
       },
+      gt: (col, val) => {
+        _q.filters.push({ col, val: `gt.${val}` });
+        return builder;
+      },
       single: () => {
         _q.single_ = true;
         return builder;
@@ -684,7 +688,10 @@ const _visResume = (() => {
   });
 
   return {
-    sub: (fn) => { cbs.add(fn); return () => cbs.delete(fn); },
+    sub: (fn) => {
+      cbs.add(fn);
+      return () => cbs.delete(fn);
+    },
     _last: () => lastFire,
   };
 })();
@@ -24842,13 +24849,18 @@ window.addEventListener('load',updateStickyTurnos);
             validSems.find((s) => s.semIdx === mobNavActive) || validSems[0];
           const indicatorLabel = (() => {
             const semLabel = isPretemp
-              ? (() => { const off = mobTurnoOffsets[activeSem.semIdx] || 0; return `T${off + 1}-${off + (activeSem.sem.turnos || []).length}`; })()
+              ? (() => {
+                  const off = mobTurnoOffsets[activeSem.semIdx] || 0;
+                  return `T${off + 1}-${off + (activeSem.sem.turnos || []).length}`;
+                })()
               : `S${activeSem.sem.numero}`;
             if (mobActiveTurno >= 0) {
               const tLabel = isPretemp
                 ? `T${(mobTurnoOffsets[activeSem.semIdx] || 0) + mobActiveTurno + 1}`
                 : `T${mobActiveTurno + 1}`;
-              const dia = activeSem.turnos.find(t => t.tIdx === mobActiveTurno)?.dia;
+              const dia = activeSem.turnos.find(
+                (t) => t.tIdx === mobActiveTurno,
+              )?.dia;
               return `${semLabel} · ${tLabel}${dia ? ` · ${dia}` : ""}`;
             }
             return semLabel;
@@ -24861,7 +24873,10 @@ window.addEventListener('load',updateStickyTurnos);
                   onClick={() => {
                     setMobNavHidden(false);
                     clearTimeout(mobNavTimerRef.current);
-                    mobNavTimerRef.current = setTimeout(() => setMobNavHidden(true), 1000);
+                    mobNavTimerRef.current = setTimeout(
+                      () => setMobNavHidden(true),
+                      1000,
+                    );
                   }}
                 >
                   {indicatorLabel}
@@ -24870,67 +24885,67 @@ window.addEventListener('load',updateStickyTurnos);
               <div
                 className={`pdf-mobile-nav no-print${mobNavHidden ? " mob-nav-hidden" : ""}`}
               >
-              <div className="pdf-mobile-nav-row">
-                {validSems.map(({ sem, semIdx: sIdx }) => {
-                  const mOff = mobTurnoOffsets[sIdx] || 0;
-                  const mFirst = mOff + 1;
-                  const mLast = mOff + (sem.turnos || []).length;
-                  return (
-                    <button
-                      key={sIdx}
-                      className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? " active" : ""}`}
-                      onClick={() => {
-                        const el = document.getElementById(`pdf-sem-${sIdx}`);
-                        if (el)
-                          el.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                          });
-                        setMobNavTurnos(
-                          activeSem.semIdx === sIdx ? !mobNavTurnos : true,
-                        );
-                        setMobNavActive(sIdx);
-                        setMobActiveTurno(-1);
-                      }}
-                    >
-                      {isPretemp ? `T${mFirst}-${mLast}` : `S${sem.numero}`}
-                    </button>
-                  );
-                })}
-              </div>
-              {mobNavTurnos && activeSem.turnos.length > 0 && (
-                <div className="pdf-mobile-nav-turnos">
-                  {activeSem.turnos.map(({ tIdx, dia }) => {
-                    const activeOff = mobTurnoOffsets[activeSem.semIdx] || 0;
+                <div className="pdf-mobile-nav-row">
+                  {validSems.map(({ sem, semIdx: sIdx }) => {
+                    const mOff = mobTurnoOffsets[sIdx] || 0;
+                    const mFirst = mOff + 1;
+                    const mLast = mOff + (sem.turnos || []).length;
                     return (
                       <button
-                        key={tIdx}
-                        className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? " active" : ""}`}
+                        key={sIdx}
+                        className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? " active" : ""}`}
                         onClick={() => {
-                          if (mobActiveTurno === tIdx) {
-                            setMobNavTurnos(false);
-                            setMobActiveTurno(-1);
-                            return;
-                          }
-                          const el = document.getElementById(
-                            `pdf-turno-${activeSem.semIdx}-${tIdx}`,
-                          );
+                          const el = document.getElementById(`pdf-sem-${sIdx}`);
                           if (el)
                             el.scrollIntoView({
                               behavior: "smooth",
                               block: "start",
                             });
-                          setMobActiveTurno(tIdx);
+                          setMobNavTurnos(
+                            activeSem.semIdx === sIdx ? !mobNavTurnos : true,
+                          );
+                          setMobNavActive(sIdx);
+                          setMobActiveTurno(-1);
                         }}
                       >
-                        T{isPretemp ? activeOff + tIdx + 1 : tIdx + 1}
-                        {dia ? ` · ${dia}` : ""}
+                        {isPretemp ? `T${mFirst}-${mLast}` : `S${sem.numero}`}
                       </button>
                     );
                   })}
                 </div>
-              )}
-            </div>
+                {mobNavTurnos && activeSem.turnos.length > 0 && (
+                  <div className="pdf-mobile-nav-turnos">
+                    {activeSem.turnos.map(({ tIdx, dia }) => {
+                      const activeOff = mobTurnoOffsets[activeSem.semIdx] || 0;
+                      return (
+                        <button
+                          key={tIdx}
+                          className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? " active" : ""}`}
+                          onClick={() => {
+                            if (mobActiveTurno === tIdx) {
+                              setMobNavTurnos(false);
+                              setMobActiveTurno(-1);
+                              return;
+                            }
+                            const el = document.getElementById(
+                              `pdf-turno-${activeSem.semIdx}-${tIdx}`,
+                            );
+                            if (el)
+                              el.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start",
+                              });
+                            setMobActiveTurno(tIdx);
+                          }}
+                        >
+                          T{isPretemp ? activeOff + tIdx + 1 : tIdx + 1}
+                          {dia ? ` · ${dia}` : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </>
           );
         })()}
@@ -25440,6 +25455,7 @@ function usePlantillas(coachId) {
 
   // Cargar plantillas desde Supabase + pull on visibility
   const lastPullPlantillasRef = useRef(0);
+  const lastSyncTsPlantillasRef = useRef(null);
   useEffect(() => {
     if (!coachId) return;
     let cancelled = false;
@@ -25448,12 +25464,25 @@ function usePlantillas(coachId) {
       const now = Date.now();
       if (now - lastPullPlantillasRef.current < 5000) return; // throttle 5s
       lastPullPlantillasRef.current = now;
-      const { data, error } = await sb
+      const q = sb
         .from("plantillas")
         .select("*")
-        .eq("coach_id", coachId)
-        .exec();
+        .eq("coach_id", coachId);
+      // Delta sync
+      if (lastSyncTsPlantillasRef.current) {
+        q.gt("updated_at", lastSyncTsPlantillasRef.current);
+      }
+      const { data, error } = await q.exec();
       if (cancelled || error || !data) return;
+      // Registrar timestamp
+      if (data.length > 0) {
+        const maxTs = data.reduce((max, r) => {
+          return r.updated_at && r.updated_at > max ? r.updated_at : max;
+        }, lastSyncTsPlantillasRef.current || "");
+        if (maxTs) lastSyncTsPlantillasRef.current = maxTs;
+      } else if (!lastSyncTsPlantillasRef.current) {
+        lastSyncTsPlantillasRef.current = new Date().toISOString();
+      }
       const appPlantillas = data.filter((r) => r.app_id);
       if (appPlantillas.length > 0) {
         const loaded = appPlantillas.map(plantillaFromDb);
@@ -32840,6 +32869,8 @@ function CoachApp({ session, profile, onLogout }) {
   // ── Pull remoto de atletas (incluye overrides normativos) ─────────────────
   const lastPullAtletasRef = useRef(0);
   const lastPullMesosRef = useRef(0);
+  const lastSyncTsAtletasRef = useRef(null); // ISO timestamp for delta sync
+  const lastSyncTsMesosRef = useRef(null);
   const PULL_THROTTLE_MS = 5000; // mínimo 5s entre pulls
   useEffect(() => {
     if (!coachId) return;
@@ -32849,14 +32880,28 @@ function CoachApp({ session, profile, onLogout }) {
       const now = Date.now();
       if (now - lastPullAtletasRef.current < PULL_THROTTLE_MS) return;
       lastPullAtletasRef.current = now;
-      const { data, error } = await sb
+      const q = sb
         .from("atletas")
         .select("*")
-        .eq("coach_id", coachId)
-        .exec();
+        .eq("coach_id", coachId);
+      // Delta sync: solo traer filas modificadas desde último pull exitoso
+      if (lastSyncTsAtletasRef.current) {
+        q.gt("updated_at", lastSyncTsAtletasRef.current);
+      }
+      const { data, error } = await q.exec();
       if (cancelled || error || !data) return;
 
       const appAtletas = data.filter((r) => r.app_id);
+      // Registrar timestamp ANTES de mergear (usar max updated_at de esta respuesta)
+      if (data.length > 0) {
+        const maxTs = data.reduce((max, r) => {
+          return r.updated_at && r.updated_at > max ? r.updated_at : max;
+        }, lastSyncTsAtletasRef.current || "");
+        if (maxTs) lastSyncTsAtletasRef.current = maxTs;
+      } else if (!lastSyncTsAtletasRef.current) {
+        // Primer pull vacío — marcar como synced
+        lastSyncTsAtletasRef.current = new Date().toISOString();
+      }
       if (appAtletas.length === 0) return;
 
       markDbSync();
@@ -32940,14 +32985,27 @@ function CoachApp({ session, profile, onLogout }) {
       const now = Date.now();
       if (now - lastPullMesosRef.current < PULL_THROTTLE_MS) return;
       lastPullMesosRef.current = now;
-      const { data, error } = await sb
+      const q = sb
         .from("mesociclos")
         .select("*")
-        .eq("coach_id", coachId)
-        .exec();
+        .eq("coach_id", coachId);
+      // Delta sync: solo traer filas modificadas desde último pull exitoso
+      if (lastSyncTsMesosRef.current) {
+        q.gt("updated_at", lastSyncTsMesosRef.current);
+      }
+      const { data, error } = await q.exec();
       if (cancelled || error || !data) return;
 
       const appMesos = data.filter((r) => r.app_id);
+      // Registrar timestamp
+      if (data.length > 0) {
+        const maxTs = data.reduce((max, r) => {
+          return r.updated_at && r.updated_at > max ? r.updated_at : max;
+        }, lastSyncTsMesosRef.current || "");
+        if (maxTs) lastSyncTsMesosRef.current = maxTs;
+      } else if (!lastSyncTsMesosRef.current) {
+        lastSyncTsMesosRef.current = new Date().toISOString();
+      }
       if (appMesos.length === 0) return;
 
       markDbSync();
