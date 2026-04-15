@@ -36,7 +36,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.0.11";
+const APP_VERSION = "1.0.12";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23690,7 +23690,7 @@ function PagePDF({
       /* Floating indicator when nav is hidden */
       .mob-nav-indicator {
         position: fixed;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
         right: 12px;
         z-index: 99;
         background: rgba(13,17,23,.88);
