@@ -2218,6 +2218,7 @@ const css = `
   :root{--nav-h:64px}
   @media(max-width:480px){:root{--nav-h:48px}}
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100dvh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+  body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:9999}
   
   /* ── Scrollbars ── */
   *{scrollbar-width:thin;scrollbar-color:rgba(232,197,71,.25) transparent}
