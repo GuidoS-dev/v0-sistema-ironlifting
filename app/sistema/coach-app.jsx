@@ -36,7 +36,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.1.2";
+const APP_VERSION = "1.2.0";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -732,7 +732,7 @@ function getLastDbSync() {
   }
 }
 
-function collectBackupData() {
+function collectLocalData() {
   const get = (k, fb) => {
     try {
       const r = localStorage.getItem(k);
@@ -742,8 +742,6 @@ function collectBackupData() {
     }
   };
   return {
-    _backup_version: 1,
-    _created_at: new Date().toISOString(),
     atletas: get("liftplan_atletas", []),
     mesociclos: get("liftplan_mesociclos", []),
     plantillas: get("liftplan_plantillas", []),
@@ -752,8 +750,34 @@ function collectBackupData() {
   };
 }
 
-function downloadBackup() {
-  const data = collectBackupData();
+async function collectBackupData() {
+  const local = collectLocalData();
+  let supabaseData = null;
+  try {
+    const tables = ["atletas", "mesociclos", "plantillas", "coach_settings", "profiles"];
+    const results = await Promise.allSettled(
+      tables.map((t) => sb.from(t).select("*").exec()),
+    );
+    supabaseData = {};
+    tables.forEach((t, i) => {
+      const r = results[i];
+      supabaseData[t] =
+        r.status === "fulfilled" && r.value.data ? r.value.data : null;
+    });
+  } catch {
+    supabaseData = null;
+  }
+  return {
+    _backup_version: 2,
+    _created_at: new Date().toISOString(),
+    _source: "localStorage+supabase",
+    localStorage: local,
+    supabase: supabaseData,
+  };
+}
+
+async function downloadBackup() {
+  const data = await collectBackupData();
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -33700,7 +33724,7 @@ function CoachApp({ session, profile, onLogout }) {
               downloadBackup();
               setShowBackupBanner(false);
             }}
-            title="Descargar respaldo local (JSON)"
+            title="Descargar respaldo completo (localStorage + Supabase)"
             style={{
               flexShrink: 0,
               marginLeft: 6,
