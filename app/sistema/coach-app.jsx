@@ -30,7 +30,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.0.6";
+const APP_VERSION = "1.0.7";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -33719,20 +33719,24 @@ function AtletaPanel({ session, profile, onLogout }) {
                   s.setting_value
                 ) {
                   try {
-                    setCoachNormativos(
+                    const parsed =
                       typeof s.setting_value === "string"
                         ? JSON.parse(s.setting_value)
-                        : s.setting_value,
-                    );
+                        : s.setting_value;
+                    setCoachNormativos(parsed);
+                    // Write to localStorage so getEjercicioById/getGrupo
+                    // can find custom exercises (IDs > 144)
+                    if (parsed) writeLocalJson("liftplan_normativos", parsed);
                   } catch {}
                 }
                 if (s.setting_key === "tablas_calculadora" && s.setting_value) {
                   try {
-                    setCoachTablas(
+                    const parsed =
                       typeof s.setting_value === "string"
                         ? JSON.parse(s.setting_value)
-                        : s.setting_value,
-                    );
+                        : s.setting_value;
+                    setCoachTablas(parsed);
+                    if (parsed) writeLocalJson("liftplan_tablas", parsed);
                   } catch {}
                 }
               });

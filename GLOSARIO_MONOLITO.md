@@ -96,7 +96,7 @@
 | `INTENSIDADES` | 14355 | `[50, 60, 70, 75, 80, 85, 90, 95]` |
 | `EJERCICIOS[]` | 1081 | ~160 ejercicios `{id, nombre, base, pct_base, categoria}` |
 | `GRUPO_RANGES` | 14265 | Rangos legacy ID→grupo |
-| `APP_VERSION` | 33 | `"1.0.6"` — versión de la app, se muestra en loading y login |
+| `APP_VERSION` | 33 | `"1.0.7"` — versión de la app, se muestra en loading y login |
 | `COACH_SETTING_KEYS` | 651 | `{NORMATIVOS, TABLAS}` |
 
 ## 4. Overrides (localStorage ↔ DB)
@@ -118,7 +118,7 @@
 
 ## 5. Flujo Atleta
 
-AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → `restoreAtletaNormOverrides()` → computa `atletaNormativos` (useMemo: merge coachNormativos + overrides de localStorage) → renderiza PagePDF con `atletaNormativos` (lee overrides de localStorage → getRepsVal → calcSeriesRepsKg → buildEjercicioRow).
+AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → `restoreAtletaPctOverrides()` → `restoreAtletaNormOverrides()` → guarda `coachNormativos` + `coachTablas` en localStorage (para `getEjercicioById`/`getGrupo`) → computa `atletaNormativos` (useMemo: merge coachNormativos + atletaNormOvr state) → renderiza PagePDF con `atletaNormativos`.
 
 ---
 
@@ -127,7 +127,8 @@ AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → `restoreAtlet
 | Estado | Bug | Fix |
 |---|---|---|
 | ✅ v1.0.1 | Atleta no ve reps/kg — faltaba `restoreMesoOverrides()` en AtletaPanel | Agregado en useEffect de carga |
-| ✅ | Ejercicios con normativos overrides no renderizan en móvil (solo etiqueta) — AtletaPanel pasaba `coachNormativos` en vez de `atletaNormativos` a PagePDF. En mobile, celdas vacías se ocultan (`display:none` en `.pdf-table td:has(.cell-empty)`), dejando solo el label | Se agregó: 1) `restoreAtletaNormOverrides()` en data load, 2) `restoreAtletaPctOverrides()` (faltaba), 3) `atletaNormOvr` en state para evitar dependency en localStorage timing, 4) `useMemo` para computar `atletaNormativos` desde state directo, 5) pasar `atletaNormativos` a PagePDF, PageResumen y helpers |
+| ✅ v1.0.6 | Ejercicios con normativos overrides no renderizan en móvil (solo etiqueta) — AtletaPanel pasaba `coachNormativos` en vez de `atletaNormativos` a PagePDF | Se agregó: `restoreAtletaNormOverrides()`, `restoreAtletaPctOverrides()`, `atletaNormOvr` en state, `useMemo` para `atletaNormativos` |
+| ✅ v1.0.7 | Ejercicios custom (ID > 144) sin overrides no renderizan en mobile — `getGrupo()` → `getEjercicioById()` busca en localStorage `liftplan_normativos` que en AtletaPanel nunca se escribía. Auto-calc de reps fallaba → 0 reps → cols vacías → ocultas por CSS mobile | AtletaPanel ahora escribe `coachNormativos` y `coachTablas` a localStorage con `writeLocalJson()` al cargar coach_settings del DB |
 | ⚠️ Pendiente | PanelReferencia hardcodea `TABLA_DEFAULT` (L30897) en vez de usar las tablas del coach | — |
 | ✅ | Franja superior transparente en algunos móviles iOS (safe-area notch/Dynamic Island) | `body::before` fijo con `background:var(--bg)` y `height:env(safe-area-inset-top)` (L2221) |
 | ✅ | Bottom nav PDF demasiado pegada al home indicator en iPhone | `padding-bottom: calc(env(safe-area-inset-bottom) + 24px)` en `.pdf-mobile-nav` (L23537) |
