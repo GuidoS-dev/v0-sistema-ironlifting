@@ -30,6 +30,8 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
+const APP_VERSION = "1.0.3";
+
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPA_CONFIG_OK = Boolean(SUPA_URL && SUPA_ANON);
@@ -33749,6 +33751,7 @@ function AtletaPanel({ session, profile, onLogout }) {
         >
           CARGANDO TUS DATOS...
         </div>
+        <div style={{ fontSize: 10, color: "var(--muted)", opacity: .5 }}>v{APP_VERSION}</div>
       </div>
     );
   }
@@ -34694,6 +34697,7 @@ export default function App() {
         >
           CARGANDO...
         </div>
+        <div style={{ fontSize: 10, color: "var(--muted)", opacity: .5 }}>v{APP_VERSION}</div>
       </div>
     );
   }
@@ -34747,6 +34751,7 @@ export default function App() {
         >
           CARGANDO...
         </div>
+        <div style={{ fontSize: 10, color: "var(--muted)", opacity: .5 }}>v{APP_VERSION}</div>
       </div>
     );
   }
