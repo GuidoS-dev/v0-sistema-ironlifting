@@ -126,3 +126,4 @@ AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → renderiza Pag
 |---|---|---|
 | ✅ v1.0.1 | Atleta no ve reps/kg — faltaba `restoreMesoOverrides()` en AtletaPanel | Agregado en useEffect de carga |
 | ⚠️ Pendiente | PanelReferencia hardcodea `TABLA_DEFAULT` (L30897) en vez de usar las tablas del coach | — |
+| ✅ | Franja superior transparente en algunos móviles iOS (safe-area notch/Dynamic Island) | `body::before` fijo con `background:var(--bg)` y `height:env(safe-area-inset-top)` (L2221) |
