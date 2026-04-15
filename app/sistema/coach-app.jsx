@@ -33737,6 +33737,26 @@ function AtletaPanel({ session, profile, onLogout }) {
     })();
   }, [session?.user?.id]);
 
+  // Build atletaNormativos: merge coach normativos with athlete-specific overrides
+  const atletaNormativos = useMemo(() => {
+    const base = coachNormativos || EJERCICIOS;
+    if (!atletaInfo?.app_id) return base;
+    let ovrs = {};
+    try {
+      ovrs = JSON.parse(localStorage.getItem(`liftplan_normativos_atleta_${atletaInfo.app_id}`) || "null") || {};
+    } catch { ovrs = {}; }
+    if (!Object.keys(ovrs).length) return base;
+    return base.map((ej) => {
+      const ovr = ovrs[ej.id];
+      if (!ovr) return ej;
+      return {
+        ...ej,
+        ...(ovr.pct_base !== undefined ? { pct_base: ovr.pct_base } : {}),
+        ...(ovr.base !== undefined ? { base: ovr.base } : {}),
+      };
+    });
+  }, [coachNormativos, atletaInfo?.app_id]);
+
   if (loading) {
     return (
       <div
@@ -33843,26 +33863,6 @@ function AtletaPanel({ session, profile, onLogout }) {
       </div>
     );
   }
-
-  // Build atletaNormativos: merge coach normativos with athlete-specific overrides
-  const atletaNormativos = useMemo(() => {
-    const base = coachNormativos || EJERCICIOS;
-    if (!atletaInfo?.app_id) return base;
-    let ovrs = {};
-    try {
-      ovrs = JSON.parse(localStorage.getItem(`liftplan_normativos_atleta_${atletaInfo.app_id}`) || "null") || {};
-    } catch { ovrs = {}; }
-    if (!Object.keys(ovrs).length) return base;
-    return base.map((ej) => {
-      const ovr = ovrs[ej.id];
-      if (!ovr) return ej;
-      return {
-        ...ej,
-        ...(ovr.pct_base !== undefined ? { pct_base: ovr.pct_base } : {}),
-        ...(ovr.base !== undefined ? { base: ovr.base } : {}),
-      };
-    });
-  }, [coachNormativos, atletaInfo?.app_id]);
 
   // Show selected mesociclo detail — render the PDF-style view
   if (selectedMeso) {
