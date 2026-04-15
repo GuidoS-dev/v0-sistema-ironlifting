@@ -36,7 +36,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.0.8";
+const APP_VERSION = "1.0.9";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23602,6 +23602,12 @@ function PagePDF({
         gap: 0;
         align-items: stretch;
         box-shadow: 0 -8px 32px rgba(0,0,0,.6);
+        transition: transform .35s ease, opacity .35s ease;
+      }
+      .pdf-mobile-nav.mob-nav-hidden {
+        transform: translateY(100%);
+        opacity: 0;
+        pointer-events: none;
       }
       .pdf-mobile-nav-row {
         display: flex;
@@ -23700,6 +23706,8 @@ function PagePDF({
   const [mobNavActive, setMobNavActive] = useState(0);
   const [mobNavTurnos, setMobNavTurnos] = useState(true);
   const [mobActiveTurno, setMobActiveTurno] = useState(-1);
+  const [mobNavHidden, setMobNavHidden] = useState(false);
+  const mobNavTimerRef = React.useRef(null);
 
   // Detect mobile on resize
   React.useEffect(() => {
@@ -23707,6 +23715,23 @@ function PagePDF({
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  // Auto-hide mobile nav after 2s of no scrolling (athlete view only)
+  React.useEffect(() => {
+    if (!isMob || !hideActions) return;
+    const onScroll = () => {
+      setMobNavHidden(false);
+      clearTimeout(mobNavTimerRef.current);
+      mobNavTimerRef.current = setTimeout(() => setMobNavHidden(true), 2000);
+    };
+    // Start the initial timer
+    mobNavTimerRef.current = setTimeout(() => setMobNavHidden(true), 2000);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(mobNavTimerRef.current);
+    };
+  }, [isMob, hideActions]);
 
   // Track which semana is currently visible via IntersectionObserver
   React.useEffect(() => {
@@ -24760,7 +24785,9 @@ window.addEventListener('load',updateStickyTurnos);
           const activeSem =
             validSems.find((s) => s.semIdx === mobNavActive) || validSems[0];
           return (
-            <div className="pdf-mobile-nav no-print">
+            <div
+              className={`pdf-mobile-nav no-print${mobNavHidden ? " mob-nav-hidden" : ""}`}
+            >
               <div className="pdf-mobile-nav-row">
                 {validSems.map(({ sem, semIdx: sIdx }) => {
                   const mOff = mobTurnoOffsets[sIdx] || 0;
