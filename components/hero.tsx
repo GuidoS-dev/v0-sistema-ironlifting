@@ -22,7 +22,7 @@ export function Hero() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url("https://69b2ade2ece241a369f33537.imgix.net/gettyimages-587621868-2048x2048.jpg?w=1568&h=997&object-removal-rect=1222%2C834%2C826%2C132&rect=242%2C246%2C1568%2C997")`,
+          backgroundImage: `url("/hero-bg.jpg")`,
         }}
       />
 
