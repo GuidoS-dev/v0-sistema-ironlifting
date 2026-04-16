@@ -39,7 +39,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.3.1";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -16821,31 +16821,7 @@ function AtletaCardItem({
                 )}
               </span>
             )}
-            {/* Fase del ciclo actual */}
-            {a.genero === "f" &&
-              a.ciclo?.ultimo_inicio &&
-              (() => {
-                const fase = getFaseCiclo(
-                  a.ciclo,
-                  new Date().toISOString().slice(0, 10),
-                );
-                const fi = fase ? FASES_CICLO[fase] : null;
-                return fi ? (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: fi.color,
-                      background: fi.bg,
-                      padding: "2px 8px",
-                      borderRadius: 20,
-                      border: `1px solid ${fi.color}50`,
-                    }}
-                  >
-                    <fi.Icon size={11} /> {fi.label}
-                  </span>
-                ) : null;
-              })()}
+
           </div>
         ) : (
           <div className="mt8">
