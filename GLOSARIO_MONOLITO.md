@@ -1,188 +1,712 @@
-# Glosario — coach-app.jsx (~33.590 líneas)
+# Glosario — coach-app.jsx (~35.383 líneas)
 
 > Se actualiza con cada modificación. Líneas aproximadas; buscar por nombre.
 
+---
+
 ## 1. Mapa del Archivo
 
-| Rango (aprox.) | Sección                                     | Descripción                                                                                                                                                                                                                                                         |
-| -------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1–31           | **Imports**                                 | React, lucide-react icons (Download, Send, FileText, ChevronLeft, etc.)                                                                                                                                                                                             |
-| 33             | **APP_VERSION**                             | Constante `"1.2.0"` — se muestra en pantallas de carga y footer del login                                                                                                                                                                                           |
-| 35–38          | **Supabase Config**                         | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS`                                                                                                                                                                                                        |
-| 38–82          | **Sanitización**                            | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput`, `sanitizeRequestBody`                                                                                                                                                                                        |
-| 83–128         | **localStorage Safe**                       | `_freeLocalStorageSpace`, `safeSetItem` — manejo de QuotaExceededError                                                                                                                                                                                              |
-| 129–210        | **Auth Helpers**                            | Sesión local, perfil, listeners de auth, helpers de error                                                                                                                                                                                                           |
-| 211–328        | **Fetch & Auth**                            | `_fetchWithTimeout` (llama Supabase directo, sin proxy), refresh token con dedup/cooldown, `_getValidSession`                                                                                                                                                       |
-| 329–646        | **`sb` — Cliente Supabase**                 | Objeto con métodos `.from()` (query builder: `.eq()`, `.gt()`, `.select()`, `.exec()`, `.upsert()`, etc.), `.auth`, `.signUp`, `.signIn`, `.rpc()`. Reimplementación del SDK con fetch puro                                                                         |
-| 647–680        | **Sync Setup**                              | `getSupabase`, `COACH_SETTING_KEYS`, `_visResume` (global visibility-resume throttle: 30s min gap, 400ms stagger entre callbacks), `BroadcastChannel`, `markDbSync`, `broadcastDbWrite`                                                                             |
-| 681–800        | **Backup & LocalStorage**                   | `getLastDbSync`, `collectLocalData`, `collectBackupData` (async, localStorage+Supabase), `downloadBackup` (async), `emitLocalSyncEvent`, `readLocalJson`, `writeLocalJson`                                                                                          |
-| 761–936        | **Override Management**                     | Collect/restore de overrides de normativos, mesociclos y porcentajes (localStorage ↔ DB)                                                                                                                                                                            |
-| 937–1079       | **Mapeos App ↔ DB**                         | `atletaToDb`, `atletaFromDb`, `mesoToDb`, `mesoFromDb`, `plantillaToDb`, `plantillaFromDb`                                                                                                                                                                          |
-| 1080–2098      | **EJERCICIOS[]**                            | Array de ~160+ ejercicios con `{id, nombre, base, pct_base, categoria}`                                                                                                                                                                                             |
-| 2099–2208      | **Constantes de Datos**                     | `DIAS`, `MOMENTOS`, `CATEGORIAS`, `CAT_COLOR`, factory helpers (`mkId`, `mkTurnos`, `mkSemanas`, etc.)                                                                                                                                                              |
-| 2209–2453      | **CSS Global**                              | Template literal `css` con estilos globales de la app (botones, badges, inputs, etc.)                                                                                                                                                                               |
-| 2454–2556      | **Helpers de Cálculo**                      | `calcKg`, `calcVolumenSemana`, `calcRepsPorGrupo`, `getEjercicioById`, `getSembradoStats`, helpers de swap                                                                                                                                                          |
-| 2557–3042      | **Componentes UI Base**                     | `Modal`, `ExercisePickerOverlay`                                                                                                                                                                                                                                    |
-| 3043–3237      | **Ciclo Menstrual**                         | `FASES_CICLO`, `parseAppDate`, `getAgeFromBirthDate`, `getFasePorDia`, `getFasesVentanaCiclo`, etc.                                                                                                                                                                 |
-| 3239–3503      | **AtletaForm**                              | Formulario de creación/edición de atleta                                                                                                                                                                                                                            |
-| 3504–4030      | **MesocicloForm**                           | Formulario de creación/edición de mesociclo                                                                                                                                                                                                                         |
-| 4031–4303      | **EjBuscador**                              | Buscador de ejercicios con input de texto y lista filtrada                                                                                                                                                                                                          |
-| 4304–4486      | **ComplementarioRow**                       | Fila de ejercicio complementario (accesorios) en el sembrado                                                                                                                                                                                                        |
-| 4408–4486      | **EjercicioRow**                            | Fila de ejercicio principal en el sembrado                                                                                                                                                                                                                          |
-| 4487–5012      | **TurnoCard**                               | Card de un turno de entrenamiento (vista de edición del sembrado)                                                                                                                                                                                                   |
-| 5013–5037      | **Sección separadora**                      | Comentarios de distribución/planilla                                                                                                                                                                                                                                |
-| 5038–5096      | **`calcSeriesRepsKg`** ⭐                   | **Función clave** — calcula series, reps/serie y kg para cada intensidad                                                                                                                                                                                            |
-| 5097–5112      | **`calcKgEj`**                              | Kg de un ejercicio a una intensidad (para mostrar en sembrado)                                                                                                                                                                                                      |
-| 5113–5331      | **Navegación Planilla**                     | Focus grid, arrow navigation, Tab navigation para la planilla                                                                                                                                                                                                       |
-| 5332–9277      | **PlanillaTurno**                           | **Componente gigante** — vista de edición de la planilla de un turno                                                                                                                                                                                                |
-| 9278–10600     | **PlanillaBasica**                          | Planilla para escuela básica (sin intensidades, con bloques simples)                                                                                                                                                                                                |
-| 10601–12223    | **PlanillaPretemporada**                    | Planilla para mesociclos de pretemporada                                                                                                                                                                                                                            |
-| 12224–13194    | **ResumenGrupos**                           | Resumen visual de reps por grupo muscular por semana                                                                                                                                                                                                                |
-| 13195–14261    | **DistribucionTurnos**                      | Distribución de volumen entre turnos de entrenamiento                                                                                                                                                                                                               |
-| 14262–14354    | **Helpers de Cálculo Compartidos**          | `GRUPO_RANGES`, `GRUPOS_KEYS`, `getGrupo`, `calcSembradoSemana`, `calcRepsEjercicio`                                                                                                                                                                                |
-| 14355–14810    | **Tablas de Calculadora**                   | `INTENSIDADES`, `IRM_VALUES`, `INTENS_COLS`, **`TABLA_DEFAULT`** (lookup tables con ~450 filas)                                                                                                                                                                     |
-| 14811–15250    | **EjBuscadorCompacto + mkEj**               | Buscador inline para celdas del sembrado                                                                                                                                                                                                                            |
-| 15251–15426    | **IntensityPickerModal**                    | Modal para elegir intensidad de un ejercicio                                                                                                                                                                                                                        |
-| 15427–15628    | **EjCelda**                                 | Celda individual de ejercicio en el sembrado mensual                                                                                                                                                                                                                |
-| 15629–15825    | **CeldaSembrado**                           | Celda del sembrado con drag & drop                                                                                                                                                                                                                                  |
-| 15826–16370    | **SembradoMensual**                         | **Componente grande** — grilla mensual de sembrado de ejercicios                                                                                                                                                                                                    |
-| 16371–16610    | **SemanaView**                              | Vista de una semana completa con turnos                                                                                                                                                                                                                             |
-| 16611–16864    | **AtletaCardItem + AlumnoSectionHeader**    | Cards de atletas en la lista                                                                                                                                                                                                                                        |
-| 16865–17502    | **PageAtletas**                             | Página principal — lista de todos los atletas del coach                                                                                                                                                                                                             |
-| 17503–17602    | **EditMesoModal**                           | Modal para editar nombre/config de un mesociclo                                                                                                                                                                                                                     |
-| 17603–17954    | **EditVolModal**                            | Modal para editar volumen total y distribución semanal                                                                                                                                                                                                              |
-| 17955–20906    | **PageAtleta** ⭐                           | **Página del atleta** — vista coach con tabs (sembrado, planilla, resumen, PDF)                                                                                                                                                                                     |
-| 20907–22262    | **PageResumen**                             | Página de resumen del mesociclo — métricas, gráficos, tabla de totales                                                                                                                                                                                              |
-| 22263–24697    | **PagePDF** ⭐                              | **Vista de plan imprimible** — renderiza la planilla completa formateada para PDF/pantalla. Incluye CSS mobile bottom nav (~L23519–23623) y state mobile (~L23633–23640)                                                                                            |
-| 24698–24750    | **Constantes de Plantillas**                | `PERIODOS`, `OBJETIVOS`, `NIVELES`, labels y colores                                                                                                                                                                                                                |
-| 24751–25083    | **Logos SVG**                               | `LogoHorizontal`, `LogoIL`, `LogoILSolo` — logos inline como componentes SVG                                                                                                                                                                                        |
-| 25084–25143    | **useHistory**                              | Hook de undo/redo con persistencia en localStorage                                                                                                                                                                                                                  |
-| 25144–25345    | **usePlantillas**                           | Hook para CRUD de plantillas con sync a Supabase                                                                                                                                                                                                                    |
-| 25346–25643    | **GuardarPlantillaModal**                   | Modal para guardar plantilla desde mesociclo/semana/distribución                                                                                                                                                                                                    |
-| 25644–25967    | **PlantillaCard**                           | Card de una plantilla en la galería                                                                                                                                                                                                                                 |
-| 25968–26875    | **PagePlantilla**                           | Página de edición de una plantilla (como mini PageAtleta)                                                                                                                                                                                                           |
-| 26876–27197    | **CrearPlantillaModal**                     | Modal para crear plantilla desde cero                                                                                                                                                                                                                               |
-| 27198–27404    | **DuplicarPlantillaModal**                  | Modal para duplicar plantilla existente                                                                                                                                                                                                                             |
-| 27405–27596    | **SectionHeader + CardGrid + NivelSection** | Componentes de layout para galería de plantillas                                                                                                                                                                                                                    |
-| 27597–28196    | **PagePlantillas**                          | Página principal de galería de plantillas                                                                                                                                                                                                                           |
-| 28197–28528    | **PageNormativosAtleta**                    | Página de normativos específicos por atleta                                                                                                                                                                                                                         |
-| 28529–28766    | **PlantillaPicker**                         | Selector de plantilla para aplicar a mesociclo                                                                                                                                                                                                                      |
-| 28767–29455    | **PageNormativos**                          | Página global de normativos del coach                                                                                                                                                                                                                               |
-| 29456–30600    | **PageCalculadora**                         | Calculadora de series/reps con tablas editables                                                                                                                                                                                                                     |
-| 30601–31882    | **PanelReferencia**                         | Panel lateral de referencia rápida (atleta/plantilla side-by-side)                                                                                                                                                                                                  |
-| 31883–32291    | **LoginScreen**                             | Pantalla de login con email/password. Footer: `Sistema IronLifting © 2026 · v{APP_VERSION}`                                                                                                                                                                         |
-| 32292–33647    | **CoachApp** ⭐                             | **Componente principal coach** — state management, routing, sync DB, tabs. Loading screens (authLoading, profile) muestran `v{APP_VERSION}`                                                                                                                         |
-| 33648–34800    | **AtletaPanel** ⭐                          | **Vista del atleta** — carga datos desde Supabase, muestra mesos y PagePDF. State: `atletaNormOvr` (overrides en state directo, no localStorage), `coachNormativos`, `coachTablas`. Computed: `atletaNormativos` (useMemo). Loading screen muestra `v{APP_VERSION}` |
+| Rango (aprox.) | Sección                                      | Descripción                                                                                                                                                                                                                                                                                                                          |
+| -------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                                       |
+| 33             | **APP_VERSION**                              | `"1.2.0"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                         |
+| 35–38          | **Supabase Config**                          | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` (10000ms)                                                                                                                                                                                                                                                               |
+| 38–82          | **Sanitización**                             | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput` (anti prototype-pollution), `sanitizeRequestBody`                                                                                                                                                                                                                              |
+| 83–131         | **localStorage Safe**                        | `_freeLocalStorageSpace` (purga hist* y plt_draft*), `safeSetItem` (retry on QuotaExceededError)                                                                                                                                                                                                                                     |
+| 133–210        | **Auth Helpers**                             | `SESSION_KEY="sb_session"`, `PROFILE_KEY_PREFIX="sb_profile_"`, `saveSession/loadSession/clearSession`, `saveProfileLocal/loadProfileLocal/clearProfileLocal`, `_authListeners[]`, `onAuthChange`, `_emitAuth`, `_session` (module-level), `_readResponseSafe`, `_authErrorMessage`, `_runtimeErrorMessage`                          |
+| 211–328        | **Fetch & Auth**                             | `_fetchWithTimeout` (keepalive support, sanitiza body), `_refreshPromise` / `_refreshCooldownUntil` (dedup+cooldown 30s), `_refreshToken`, `_getValidSession` (refresh si <60s restantes)                                                                                                                                            |
+| 329–646        | **`sb` — Cliente Supabase**                  | Objeto con `.auth` (signIn/signUp/signOut/resetPassword), `._handleEmailCallback` (hash URL), `.from(table)` (query builder: select/eq/gt/single/limit/order/exec/then/insert/upsert/update/delete), `.rpc(fnName, params)`                                                                                                          |
+| 647–660        | **Sync Setup**                               | `getSupabase()`, `COACH_SETTING_KEYS={normativos,tablas}`, `LIFTPLAN_LOCAL_SYNC_EVENT="liftplan:local-sync"`                                                                                                                                                                                                                         |
+| 660–700        | **`_visResume`**                             | Visibility-resume throttle global: MIN_GAP=30s, STAGGER=400ms entre callbacks. `_visResume.sub(fn)` → cleanup. Escucha `visibilitychange`                                                                                                                                                                                            |
+| 700–710        | **BroadcastChannel**                         | `_bc = new BroadcastChannel("liftplan:db-sync")`. `markDbSync()`, `broadcastDbWrite(type)`                                                                                                                                                                                                                                           |
+| 720–810        | **Backup & LocalStorage**                    | `BACKUP_INTERVAL_MS` (5h), `BACKUP_PROMPTED_KEY`, `getLastDbSync()`, `collectLocalData()`, `collectBackupData()` (async, localStorage+Supabase), `downloadBackup()` (async), `emitLocalSyncEvent(key)`, `readLocalJson(key,fb)`, `writeLocalJson(key,val)`, `asPlainObject`, `asArray`                                               |
+| 810–870        | **Override Management (Atleta Norm)**        | `collectAtletaNormOverrides(atletaId)`, `restoreAtletaNormOverrides(atletaId, ovr)` (dispara CustomEvent), `buildMesoOverridesPayload(meso, liveOverrides?)`                                                                                                                                                                         |
+| 870–925        | **Coach Settings DB**                        | `loadCoachSetting(coachId, key)`, `loadCoachSettingRow(coachId, key)`, `saveCoachSetting(coachId, key, val)`, `resolveSharedCoachId(coachId)` — queries `coach_shared_workspace`                                                                                                                                                     |
+| 925–950        | **collectMesoOverrides(mesoId)**             | Lee 10 keys localStorage → objeto plano                                                                                                                                                                                                                                                                                              |
+| 950–1000       | **restoreMesoOverrides(mesoId, ovr)**        | Escribe 10 keys de DB → localStorage                                                                                                                                                                                                                                                                                                 |
+| 1000–1010      | **collectAtletaPctOverrides(atletaId)**      | Lee 4 keys localStorage (semOvr/semMan/turnoOvr/turnoMan)                                                                                                                                                                                                                                                                            |
+| 1010–1025      | **restoreAtletaPctOverrides(atletaId, ovr)** | Escribe 4 keys de DB → localStorage                                                                                                                                                                                                                                                                                                  |
+| 1025–1148      | **Mapeos APP ↔ DB**                          | `atletaToDb/atletaFromDb`, `mesoToDb/mesoFromDb` (con `_meta` en overrides), `plantillaToDb/plantillaFromDb`                                                                                                                                                                                                                         |
+| 1148–2098      | **EJERCICIOS[]**                             | Array de ~144 ejercicios `{id, nombre, base, pct_base, categoria}`. IDs 1–144. Nota: ID 26 no existe (salto).                                                                                                                                                                                                                        |
+| 2099–2220      | **Constantes de Datos**                      | `DIAS[7]`, `MOMENTOS[3]`, `CATEGORIAS[5]`, `CAT_COLOR{}`, factories: `mkId`, `mkTurnos`, `mkSemanas`, `mkBloqueBasica`, `mkEjBasica`, `EMPTY_NAME_SENTINEL=\u200B`, `resolveExerciseName`, `mkTurnosBasica`, `mkSemanasBasica`, `mkEjPretemp`, `mkTurnosPretemp`, `mkSemanasPretemp`                                                 |
+| 2220–2900      | **CSS Global**                               | Template literal `css` — variables CSS, layout, forms, buttons, badges, cards, scrollbars, media queries (≤768px tablet, ≤480px mobile)                                                                                                                                                                                              |
+| 2900–3020      | **Helpers de Cálculo**                       | `calcKg`, `calcVolumenSemana`, `calcRepsPorGrupo`, `remapSemanaIdx`, `remapSemPctKeyForSwap`, `remapTurnoPctKeyForSwap`, `remapOverrideObjectKeys`, `remapOverrideSetKeys`, `getEjercicioById(id, normativos?)`, `getSembradoStats(turnos, normativos?)`                                                                             |
+| 3020–3085      | **Modal**                                    | Componente modal genérico con focus trap, scroll lock, backdrop click                                                                                                                                                                                                                                                                |
+| 3086–3200      | **ExercisePickerOverlay**                    | Overlay para seleccionar ejercicio — search, group jumps, keyboard nav                                                                                                                                                                                                                                                               |
+| 3200–3345      | **Ciclo Menstrual**                          | `FASES_CICLO` (4 fases con label/color/bg/Icon), `parseAppDate`, `getAgeFromBirthDate`, `getFasePorDia`, `getFasesVentanaCiclo`, `getFaseDominante`, `getFaseCiclo`, `getDetalleFaseCiclo`, `getFechaSemana`, `getFechaSemanaEfectiva`, `formatFechaSemana`, `formatDateDisplay`                                                     |
+| 3346–3455      | **AtletaForm**                               | Formulario atleta: nombre/email/telefono/fecha_nacimiento/notas/tipo/genero/ciclo/profile_id                                                                                                                                                                                                                                         |
+| 3456–3994      | **MesocicloForm**                            | Formulario de mesociclo con template picker, import opts, distribución de volumen                                                                                                                                                                                                                                                    |
+| 3995–4349      | **EjBuscador**                               | Buscador de ejercicios con modal overlay, filtro por ID/nombre, group jumps                                                                                                                                                                                                                                                          |
+| 4350–4417      | **ComplementarioRow**                        | Fila de accesorio: EjBuscador + intensidad + tabla + reps + aclaración + kg auto                                                                                                                                                                                                                                                     |
+| 4418–4535      | **EjercicioRow**                             | Fila de ejercicio principal: EjBuscador + intensidad + tabla + reps + kg auto                                                                                                                                                                                                                                                        |
+| 4536–5120      | **TurnoCard**                                | Card de turno expandible con ANTES/TRABAJO PRINCIPAL/DESPUÉS. Drag order, copy/paste                                                                                                                                                                                                                                                 |
+| 5122–5155      | **`calcSeriesRepsKg`** ⭐                    | Calcula series/reps/kg para cada intensidad. Lookups: tirones vs general                                                                                                                                                                                                                                                             |
+| 5157–5175      | **`calcKgEj`**                               | Kg de un ejercicio a una intensidad (para sembrado)                                                                                                                                                                                                                                                                                  |
+| 5176–5290      | **Navegación Planilla**                      | `PLANILLA_NAV_SELECTOR`, `buildPlanillaFocusGrid`, `focusPlanillaField`, `handlePlanillaArrowNavigation` (arrow keys wrap cíclicamente)                                                                                                                                                                                              |
+| 5290–5380      | **Navegación Sembrado**                      | `SEMBRADO_NAV_SELECTOR`, `SEMBRADO_ROLE_ORDER`, `getSembradoTabSequence`, `handleSembradoTabNavigation` (Tab/Shift+Tab)                                                                                                                                                                                                              |
+| 5385–9300      | **PlanillaTurno** ⭐                         | Componente gigante — edición de planilla de turnos por semana. Incluye: tabs semana/turno con tooltips hover, ejercicios table con celdas editables, double-click reset, inline name editor, notas, stats totales, bar chart de grupos, sección completa de complementarios (bloques, momentos, copy/paste cross-turno/cross-semana) |
+| 9305–10600     | **PlanillaBasica**                           | Planilla para escuela básica: bloques directos (%/S/R/Kg), sin intensidades, series permite "2+2+2" clusters, REF clickable abre picker                                                                                                                                                                                              |
+| 10611–12250    | **PlanillaPretemporada**                     | Planilla pretemporada: multi-exercise IDs con links (+/c/-), turno global navigator, `buildAutoName`, `calcKgPretemp` (usa MENOR pct_base de sub-ejercicios)                                                                                                                                                                         |
+| 12264–13285    | **ResumenGrupos**                            | Distribución de reps por grupo por semana. Round-robin redistribute (+/-), tooltips detalle por turno, double-click reset, guardar distribución                                                                                                                                                                                      |
+| 13287–14350    | **DistribucionTurnos**                       | Distribución de reps por grupo por turno dentro de semana. Misma lógica round-robin                                                                                                                                                                                                                                                  |
+| 14353–14460    | **Helpers de Cálculo Compartidos**           | `GRUPO_RANGES`, `GRUPOS_KEYS[4]`, `getGrupo(ejercicio_id)`, `calcSembradoSemana(sem)`, `calcRepsEjercicio(sem, turnoIdx, meso)` — distribución tentativa con resto a primeros ejercicios                                                                                                                                             |
+| 14454–15050    | **Tablas de Calculadora**                    | `INTENSIDADES[8]`, `IRM_VALUES[31]` (65-95), `INTENS_COLS`, `DEFAULT_EJS=3`, `TABLA_DEFAULT` (tabla1/2/3: 31 filas × 8 cols, lookup_general: 128 entradas, lookup_tirones)                                                                                                                                                           |
+| 15056–15360    | **EjBuscadorCompacto**                       | Buscador inline compacto para celdas del sembrado. Muestra ID, abre popover                                                                                                                                                                                                                                                          |
+| 15364–15545    | **IntensityPickerModal**                     | Modal de selección de intensidad (IRM 50-95%). Keyboard: digits directos, arrow nav, wheel capture                                                                                                                                                                                                                                   |
+| 15548–15695    | **EjCelda**                                  | Celda individual de ejercicio: `[#, EjBuscadorCompacto, INT%, TBL(cycle 1/2/3), ✕]`                                                                                                                                                                                                                                                  |
+| 15698–15838    | **CeldaSembrado**                            | Celda del sembrado: N ejercicios stacked + move buttons + add button. `normalize()` ordena filled → empty                                                                                                                                                                                                                            |
+| 15839–16470    | **SembradoMensual**                          | Grilla mensual: semanas × turnos. Import semana, swap semanas con remap de overrides, add/remove turno                                                                                                                                                                                                                               |
+| 16471–16608    | **SemanaView**                               | Vista de semana con TurnoCards, distribución de grupos, reps ajustadas                                                                                                                                                                                                                                                               |
+| 16609–16686    | **AtletaCardItem**                           | Card de atleta: avatar, info, mesos, fase ciclo (mujeres), badges activo/modo                                                                                                                                                                                                                                                        |
+| 16687–16932    | **AlumnoSectionHeader**                      | Header de sección con count badge y botón "Nuevo"                                                                                                                                                                                                                                                                                    |
+| 16933–17400    | **PageAtletas**                              | Lista de atletas con secciones expandibles (MAX_VISIBLE=4), modales CRUD, preview historial de mesos                                                                                                                                                                                                                                 |
+| 17402–17565    | **EditMesoModal**                            | Modal edición: nombre/descripción/fecha/modo/IRM                                                                                                                                                                                                                                                                                     |
+| 17568–17836    | **EditVolModal**                             | Modal volumen: volumen total + distribución semanal con round-robin ±1%, validación sum=100%                                                                                                                                                                                                                                         |
+| 17837–20950    | **PageAtleta** ⭐                            | Página principal del atleta — tabs (planilla/resumen/PDF/normativos/historial), undo/redo (max 15 snaps, 300ms debounce), live data refs, auto-save cleanup, full sembrado modal con filtros (grupo/intensidad/tabla) y zoom                                                                                                         |
+| 20978–22300    | **PageResumen**                              | Resumen del mesociclo: métricas, gráficos Recharts (carga dinámica), tablas clickables semana→turno→detalle. `getRepsVal`, `calcMetricas`, `CustomTooltip`, `MetricBox`                                                                                                                                                              |
+| 22370–24700    | **PagePDF** ⭐                               | Vista imprimible: CSS dedicado (~1500 líneas), `getRepsVal`, `getCell`, `GC/GB` (grupo colors), `metricas` calculation, `BarChartSVG`, `GrupoBar`, `buildComplementarioRow`, `buildPretemporadaRow`, `buildEjercicioRow`. Mobile: IntersectionObserver para nav, auto-hide nav, indicator pill                                       |
+| 24717–24750    | **Constantes de Plantillas**                 | `PERIODOS`, `OBJETIVOS`, `NIVELES`, `ESCUELA_NIVELES`, labels y colores                                                                                                                                                                                                                                                              |
+| 24753–24900    | **Logos SVG**                                | `LogoHorizontal(height=44)`, `LogoIL(size=32)`, `LogoILSolo(size=28)` — SVG inline con gradients y filters                                                                                                                                                                                                                           |
+| 25043–25142    | **useHistory**                               | Hook genérico undo/redo: `{current, push, undo, redo, canUndo, canRedo, clearHistory}`. Max 15 snapshots. localStorage key: `liftplan_hist_${key}`                                                                                                                                                                                   |
+| 25150–25400    | **usePlantillas**                            | Hook CRUD plantillas: delta sync con Supabase (LWW), debounce 4s, `_visResume` listener, draft localStorage, `pendingDeletePlantillaIdsRef`                                                                                                                                                                                          |
+| 25400–25650    | **GuardarPlantillaModal**                    | Guardar plantilla desde meso/semana/distribución. Extrae overrides del localStorage                                                                                                                                                                                                                                                  |
+| 25650–26000    | **PlantillaCard**                            | Card de plantilla: tags (periodo/objetivo/nivel/escuela), stats, hover states                                                                                                                                                                                                                                                        |
+| 26000–26880    | **PagePlantilla**                            | Editor de plantilla (mini PageAtleta): snapshot system, auto-save intervals (3s), Ctrl+Z/Y, draft localStorage                                                                                                                                                                                                                       |
+| 26880–27200    | **CrearPlantillaModal**                      | Crear plantilla: tipo selector, template type radio (regular/escuela/pretemporada), weeks/volumen config                                                                                                                                                                                                                             |
+| 27200–27400    | **DuplicarPlantillaModal**                   | Duplicar plantilla: search/select, auto-name "Copia de...", deep copy                                                                                                                                                                                                                                                                |
+| 27405–27596    | **SectionHeader + CardGrid + NivelSection**  | Layout helpers: collapsible header, grid `repeat(auto-fill, minmax(280px, 1fr))`, nivel agrupado                                                                                                                                                                                                                                     |
+| 27597–28200    | **PagePlantillas**                           | Galería de plantillas: 3 secciones (Escuela/Pretemporada/Mis), search, modales CRUD                                                                                                                                                                                                                                                  |
+| 28305–28395    | **PageNormativosAtleta**                     | Normativos por atleta: table editable pct_base/base override                                                                                                                                                                                                                                                                         |
+| 28396–28800    | **PlantillaPicker**                          | Selector de plantilla con opciones de import: `{irm, volumen, reps, celdas, grupos, complementarios}`                                                                                                                                                                                                                                |
+| 28894–29500    | **PageNormativos**                           | Editor global de normativos del coach: CRUD ejercicios, sync DB, `isNormativosValid` validation, `_visResume` listener                                                                                                                                                                                                               |
+| 30014–30650    | **PageCalculadora**                          | Calculadora de tablas IRM (tabla1/2/3) y Series/Reps (lookup_general/lookup_tirones). Cell editing, auto-balance suggestion, test modal 🧪                                                                                                                                                                                           |
+| 31200–31235    | **PanelTabBoundary**                         | Error boundary para tabs del panel de referencia                                                                                                                                                                                                                                                                                     |
+| 31235–31900    | **PanelReferencia**                          | Panel lateral read-only: modo atleta/plantilla, resize drag, storage listeners, cross-tab sync. Fixed mobile (z-index 300)                                                                                                                                                                                                           |
+| 31983–32475    | **LoginScreen**                              | Login/Register: email/password, role selector, coach code (RPC `verify_coach_code`), forgot password, notify-registration API                                                                                                                                                                                                        |
+| 32476–33700    | **CoachApp** ⭐                              | Componente principal coach: state management (atletas/mesos/tabs), DB sync bidireccional, delta sync (LWW), debounce timers, BroadcastChannel, backup banner, manual save, cleanup                                                                                                                                                   |
+| 33900–35383    | **AtletaPanel** ⭐                           | Vista del atleta: carga desde Supabase, restore overrides, coach settings → localStorage, `atletaNormativos` (useMemo merge), dashboard con meso cards, vistas resumen/normativos/PDF                                                                                                                                                |
 
 ---
 
-## 2. Funciones Clave
+## 2. Componentes — States, Refs y Effects
 
-| Función                                                                        | Línea  | Qué hace                                                                                                                                                                                                                                               |
-| ------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --- | ------ |
-| `calcSeriesRepsKg(tablas, ej, ejData, irm_arr, irm_env, modo, reps_asignadas)` | 5038   | Calcula series/reps/kg para cada intensidad. Usa tablas T1/T2/T3 + lookups. Si repsInter=0 → null. Si >8 → 1×repsInter. Si no → lookup.                                                                                                                |
-| `getRepsVal(ej, semIdx, tIdx)`                                                 | ~22364 | (Dentro de PagePDF) Reps de un ejercicio. Prioridad: 1) override manual localStorage, 2) ej.reps_asignadas, 3) cálculo tentativa automático. El cálculo auto usa `getGrupo()` → si retorna `null`, devuelve 0 reps.                                    |
-| `buildEjercicioRow(ej, semIdx, tIdx)`                                          | 22753  | Arma fila PDF: busca `ejData` en `normativos` prop → getRepsVal → calcSeriesRepsKg → filtra cols sin datos (`.filter(c => c.s                                                                                                                          |     | c.r)`) |
-| `buildComplementarioRow(comp, semIdx, tIdx)`                                   | 22623  | Arma fila de complementario: usa `.bloques[]` en vez de `INTENSIDADES`. No depende de `getGrupo`.                                                                                                                                                      |
-| `getEjercicioById(id, normativos?)`                                            | 2521   | Busca ejercicio por ID. Cadena: 1) `normativos` param, 2) localStorage `liftplan_normativos`, 3) `EJERCICIOS[]` hardcodeado. **Crítico:** muchos helpers la llaman sin param → depende de localStorage.                                                |
-| `getGrupo(ejercicio_id)`                                                       | 14276  | Ejercicio → grupo (Arranque/Envion/Tirones/Piernas). Llama `getEjercicioById()` SIN normativos → depende de localStorage. Si no encuentra (ej. ID custom >144 sin localStorage) → fallback por `GRUPO_RANGES` → si ID fuera de rangos, retorna `null`. |
-| `calcSembradoSemana(sem)`                                                      | 14289  | Cuenta ejercicios por grupo por turno. Retorna `{porGrupo, totalSem}`. Usa `getGrupo()`, por lo que depende de localStorage.                                                                                                                           |
-| `restoreMesoOverrides(mesoId, overrides)`                                      | 887    | Escribe overrides de DB → localStorage (10 keys por meso)                                                                                                                                                                                              |
-| `restoreAtletaPctOverrides(atletaId, overrides)`                               | 926    | Escribe overrides de porcentaje del atleta desde DB → localStorage (4 keys: semOvr, semMan, turnoOvr, turnoMan)                                                                                                                                        |
-| `restoreAtletaNormOverrides(atletaId, overrides)`                              | 775    | Escribe overrides de normativos del atleta desde DB → localStorage (`liftplan_normativos_atleta_${atletaId}`). Dispara CustomEvent `liftplan:normativos-overrides-updated`.                                                                            |
-| `buildMesoOverridesPayload(meso)`                                              | 788    | Empaqueta overrides de localStorage → objeto para guardar en DB                                                                                                                                                                                        |
-| `writeLocalJson(key, value)`                                                   | ~700   | Wrapper de `localStorage.setItem` con `JSON.stringify`. Usado por AtletaPanel para persistir coachNormativos/coachTablas.                                                                                                                              |
-| `getLastDbSync()`                                                              | ~726   | Lee `liftplan_last_db_sync` de localStorage → timestamp de último sync. Retorna 0 si no existe.                                                                                                                                                       |
-| `collectLocalData()`                                                           | ~735   | Extrae localStorage keys: `liftplan_atletas`, `liftplan_mesociclos`, `liftplan_plantillas`, `liftplan_normativos`, `liftplan_tablas`. Retorna objeto plano.                                                                                            |
-| `collectBackupData()` (async)                                                  | ~755   | **v1.2.0** — Combina `collectLocalData()` + fetch paralelo de 5 tablas Supabase (`atletas`, `mesociclos`, `plantillas`, `coach_settings`, `profiles`). Retorna `{_backup_version:2, localStorage:{...}, supabase:{...}}`. Si Supabase falla → `supabase:null`. |
-| `downloadBackup()` (async)                                                     | ~779   | Llama `collectBackupData()`, genera JSON y descarga como `ironlifting-backup-YYYY-MM-DD.json`. Actualiza `BACKUP_PROMPTED_KEY` en localStorage.                                                                                                       |
+### 2.1 Modal (~L3022)
 
-## 3. Constantes
+**Props:** `title`, `onClose`, `children`, `maxWidth`, `fitContent`, `compact`, `overlayPadding`, `scrollable`, `maxHeight`, `tightHeader`
+**Refs:** `mdTarget`, `modalRef`
+**Effects:** Focus trap (Tab navigation), body scroll lock (`overflow:hidden`), cleanup restore focus+scroll
+**Events:** `onMouseDown/Up` backdrop click detection
 
-| Constante            | Línea | Contenido                                                                                                                                                                                                            |
-| -------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TABLA_DEFAULT`      | 14360 | Tablas de calculadora: tabla1/2/3 + lookup_tirones + lookup_general                                                                                                                                                  |
-| `INTENSIDADES`       | 14355 | `[50, 60, 70, 75, 80, 85, 90, 95]`                                                                                                                                                                                   |
-| `EJERCICIOS[]`       | 1081  | ~144 ejercicios hardcodeados `{id, nombre, base, pct_base, categoria}`. IDs 1–144. Coach puede agregar custom con IDs > 144 via normativos → se guardan en `coach_settings` y `liftplan_normativos` de localStorage. |
-| `GRUPO_RANGES`       | 14265 | Rangos legacy ID→grupo                                                                                                                                                                                               |
-| `APP_VERSION`        | 33    | `"1.2.0"` — versión de la app, se muestra en loading y login                                                                                                                                                         |
-| `BACKUP_INTERVAL_MS` | ~722  | `5 * 60 * 60 * 1000` (5 horas) — intervalo mínimo entre prompts de backup                                                                                                                                            |
-| `BACKUP_PROMPTED_KEY`| ~723  | `"liftplan_backup_prompted_at"` — key de localStorage para timestamp del último backup descargado                                                                                                                     |
-| `COACH_SETTING_KEYS` | 651   | `{NORMATIVOS, TABLAS}`                                                                                                                                                                                               |
+### 2.2 ExercisePickerOverlay (~L3086)
 
-## 4. Overrides (localStorage ↔ DB)
+**Props:** `open`, `normativos`, `query`, `setQuery`, `activeIdx`, `setActiveIdx`, `onClose`, `onSelect`, `inputName`
+**Refs:** `listRef`, `modalRef`
+**Effects:** Tab focus trap on `open`
+**Helpers:** `resetAndClose()`, `applySelection()`, `scrollToIndex()`, `jumpToGroup()`
+**Keyboard:** ArrowUp/Down, Enter, Escape
 
-10 keys por mesociclo en localStorage. Se sincronizan con columna `overrides` (JSONB) en tabla `mesociclos`.
+### 2.3 AtletaForm (~L3346)
 
-- `restoreMesoOverrides()` — DB → localStorage
-- `buildMesoOverridesPayload()` — localStorage → DB
+**Props:** `atleta`, `tipoInicial`, `onSave(form)`, `onClose()`, `registeredUsers`
+**State:** `form` — `{id, nombre, email, telefono, fecha_nacimiento, notas, tipo, genero, ciclo, profile_id}`
+**Helper:** `set(k,v)` — updater parcial
 
-| Key pattern                        | Contenido                                |
-| ---------------------------------- | ---------------------------------------- |
-| `liftplan_pt_${mesoId}_repsEdit`   | Reps manuales `{semIdx-tIdx-ejId: reps}` |
-| `liftplan_pt_${mesoId}_manualEdit` | Flags de reps editadas                   |
-| `liftplan_pt_${mesoId}_cellEdit`   | Ediciones de celdas individuales         |
-| `liftplan_pt_${mesoId}_cellManual` | Flags de celdas editadas                 |
-| `liftplan_pt_${mesoId}_nameEdit`   | Nombres personalizados                   |
-| `liftplan_pt_${mesoId}_noteEdit`   | Notas por celda                          |
-| `liftplan_pct_${mesoId}_sem*`      | Override % semanal + flags               |
-| `liftplan_pct_${mesoId}_turno*`    | Override % turno + flags                 |
+### 2.4 MesocicloForm (~L3456)
 
-### Overrides por Atleta
+**Props:** `atleta`, `meso`, `onSave(form)`, `onClose()`
+**State:** `form` (meso completo inc. escuela/pretemporada flags), `showPicker`, `pendingOverrides`, `pendingGrupos`, `pendingPlantilla`, `importOpts`
+**Reads:** `liftplan_plantillas` de localStorage
+**Helper:** `set(k,v)`, `confirmApply(plt, opts)`
 
-Almacenados en columna `pct_overrides` y `normativos_overrides` de tabla `atletas`.
+### 2.5 EjBuscador (~L3995)
 
-| Key pattern                              | Contenido                                             |
-| ---------------------------------------- | ----------------------------------------------------- |
-| `liftplan_pct_${atletaId}_semOvr`        | Override % semanal por atleta                         |
-| `liftplan_pct_${atletaId}_semMan`        | Flags de semanas editadas por atleta                  |
-| `liftplan_pct_${atletaId}_turnoOvr`      | Override % turno por atleta                           |
-| `liftplan_pct_${atletaId}_turnoMan`      | Flags de turnos editados por atleta                   |
-| `liftplan_normativos_atleta_${atletaId}` | Overrides de normativos: `{ejId: {pct_base?, base?}}` |
+**Props:** `value`, `onChange(id)`, `normativos`
+**State:** `open`, `query`, `activeIdx`
+**Refs:** `inputRef`, `listRef`
+**Effects:** Body scroll lock
 
-### localStorage Global (requerido por helpers)
+### 2.6 ComplementarioRow (~L4350)
 
-⚠️ **CRÍTICO**: Varios helpers (`getEjercicioById`, `getGrupo`, `calcSembradoSemana`) leen estas keys sin recibir normativos como parámetro. Si no están pobladas, ejercicios custom (ID > 144) no se encuentran.
+**Props:** `comp`, `idx`, `irm_arr`, `irm_env`, `onChange`, `onDelete`, `normativos`
+Grid: 9 columnas `[idx, EjBuscador, intensidad, tabla, reps_asignadas, kg, aclaracion, delete, badge]`
 
-| Key                            | Contenido                                               | Quién lo escribe                                      |
-| ------------------------------ | ------------------------------------------------------- | ----------------------------------------------------- |
-| `liftplan_normativos`          | Array completo de ejercicios del coach (incluye custom) | CoachApp sync + AtletaPanel (desde DB coach_settings) |
-| `liftplan_tablas`              | Tablas de calculadora del coach                         | CoachApp sync + AtletaPanel (desde DB coach_settings) |
-| `liftplan_last_db_sync`        | Timestamp del último sync con Supabase                  | `markDbSync()` en CoachApp sync                       |
-| `liftplan_backup_prompted_at`  | Timestamp del último backup descargado                  | `downloadBackup()`                                    |
+### 2.7 EjercicioRow (~L4418)
 
-## 5. Flujo Atleta
+**Props:** `ej`, `idx`, `irm_arr`, `irm_env`, `onChange`, `normativos`
+Grid: 7 columnas `[idx, EjBuscador, intensidad, tabla, reps_asignadas, kg, badge]`
 
-AtletaPanel → carga mesos de DB → `restoreMesoOverrides()` → `restoreAtletaPctOverrides()` → `restoreAtletaNormOverrides()` → guarda `coachNormativos` + `coachTablas` en localStorage (para `getEjercicioById`/`getGrupo`) → computa `atletaNormativos` (useMemo: merge coachNormativos + atletaNormOvr state) → renderiza PagePDF con `atletaNormativos`.
+### 2.8 TurnoCard (~L4536)
 
-### Cadena de rendering de ejercicio (PagePDF)
+**Props:** `turno`, `semana_idx`, `irm_arr`, `irm_env`, `onChange`, `clipboardTurno`, `setClipboardTurno`, `onPaste`, `normativos`
+**State:** `open` (init: semana_idx===0 && turno.numero≤2)
+**Helpers:** `normalizeEjs`, `moveEjTurno`, `updateEjTurno`, `normalizeComplementarios`, `addComplementario`, `updateComplementario`, `deleteComplementario`, `moveComplementario`
+**Secciones:** ANTES (complementarios_before) / TRABAJO PRINCIPAL (ejercicios) / DESPUÉS (complementarios_after)
+
+### 2.9 PlanillaTurno (~L5385) ⭐ GRANDE
+
+**Props:** `scrollIdPrefix`, `semanas`, `irm_arr`, `irm_env`, `meso`, `semPctOverrides`, `semPctManual`, `turnoPctOverrides`, `turnoPctManual`, `onRequestReset`, `onBeforeChange`, `onChangeTurno`, `onChangeTodasSemanas`, `repsEdit`, `setRepsEdit`, `manualEdit`, `setManualEdit`, `cellEdit`, `setCellEdit`, `cellManual`, `setCellManual`, `nameEdit`, `setNameEdit`, `noteEdit`, `setNoteEdit`, `normativos`, `initialSemActiva`, `initialTurnoActivo`, `onNavChange`
+**State (18+):**
+
+- `semActiva`, `turnoActivo` — navegación
+- `tipSem`, `tipTurno` — tooltips hover
+- `compPickerOpen/Query/ActiveIdx` — exercise picker
+- `compPasteFeedback` — feedback visual
+- `compPasteTurnosSel`, `compPasteSemanasSel` — selección multi-turno/semana paste
+- `compTurnosDropdownOpen`, `compSemanasDropdownOpen` — dropdowns
+- `compIntraTargetSel`, `compIntraDropdownOpen`, `compIntraFeedback` — intra-turno paste
+- `importSemOrigen`, `importSemFeedback` — importar semana
+- `recalcFeedback` — feedback recalc
+- `nameEditing` — inline name editor
+
+**Refs (13+):**
+
+- `compPasteTimerRef`, `compIntraTimerRef`, `importSemTimerRef`, `recalcTimerRef` — timeouts
+- `compPickerListRef`, `compPickerModalRef` — DOM
+- `compTurnosDropdownRef`, `compSemanasDropdownRef`, `compIntraDropdownRef` — dropdown DOM
+- `spreadsheetNavRef` — navigation container
+- `turnoRef`, `turnoContentRef` — turno scroll
+- `_lastPushTime` — debounce history push
+
+**Effects (8+):** Modal focus trap, onNavChange sync, importSemOrigen cleanup, compPasteTurnosSel validation, compPasteSemanasSel validation, timer cleanup, document click handlers
+**localStorage:** `_k(type) = liftplan_pt_${meso.id}_${type}` — repsEdit/manualEdit/cellEdit/cellManual/nameEdit/noteEdit
+**Helpers:** `_beforeChange()` (debounce 300ms), `_beforeChangeForced()`, wrapped setters con persist
+**Complementarios section:** `mkBloqueComp`, `normComp`, `calcKgComp`, `_mapComp`, `updateBloqueComp`, `deleteComp`, `toggleMomento`, `moveComp`, `addComp`, `addBloqueCompCol`, `removeBloqueCompCol`, `cellInputComp`
+**Keyboard:** `handleSpreadsheetNavKeyDown` (useCallback)
+**Tooltip:** Fixed position z-index 200, font Bebas Neue, color badges
+
+### 2.10 PlanillaBasica (~L9305)
+
+**Props:** `semanas`, `onChange`, `numBloques=3`, `onBeforeChange`, `irm_arr=100`, `irm_env=200`, `normativos`
+**State:** `semActiva`, `turnoActivo`, `ejPickerOpen/Query/ActiveIdx`
+**Refs:** `spreadsheetNavRef`
+**Helpers:** `calcKgBasica`, `updateSemanas`, `updateBloque`, `setEjercicioId`, `setNombreCustom`, `addEjercicio`, `removeEjercicio`, `addTurno`, `removeTurno`, `addSemana`, `removeSemana`, `addBloqueCol`, `removeBloqueCol`, `moveEj`, `copiarTurnoATodasSemanas`, `cellInput`
+**Series parsing:** acepta `"2+2+2"` clusters → split("+").reduce
+
+### 2.11 PlanillaPretemporada (~L10611)
+
+**Props:** `semanas`, `onChange`, `numBloques=3`, `onBeforeChange`, `irm_arr=100`, `irm_env=200`, `normativos`
+**State:** `turnoGlobalActivo`, `jumpTurno`
+**Refs:** `pendingTurnoIdRef`
+**Helpers:** `calcKgPretemp(ejercicio_ids, pct)` (usa MENOR pct_base), `updateSemanas`, `updateBloque`, `setSubEjId`, `addSubEj`, `removeSubEj`, `cycleLink` (+/c toggle), `setNombreCustom`, `addEjercicio`, `removeEjercicio`, `removeTurno`, `addTurno`, `addBloqueCol`, `removeBloqueCol`, `moveEj`, `irATurnoGlobal`, `buildAutoName(ejercicio_ids)`
+**Data:** `ej.ejercicio_ids = [{eid, link}]` donde link ∈ ["+", "c", "-"]
+
+### 2.12 ResumenGrupos (~L12264)
+
+**Props:** `semanas`, `meso`, `semPctOverrides`, `semPctManual`, `setSemPctOverrides`, `setSemPctManual`, `onRequestReset`, `onGuardarDistribucion`, `onBeforeChange`
+**State:** `tooltip`
+**Refs:** `_rgLastPush` (debounce 300ms), `rrReduceRef`, `rrIncreaseRef` (round-robin cursors)
+**Helpers:** `_rgBefore`, `_rgBeforeForced`, `calcSembradoSemana`, `distributeReduction`, `distributeIncrease`, `getVal`, `isManual`, `setVal`, `applyStepVal`, `resetSingleVal` (double-click), `buildDetalle`
+
+### 2.13 DistribucionTurnos (~L13287)
+
+**Props:** `semanas`, `meso`, `turnoPctOverrides`, `turnoPctManual`, `setTurnoPctOverrides`, `setTurnoPctManual`, `onRequestReset`, `onBeforeChange`, `semPctOverrides`, `semPctManual`
+**State:** `semActiva`, `tooltip`, `cellTip`
+**Refs:** `containerRef`, `rrReduceRef`, `rrIncreaseRef`, `_dtLastPush` (debounce 300ms)
+**Helpers:** `cambiarSemana`, `calcSemana`, `_getSemPct`, `getVal`, `isManual`, `setVal`, `applyStepVal`, `resetSingleVal`, `buildTooltip`
+
+### 2.14 EjBuscadorCompacto (~L15056)
+
+**Props:** `value`, `onChange`, `color`, `title`, `navAttrs`, `normativos`
+**State:** `open`, `query`, `activeSearchIdx`
+**Refs:** `inputRef`, `triggerRef`, `modalRef`
+**Effects:** Tab focus trap
+**Keyboard:** ArrowDown/Up, Enter, Escape, Tab trap
+**CSS:** `.sembrado-kb-nav`
+
+### 2.15 IntensityPickerModal (~L15364)
+
+**Props:** `value`, `onSelect`, `onClose`
+**State:** `activeValue`, `typedBuffer` (digit accumulator, reset 900ms)
+**Refs:** `listRef`, `typedBufferResetRef`
+**Helpers:** `scrollToIntensity`, `commitSelection`
+**Keyboard:** Enter, ArrowDown/Up, digits 0-9, Backspace
+**Events:** Wheel capture (preventDefault)
+
+### 2.16 EjCelda (~L15548)
+
+**Props:** `ej`, `num`, `semIdx`, `turnoIdx`, `ejIdx`, `onChange`, `onRemove`, `canRemove`, `normativos`
+**State:** `showIntModal`
+**Refs:** `intensityBtnRef`, `restoreIntensityFocusRef`
+Grid: `14px 1fr 38px 40px 14px` — [#, EjBuscadorCompacto, INT%, TBL, ✕]
+TBL cycle: click → 1→2→3→1, keys 1/2/3 direct set
+
+### 2.17 CeldaSembrado (~L15698)
+
+**Props:** `ejercicios`, `irm_arr`, `irm_env`, `semIdx`, `turnoIdx`, `onChange`, `normativos`
+**Refs:** `cellRef`, `pendingFocusEjIdxRef`
+**Helpers:** `normalize(arr)`, `addEj`, `removeEj`, `updateEj`, `moveEj`
+Focus: `requestAnimationFrame` + `focusPlanillaField()`
+
+### 2.18 SembradoMensual (~L15839)
+
+**Props:** `semanas`, `irm_arr`, `irm_env`, `onChangeSemana`, `onChangeTodasSemanas`, `onSwapSemanas`, `meso`, `normativos`
+**State:** `importFrom`, `importTo`, `importFeedback`
+**Refs:** `importTimerRef`, `sembradoNavRef`, `emptySlotCache`
+**Helpers:** `getEjs` (pad to DEFAULT_EJS), `updateEjs` (dedup IDs), `updateDiaSemana`, `addTurno`, `removeTurno`, `importarSemanaSembrado`, `intercambiarSemanas`, `handleSembradoKeyDown`
+
+### 2.19 SemanaView (~L16471)
+
+**Props:** `semana`, `irm_arr`, `irm_env`, `meso`, `onChange`
+**State:** `clipboardTurno`
+**Helpers:** `updateTurno`, `updateGrupo` (mantiene sum=100)
+
+### 2.20 AtletaCardItem (~L16609)
+
+**Props:** `a`, `mesociclos`, `coachId`, `onSelect`, `onEdit`, `onDelete`
+**Computed:** `mesoAtleta` (filtrado+sorted), `mesoActivo`, `edad`, fase ciclo (mujeres)
+
+### 2.21 PageAtletas (~L16933)
+
+**Props:** `atletas`, `setAtletas`, `mesociclos`, `setMesociclos`, `onSelect`, `coachId`
+**State:** `showForm`, `tipoInicial`, `editAtleta`, `previewAtleta`, `expandedAtletas`, `expandedAsesorias`, `registeredUsers`, `confirmDeleteAtleta`, `confirmDeletePreviewMeso`
+**Constantes:** `MAX_VISIBLE=4`
+**DB:** `sb.from("profiles").select("id,nombre,email").eq("rol","atleta")` → registeredUsers
+**Helpers:** `saveAtleta`, `deleteAtleta`, `previewSetActivo`, `previewDuplicarMeso`, `renderCard`
+
+### 2.22 EditMesoModal (~L17402)
+
+**Props:** `meso`, `onSave`, `onClose`
+**State:** `form` — {nombre, descripcion, fecha_inicio, modo, irm_arranque, irm_envion}
+
+### 2.23 EditVolModal (~L17568)
+
+**Props:** `meso`, `onSave`, `onClose`
+**State:** `volTotal`, `semanas` (deep copy)
+**Refs:** `rrReduceRef`, `rrIncreaseRef`
+**Helpers:** `toIntPct`, `distributeReduction`, `distributeIncrease`, `updatePct`, `stepPct`
+**Validación:** totalPct === 100
+
+### 2.24 PageAtleta (~L17837) ⭐ MUY GRANDE
+
+**Props:** `atleta`, `mesociclos`, `setMesociclos`, `onBack`, `addPlantilla`, `onLiveMesoData`, `onAtletaOverridesChange`, `openRequest`
+
+**State (22+):**
+
+- UI: `showMeso`, `showEditMeso`, `showGuardarPlantilla`, `showEditVol`, `mesoSelId`, `vistaActual` ("meso"/"resumen"/"pdf"/"normativos"/"historial"), `showFullSembrado`, `confirmReset`, `confirmDeleteMeso`
+- Filtros: `filtroGrupos[]`, `filtroIntensidades[]`, `filtroTablas[]`, `fullTableZoom` (0.35-2.5)
+- Normativos: `atletaNormOverrides`, `globalNormativos`
+- Pct overrides: `semPctOverrides`, `semPctManual` (Set), `turnoPctOverrides`, `turnoPctManual` (Set)
+- Cell edits: `repsEdit`, `manualEdit` (Set), `cellEdit`, `cellManual` (Set), `nameEdit`, `noteEdit`
+- History: `histState` — {canUndo, canRedo}
+
+**Refs (8+):**
+
+- `latestMesoRef` — cleanup save
+- `planillaNavRef` — scroll state per meso {semActiva, turnoActivo}
+- `fullTableViewportRef`, `fullTableRef` — full view zoom
+- `histStackRef`, `histIdxRef`, `prevMesoIdRef` — history stack
+- `liveDataRef` — always-current state for onLiveMesoData
+
+**Effects (10+):**
+
+- openRequest handler (on `openRequest.tick`)
+- History load (on `mesoVisto.id`)
+- Keyboard shortcuts (Ctrl+Z/Y) → window "keydown"
+- Filter cleanup (on `showFullSembrado`)
+- Live data debounce (100ms) → `onLiveMesoData`
+- Cleanup save on unmount → persiste latest meso
+- CustomEvent listener `liftplan:normativos-overrides-updated`
+
+**localStorage keys:**
+
+- Init: `liftplan_normativos_atleta_${atleta.id}`, `liftplan_normativos`
+- Per meso: `liftplan_pt_${mesoId}_*` (6 keys), `liftplan_pct_${mesoId}_*` (4 keys)
+- History: `liftplan_hist_meso_${mesoId}`
+
+**Computed:** `mesoAtleta`, `mesoActivoReal`, `mesoVisto`, `semanasConDatosBase`, `turnosConDatosBase`, `gruposUsados`, `intensidadesUsadas`, `tablasUsadas`, `atletaNormativos` (merged)
+**Snapshot:** `{semanas, volumen_total, irm_arranque, irm_envion, semPctOverrides, turnoPctOverrides, semPctManual, turnoPctManual, repsEdit, manualEdit, cellEdit, cellManual, nameEdit, noteEdit}`
+**Helpers:** `captureSnapshot`, `pushSnap` (300ms debounce, max 15), `applySnapshot`, `undoHist/redoHist`, `updateMeso`, `updateSemana`, `updateSemanaH` (history-aware), `pasaFiltrosSembrado`, `handleSwapSemanasOverrides`
+
+### 2.25 PageResumen (~L20978)
+
+**Props:** `meso`, `atleta`, `irm_arr`, `irm_env`, `normativos`
+**State:** `semActiva`, `turnoActivo`, `RC` (Recharts library)
+**Effects:** Dynamic `import("recharts")` with fallback `window.Recharts`
+**Reads localStorage:** `liftplan_normativos`, `liftplan_tablas`, `liftplan_pt_${meso.id}_*` (4 keys)
+**Helpers:** `getRepsVal`, `calcMetricas(pairs)` → {volReps, volKg, pesoMedio, coefInt, intMedia, grupoData}
+**Charts:** BarChart, LineChart (Recharts), CustomTooltip, MetricBox
+**Navigation:** Mesociclo → click semana → click turno (drill-down)
+
+### 2.26 PagePDF (~L22370) ⭐ GRANDE
+
+**Props:** `meso`, `atleta`, `irm_arr`, `irm_env`, `normativos`, `tablas`, `hideActions`
+**Refs:** `previewRef`, `mobNavTimerRef`
+**State (8):** `sharing`, `shareStatus`, `downloading`, `isMob`, `mobNavActive`, `mobNavTurnos`, `mobActiveTurno`, `mobNavHidden`
+**Effects (5):**
+
+1. Resize listener (mobile detect)
+2. Auto-hide nav timer (1s idle, solo hideActions)
+3. IntersectionObserver semana visibility → `mobNavActive`
+4. IntersectionObserver turno visibility → `mobActiveTurno`
+5. useLayoutEffect: mide sem-header height para sticky position
+
+**Reads localStorage:** `liftplan_normativos`, `liftplan_tablas`, `liftplan_pt_${meso.id}_*` (6 keys)
+**Helpers:** `getRepsVal`, `getCell`, `GC/GB` (grupo colors/bgs), `metricas` (by semana), `BarChartSVG`, `GrupoBar`, `buildComplementarioRow`, `buildPretemporadaRow`, `buildEjercicioRow`
+**Handlers:** `handleShareWhatsApp` (compose URL), `handleDownload` (HTML blob con inline CSS+JS)
+**CSS:** ~1500 líneas de CSS dedicado (pdfStyle template literal)
+
+### 2.27 useHistory (~L25043)
+
+**Signature:** `useHistory(key, initial, maxLen=15)`
+**Returns:** `{current, push, undo, redo, canUndo, canRedo, clearHistory}`
+**localStorage:** `liftplan_hist_${key}`
+
+### 2.28 usePlantillas (~L25150)
+
+**Signature:** `usePlantillas(coachId)`
+**Returns:** `{plantillas, add, update, remove, flushSync}`
+**State:** `plantillas` (init from localStorage)
+**Refs:** `plantillaSyncTimersRef` (Map), `pendingDeletePlantillaIdsRef` (Set)
+**Effects:** Delta sync con Supabase (LWW), `_visResume` listener, throttle 5s entre pulls
+**localStorage:** `liftplan_plantillas`, `liftplan_plt_draft_${id}`
+**Helpers:** `queuePlantillaSync(item, delay=4000)`
+
+### 2.29 GuardarPlantillaModal (~L25400)
+
+**Props:** `tipo` ("meso"|"semana"|"distribucion"), `dataMeso`, `dataSemana`, `dataDistribucion`, `onSave`, `onClose`
+**State:** `form` — {nombre, descripcion, periodo, objetivo, nivel, modo, ...}
+**Lógica:** Extrae overrides de localStorage, reestructura semanas según tipo
+
+### 2.30 PlantillaCard (~L25650)
+
+**Props:** `plt`, `onUse`, `onOpen`, `onEdit`, `onDelete`, `onDuplicate`, `compact=false`
+**State:** `hov` (hover button tracking)
+
+### 2.31 PagePlantilla (~L26000) ⭐
+
+**Props:** `plt`, `onUpdate`, `onClose`
+**State:** `vistaActual`, `confirmReset`, pct overrides (4), cell edits (6)
+**Refs:** `latestFormRef`, `pHistRef`, `pIdxRef`
+**localStorage:** `liftplan_hist_plt_${plt.id}`, `liftplan_pt_${plt.id}_*`, `liftplan_plt_draft_${plt.id}`
+**Auto-save:** interval 3s, visibilitychange, cleanup unmount
+**Keyboard:** Ctrl+Z (undo), Ctrl+Y/Ctrl+Shift+Z (redo)
+
+### 2.32 CrearPlantillaModal (~L26880)
+
+**Props:** `onSave`, `onClose`
+**State:** form con tipo/nombre/escuela/pretemporada/nivel/periodo/objetivo/weeks/volumen
+
+### 2.33 DuplicarPlantillaModal (~L27200)
+
+**Props:** `plantillas`, `base`, `onSave`, `onClose`
+**State:** `selectedId`, `nombre`, `descripcion`, `busq`, `nameTouched`
+**Auto-name:** "Copia de ${selected.nombre}" (si !nameTouched)
+
+### 2.34 PagePlantillas (~L27597)
+
+**Props:** `plantillas`, `onAdd`, `onUpdate`, `onDelete`, `onOpen`
+**State:** `busqueda`, `editando`, `confirmDelete`, `duplicando`, `showCrear`, `showNueva`, `showImportar`, `colapsadoEscuela/Main/Pretemp/Mias`
+**Secciones:** Escuela Inicial (por nivel) / Pretemporada / Mis Plantillas
+
+### 2.35 PageNormativosAtleta (~L28305)
+
+**Props:** `atleta`, `globalNormativos`, `atletaNormativos`, `atletaNormOverrides`, `saveAtletaOverrides`, `getEjAtleta`
+**State:** `filtro`, `catFiltro`, `editId`, `editForm`, `error`
+
+### 2.36 PlantillaPicker (~L28396)
+
+**Props:** `plantillas`, `tipo="meso"`, `onSelect(template, opts)`, `onClose`
+**State:** `filtro`, `selected`, `opts` — {irm, volumen, reps, celdas, grupos, complementarios}
+
+### 2.37 PageNormativos (~L28894)
+
+**Props:** `coachId`, `isActive`
+**State:** `ejercicios`, `filtro`, `catFiltro`, `editId`, `editForm`, `showAdd`, `newEj`, `confirmDel`, `error`
+**Refs:** `isSyncingRef`
+**Effects:** Sync from DB on mount, `_visResume` listener
+**localStorage:** `liftplan_normativos`
+**DB:** `loadCoachSettingRow/saveCoachSetting` via `COACH_SETTING_KEYS.normativos`
+**Validation:** `isNormativosValid(value)` — Array con length >= EJERCICIOS.length, IDs únicos
+
+### 2.38 PageCalculadora (~L30014)
+
+**Props:** `coachId`
+**State:** `tablas`, `seccion` ("irm"|"sr"), `tabIRM`, `tabSR`, `editCell`, `suggestion`, `testIRM`, `testReps`
+**Effects:** Sync from DB on coachId change, `_visResume` listener
+**localStorage:** `liftplan_tablas`
+**DB:** `loadCoachSetting/saveCoachSetting` via `COACH_SETTING_KEYS.tablas`
+**Helpers:** `normalizeTablas`, `updateCell`, `updateLookup`, `resetTabla`, `rowSum`, `calcIRMresultante`, `computeBalance`, `applySuggestion`
+
+### 2.39 PanelReferencia (~L31235)
+
+**Props:** `atletas`, `mesociclos`, `plantillas`, `liveMesoData={}`, `onClose`, `onWidthChange`, `isMobile`
+**State:** `modo` ("atleta"|"plantilla"), `atletaId`, `mesoId`, `pltId`, `semIdx`, `turnoIdx`, `vista` ("planilla"|"resumen"|"pdf"), `vistaKey`, `isMobileState`, `localRevision`
+**Refs:** `resizing`, `panelWidth` (420px default)
+**Effects:** Resize handler, storage listeners (3)
+**Events listeners:**
+
+- `window "storage"` — cross-tab sync
+- `window LIFTPLAN_LOCAL_SYNC_EVENT` — internal sync
+- `window "liftplan:normativos-overrides-updated"` — normativos change
+  **localStorage reads:** `liftplan_normativos`, `liftplan_normativos_atleta_${atletaId}`, `liftplan_pt_${mid}_*`, `liftplan_pct_${mid}_*`
+  **CSS:** z-index 300 (mobile overlay), resizable via 6px handle
+
+### 2.40 LoginScreen (~L31983)
+
+**Props:** `onAuth(session)`
+**State:** `mode` ("login"|"register"), `email`, `password`, `nombre`, `rol` ("atleta"|"coach"), `codigoCoach`, `error`, `loading`, `msg`, `logs`
+**Handlers:** `handleLogin`, `handleRegister`, `handleForgot`
+**DB:** `sb.auth.signInWithPassword`, `sb.auth.signUp`, `sb.rpc("verify_coach_code")`, `sb.auth.resetPasswordForEmail`
+**API:** POST `/api/notify-registration`
+
+### 2.41 CoachApp (~L32476) ⭐ PRINCIPAL
+
+**Props:** `session`, `profile`, `onLogout`
+**State (15+):**
+
+- `tab` — current tab (string)
+- `refPanel` — reference panel visibility
+- `refPanelWidth` (420)
+- `liveMesoData` — `{[atletaId]: liveData}`
+- `atletas` — init from localStorage `liftplan_atletas`
+- `mesociclos` — init from localStorage `liftplan_mesociclos`
+- `atletasTabs[]` — open athlete tabs (persiste en `liftplan_atletas_tabs`)
+- `atletaOpenRequest{}` — request to open athlete tab
+- `plantillasTabs[]` — open template tabs (persiste en `liftplan_plantillas_tabs`)
+- `coachId` — resolved via `resolveSharedCoachId`
+- `isManualSaving` — manual save button state
+- `showBackupBanner` — 5h warning
+
+**Refs (10+):**
+
+- `mesoOverrideSyncTimersRef` (Map) — debounce per meso (800ms)
+- `atletaOverrideSyncTimersRef` (Map) — debounce per athlete (800ms)
+- `atletaSyncTimerRef` — athlete list sync (2s)
+- `mesoSyncTimerRef` — meso list sync (2s)
+- `prevAtletasRef`, `prevMesociclosRef` — LWW comparison
+- `pendingDeleteAtletaIdsRef` (Set), `pendingDeleteMesoIdsRef` (Set)
+- `lastPullAtletasRef`, `lastSyncTsAtletasRef` — delta sync throttle (5s)
+- `lastPullMesosRef`, `lastSyncTsMesosRef`
+- `prevLiveMesoDataRef`
+
+**Effects:**
+
+- Resolve coachId
+- Initial load from DB + restore overrides
+- Live meso override sync (on liveMesoData change)
+- Timer cleanup on unmount
+- Backspace handling for number inputs
+- BroadcastChannel listener
+- `_visResume` listener → trigger pulls
+
+**Hooks custom:** `usePlantillas(coachId)`
+**Helpers:** `abrirAtleta`, `cerrarAtleta`, `abrirPlantilla`, `cerrarPlantilla`, `forceSaveAllToDb`, `queueMesoOverrideSync` (800ms), `queueAtletaOverrideSync` (800ms)
+**DB sync:** Delta sync LWW, debounce 2s para listas, 800ms para overrides
+**BroadcastChannel:** Listen `_bc "message"`, emit `broadcastDbWrite`
+
+### 2.42 AtletaPanel (~L33900) ⭐
+
+**Props:** `session`, `profile`, `onLogout`
+**State:** `loading`, `atletaInfo`, `mesociclos`, `selectedMeso`, `coachNormativos`, `coachTablas`, `atletaView` ("resumen"|"normativos"|null), `normSearch`, `atletaNormOvr`
+**Refs:** `mesoScrollRef`, `mesoIdRef`
+**Memos:** `atletaNormativos` = useMemo([coachNormativos, atletaNormOvr])
+**DB queries:**
+
+- `sb.from("atletas").eq("profile_id", session.user.id)` → atletaInfo
+- `sb.from("mesociclos").eq("app_atleta_id", atleta.app_id).order("updated_at", desc)` → mesociclos
+- `sb.from("coach_settings").eq("coach_id", atleta.coach_id)` → normativos + tablas
+
+**localStorage writes:** `liftplan_normativos`, `liftplan_tablas`, `liftplan_pt_${mid}_*`, `liftplan_pct_${mid}_*`, `liftplan_normativos_atleta_${atletaId}`
+**Helpers:** `getCurrentWeek(meso)`, `calcAge(dateStr)`, `getEjercicioNombre(ejId)`
+
+### 2.43 App (~L35100, export default)
+
+**State:** `session`, `profile`, `authLoading`
+**Effects:** Auth init → `sb._handleEmailCallback()` → `sb.auth.getSession()` → `sb.auth.onAuthStateChange()` → `loadProfile`
+**Fallback:** 8s watchdog → offline mode con cached session/profile
+**Routing:** authLoading → spinner, !session → LoginScreen, rol≠coach → AtletaPanel, rol=coach → CoachApp
+
+---
+
+## 3. Funciones Clave
+
+| Función                                                                        | Línea                                  | Qué hace                                                                                                                                    |
+| ------------------------------------------------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `calcSeriesRepsKg(tablas, ej, ejData, irm_arr, irm_env, modo, reps_asignadas)` | 5122                                   | Calcula series/reps/kg para cada intensidad. Usa tablas T1/T2/T3 + lookups. Si repsInter=0→null. Si >8→1×repsInter. Si no→lookup            |
+| `getRepsVal(ej, semIdx, tIdx)`                                                 | ~22442 (PagePDF), ~20980 (PageResumen) | Reps de ejercicio. Prioridad: 1) override manual, 2) ej.reps_asignadas, 3) auto-calc tentativa                                              |
+| `buildEjercicioRow(ej, semIdx, tIdx)`                                          | ~22952                                 | Arma fila PDF: normativos.find → getRepsVal → calcSeriesRepsKg → filtra cols sin datos                                                      |
+| `buildComplementarioRow(comp, semIdx, tIdx)`                                   | ~22785                                 | Arma fila complementario: usa bloques[], `resolveExerciseName()`, flag `isCompBloques`                                                      |
+| `buildPretemporadaRow(ej)`                                                     | ~22851                                 | Arma fila pretemporada: usa `ej.ejercicio_ids[]`, `calcKgPretempPdf(pct)`                                                                   |
+| `getEjercicioById(id, normativos?)`                                            | ~2981                                  | Busca ejercicio. Cadena: 1) normativos param, 2) localStorage `liftplan_normativos`, 3) EJERCICIOS[]. **Crítico: sin param → localStorage** |
+| `getGrupo(ejercicio_id)`                                                       | 14364                                  | Ejercicio→grupo. Prioriza `categoria` field, fallback `GRUPO_RANGES`. Si no encuentra→`null`                                                |
+| `calcSembradoSemana(sem)`                                                      | 14377                                  | Cuenta ejs por grupo por turno → `{porGrupo, totalSem}`. Usa `getGrupo()`                                                                   |
+| `calcRepsEjercicio(sem, turnoIdx, meso)`                                       | 14399                                  | Distribución tentativa de reps: `vol_total × pct_sem × pct_grupo × pct_turno / n_ejs`. Resto al primer ej                                   |
+| `calcKg(ej, irm_arr, irm_env)`                                                 | ~2910                                  | `IRM × pct_base / 100`                                                                                                                      |
+| `calcVolumenSemana(volTotal, pct)`                                             | ~2918                                  | `volTotal × pct / 100`                                                                                                                      |
+| `calcRepsPorGrupo(reps, pctGrupos)`                                            | ~2922                                  | Maps reps % per category group                                                                                                              |
+| `getSembradoStats(turnos, normativos?)`                                        | ~2992                                  | Counts/percentages de ejercicios por categoría                                                                                              |
+| `calcKgPretemp(ejercicio_ids, pct)`                                            | ~10642                                 | Kg usando MENOR pct_base entre sub-ejercicios                                                                                               |
+| `calcKgBasica(ej, normativos)`                                                 | ~9333                                  | Kg para escuela básica                                                                                                                      |
+| `restoreMesoOverrides(mesoId, overrides)`                                      | ~950                                   | DB → localStorage (10 keys por meso)                                                                                                        |
+| `restoreAtletaPctOverrides(atletaId, overrides)`                               | ~1010                                  | DB → localStorage (4 keys)                                                                                                                  |
+| `restoreAtletaNormOverrides(atletaId, overrides)`                              | ~810                                   | DB → localStorage + dispara CustomEvent                                                                                                     |
+| `buildMesoOverridesPayload(meso, liveOverrides?)`                              | ~810                                   | localStorage → objeto para DB. Incluye `_meta`                                                                                              |
+| `collectMesoOverrides(mesoId)`                                                 | ~925                                   | Lee 10 keys localStorage → objeto plano                                                                                                     |
+| `collectAtletaPctOverrides(atletaId)`                                          | ~1000                                  | Lee 4 keys localStorage                                                                                                                     |
+| `collectAtletaNormOverrides(atletaId)`                                         | ~810                                   | Lee 1 key localStorage                                                                                                                      |
+| `resolveSharedCoachId(coachId)`                                                | ~900                                   | Consulta `coach_shared_workspace` → workspace owner                                                                                         |
+| `writeLocalJson(key, value)`                                                   | ~810                                   | `localStorage.setItem` + `emitLocalSyncEvent`                                                                                               |
+| `readLocalJson(key, fallback)`                                                 | ~805                                   | `localStorage.getItem` + `JSON.parse`                                                                                                       |
+| `collectBackupData()`                                                          | ~755                                   | localStorage + 5 tablas Supabase → backup v2                                                                                                |
+| `downloadBackup()`                                                             | ~779                                   | `collectBackupData` → JSON blob → download link                                                                                             |
+| `distributeReduction(baseVals, keys, amount, rrKey)`                           | ~12325                                 | Round-robin decrement %                                                                                                                     |
+| `distributeIncrease(baseVals, keys, amount, rrKey)`                            | ~12351                                 | Round-robin increment %                                                                                                                     |
+| `buildPlanillaFocusGrid()`                                                     | ~5176                                  | 2D grid de elementos focuseables para arrow key nav                                                                                         |
+| `handlePlanillaArrowNavigation()`                                              | ~5233                                  | Arrow keys wrap cíclicamente en grid                                                                                                        |
+| `handleSembradoTabNavigation()`                                                | ~5355                                  | Tab/Shift+Tab handler para sembrado                                                                                                         |
+
+---
+
+## 4. Constantes
+
+| Constante                   | Línea  | Contenido                                                                                         |
+| --------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
+| `APP_VERSION`               | 33     | `"1.2.0"`                                                                                         |
+| `SUPA_TIMEOUT_MS`           | 38     | `10000` (10s)                                                                                     |
+| `SESSION_KEY`               | 133    | `"sb_session"`                                                                                    |
+| `PROFILE_KEY_PREFIX`        | 134    | `"sb_profile_"`                                                                                   |
+| `COACH_SETTING_KEYS`        | 651    | `{normativos: "normativos_globales", tablas: "tablas_calculadora"}`                               |
+| `LIFTPLAN_LOCAL_SYNC_EVENT` | 648    | `"liftplan:local-sync"`                                                                           |
+| `BACKUP_INTERVAL_MS`        | ~720   | `5 * 60 * 60 * 1000` (5 horas)                                                                    |
+| `BACKUP_PROMPTED_KEY`       | ~721   | `"liftplan_backup_prompted_at"`                                                                   |
+| `EJERCICIOS[]`              | 1148   | ~144 ejercicios `{id, nombre, base, pct_base, categoria}`. IDs 1-144 (26 no existe)               |
+| `DIAS[]`                    | ~2132  | 7 días: Lunes...Domingo                                                                           |
+| `MOMENTOS[]`                | ~2140  | ["Mañana", "Tarde", "Noche"]                                                                      |
+| `CATEGORIAS[]`              | ~2141  | ["Arranque", "Envion", "Tirones", "Piernas", "Complementarios"]                                   |
+| `CAT_COLOR{}`               | ~2145  | Categoría → hex color                                                                             |
+| `EMPTY_NAME_SENTINEL`       | ~2181  | `"\u200B"` (zero-width space)                                                                     |
+| `FASES_CICLO{}`             | ~3201  | 4 fases menstruales: menstruacion/folicular/ovulacion/lutea. Cada una: `{label, color, bg, Icon}` |
+| `GRUPO_RANGES`              | 14353  | Legacy ID→grupo: Arranque[1-19], Envion[20-48], Tirones[49-68], Piernas[69-78]                    |
+| `GRUPOS_KEYS[]`             | 14361  | ["Arranque", "Envion", "Tirones", "Piernas"]                                                      |
+| `INTENSIDADES[]`            | 14454  | [50, 60, 70, 75, 80, 85, 90, 95]                                                                  |
+| `IRM_VALUES[]`              | 14455  | [65..95] — 31 valores para picker                                                                 |
+| `INTENS_COLS[]`             | 14458  | Same as INTENSIDADES                                                                              |
+| `DEFAULT_EJS`               | 14461  | 3 — ejercicios por celda sembrado                                                                 |
+| `TABLA_DEFAULT{}`           | ~14460 | tabla1/2/3 (31 filas × 8 cols), lookup_general (128 entries), lookup_tirones                      |
+| `PLANILLA_NAV_SELECTOR`     | ~5194  | CSS selector para elementos focuseables en planilla                                               |
+| `SEMBRADO_NAV_SELECTOR`     | ~5290  | `"[data-sembrado-nav=\"true\"]"`                                                                  |
+| `SEMBRADO_ROLE_ORDER`       | ~5295  | Prioridad de roles para tab order                                                                 |
+| `PERIODOS[]`                | 24717  | ["pretemporada", "competitivo", "transicion", "general"]                                          |
+| `OBJETIVOS[]`               | 24718  | ["fuerza", "tecnica", "volumen", "pico", "mixto"]                                                 |
+| `NIVELES[]`                 | 24719  | ["principiante", "intermedio", "elite"]                                                           |
+| `ESCUELA_NIVELES[]`         | 24730  | ["1", "2", "3", "4", "5"]                                                                         |
+| `PERIODO_LABEL/COLOR`       | 24717+ | Labels y colores por período                                                                      |
+| `OBJETIVO_LABEL/COLOR`      | 24718+ | Labels y colores por objetivo                                                                     |
+| `NIVEL_LABEL`               | 24719+ | Labels por nivel                                                                                  |
+| `ESCUELA_NIVEL_LABEL/COLOR` | 24730+ | Labels y colores por nivel escuela                                                                |
+| `MAX_VISIBLE`               | 16947  | 4 — cards visibles antes de expandir en PageAtletas                                               |
+
+---
+
+## 5. Overrides (localStorage ↔ DB)
+
+### 5.1 Overrides por Mesociclo (10 keys)
+
+Almacenados en columna `overrides` (JSONB) de tabla `mesociclos`.
+
+| Key pattern                        | Contenido                                       |
+| ---------------------------------- | ----------------------------------------------- |
+| `liftplan_pt_${mesoId}_repsEdit`   | Reps manuales `{semIdx-tIdx-ejId: reps}`        |
+| `liftplan_pt_${mesoId}_manualEdit` | Array de keys editadas manualmente              |
+| `liftplan_pt_${mesoId}_cellEdit`   | Ediciones de celdas `{key: {series,reps,kg}}`   |
+| `liftplan_pt_${mesoId}_cellManual` | Array de keys de celdas editadas                |
+| `liftplan_pt_${mesoId}_nameEdit`   | Nombres personalizados `{ejKey: nombre}`        |
+| `liftplan_pt_${mesoId}_noteEdit`   | Notas por celda `{key: texto}`                  |
+| `liftplan_pct_${mesoId}_semOvr`    | Override % semanal por grupo `{g-sIdx: pct}`    |
+| `liftplan_pct_${mesoId}_semMan`    | Array de keys semanal editadas                  |
+| `liftplan_pct_${mesoId}_turnoOvr`  | Override % turno por grupo `{g-sIdx-tIdx: pct}` |
+| `liftplan_pct_${mesoId}_turnoMan`  | Array de keys turno editadas                    |
+
+- `collectMesoOverrides(mesoId)` — localStorage → objeto
+- `restoreMesoOverrides(mesoId, overrides)` — objeto → localStorage
+- `buildMesoOverridesPayload(meso, liveOverrides?)` — localStorage/live → DB payload (incluye `_meta`)
+
+### 5.2 Overrides por Atleta
+
+Almacenados en columnas `pct_overrides` y `normativos_overrides` de tabla `atletas`.
+
+| Key pattern                              | Contenido                                         |
+| ---------------------------------------- | ------------------------------------------------- |
+| `liftplan_pct_${atletaId}_semOvr`        | Override % semanal por atleta                     |
+| `liftplan_pct_${atletaId}_semMan`        | Flags de semanas editadas                         |
+| `liftplan_pct_${atletaId}_turnoOvr`      | Override % turno por atleta                       |
+| `liftplan_pct_${atletaId}_turnoMan`      | Flags de turnos editados                          |
+| `liftplan_normativos_atleta_${atletaId}` | Override normativos: `{ejId: {pct_base?, base?}}` |
+
+- `collectAtletaPctOverrides(atletaId)` / `restoreAtletaPctOverrides(atletaId, ovr)`
+- `collectAtletaNormOverrides(atletaId)` / `restoreAtletaNormOverrides(atletaId, ovr)` (+ CustomEvent)
+
+### 5.3 localStorage Global (requerido por helpers)
+
+⚠️ **CRÍTICO**: Varios helpers (`getEjercicioById`, `getGrupo`, `calcSembradoSemana`) leen estas keys sin recibir normativos como parámetro.
+
+| Key                           | Contenido                              | Quién lo escribe                              |
+| ----------------------------- | -------------------------------------- | --------------------------------------------- |
+| `liftplan_normativos`         | Array completo de ejercicios del coach | CoachApp sync + AtletaPanel + PageNormativos  |
+| `liftplan_tablas`             | Tablas de calculadora del coach        | CoachApp sync + AtletaPanel + PageCalculadora |
+| `liftplan_atletas`            | Lista de atletas del coach             | CoachApp sync                                 |
+| `liftplan_mesociclos`         | Lista de mesociclos                    | CoachApp sync                                 |
+| `liftplan_plantillas`         | Plantillas del coach                   | usePlantillas hook                            |
+| `liftplan_last_db_sync`       | Timestamp último sync                  | `markDbSync()`                                |
+| `liftplan_backup_prompted_at` | Timestamp último backup                | `downloadBackup()`                            |
+| `liftplan_atletas_tabs`       | Tabs abiertos de atletas               | CoachApp                                      |
+| `liftplan_plantillas_tabs`    | Tabs abiertos de plantillas            | CoachApp                                      |
+| `sb_session`                  | Sesión de auth                         | Auth helpers                                  |
+| `sb_profile_${userId}`        | Perfil cacheado                        | Auth helpers                                  |
+
+### 5.4 localStorage por Plantilla
+
+| Key                            | Contenido                                |
+| ------------------------------ | ---------------------------------------- |
+| `liftplan_plt_draft_${pltId}`  | Draft de plantilla (sync pendiente)      |
+| `liftplan_hist_plt_${pltId}`   | History stack undo/redo de plantilla     |
+| `liftplan_hist_meso_${mesoId}` | History stack undo/redo de meso          |
+| `liftplan_hist_${key}`         | History stack genérico (useHistory hook) |
+
+---
+
+## 6. Flujo Atleta
+
+### 6.1 Carga AtletaPanel
+
+```
+AtletaPanel mount
+  ├─ sb.from("atletas").eq("profile_id", userId) → atletaInfo
+  ├─ sb.from("mesociclos").eq("app_atleta_id", atletaInfo.app_id) → mesociclos
+  ├─ sb.from("coach_settings").eq("coach_id", atletaInfo.coach_id) → settings
+  │   ├─ normativos_globales → coachNormativos + writeLocalJson("liftplan_normativos")
+  │   └─ tablas_calculadora → coachTablas + writeLocalJson("liftplan_tablas")
+  ├─ Para cada meso: restoreMesoOverrides(meso.app_id, meso.overrides)
+  ├─ restoreAtletaPctOverrides(atletaInfo.app_id, atletaInfo.pct_overrides)
+  ├─ restoreAtletaNormOverrides(atletaInfo.app_id, atletaInfo.normativos_overrides)
+  └─ atletaNormativos = useMemo(merge coachNormativos + atletaNormOvr)
+```
+
+### 6.2 Cadena de rendering de ejercicio (PagePDF)
 
 ```
 buildEjercicioRow(ej, semIdx, tIdx)
   ├─ normativos.find(e => e.id === ej.ejercicio_id) → ejData
-  │   └─ Si no encuentra → return null (ejercicio no se renderiza)
+  │   └─ Si no encuentra → return null
   ├─ getRepsVal(ej, semIdx, tIdx) → repsVal
-  │   ├─ 1) manualEditSaved.has(k) → repsEditSaved[k] (override manual)
+  │   ├─ 1) manualEditSaved.has(k) → repsEditSaved[k]
   │   ├─ 2) ej.reps_asignadas > 0 → ej.reps_asignadas
   │   └─ 3) Auto-calc:
   │       ├─ getGrupo(ej.ejercicio_id) → grupo
-  │       │   └─ getEjercicioById(id) SIN param → busca en localStorage
-  │       │       └─ Si localStorage vacío y ID > 144 → null → 0 reps
+  │       │   └─ getEjercicioById(id) SIN param → localStorage
   │       ├─ calcSembradoSemana(sem) → {porGrupo, totalSem}
   │       └─ Distribuye reps por grupo y turno
   ├─ calcSeriesRepsKg(tablas, ej, ejData, irm_arr, irm_env, modo, repsVal)
-  │   ├─ kgBase = ejData.pct_base × IRM_atleta / 100
+  │   ├─ kgBase = ejData.pct_base × IRM / 100
   │   ├─ Por cada intensidad: repsInter = tablaRow[intens] × repsVal / 100
-  │   │   ├─ Si repsInter === 0 → {series: null, reps_serie: null}
-  │   │   ├─ Si repsInter > 8 → {1 × repsInter}
-  │   │   └─ lookup_tirones o lookup_general → {series, reps_serie}
+  │   │   ├─ repsInter === 0 → {series: null, reps_serie: null}
+  │   │   ├─ repsInter > 8 → {1 × repsInter}
+  │   │   └─ lookup (tirones o general) → {series, reps_serie}
   │   └─ kg = kgBase × intens / 100 (redondeado a 0.5)
   └─ .filter(c => c.s || c.r) → cols visibles
-      └─ Si 0 reps → todos repsInter=0 → todas cols filtradas
-          └─ Desktop: muestra "–" | Mobile: CSS oculta (display:none)
 ```
 
-### CSS Mobile que oculta celdas vacías (~L23404)
+### 6.3 CSS Mobile que oculta celdas vacías
 
 ```css
 .pdf-table td[data-label]:has(.cell-empty) {
@@ -190,53 +714,265 @@ buildEjercicioRow(ej, semIdx, tIdx)
 }
 ```
 
-Excepto para pretemporada: `.pdf-table tr.pretemporada-row td[data-label]:has(.cell-empty) { display: flex; }`
+Excepto pretemporada: `.pdf-table tr.pretemporada-row td[data-label]:has(.cell-empty) { display: flex; }`
 
 ---
 
-## 6. Bugs
+## 7. Sync & Debounce Patterns
 
-| Estado       | Bug                                                                                                                                                                                                                                                                  | Fix                                                                                                                                                                                      |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ✅ v1.0.1    | Atleta no ve reps/kg — faltaba `restoreMesoOverrides()` en AtletaPanel                                                                                                                                                                                               | Agregado en useEffect de carga                                                                                                                                                           |
-| ✅ v1.0.6    | Ejercicios con normativos overrides no renderizan en móvil (solo etiqueta) — AtletaPanel pasaba `coachNormativos` en vez de `atletaNormativos` a PagePDF                                                                                                             | Se agregó: `restoreAtletaNormOverrides()`, `restoreAtletaPctOverrides()`, `atletaNormOvr` en state, `useMemo` para `atletaNormativos`                                                    |
-| ✅ v1.0.7    | Ejercicios custom (ID > 144) sin overrides no renderizan en mobile — `getGrupo()` → `getEjercicioById()` busca en localStorage `liftplan_normativos` que en AtletaPanel nunca se escribía. Auto-calc de reps fallaba → 0 reps → cols vacías → ocultas por CSS mobile | AtletaPanel ahora escribe `coachNormativos` y `coachTablas` a localStorage con `writeLocalJson()` al cargar coach_settings del DB                                                        |
-| ⚠️ Pendiente | PanelReferencia hardcodea `TABLA_DEFAULT` (L30897) en vez de usar las tablas del coach                                                                                                                                                                               | —                                                                                                                                                                                        |
-| ✅           | Franja superior transparente en algunos móviles iOS (safe-area notch/Dynamic Island)                                                                                                                                                                                 | `body::before` fijo con `background:var(--bg)` y `height:env(safe-area-inset-top)` (L2221)                                                                                               |
-| ✅ v1.0.8    | Bottom nav PDF demasiado pegada al home indicator en iPhone                                                                                                                                                                                                          | `padding-bottom: calc(env(safe-area-inset-bottom) + 36px)` en `.pdf-mobile-nav` (L23537). Subida de 24px → 36px.                                                                         |
-| ✅ v1.0.9    | UX mobile atleta: navbar siempre visible ocupa espacio                                                                                                                                                                                                               | Auto-hide `.pdf-mobile-nav` tras 1s sin scroll (solo `hideActions`/atleta). State `mobNavHidden` + clase `.mob-nav-hidden` con `transform:translateY(100%)`. Timer ref `mobNavTimerRef`. |
-| ✅ v1.0.11   | Atleta pierde contexto de semana/turno cuando nav se oculta                                                                                                                                                                                                          | `.mob-nav-indicator` — pill flotante bottom-right que muestra `S{n}` o `S{n} · T{n} · {dia}`. Visible solo con `mobNavHidden && hideActions`. Click reabre nav con timer reset.          |
+| Operación                         | Debounce                   | Trigger                                   |
+| --------------------------------- | -------------------------- | ----------------------------------------- |
+| Meso override sync (CoachApp)     | 800ms per meso             | liveMesoData change                       |
+| Atleta override sync (CoachApp)   | 800ms per athlete          | onAtletaOverridesChange                   |
+| Atleta list sync (CoachApp)       | 2s                         | setAtletas                                |
+| Meso list sync (CoachApp)         | 2s                         | setMesociclos                             |
+| Plantilla sync (usePlantillas)    | 4s per plantilla           | update()                                  |
+| Plantilla add sync                | 1s                         | add()                                     |
+| History snapshot push             | 300ms                      | onBeforeChange (PlanillaTurno/PageAtleta) |
+| Delta pull throttle               | 5s min gap                 | \_visResume / BroadcastChannel            |
+| Visibility resume throttle        | 30s min gap, 400ms stagger | \_visResume                               |
+| Token refresh cooldown            | 30s after failure          | \_refreshToken                            |
+| PagePlantilla auto-save           | 3s interval                | setInterval                               |
+| PanelReferencia liveData debounce | 100ms                      | liveDataRef change                        |
+
+### Conflict Resolution: Last-Write-Wins (LWW)
+
+- Compara `_updated_at` timestamps
+- Delta sync: `updated_at > lastSyncTs`
+- Skips items pending delete (`pendingDelete*Ref`)
 
 ---
 
-## 7. Z-Index & Capas
+## 8. Custom Events & BroadcastChannel
 
-| Elemento                              | z-index | Tipo   |
-| ------------------------------------- | ------- | ------ |
-| `body::before` (safe-area top cover)  | 9999    | fixed  |
-| `.modal-overlay`                      | 200     | fixed  |
-| `.nav` (header coach)                 | 100     | sticky |
-| `.pdf-mobile-nav` (bottom nav atleta) | 100     | fixed  |
-| `.mob-nav-indicator` (pill flotante)  | 99      | fixed  |
-| Sticky turnos internos                | 50 / 2  | sticky |
+| Event                                   | Tipo             | Dispatched By                                                  | Listened By                        |
+| --------------------------------------- | ---------------- | -------------------------------------------------------------- | ---------------------------------- |
+| `liftplan:normativos-overrides-updated` | CustomEvent      | `restoreAtletaNormOverrides`, `PageAtleta.saveAtletaOverrides` | PageAtleta, PanelReferencia        |
+| `liftplan:local-sync`                   | CustomEvent      | `writeLocalJson` (via `emitLocalSyncEvent`)                    | PanelReferencia                    |
+| `liftplan:db-sync`                      | BroadcastChannel | `broadcastDbWrite` (after upsert/delete)                       | CoachApp (triggers pull)           |
+| `visibilitychange`                      | DOM              | Browser                                                        | `_visResume` (throttled callbacks) |
+| `storage`                               | DOM              | Browser (cross-tab)                                            | PanelReferencia                    |
 
-## 8. Safe-Area Insets
+---
+
+## 9. Keyboard Shortcuts
+
+| Shortcut                  | Contexto                                               | Acción                                      |
+| ------------------------- | ------------------------------------------------------ | ------------------------------------------- |
+| `Ctrl+Z` / `Cmd+Z`        | PageAtleta, PagePlantilla                              | Undo                                        |
+| `Ctrl+Y` / `Ctrl+Shift+Z` | PageAtleta, PagePlantilla                              | Redo                                        |
+| `Arrow keys`              | PlanillaTurno grid                                     | Navigate cells (wrap cíclico)               |
+| `Tab` / `Shift+Tab`       | Sembrado                                               | Navigate elements by (sem, turno, ej, role) |
+| `Enter`                   | ExercisePicker, IntensityPicker                        | Select/Confirm                              |
+| `Escape`                  | ExercisePicker, IntensityPicker                        | Close                                       |
+| `ArrowUp/Down`            | ExercisePicker, IntensityPicker                        | Navigate list                               |
+| `1/2/3` keys              | EjCelda TBL button                                     | Set tabla directly                          |
+| `0-9` digits              | IntensityPickerModal                                   | Direct entry (e.g. "7"→70%)                 |
+| `Backspace`               | IntensityPickerModal                                   | Remove last digit                           |
+| `Enter`                   | PlanillaPretemporada jumpTurno                         | Jump to turno                               |
+| `Enter/Escape`            | PlanillaTurno name editor                              | Confirm/Cancel inline edit                  |
+| `Double-click`            | PlanillaTurno cells, ResumenGrupos, DistribucionTurnos | Reset manual override                       |
+
+---
+
+## 10. CSS Variables (Theme)
+
+```css
+--bg: #0a0c10 --surface: #12151c --surface2: #1a1e27 --surface3: #222732
+  --text: #e8eaf0 --muted: #6b7280 --gold: #e8c547 --blue: #64b4e8
+  --green: #47e8a0 --red: #e85047 --border: #2a303c;
+```
+
+**Fonts:** `'Bebas Neue'` (headers, números), `'DM Sans'` (texto)
+
+---
+
+## 11. CSS Classes Catálogo
+
+### Layout
+
+`.app`, `.main`, `.nav`, `.nav-tab`, `.nav-tab.active`, `.page-title`, `.page-sub`, `.flex-between`, `.text-sm`, `.text-muted`, `.text-gold`, `.divider`
+
+### Grid
+
+`.grid2`, `.grid3`, `.grid4`
+
+### Cards
+
+`.card`, `.card-title`, `.card-mb16`
+
+### Forms
+
+`.form-group`, `.form-label`, `.form-input`, `.form-select`, `.form-row`, `.no-spin`
+
+### Buttons
+
+`.btn`, `.btn-gold`, `.btn-ghost`, `.btn-icon`, `.btn-danger`, `.btn-sm`, `.btn-xs`
+
+### Badges
+
+`.badge`, `.badge-gold`, `.badge-blue`, `.badge-green`, `.badge-red`
+
+### Atletas
+
+`.atleta-card`, `.atleta-avatar`, `.atleta-info`, `.atleta-name`, `.atleta-meta`
+
+### Semanas
+
+`.semana-header`, `.semana-tab`, `.semana-tab.active`
+
+### Volumen/Grupos
+
+`.vol-grid`, `.vol-item`, `.vol-label`, `.vol-val`, `.grupos-grid`, `.grupo-item`, `.grupo-label`, `.grupo-pct`, `.prog-bar`, `.prog-fill`
+
+### Turnos
+
+`.turno-card`, `.turno-header`, `.turno-num`, `.turno-dia`, `.turno-chevron`, `.turno-body`
+
+### Ejercicios
+
+`.ej-row`, `.comp-row`, `.ej-select`, `.ej-input`, `.ej-kg`, `.ej-cat`, `.ej-num`
+
+### Modal
+
+`.modal-overlay` (z-index 200), `.modal`, `.modal-title`, `.modal-footer`
+
+### Planilla
+
+`.planilla-tabla`, `.norm-table`, `.scroll-x`
+
+### PDF
+
+`.pdf-page`, `.pdf-cover`, `.pdf-cover-name`, `.pdf-cover-meso`, `.pdf-cover-sub`, `.pdf-cover-right`, `.pdf-irm-box`, `.pdf-irm-item`, `.pdf-irm-val`, `.pdf-irm-lbl`, `.pdf-accent-bar`
+`.pdf-sem-header`, `.pdf-sem-info`, `.pdf-sem-title`, `.pdf-sem-details`, `.pdf-sem-metrics`, `.pdf-sem-metric`
+`.pdf-turno-header`, `.pdf-turno-num`, `.pdf-turno-dia`
+`.pdf-table`, `.pdf-table .ej-nombre`, `.pdf-table .cell-data`, `.pdf-table .cell-series`, `.pdf-table .cell-reps`, `.pdf-table .cell-kg`, `.pdf-table .cell-note`, `.pdf-table .cell-empty`
+`.pdf-resumen-page`, `.pdf-resumen-title`, `.pdf-resumen-grid`, `.pdf-kpi`, `.pdf-kpi-val`, `.pdf-kpi-lbl`, `.pdf-sem-table`, `.pdf-footer`
+
+### Mobile Nav
+
+`.pdf-mobile-nav` (z-index 100), `.pdf-mobile-nav.mob-nav-hidden`, `.pdf-mobile-nav-row`, `.pdf-mobile-nav-pill`, `.pdf-mobile-nav-turnos`, `.pdf-mobile-nav-turno`, `.mob-nav-indicator` (z-index 99)
+
+### Sembrado
+
+`.sembrado-kb-nav`
+
+---
+
+## 12. Z-Index & Capas
+
+| Elemento                                | z-index | Tipo   |
+| --------------------------------------- | ------- | ------ |
+| `body::before` (safe-area top cover)    | 9999    | fixed  |
+| PanelReferencia (mobile overlay)        | 300     | fixed  |
+| `.modal-overlay`                        | 200     | fixed  |
+| Tooltips (PlanillaTurno, ResumenGrupos) | 200     | fixed  |
+| `.nav` (header coach)                   | 100     | sticky |
+| `.pdf-mobile-nav` (bottom nav atleta)   | 100     | fixed  |
+| `.mob-nav-indicator` (pill flotante)    | 99      | fixed  |
+| Sticky tab header (PageAtleta)          | 90      | sticky |
+| Sticky turnos internos                  | 50 / 2  | sticky |
+
+---
+
+## 13. Safe-Area Insets
 
 | Ubicación                  | Línea | Uso                                                               |
 | -------------------------- | ----- | ----------------------------------------------------------------- |
 | `body` padding (global)    | 2220  | `padding-*: env(safe-area-inset-*)` en los 4 lados                |
 | `body::before` (top cover) | 2221  | `height: env(safe-area-inset-top)` — cubre notch con color sólido |
-| `.pdf-mobile-nav`          | 23537 | `padding-bottom: calc(env(safe-area-inset-bottom) + 36px)`        |
+| `.pdf-mobile-nav`          | 23605 | `padding-bottom: calc(env(safe-area-inset-bottom) + 36px)`        |
 | Modal PDF body             | 23743 | `padding-top: calc(safe-area-inset-top + 52px)`                   |
 | PDF header sticky          | 23744 | `top: calc(safe-area-inset-top + 52px)`                           |
 
-## 9. Mobile Nav AtletaPanel (`.pdf-mobile-nav`)
+---
+
+## 14. Mobile Nav AtletaPanel (`.pdf-mobile-nav`)
 
 - **Breakpoint:** ≤768px (oculto en desktop)
 - **Estilo:** glassmorphism — `rgba(13,17,23,.92)` + `backdrop-filter: blur(16px)`
 - **2 filas:** Session tabs (S1, S2…) + Turno tabs (T1, T2…)
-- **State:** `isMob`, `mobNavActive`, `mobNavTurnos`, `mobActiveTurno`, `mobNavHidden` (~L23700)
+- **State:** `isMob`, `mobNavActive`, `mobNavTurnos`, `mobActiveTurno`, `mobNavHidden`
 - **Ref:** `mobNavTimerRef` — timer de 1s para auto-hide
-- **Auto-hide (v1.0.9):** solo con `hideActions` (vista atleta). Scroll listener muestra nav → 1s sin scroll → `mobNavHidden=true` → clase `.mob-nav-hidden` (`transform:translateY(100%)` + `opacity:0` + `pointer-events:none`). Transición CSS `.35s ease`.
-- **Indicator (v1.0.11):** `.mob-nav-indicator` — pill flotante `bottom:12px right:12px` (z-index 99). Muestra semana+turno activo (`indicatorLabel`). Aparece cuando nav oculta, desaparece cuando nav visible (`.hidden` class). Click revela nav y resetea timer.
+- **Auto-hide:** solo con `hideActions` (vista atleta). Scroll listener muestra nav → 1s sin scroll → `mobNavHidden=true` → clase `.mob-nav-hidden` (`transform:translateY(100%)` + `opacity:0` + `pointer-events:none`). Transición CSS `.35s ease`.
+- **Indicator:** `.mob-nav-indicator` — pill flotante `bottom:12px right:12px`. Muestra semana+turno activo. Click revela nav.
 - **Content padding:** `#pdf-preview { padding-bottom: 80px }` para compensar nav fija
+- **IntersectionObserver:** Detecta qué semana/turno está en viewport → actualiza `mobNavActive` / `mobActiveTurno`
+- **Pretemporada labels:** `turnoOffsets` calcula rango `T${tFirst}-${tLast}` por semana
+
+---
+
+## 15. Data Attributes HTML
+
+| Attribute                                    | Usado en               | Propósito                                      |
+| -------------------------------------------- | ---------------------- | ---------------------------------------------- |
+| `data-grid-nav-ignore="true"`                | PlanillaTurno          | Skip en grid navigation                        |
+| `data-sembrado-nav="true"`                   | EjCelda, CeldaSembrado | Include en sembrado tab sequence               |
+| `data-role`                                  | EjCelda                | Rol: ejercicio, intensidad, tabla, remove, add |
+| `data-semIdx`, `data-turnoIdx`, `data-ejIdx` | Sembrado elements      | Position indices                               |
+| `data-picker-index`                          | ExercisePicker         | Position en lista de resultados                |
+| `data-firstgroup`                            | ExercisePicker         | Primer ejercicio de una categoría              |
+| `data-label`                                 | PDF table cells        | Label para pseudo-element mobile               |
+
+---
+
+## 16. Supabase Queries Summary
+
+| Tabla                          | Operación                           | Dónde                                            |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------ |
+| `atletas`                      | SELECT/UPSERT/DELETE                | CoachApp sync, PageAtletas, AtletaPanel          |
+| `mesociclos`                   | SELECT/UPSERT/DELETE                | CoachApp sync, AtletaPanel                       |
+| `plantillas`                   | SELECT/UPSERT/DELETE                | usePlantillas hook                               |
+| `coach_settings`               | SELECT/UPSERT                       | PageNormativos, PageCalculadora, AtletaPanel     |
+| `profiles`                     | SELECT                              | PageAtletas (registeredUsers), App (loadProfile) |
+| `coach_shared_workspace`       | SELECT                              | resolveSharedCoachId                             |
+| Auth endpoints                 | signIn/signUp/signOut/reset/refresh | LoginScreen, sb.auth                             |
+| RPC `verify_coach_code`        | POST                                | LoginScreen (registro coach)                     |
+| API `/api/notify-registration` | POST                                | LoginScreen (notifica admin)                     |
+
+---
+
+## 17. Bugs
+
+| Estado       | Bug                                                                                | Fix                                                                                |
+| ------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| ✅ v1.0.1    | Atleta no ve reps/kg — faltaba `restoreMesoOverrides()` en AtletaPanel             | Agregado en useEffect de carga                                                     |
+| ✅ v1.0.6    | Ejercicios con normativos overrides no renderizan en móvil                         | `restoreAtletaNormOverrides`, `atletaNormOvr` state, `useMemo` merge               |
+| ✅ v1.0.7    | Ejercicios custom (ID > 144) sin overrides no renderizan en mobile                 | AtletaPanel escribe coachNormativos+coachTablas a localStorage                     |
+| ⚠️ Pendiente | PanelReferencia hardcodea `TABLA_DEFAULT` (L30897) en vez de usar tablas del coach | —                                                                                  |
+| ✅           | Franja superior transparente en iOS (safe-area notch/Dynamic Island)               | `body::before` fijo con `background:var(--bg)` y `height:env(safe-area-inset-top)` |
+| ✅ v1.0.8    | Bottom nav PDF pegada al home indicator en iPhone                                  | `padding-bottom: calc(env(safe-area-inset-bottom) + 36px)`                         |
+| ✅ v1.0.9    | UX mobile atleta: navbar siempre visible ocupa espacio                             | Auto-hide tras 1s sin scroll, solo hideActions                                     |
+| ✅ v1.0.11   | Atleta pierde contexto de semana/turno cuando nav se oculta                        | `.mob-nav-indicator` pill flotante                                                 |
+
+---
+
+## 18. Dependencias Implícitas
+
+Funciones que leen localStorage **sin recibir** el dato como parámetro:
+
+| Función                                    | Lee de localStorage      | Consecuencia si falta                                        |
+| ------------------------------------------ | ------------------------ | ------------------------------------------------------------ |
+| `getEjercicioById(id)` (sin 2do param)     | `liftplan_normativos`    | Ejercicios custom ID>144 no se encuentran → return undefined |
+| `getGrupo(ejercicio_id)`                   | (via getEjercicioById)   | Retorna null → auto-calc reps falla → 0 reps                 |
+| `calcSembradoSemana(sem)`                  | (via getGrupo)           | Conteo de grupos incorrecto                                  |
+| `calcRepsEjercicio(sem, tIdx, meso)`       | (via calcSembradoSemana) | Distribución de reps incorrecta                              |
+| `getSembradoStats(turnos)` (sin 2do param) | `liftplan_normativos`    | Stats incompletos para custom                                |
+
+---
+
+## 19. Factory Helpers
+
+| Factory               | Línea | Retorna                               |
+| --------------------- | ----- | ------------------------------------- |
+| `mkId()`              | ~2151 | Random string ID                      |
+| `mkTurnos()`          | ~2152 | 9 turnos × 3 ejercicios vacíos        |
+| `mkSemanas()`         | ~2161 | 4 semanas con mkTurnos()              |
+| `mkBloqueBasica()`    | ~2171 | `{pct, series, reps, kg, nota}` vacío |
+| `mkEjBasica(n=3)`     | ~2175 | Ejercicio con n bloques               |
+| `mkTurnosBasica(n=3)` | ~2185 | 3 turnos × 6 ejercicios para escuela  |
+| `mkSemanasBasica()`   | ~2192 | Semanas para Escuela Inicial          |
+| `mkEjPretemp(n=3)`    | ~2201 | Ejercicio con `ejercicio_ids[]` array |
+| `mkTurnosPretemp()`   | ~2208 | Turnos para pretemporada              |
+| `mkSemanasPretemp()`  | ~2215 | Semanas para pretemporada             |
+| `mkBloqueComp()`      | ~8340 | Bloque complementario vacío           |

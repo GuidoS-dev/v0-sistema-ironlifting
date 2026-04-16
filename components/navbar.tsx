@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu } from "lucide-react"
+import { Menu, LogIn } from "lucide-react"
 import { LogoILSolo } from "@/components/logos"
 
 const navLinks = [
@@ -43,7 +43,17 @@ export function Navbar() {
         </nav>
 
         {/* CTA Buttons - Desktop */}
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-3 md:flex">
+          <Button
+            asChild
+            variant="ghost"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <a href="/sistema">
+              <LogIn className="mr-2 h-4 w-4" />
+              Iniciar sesión
+            </a>
+          </Button>
           <Button
             asChild
             className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
@@ -72,6 +82,16 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
+              <Button
+                asChild
+                variant="outline"
+                className="border-muted-foreground/30"
+              >
+                <a href="/sistema" onClick={() => setIsOpen(false)}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Iniciar sesión
+                </a>
+              </Button>
               <Button
                 asChild
                 className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
