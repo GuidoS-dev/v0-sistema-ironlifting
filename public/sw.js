@@ -1,6 +1,11 @@
 const CACHE_NAME = "ironlifting-v1.3.1";
 
-const PRECACHE_URLS = ["/sistema", "/icon-192x192.png", "/icon-512x512.png", "/favicon.ico"];
+const PRECACHE_URLS = [
+  "/sistema",
+  "/icon-192x192.png",
+  "/icon-512x512.png",
+  "/favicon.ico",
+];
 
 // Install: precache key assets
 self.addEventListener("install", (event) => {

@@ -16821,7 +16821,6 @@ function AtletaCardItem({
                 )}
               </span>
             )}
-
           </div>
         ) : (
           <div className="mt8">
@@ -22906,14 +22905,16 @@ function PagePDF({
 
     const pushCompRows = (comps, prefix) => {
       (comps || []).forEach((comp, ci) => {
-        if (!comp.ejercicio_id && !comp.nombre_custom && !comp.aclaracion) return;
+        if (!comp.ejercicio_id && !comp.nombre_custom && !comp.aclaracion)
+          return;
         const row = buildComplementarioRow(comp, semIdx, tIdx);
         if (!row || !row.cols.length) {
           // Si no hay bloques con contenido, al menos agregar la entrada base
           const ejData = comp.ejercicio_id
             ? normativos.find((e) => e.id === Number(comp.ejercicio_id))
             : null;
-          const nombre = comp.nombre_custom || (ejData ? ejData.nombre : "Ejercicio");
+          const nombre =
+            comp.nombre_custom || (ejData ? ejData.nombre : "Ejercicio");
           const acl = comp.aclaracion ? ` (${comp.aclaracion})` : "";
           result.push({
             id: comp.id || `${prefix}-${ci}`,
@@ -22928,8 +22929,12 @@ function PagePDF({
         }
         row.cols.forEach((col) => {
           result.push({
-            id: (comp.id || `${prefix}-${ci}`) + (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
-            name: row.nombre + (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
+            id:
+              (comp.id || `${prefix}-${ci}`) +
+              (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
+            name:
+              row.nombre +
+              (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
             category: row.categoria,
             kg: col.kg || null,
             reps: col.r ? String(col.r) : null,
@@ -22942,21 +22947,23 @@ function PagePDF({
 
     pushCompRows(turno.complementarios_before, "cb");
 
-    turno.ejercicios.filter((e) => e.ejercicio_id).forEach((ej) => {
-      const row = buildEjercicioRow(ej, semIdx, tIdx, false);
-      if (!row || !row.cols.length) return;
-      row.cols.forEach((col) => {
-        result.push({
-          id: ej.id + (row.cols.length > 1 ? `-${col.intens}` : ""),
-          name: row.nombre + (row.cols.length > 1 ? ` (${col.intens}%)` : ""),
-          category: row.categoria,
-          kg: col.kg || null,
-          reps: col.r ? String(col.r) : null,
-          series: col.s || 3,
-          notes: col.note || "",
+    turno.ejercicios
+      .filter((e) => e.ejercicio_id)
+      .forEach((ej) => {
+        const row = buildEjercicioRow(ej, semIdx, tIdx, false);
+        if (!row || !row.cols.length) return;
+        row.cols.forEach((col) => {
+          result.push({
+            id: ej.id + (row.cols.length > 1 ? `-${col.intens}` : ""),
+            name: row.nombre + (row.cols.length > 1 ? ` (${col.intens}%)` : ""),
+            category: row.categoria,
+            kg: col.kg || null,
+            reps: col.r ? String(col.r) : null,
+            series: col.s || 3,
+            notes: col.note || "",
+          });
         });
       });
-    });
 
     pushCompRows(turno.complementarios_after, "ca");
 
@@ -24578,7 +24585,13 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                       >
                         <div
                           onClick={() => toggleTurno(turnoKey)}
-                          style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            cursor: "pointer",
+                          }}
                         >
                           <span className="pdf-turno-num">
                             Turno {isPretemp ? tOff + tIdx + 1 : tIdx + 1}
@@ -24599,13 +24612,17 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const exercises = extractTimerExercises(semIdx, tIdx);
-                              if (exercises.length > 0) onStartTimer(exercises, {
-                                semana: semIdx + 1,
-                                turno: isPretemp ? tOff + tIdx + 1 : tIdx + 1,
-                                dia: dia || null,
-                                momento: momento || null,
-                              });
+                              const exercises = extractTimerExercises(
+                                semIdx,
+                                tIdx,
+                              );
+                              if (exercises.length > 0)
+                                onStartTimer(exercises, {
+                                  semana: semIdx + 1,
+                                  turno: isPretemp ? tOff + tIdx + 1 : tIdx + 1,
+                                  dia: dia || null,
+                                  momento: momento || null,
+                                });
                             }}
                             style={{
                               display: "flex",
@@ -34561,7 +34578,10 @@ function AtletaPanel({ session, profile, onLogout }) {
             <TabataTimer
               exercises={cronometroExercises}
               turnoInfo={cronometroTurnoInfo}
-              onBack={() => { setCronometroExercises(null); setCronometroTurnoInfo(null); }}
+              onBack={() => {
+                setCronometroExercises(null);
+                setCronometroTurnoInfo(null);
+              }}
             />
           </div>
         )}

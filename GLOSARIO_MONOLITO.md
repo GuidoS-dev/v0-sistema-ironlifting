@@ -9,7 +9,7 @@
 | Rango (aprox.) | Sección                                      | Descripción                                                                                                                                                                                                                                                                                                                          |
 | -------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, ChevronDown, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                          |
-| 33             | **APP_VERSION**                              | `"1.3.0"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                         |
+| 33             | **APP_VERSION**                              | `"1.3.1"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                         |
 | 35–38          | **Supabase Config**                          | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` (10000ms)                                                                                                                                                                                                                                                               |
 | 38–82          | **Sanitización**                             | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput` (anti prototype-pollution), `sanitizeRequestBody`                                                                                                                                                                                                                              |
 | 83–131         | **localStorage Safe**                        | `_freeLocalStorageSpace` (purga hist* y plt_draft*), `safeSetItem` (retry on QuotaExceededError)                                                                                                                                                                                                                                     |
@@ -364,6 +364,10 @@ Focus: `requestAnimationFrame` + `focusPlanillaField()`
 - Turno buttons del mobile nav ahora toggle expand del turno
 - Download HTML incluye JS para collapsible + week switching
 
+**Limpieza UI (v1.3.1):**
+
+- Removida etiqueta de fase del ciclo menstrual (Lútea, Folicular, etc.) del listado de atletas. Solo se conserva en la vista de semanas del mesociclo.
+
 ### 2.27 useHistory (~L25043)
 
 **Signature:** `useHistory(key, initial, maxLen=15)`
@@ -580,7 +584,7 @@ Focus: `requestAnimationFrame` + `focusPlanillaField()`
 
 | Constante                   | Línea  | Contenido                                                                                         |
 | --------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
-| `APP_VERSION`               | 33     | `"1.2.0"`                                                                                         |
+| `APP_VERSION`               | 33     | `"1.3.1"`                                                                                         |
 | `SUPA_TIMEOUT_MS`           | 38     | `10000` (10s)                                                                                     |
 | `SESSION_KEY`               | 133    | `"sb_session"`                                                                                    |
 | `PROFILE_KEY_PREFIX`        | 134    | `"sb_profile_"`                                                                                   |
