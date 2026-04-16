@@ -11,6 +11,7 @@ import {
   FileText,
   MessageCircle,
   ChevronLeft,
+  ChevronDown,
   Minus,
   Plus,
   Pencil,
@@ -36,7 +37,7 @@ import {
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.2.2";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -754,7 +755,13 @@ async function collectBackupData() {
   const local = collectLocalData();
   let supabaseData = null;
   try {
-    const tables = ["atletas", "mesociclos", "plantillas", "coach_settings", "profiles"];
+    const tables = [
+      "atletas",
+      "mesociclos",
+      "plantillas",
+      "coach_settings",
+      "profiles",
+    ];
     const results = await Promise.allSettled(
       tables.map((t) => sb.from(t).select("*").exec()),
     );
@@ -23045,7 +23052,7 @@ function PagePDF({
     .pdf-accent-bar {
       height: 4px;
       background: linear-gradient(90deg, #f0b429 0%, #e05050 40%, #3090e0 70%, #30c080 100%);
-      margin-bottom: 16px;
+      margin-bottom: 0;
     }
 
     /* ── Semana header ── */
@@ -23085,6 +23092,45 @@ function PagePDF({
       text-transform: uppercase; letter-spacing: .04em;
     }
     .pdf-turno-dia { font-size: 8px; color: #aaa; }
+
+    /* ── Collapsible turnos ── */
+    .pdf-turno-header { cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .pdf-turno-chevron {
+      margin-left: auto; display: flex; align-items: center;
+      transition: transform .25s ease;
+      color: #666; flex-shrink: 0;
+    }
+    .pdf-turno-chevron.open { transform: rotate(180deg); color: #f0b429; }
+    .pdf-turno-content {
+      overflow: hidden; transition: max-height .3s ease, opacity .2s ease;
+      max-height: 0; opacity: 0;
+    }
+    .pdf-turno-content.expanded {
+      max-height: 9999px; opacity: 1;
+    }
+    @media print {
+      .pdf-turno-content { max-height: none !important; opacity: 1 !important; overflow: visible !important; }
+      .pdf-turno-chevron { display: none !important; }
+      .pdf-sem-tabs-wrap { display: none !important; }
+    }
+
+    /* ── Week tabs ── */
+    .pdf-sem-tabs-wrap {
+      display: flex; align-items: center; gap: 6px;
+      padding: 12px 12px; margin-bottom: 16px;
+      background: transparent; border: none; border-radius: 0;
+      flex-wrap: wrap;
+    }
+    .pdf-sem-tab {
+      padding: 6px 14px; border-radius: 6px; border: 1px solid #1a1f2e;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+      background: #0d1117; color: #f0b429; transition: all .2s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .pdf-sem-tab.active {
+      background: #0d1117; color: #f0b429; border-color: #f0b429; box-shadow: 0 0 0 1px #f0b429;
+    }
+    .pdf-sem-tab:hover:not(.active) { background: #161b22; }
 
     /* ── Tabla ejercicios ── */
     .pdf-table {
@@ -23295,11 +23341,14 @@ function PagePDF({
       /* ── Turno ── */
       .pdf-turno-header {
         padding: 8px 12px;
-        margin: 10px 0 4px;
+        margin: 10px 0 0;
         border-radius: 6px;
         box-shadow: 0 2px 10px rgba(0,0,0,.25);
         position: relative;
         z-index: 2;
+      }
+      .pdf-turno-content {
+        overflow: hidden;
       }
       .pdf-turno-num {
         font-size: 13px;
@@ -23307,6 +23356,30 @@ function PagePDF({
       .pdf-turno-dia {
         font-size: 11px;
       }
+      .pdf-turno-chevron { color: #888; }
+      .pdf-turno-chevron.open { color: #f0b429; }
+
+      /* ── Week tabs mobile ── */
+      .pdf-sem-tabs-wrap {
+        position: relative;
+        background: transparent;
+        border: none; border-radius: 0;
+        margin: 0 0 16px; padding: 14px 4px 0;
+        overflow-x: auto; flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 8px;
+      }
+      .pdf-sem-tabs-wrap::-webkit-scrollbar { display: none; }
+      .pdf-sem-tab {
+        font-size: 13px; padding: 10px 20px; white-space: nowrap; flex-shrink: 0;
+        background: #0d1117; color: #f0b429;
+        border: 1px solid #1a1f2e; border-radius: 8px;
+      }
+      .pdf-sem-tab.active {
+        background: #0d1117; color: #f0b429; border-color: #f0b429; box-shadow: 0 0 0 1px #f0b429;
+      }
+      .pdf-sem-tab:hover:not(.active) { background: #161b22; }
 
       /* ── Tabla ejercicios — dark premium cards en móvil ── */
       .pdf-table,
@@ -23613,7 +23686,9 @@ function PagePDF({
         align-items: flex-start;
         font-size: 10px;
         padding-top: 10px;
-        margin-top: 12px;
+        margin-top: 16px;
+        position: relative;
+        z-index: 3;
       }
     }
 
@@ -23796,6 +23871,40 @@ function PagePDF({
   const [mobNavHidden, setMobNavHidden] = useState(false);
   const mobNavTimerRef = React.useRef(null);
 
+  // ── Collapsible turnos + week filter ──
+  const [pdfActiveSem, setPdfActiveSem] = useState(() => {
+    const idx = (meso.semanas || []).findIndex((sem) =>
+      (sem.turnos || []).some((t) =>
+        (t.ejercicios || []).some(
+          (e) =>
+            e.ejercicio_id ||
+            (e.ejercicio_ids && e.ejercicio_ids.some((sub) => sub.eid)),
+        ),
+      ),
+    );
+    return idx >= 0 ? idx : 0;
+  });
+  const [expandedTurnos, setExpandedTurnos] = useState(new Set());
+
+  const toggleTurno = (key) =>
+    setExpandedTurnos((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+
+  const toggleAllTurnos = (semIdx, turnos) => {
+    setExpandedTurnos((prev) => {
+      const next = new Set(prev);
+      const allExpanded = turnos.every((t) => next.has(`${semIdx}-${t.tIdx}`));
+      turnos.forEach((t) => {
+        const k = `${semIdx}-${t.tIdx}`;
+        allExpanded ? next.delete(k) : next.add(k);
+      });
+      return next;
+    });
+  };
+
   // Detect mobile on resize
   React.useEffect(() => {
     const check = () => setIsMob(window.innerWidth <= 768);
@@ -23886,6 +23995,18 @@ function PagePDF({
     try {
       const previewEl = previewRef.current;
       if (!previewEl) return;
+
+      // Temporarily expand all turnos and show all weeks for capture
+      const turnoContents = previewEl.querySelectorAll(".pdf-turno-content");
+      turnoContents.forEach((el) => el.classList.add("expanded"));
+      const chevrons = previewEl.querySelectorAll(".pdf-turno-chevron");
+      chevrons.forEach((el) => el.classList.add("open"));
+      // Show all pdf-page
+      const pages = previewEl.querySelectorAll(".pdf-page");
+      pages.forEach((p) => {
+        p.style.display = "";
+      });
+
       // Setear top de turno-headers antes de capturar el HTML
       previewEl.querySelectorAll(".pdf-page").forEach((page) => {
         const semH = page.querySelector(".pdf-sem-header");
@@ -23899,6 +24020,37 @@ function PagePDF({
       const style = Array.from(document.querySelectorAll("style"))
         .map((s) => s.innerHTML)
         .join("\n");
+      const capturedHTML = previewEl.outerHTML;
+
+      // Restore current state
+      turnoContents.forEach((el) => {
+        const turnoHeader = el.previousElementSibling;
+        const turnoId = turnoHeader?.id || "";
+        const parts = turnoId.match(/^pdf-turno-(\d+)-(\d+)$/);
+        if (parts) {
+          const k = `${parts[1]}-${parts[2]}`;
+          if (!expandedTurnos.has(k)) {
+            el.classList.remove("expanded");
+          }
+        }
+      });
+      chevrons.forEach((el) => {
+        const header = el.closest(".pdf-turno-header");
+        const turnoId = header?.id || "";
+        const parts = turnoId.match(/^pdf-turno-(\d+)-(\d+)$/);
+        if (parts) {
+          const k = `${parts[1]}-${parts[2]}`;
+          if (!expandedTurnos.has(k)) {
+            el.classList.remove("open");
+          }
+        }
+      });
+      // Restore page visibility to show only active semana
+      pages.forEach((p) => {
+        const pIdx = parseInt(p.dataset.semIdx, 10);
+        if (!isNaN(pIdx) && pIdx !== pdfActiveSem) p.style.display = "none";
+      });
+
       const html = `<!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8"/>
@@ -23925,7 +24077,7 @@ ${pdfStyle}
 </style>
 </head>
 <body>
-${previewEl.outerHTML}
+${capturedHTML}
 <script>
 // Posicionar turno sticky debajo de semana header, considerando offset de barra de visor
 function updateStickyTurnos(){
@@ -23944,6 +24096,60 @@ function updateStickyTurnos(){
 updateStickyTurnos();
 window.addEventListener('resize',updateStickyTurnos);
 window.addEventListener('load',updateStickyTurnos);
+
+// Collapsible turnos
+document.querySelectorAll('.pdf-turno-header').forEach(function(header){
+  // Start all collapsed
+  var content=header.nextElementSibling;
+  if(content&&content.classList.contains('pdf-turno-content')){
+    content.classList.remove('expanded');
+    var chev=header.querySelector('.pdf-turno-chevron');
+    if(chev)chev.classList.remove('open');
+  }
+  header.addEventListener('click',function(){
+    var c=this.nextElementSibling;
+    if(!c||!c.classList.contains('pdf-turno-content'))return;
+    var chev=this.querySelector('.pdf-turno-chevron');
+    c.classList.toggle('expanded');
+    if(chev)chev.classList.toggle('open');
+  });
+});
+
+// Week tabs
+(function(){
+  var tabs=document.querySelectorAll('.pdf-sem-tab');
+  var pages=document.querySelectorAll('.pdf-page[data-sem-idx]');
+  if(!tabs.length||!pages.length)return;
+  // Show only first week initially
+  pages.forEach(function(p,i){p.style.display=i===0?'':'none'});
+  tabs.forEach(function(tab){
+    tab.addEventListener('click',function(){
+      var idx=parseInt(this.dataset.semIdx||this.getAttribute('data-sem-idx'));
+      tabs.forEach(function(t){t.classList.remove('active')});
+      this.classList.add('active');
+      pages.forEach(function(p){
+        var pIdx=parseInt(p.dataset.semIdx);
+        p.style.display=pIdx===idx?'':'none';
+      });
+    });
+  });
+  // Expand/collapse all button
+  var toggleBtn=document.querySelector('.pdf-sem-tabs-actions button');
+  if(toggleBtn){
+    toggleBtn.addEventListener('click',function(){
+      var activePage=document.querySelector('.pdf-page[data-sem-idx]:not([style*="display: none"])');
+      if(!activePage)return;
+      var contents=activePage.querySelectorAll('.pdf-turno-content');
+      var allExp=Array.from(contents).every(function(c){return c.classList.contains('expanded')});
+      contents.forEach(function(c){
+        c.classList.toggle('expanded',!allExp);
+        var h=c.previousElementSibling;
+        if(h){var chev=h.querySelector('.pdf-turno-chevron');if(chev)chev.classList.toggle('open',!allExp);}
+      });
+      this.textContent=allExp?'Expandir todos':'Colapsar todos';
+    });
+  }
+})();
 </script>
 </body></html>`;
       // Crear blob y link de descarga — funciona en la mayoría de browsers modernos
@@ -24159,6 +24365,48 @@ window.addEventListener('load',updateStickyTurnos);
         </div>
         <div className="pdf-accent-bar" />
 
+        {/* ── WEEK TABS ── */}
+        {(() => {
+          const validSems = semTurnos.filter((s) => s.turnos.length > 0);
+          if (validSems.length <= 1) return null;
+          // Compute offsets for pretemporada
+          const tabOffsets = [];
+          let tabCum = 0;
+          (meso.semanas || []).forEach((s) => {
+            tabOffsets.push(tabCum);
+            tabCum += (s.turnos || []).length;
+          });
+          const activeSemData =
+            validSems.find((s) => s.semIdx === pdfActiveSem) || validSems[0];
+          const activeTurnos = activeSemData?.turnos || [];
+          const allExpanded = activeTurnos.every((t) =>
+            expandedTurnos.has(`${activeSemData.semIdx}-${t.tIdx}`),
+          );
+          return (
+            <div className="pdf-sem-tabs-wrap no-print">
+              {validSems.map(({ sem, semIdx: sIdx }) => {
+                const off = tabOffsets[sIdx] || 0;
+                const first = off + 1;
+                const last = off + (sem.turnos || []).length;
+                return (
+                  <button
+                    key={sIdx}
+                    data-sem-idx={sIdx}
+                    className={`pdf-sem-tab${pdfActiveSem === sIdx ? " active" : ""}`}
+                    onClick={() => {
+                      setPdfActiveSem(sIdx);
+                      setMobNavActive(sIdx);
+                      setMobActiveTurno(-1);
+                    }}
+                  >
+                    {isPretemp ? `T${first}-${last}` : `Semana ${sem.numero}`}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         {/* ── SEMANAS ── */}
         {(() => {
           // Compute cumulative turno offsets per semana for pretemporada labeling
@@ -24168,18 +24416,23 @@ window.addEventListener('load',updateStickyTurnos);
             turnoOffsets.push(cumTurnos);
             cumTurnos += (s.turnos || []).length;
           });
+          // Render all semanas, hide inactive ones (so download captures all)
           return semTurnos.map(({ sem, semIdx, turnos, met }) => {
             if (!turnos.length) return null;
             const tOff = turnoOffsets[semIdx] || 0;
             const tFirst = tOff + 1;
             const tLast = tOff + (sem.turnos || []).length;
+            const isActiveSem = semIdx === pdfActiveSem;
             return (
               <div
                 key={sem.id}
                 id={`pdf-sem-${semIdx}`}
                 data-sem-idx={semIdx}
                 className="pdf-page"
-                style={{ padding: "0 12px 16px" }}
+                style={{
+                  padding: "0 12px 16px",
+                  display: isActiveSem ? undefined : "none",
+                }}
               >
                 {/* Sem header */}
                 <div className="pdf-sem-header">
@@ -24266,401 +24519,436 @@ window.addEventListener('load',updateStickyTurnos);
                 </div>
 
                 {/* Turnos */}
-                {turnos.map(({ tIdx, dia, momento, rows }) => (
-                  <React.Fragment key={tIdx}>
-                    <div
-                      className="pdf-turno-header"
-                      id={`pdf-turno-${semIdx}-${tIdx}`}
-                    >
-                      <span className="pdf-turno-num">
-                        Turno {isPretemp ? tOff + tIdx + 1 : tIdx + 1}
-                      </span>
-                      {dia && (
-                        <span className="pdf-turno-dia">
-                          {dia}
-                          {momento ? ` · ${momento}` : ""}
+                {turnos.map(({ tIdx, dia, momento, rows }) => {
+                  const turnoKey = `${semIdx}-${tIdx}`;
+                  const isExpanded = expandedTurnos.has(turnoKey);
+                  return (
+                    <React.Fragment key={tIdx}>
+                      <div
+                        className="pdf-turno-header"
+                        id={`pdf-turno-${semIdx}-${tIdx}`}
+                        onClick={() => toggleTurno(turnoKey)}
+                      >
+                        <span className="pdf-turno-num">
+                          Turno {isPretemp ? tOff + tIdx + 1 : tIdx + 1}
                         </span>
-                      )}
-                    </div>
+                        {dia && (
+                          <span className="pdf-turno-dia">
+                            {dia}
+                            {momento ? ` · ${momento}` : ""}
+                          </span>
+                        )}
+                        <span
+                          className={`pdf-turno-chevron${isExpanded ? " open" : ""}`}
+                        >
+                          <ChevronDown size={14} />
+                        </span>
+                      </div>
 
-                    <div
-                      style={{
-                        overflowX: "auto",
-                        WebkitOverflowScrolling: "touch",
-                      }}
-                    >
-                      <table className="pdf-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: 20 }} className="left" />
-                            <th className="left" style={{ minWidth: 130 }}>
-                              Ejercicio
-                            </th>
-                            {(() => {
-                              // Detectar si tenemos complementarios con bloques
-                              const hasCompBloques = rows.some(
-                                (r) => r.isCompBloques,
-                              );
-                              const hasRegularIntensidades = rows.some(
-                                (r) => !r.isCompBloques,
-                              );
-                              const hasPretemporadaRows = rows.some(
-                                (r) => r.isPretemporadaRow,
-                              );
-
-                              if (hasCompBloques && !hasRegularIntensidades) {
-                                // Solo complementarios con bloques - mostrar headers dinámicos
-                                const maxBloques = Math.max(
-                                  ...rows.map((r) => r.cols?.length || 0),
-                                );
-                                return Array.from({ length: maxBloques }).map(
-                                  (_, bIdx) => (
-                                    <th
-                                      key={bIdx}
-                                      className="intens-header"
-                                      style={{
-                                        width: hasPretemporadaRows ? 72 : 58,
-                                      }}
-                                    >
-                                      Bloque{bIdx + 1}
-                                    </th>
-                                  ),
-                                );
-                              }
-                              // Regular con intensidades
-                              return INTENSIDADES.map((v) => (
-                                <th
-                                  key={v}
-                                  className="intens-header"
-                                  style={{ width: 58 }}
-                                >
-                                  {v}%
+                      <div
+                        className={`pdf-turno-content${isExpanded ? " expanded" : ""}`}
+                      >
+                        <div
+                          style={{
+                            overflowX: "auto",
+                            WebkitOverflowScrolling: "touch",
+                          }}
+                        >
+                          <table className="pdf-table">
+                            <thead>
+                              <tr>
+                                <th style={{ width: 20 }} className="left" />
+                                <th className="left" style={{ minWidth: 130 }}>
+                                  Ejercicio
                                 </th>
-                              ));
-                            })()}
-                          </tr>
-                          <tr>
-                            <th />
-                            <th />
-                            {(() => {
-                              const hasCompBloques = rows.some(
-                                (r) => r.isCompBloques,
-                              );
-                              const hasRegularIntensidades = rows.some(
-                                (r) => !r.isCompBloques,
-                              );
-                              const hasPretemporadaRows = rows.some(
-                                (r) => r.isPretemporadaRow,
-                              );
+                                {(() => {
+                                  // Detectar si tenemos complementarios con bloques
+                                  const hasCompBloques = rows.some(
+                                    (r) => r.isCompBloques,
+                                  );
+                                  const hasRegularIntensidades = rows.some(
+                                    (r) => !r.isCompBloques,
+                                  );
+                                  const hasPretemporadaRows = rows.some(
+                                    (r) => r.isPretemporadaRow,
+                                  );
 
-                              if (hasCompBloques && !hasRegularIntensidades) {
-                                // Solo complementarios - mostrar headers de bloque
-                                const maxBloques = Math.max(
-                                  ...rows.map((r) => r.cols?.length || 0),
-                                );
-                                return Array.from({ length: maxBloques }).map(
-                                  (_, bIdx) => (
-                                    <th key={bIdx} className="sub-header">
+                                  if (
+                                    hasCompBloques &&
+                                    !hasRegularIntensidades
+                                  ) {
+                                    // Solo complementarios con bloques - mostrar headers dinámicos
+                                    const maxBloques = Math.max(
+                                      ...rows.map((r) => r.cols?.length || 0),
+                                    );
+                                    return Array.from({
+                                      length: maxBloques,
+                                    }).map((_, bIdx) => (
+                                      <th
+                                        key={bIdx}
+                                        className="intens-header"
+                                        style={{
+                                          width: hasPretemporadaRows ? 72 : 58,
+                                        }}
+                                      >
+                                        Bloque{bIdx + 1}
+                                      </th>
+                                    ));
+                                  }
+                                  // Regular con intensidades
+                                  return INTENSIDADES.map((v) => (
+                                    <th
+                                      key={v}
+                                      className="intens-header"
+                                      style={{ width: 58 }}
+                                    >
+                                      {v}%
+                                    </th>
+                                  ));
+                                })()}
+                              </tr>
+                              <tr>
+                                <th />
+                                <th />
+                                {(() => {
+                                  const hasCompBloques = rows.some(
+                                    (r) => r.isCompBloques,
+                                  );
+                                  const hasRegularIntensidades = rows.some(
+                                    (r) => !r.isCompBloques,
+                                  );
+                                  const hasPretemporadaRows = rows.some(
+                                    (r) => r.isPretemporadaRow,
+                                  );
+
+                                  if (
+                                    hasCompBloques &&
+                                    !hasRegularIntensidades
+                                  ) {
+                                    // Solo complementarios - mostrar headers de bloque
+                                    const maxBloques = Math.max(
+                                      ...rows.map((r) => r.cols?.length || 0),
+                                    );
+                                    return Array.from({
+                                      length: maxBloques,
+                                    }).map((_, bIdx) => (
+                                      <th key={bIdx} className="sub-header">
+                                        <div
+                                          style={{
+                                            display: "grid",
+                                            gridTemplateColumns:
+                                              hasPretemporadaRows
+                                                ? "1fr 1fr 1fr 1fr"
+                                                : "1fr 1fr 1fr",
+                                            gap: 0,
+                                            fontSize: 6.5,
+                                          }}
+                                        >
+                                          {hasPretemporadaRows && (
+                                            <span>%</span>
+                                          )}
+                                          <span>Ser</span>
+                                          <span>Rep</span>
+                                          <span>Kg</span>
+                                        </div>
+                                      </th>
+                                    ));
+                                  }
+                                  // Regular con intensidades
+                                  return INTENSIDADES.map((v) => (
+                                    <th key={v} className="sub-header">
                                       <div
                                         style={{
                                           display: "grid",
-                                          gridTemplateColumns:
-                                            hasPretemporadaRows
-                                              ? "1fr 1fr 1fr 1fr"
-                                              : "1fr 1fr 1fr",
+                                          gridTemplateColumns: "1fr 1fr 1fr",
                                           gap: 0,
                                           fontSize: 6.5,
                                         }}
                                       >
-                                        {hasPretemporadaRows && <span>%</span>}
                                         <span>Ser</span>
                                         <span>Rep</span>
                                         <span>Kg</span>
                                       </div>
                                     </th>
-                                  ),
+                                  ));
+                                })()}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(() => {
+                                let section = null;
+                                const hasCompBloques = rows.some(
+                                  (r) => r.isCompBloques,
                                 );
-                              }
-                              // Regular con intensidades
-                              return INTENSIDADES.map((v) => (
-                                <th key={v} className="sub-header">
-                                  <div
-                                    style={{
-                                      display: "grid",
-                                      gridTemplateColumns: "1fr 1fr 1fr",
-                                      gap: 0,
-                                      fontSize: 6.5,
-                                    }}
-                                  >
-                                    <span>Ser</span>
-                                    <span>Rep</span>
-                                    <span>Kg</span>
-                                  </div>
-                                </th>
-                              ));
-                            })()}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            let section = null;
-                            const hasCompBloques = rows.some(
-                              (r) => r.isCompBloques,
-                            );
-                            const hasRegularIntensidades = rows.some(
-                              (r) => !r.isCompBloques,
-                            );
-                            const hasPretemporadaRows = rows.some(
-                              (r) => r.isPretemporadaRow,
-                            );
-                            const maxBloques = hasCompBloques
-                              ? Math.max(
-                                  ...rows.map((r) => r.cols?.length || 0),
-                                )
-                              : 0;
+                                const hasRegularIntensidades = rows.some(
+                                  (r) => !r.isCompBloques,
+                                );
+                                const hasPretemporadaRows = rows.some(
+                                  (r) => r.isPretemporadaRow,
+                                );
+                                const maxBloques = hasCompBloques
+                                  ? Math.max(
+                                      ...rows.map((r) => r.cols?.length || 0),
+                                    )
+                                  : 0;
 
-                            return rows
-                              .map((row, rIdx) => {
-                                const rowArr = [];
+                                return rows
+                                  .map((row, rIdx) => {
+                                    const rowArr = [];
 
-                                // Detectar cambios de sección
-                                let newSection = null;
-                                if (row.isComplementarioBefore)
-                                  newSection = "ANTES";
-                                else if (row.isComplementarioAfter)
-                                  newSection = "DESPUÉS";
-                                else newSection = "PRINCIPAL";
+                                    // Detectar cambios de sección
+                                    let newSection = null;
+                                    if (row.isComplementarioBefore)
+                                      newSection = "ANTES";
+                                    else if (row.isComplementarioAfter)
+                                      newSection = "DESPUÉS";
+                                    else newSection = "PRINCIPAL";
 
-                                if (newSection !== section && rIdx > 0) {
-                                  section = newSection;
-                                  const sectionColors = {
-                                    ANTES: { bg: "#e3f2fd", text: "#1565c0" },
-                                    PRINCIPAL: {
-                                      bg: "#fff8e1",
-                                      text: "#b8860b",
-                                    },
-                                    DESPUÉS: { bg: "#e8f5e9", text: "#1b5e20" },
-                                  };
-                                  const colors = sectionColors[newSection];
-                                  const colSpan =
-                                    2 +
-                                    (hasCompBloques && !hasRegularIntensidades
-                                      ? maxBloques
-                                      : INTENSIDADES.length);
-                                  rowArr.push(
-                                    <tr
-                                      key={`sep-${rIdx}`}
-                                      style={{ height: 2, background: "#ddd" }}
-                                    >
-                                      <td colSpan={colSpan}></td>
-                                    </tr>,
-                                  );
-                                } else if (rIdx === 0) {
-                                  section = newSection;
-                                }
-
-                                const gc = GC[row.categoria] || "#555";
-                                const gb = GB[row.categoria] || "#fafafa";
-                                const isLast = rIdx === rows.length - 1;
-
-                                rowArr.push(
-                                  <tr
-                                    key={rIdx}
-                                    className={`${isLast ? "last-ej" : ""} ${row.isPretemporadaRow ? "pretemporada-row" : ""}`}
-                                  >
-                                    {row.isPretemporadaRow ? (
-                                      <>
-                                        <td
-                                          colSpan={2}
-                                          className="left pdf-pretemp-ej"
-                                          style={{ padding: "3px 4px" }}
+                                    if (newSection !== section && rIdx > 0) {
+                                      section = newSection;
+                                      const sectionColors = {
+                                        ANTES: {
+                                          bg: "#e3f2fd",
+                                          text: "#1565c0",
+                                        },
+                                        PRINCIPAL: {
+                                          bg: "#fff8e1",
+                                          text: "#b8860b",
+                                        },
+                                        DESPUÉS: {
+                                          bg: "#e8f5e9",
+                                          text: "#1b5e20",
+                                        },
+                                      };
+                                      const colors = sectionColors[newSection];
+                                      const colSpan =
+                                        2 +
+                                        (hasCompBloques &&
+                                        !hasRegularIntensidades
+                                          ? maxBloques
+                                          : INTENSIDADES.length);
+                                      rowArr.push(
+                                        <tr
+                                          key={`sep-${rIdx}`}
+                                          style={{
+                                            height: 2,
+                                            background: "#ddd",
+                                          }}
                                         >
-                                          <div
-                                            style={{
-                                              display: "flex",
-                                              alignItems: "baseline",
-                                              gap: 4,
-                                              flexWrap: "wrap",
-                                            }}
-                                          >
-                                            <span
-                                              style={{
-                                                background: gc,
-                                                color: "#fff",
-                                                fontSize: 8,
-                                                fontWeight: 800,
-                                                padding: "1px 4px",
-                                                borderRadius: 2,
-                                                whiteSpace: "nowrap",
-                                                flexShrink: 0,
-                                              }}
-                                            >
-                                              {row.id}
-                                            </span>
-                                            <span
-                                              className="ej-nombre"
-                                              style={{
-                                                whiteSpace: "normal",
-                                                wordBreak: "break-word",
-                                              }}
-                                            >
-                                              {row.nombre}
-                                            </span>
-                                          </div>
-                                        </td>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <td style={{ padding: "3px 4px" }}>
-                                          <span
-                                            style={{
-                                              background: gc,
-                                              color: "#fff",
-                                              fontSize: 8,
-                                              fontWeight: 800,
-                                              padding: "1px 4px",
-                                              borderRadius: 2,
-                                              whiteSpace: "nowrap",
-                                            }}
-                                          >
-                                            {row.id}
-                                          </span>
-                                        </td>
-                                        <td className="left">
-                                          <span
-                                            className="ej-nombre"
-                                            style={{
-                                              fontStyle: row.isComplementario
-                                                ? "italic"
-                                                : "normal",
-                                            }}
-                                          >
-                                            {row.nombre}
-                                          </span>
-                                        </td>
-                                      </>
-                                    )}
-                                    {(() => {
-                                      // Si es complementario con bloques
-                                      if (row.isCompBloques) {
-                                        return Array.from({
-                                          length: maxBloques,
-                                        }).map((_, bIdx) => {
-                                          const col = row.cols[bIdx];
-                                          if (
-                                            !hasComplementarioBlockContent(col)
-                                          ) {
-                                            return (
-                                              <td
-                                                key={bIdx}
-                                                data-label={
-                                                  col?.pct != null
-                                                    ? `${col.pct}%`
-                                                    : row.isPretemporadaRow
-                                                      ? `B${bIdx + 1}`
-                                                      : ""
-                                                }
-                                              >
-                                                <span className="cell-empty">
-                                                  –
-                                                </span>
-                                              </td>
-                                            );
-                                          }
-                                          return (
+                                          <td colSpan={colSpan}></td>
+                                        </tr>,
+                                      );
+                                    } else if (rIdx === 0) {
+                                      section = newSection;
+                                    }
+
+                                    const gc = GC[row.categoria] || "#555";
+                                    const gb = GB[row.categoria] || "#fafafa";
+                                    const isLast = rIdx === rows.length - 1;
+
+                                    rowArr.push(
+                                      <tr
+                                        key={rIdx}
+                                        className={`${isLast ? "last-ej" : ""} ${row.isPretemporadaRow ? "pretemporada-row" : ""}`}
+                                      >
+                                        {row.isPretemporadaRow ? (
+                                          <>
                                             <td
-                                              key={bIdx}
-                                              data-label={
-                                                col?.pct != null
-                                                  ? `${col.pct}%`
-                                                  : row.isPretemporadaRow
-                                                    ? `B${bIdx + 1}`
-                                                    : ""
-                                              }
-                                              style={{ background: gb }}
+                                              colSpan={2}
+                                              className="left pdf-pretemp-ej"
+                                              style={{ padding: "3px 4px" }}
                                             >
-                                              <div className="cell-data">
-                                                {row.isPretemporadaRow &&
-                                                  col.pct != null && (
-                                                    <span className="cell-pct-pretemp">
-                                                      {col.pct}%
-                                                    </span>
-                                                  )}
-                                                <span className="cell-series">
-                                                  {col.s}
+                                              <div
+                                                style={{
+                                                  display: "flex",
+                                                  alignItems: "baseline",
+                                                  gap: 4,
+                                                  flexWrap: "wrap",
+                                                }}
+                                              >
+                                                <span
+                                                  style={{
+                                                    background: gc,
+                                                    color: "#fff",
+                                                    fontSize: 8,
+                                                    fontWeight: 800,
+                                                    padding: "1px 4px",
+                                                    borderRadius: 2,
+                                                    whiteSpace: "nowrap",
+                                                    flexShrink: 0,
+                                                  }}
+                                                >
+                                                  {row.id}
                                                 </span>
-                                                <span className="cell-reps">
-                                                  {col.r}
+                                                <span
+                                                  className="ej-nombre"
+                                                  style={{
+                                                    whiteSpace: "normal",
+                                                    wordBreak: "break-word",
+                                                  }}
+                                                >
+                                                  {row.nombre}
                                                 </span>
-                                                <span className="cell-kg">
-                                                  {col.kg}
-                                                </span>
-                                                {col.note && (
-                                                  <span className="cell-note">
-                                                    {col.note}
-                                                  </span>
-                                                )}
                                               </div>
                                             </td>
-                                          );
-                                        });
-                                      }
-
-                                      // Regular con intensidades
-                                      return INTENSIDADES.map((intens) => {
-                                        const col = row.cols.find(
-                                          (c) => c.intens === intens,
-                                        );
-                                        if (!col || !col.s) {
-                                          return (
-                                            <td
-                                              key={intens}
-                                              data-label={`${intens}%`}
-                                            >
-                                              <span className="cell-empty">
-                                                –
+                                          </>
+                                        ) : (
+                                          <>
+                                            <td style={{ padding: "3px 4px" }}>
+                                              <span
+                                                style={{
+                                                  background: gc,
+                                                  color: "#fff",
+                                                  fontSize: 8,
+                                                  fontWeight: 800,
+                                                  padding: "1px 4px",
+                                                  borderRadius: 2,
+                                                  whiteSpace: "nowrap",
+                                                }}
+                                              >
+                                                {row.id}
                                               </span>
                                             </td>
-                                          );
-                                        }
-                                        return (
-                                          <td
-                                            key={intens}
-                                            data-label={`${intens}%`}
-                                            style={{ background: gb }}
-                                          >
-                                            <div className="cell-data">
-                                              <span className="cell-series">
-                                                {col.s}
+                                            <td className="left">
+                                              <span
+                                                className="ej-nombre"
+                                                style={{
+                                                  fontStyle:
+                                                    row.isComplementario
+                                                      ? "italic"
+                                                      : "normal",
+                                                }}
+                                              >
+                                                {row.nombre}
                                               </span>
-                                              <span className="cell-reps">
-                                                {col.r}
-                                              </span>
-                                              <span className="cell-kg">
-                                                {col.kg}
-                                              </span>
-                                              {col.note && (
-                                                <span className="cell-note">
-                                                  {col.note}
-                                                </span>
-                                              )}
-                                            </div>
-                                          </td>
-                                        );
-                                      });
-                                    })()}
-                                  </tr>,
-                                );
+                                            </td>
+                                          </>
+                                        )}
+                                        {(() => {
+                                          // Si es complementario con bloques
+                                          if (row.isCompBloques) {
+                                            return Array.from({
+                                              length: maxBloques,
+                                            }).map((_, bIdx) => {
+                                              const col = row.cols[bIdx];
+                                              if (
+                                                !hasComplementarioBlockContent(
+                                                  col,
+                                                )
+                                              ) {
+                                                return (
+                                                  <td
+                                                    key={bIdx}
+                                                    data-label={
+                                                      col?.pct != null
+                                                        ? `${col.pct}%`
+                                                        : row.isPretemporadaRow
+                                                          ? `B${bIdx + 1}`
+                                                          : ""
+                                                    }
+                                                  >
+                                                    <span className="cell-empty">
+                                                      –
+                                                    </span>
+                                                  </td>
+                                                );
+                                              }
+                                              return (
+                                                <td
+                                                  key={bIdx}
+                                                  data-label={
+                                                    col?.pct != null
+                                                      ? `${col.pct}%`
+                                                      : row.isPretemporadaRow
+                                                        ? `B${bIdx + 1}`
+                                                        : ""
+                                                  }
+                                                  style={{ background: gb }}
+                                                >
+                                                  <div className="cell-data">
+                                                    {row.isPretemporadaRow &&
+                                                      col.pct != null && (
+                                                        <span className="cell-pct-pretemp">
+                                                          {col.pct}%
+                                                        </span>
+                                                      )}
+                                                    <span className="cell-series">
+                                                      {col.s}
+                                                    </span>
+                                                    <span className="cell-reps">
+                                                      {col.r}
+                                                    </span>
+                                                    <span className="cell-kg">
+                                                      {col.kg}
+                                                    </span>
+                                                    {col.note && (
+                                                      <span className="cell-note">
+                                                        {col.note}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                              );
+                                            });
+                                          }
 
-                                return rowArr;
-                              })
-                              .flat();
-                          })()}
-                        </tbody>
-                      </table>
-                    </div>
-                  </React.Fragment>
-                ))}
+                                          // Regular con intensidades
+                                          return INTENSIDADES.map((intens) => {
+                                            const col = row.cols.find(
+                                              (c) => c.intens === intens,
+                                            );
+                                            if (!col || !col.s) {
+                                              return (
+                                                <td
+                                                  key={intens}
+                                                  data-label={`${intens}%`}
+                                                >
+                                                  <span className="cell-empty">
+                                                    –
+                                                  </span>
+                                                </td>
+                                              );
+                                            }
+                                            return (
+                                              <td
+                                                key={intens}
+                                                data-label={`${intens}%`}
+                                                style={{ background: gb }}
+                                              >
+                                                <div className="cell-data">
+                                                  <span className="cell-series">
+                                                    {col.s}
+                                                  </span>
+                                                  <span className="cell-reps">
+                                                    {col.r}
+                                                  </span>
+                                                  <span className="cell-kg">
+                                                    {col.kg}
+                                                  </span>
+                                                  {col.note && (
+                                                    <span className="cell-note">
+                                                      {col.note}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </td>
+                                            );
+                                          });
+                                        })()}
+                                      </tr>,
+                                    );
+
+                                    return rowArr;
+                                  })
+                                  .flat();
+                              })()}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
 
                 <div className="pdf-footer">
                   <div
@@ -24856,123 +25144,6 @@ window.addEventListener('load',updateStickyTurnos);
           </div>
         )}
       </div>
-
-      {/* ── Mobile bottom navigation ── */}
-      {isMob &&
-        (() => {
-          const validSems = semTurnos.filter((s) => s.turnos.length > 0);
-          if (!validSems.length) return null;
-          // Compute cumulative turno offsets for pretemporada labeling
-          const mobTurnoOffsets = [];
-          let mobCum = 0;
-          (meso.semanas || []).forEach((s) => {
-            mobTurnoOffsets.push(mobCum);
-            mobCum += (s.turnos || []).length;
-          });
-          const activeSem =
-            validSems.find((s) => s.semIdx === mobNavActive) || validSems[0];
-          const indicatorLabel = (() => {
-            const semLabel = isPretemp
-              ? (() => {
-                  const off = mobTurnoOffsets[activeSem.semIdx] || 0;
-                  return `T${off + 1}-${off + (activeSem.sem.turnos || []).length}`;
-                })()
-              : `S${activeSem.sem.numero}`;
-            if (mobActiveTurno >= 0) {
-              const tLabel = isPretemp
-                ? `T${(mobTurnoOffsets[activeSem.semIdx] || 0) + mobActiveTurno + 1}`
-                : `T${mobActiveTurno + 1}`;
-              const dia = activeSem.turnos.find(
-                (t) => t.tIdx === mobActiveTurno,
-              )?.dia;
-              return `${semLabel} · ${tLabel}${dia ? ` · ${dia}` : ""}`;
-            }
-            return semLabel;
-          })();
-          return (
-            <>
-              {hideActions && (
-                <div
-                  className={`mob-nav-indicator no-print${!mobNavHidden ? " hidden" : ""}`}
-                  onClick={() => {
-                    setMobNavHidden(false);
-                    clearTimeout(mobNavTimerRef.current);
-                    mobNavTimerRef.current = setTimeout(
-                      () => setMobNavHidden(true),
-                      1000,
-                    );
-                  }}
-                >
-                  {indicatorLabel}
-                </div>
-              )}
-              <div
-                className={`pdf-mobile-nav no-print${mobNavHidden ? " mob-nav-hidden" : ""}`}
-              >
-                <div className="pdf-mobile-nav-row">
-                  {validSems.map(({ sem, semIdx: sIdx }) => {
-                    const mOff = mobTurnoOffsets[sIdx] || 0;
-                    const mFirst = mOff + 1;
-                    const mLast = mOff + (sem.turnos || []).length;
-                    return (
-                      <button
-                        key={sIdx}
-                        className={`pdf-mobile-nav-pill${activeSem.semIdx === sIdx ? " active" : ""}`}
-                        onClick={() => {
-                          const el = document.getElementById(`pdf-sem-${sIdx}`);
-                          if (el)
-                            el.scrollIntoView({
-                              behavior: "smooth",
-                              block: "start",
-                            });
-                          setMobNavTurnos(
-                            activeSem.semIdx === sIdx ? !mobNavTurnos : true,
-                          );
-                          setMobNavActive(sIdx);
-                          setMobActiveTurno(-1);
-                        }}
-                      >
-                        {isPretemp ? `T${mFirst}-${mLast}` : `S${sem.numero}`}
-                      </button>
-                    );
-                  })}
-                </div>
-                {mobNavTurnos && activeSem.turnos.length > 0 && (
-                  <div className="pdf-mobile-nav-turnos">
-                    {activeSem.turnos.map(({ tIdx, dia }) => {
-                      const activeOff = mobTurnoOffsets[activeSem.semIdx] || 0;
-                      return (
-                        <button
-                          key={tIdx}
-                          className={`pdf-mobile-nav-turno${mobActiveTurno === tIdx ? " active" : ""}`}
-                          onClick={() => {
-                            if (mobActiveTurno === tIdx) {
-                              setMobNavTurnos(false);
-                              setMobActiveTurno(-1);
-                              return;
-                            }
-                            const el = document.getElementById(
-                              `pdf-turno-${activeSem.semIdx}-${tIdx}`,
-                            );
-                            if (el)
-                              el.scrollIntoView({
-                                behavior: "smooth",
-                                block: "start",
-                              });
-                            setMobActiveTurno(tIdx);
-                          }}
-                        >
-                          T{isPretemp ? activeOff + tIdx + 1 : tIdx + 1}
-                          {dia ? ` · ${dia}` : ""}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </>
-          );
-        })()}
     </div>
   );
 }
@@ -34234,12 +34405,9 @@ function AtletaPanel({ session, profile, onLogout }) {
           paddingTop: 0,
         }}
       >
-        {/* Sticky navigation header */}
+        {/* Navigation header */}
         <div
           style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
             background: "var(--bg)",
             padding: "12px 0",
             marginBottom: 4,
@@ -34301,12 +34469,9 @@ function AtletaPanel({ session, profile, onLogout }) {
             paddingTop: 0,
           }}
         >
-          {/* Sticky navigation header */}
+          {/* Navigation header */}
           <div
             style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 50,
               background: "var(--bg)",
               padding: "12px 0",
               marginBottom: 4,
@@ -34397,12 +34562,9 @@ function AtletaPanel({ session, profile, onLogout }) {
           paddingTop: 0,
         }}
       >
-        {/* Sticky navigation header */}
+        {/* Navigation header */}
         <div
           style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
             background: "var(--bg)",
             padding: "12px 0",
             marginBottom: 4,

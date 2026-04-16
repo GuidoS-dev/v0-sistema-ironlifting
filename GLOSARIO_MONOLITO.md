@@ -8,7 +8,7 @@
 
 | Rango (aprox.) | Sección                                      | Descripción                                                                                                                                                                                                                                                                                                                          |
 | -------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                                       |
+| 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, ChevronDown, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                          |
 | 33             | **APP_VERSION**                              | `"1.2.0"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                         |
 | 35–38          | **Supabase Config**                          | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` (10000ms)                                                                                                                                                                                                                                                               |
 | 38–82          | **Sanitización**                             | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput` (anti prototype-pollution), `sanitizeRequestBody`                                                                                                                                                                                                                              |
@@ -331,7 +331,7 @@ Focus: `requestAnimationFrame` + `focusPlanillaField()`
 
 **Props:** `meso`, `atleta`, `irm_arr`, `irm_env`, `normativos`, `tablas`, `hideActions`
 **Refs:** `previewRef`, `mobNavTimerRef`
-**State (8):** `sharing`, `shareStatus`, `downloading`, `isMob`, `mobNavActive`, `mobNavTurnos`, `mobActiveTurno`, `mobNavHidden`
+**State (10):** `sharing`, `shareStatus`, `downloading`, `isMob`, `mobNavActive`, `mobNavTurnos`, `mobActiveTurno`, `mobNavHidden`, `pdfActiveSem` (selected week index, default 0), `expandedTurnos` (Set of turnoKeys `${semIdx}-${tIdx}`)
 **Effects (5):**
 
 1. Resize listener (mobile detect)
@@ -341,9 +341,28 @@ Focus: `requestAnimationFrame` + `focusPlanillaField()`
 5. useLayoutEffect: mide sem-header height para sticky position
 
 **Reads localStorage:** `liftplan_normativos`, `liftplan_tablas`, `liftplan_pt_${meso.id}_*` (6 keys)
-**Helpers:** `getRepsVal`, `getCell`, `GC/GB` (grupo colors/bgs), `metricas` (by semana), `BarChartSVG`, `GrupoBar`, `buildComplementarioRow`, `buildPretemporadaRow`, `buildEjercicioRow`
-**Handlers:** `handleShareWhatsApp` (compose URL), `handleDownload` (HTML blob con inline CSS+JS)
-**CSS:** ~1500 líneas de CSS dedicado (pdfStyle template literal)
+**Helpers:** `getRepsVal`, `getCell`, `GC/GB` (grupo colors/bgs), `metricas` (by semana), `BarChartSVG`, `GrupoBar`, `buildComplementarioRow`, `buildPretemporadaRow`, `buildEjercicioRow`, `toggleTurno(key)`, `toggleAllTurnos(semIdx, turnos)`
+**Handlers:** `handleShareWhatsApp` (compose URL), `handleDownload` (HTML blob con inline CSS+JS, expande todo temporalmente para captura)
+**CSS:** ~1700 líneas de CSS dedicado (pdfStyle template literal)
+
+**Collapsible Turnos (v1.3.0):**
+
+- Turno headers son clickeables, toggle expand/collapse de la tabla de ejercicios
+- Estado `expandedTurnos` (Set) controla qué turnos están abiertos
+- Chevron `<ChevronDown>` rota con CSS transition al expandir
+- `.pdf-turno-content` wrapper con `max-height:0/9999px` transition
+- Botón "Expandir/Colapsar todos" en la barra de tabs
+- En print: todo se expande automáticamente via `@media print`
+- En download: se expande todo, se captura HTML, se restaura estado
+
+**Week Tabs (v1.3.0):**
+
+- `.pdf-sem-tabs-wrap` con tabs de semana, sticky en mobile
+- `pdfActiveSem` controla qué semana se muestra
+- Todas las semanas se renderizan pero inactivas tienen `display:none`
+- Mobile nav pills sincronizan con `pdfActiveSem`
+- Turno buttons del mobile nav ahora toggle expand del turno
+- Download HTML incluye JS para collapsible + week switching
 
 ### 2.27 useHistory (~L25043)
 
