@@ -9,7 +9,7 @@
 | Rango (aprox.) | Sección                                      | Descripción                                                                                                                                                                                                                                                                                                                          |
 | -------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, ChevronDown, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                          |
-| 33             | **APP_VERSION**                              | `"1.2.0"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                         |
+| 33             | **APP_VERSION**                              | `"1.3.0"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                         |
 | 35–38          | **Supabase Config**                          | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` (10000ms)                                                                                                                                                                                                                                                               |
 | 38–82          | **Sanitización**                             | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput` (anti prototype-pollution), `sanitizeRequestBody`                                                                                                                                                                                                                              |
 | 83–131         | **localStorage Safe**                        | `_freeLocalStorageSpace` (purga hist* y plt_draft*), `safeSetItem` (retry on QuotaExceededError)                                                                                                                                                                                                                                     |
@@ -84,7 +84,7 @@
 | 31235–31900    | **PanelReferencia**                          | Panel lateral read-only: modo atleta/plantilla, resize drag, storage listeners, cross-tab sync. Fixed mobile (z-index 300)                                                                                                                                                                                                           |
 | 31983–32475    | **LoginScreen**                              | Login/Register: email/password, role selector, coach code (RPC `verify_coach_code`), forgot password, notify-registration API                                                                                                                                                                                                        |
 | 32476–33700    | **CoachApp** ⭐                              | Componente principal coach: state management (atletas/mesos/tabs), DB sync bidireccional, delta sync (LWW), debounce timers, BroadcastChannel, backup banner, manual save, cleanup                                                                                                                                                   |
-| 33900–35383    | **AtletaPanel** ⭐                           | Vista del atleta: carga desde Supabase, restore overrides, coach settings → localStorage, `atletaNormativos` (useMemo merge), dashboard con meso cards, vistas resumen/normativos/PDF                                                                                                                                                |
+| 33900–35383    | **AtletaPanel** ⭐                           | Vista del atleta: carga desde Supabase, restore overrides, coach settings → localStorage, `atletaNormativos` (useMemo merge), dashboard con meso cards, vistas resumen/normativos/PDF. **Cronómetro:** `cronometroExercises`/`cronometroTurnoInfo` states, overlay `<TabataTimer>`. `extractTimerExercises(turno, sem, meso, normativos)` (~L22923) extrae ejercicios con `pushCompRows` helper |
 
 ---
 
@@ -995,3 +995,46 @@ Funciones que leen localStorage **sin recibir** el dato como parámetro:
 | `mkTurnosPretemp()`   | ~2208 | Turnos para pretemporada              |
 | `mkSemanasPretemp()`  | ~2215 | Semanas para pretemporada             |
 | `mkBloqueComp()`      | ~8340 | Bloque complementario vacío           |
+
+---
+
+## 20. Cronómetro Tabata (Módulo Externo)
+
+Componentes en `components/cronometro/`. NO están en el monolito — son TypeScript separado, importados dinámicamente.
+
+### Archivos
+
+| Archivo                        | Descripción                                                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `types.ts`                     | Interfaces: `TabataConfig`, `TabataExercise`, `TimerPhase`, `TimerState`, `TimerAction` (START/TICK/PAUSE/RESUME/RESET/NEXT_EXERCISE/PREV_EXERCISE/SKIP_FORWARD/SKIP_PHASE/RESTART_PHASE) |
+| `constants.ts`                 | `DEFAULT_CONFIG` (work:120, rest:90, rounds:8, countdown:5), `STORAGE_KEY`, `TUTORIAL_SEEN_KEY`, `PHASE_COLORS` (6 fases), `PHASE_LABELS`, `CAT_COLORS` (5 categorías), min/max/step |
+| `hooks/useTabataTimer.ts`      | `useReducer` state machine: idle→countdown→work→rest→(repeat)→exerciseComplete→finished. Callbacks: start, pause, resume, reset, nextExercise, skipForward (series then exercise), prevExercise, skipPhase, restartPhase |
+| `hooks/useWakeLock.ts`         | Screen Wake Lock API — mantiene pantalla encendida durante timer                                                  |
+| `hooks/useTabataSound.ts`      | Web Audio API oscillator: `workStart()`, `restStart()`, `finished()`, `countdownTick()`, `countdownLast()`        |
+| `TabataDisplay.tsx`            | SVG circular progress ring (r=120, stroke=8). Fase label Bebas Neue, tiempo centro, round info #8a95a8            |
+| `TabataControls.tsx`           | Botones por fase. Running: ⏮⏯⏭↺ + "LISTO". **Confirmación doble toque** (`useConfirmAction` hook, 2s timeout, glow dorado) en ⏮/⏭/↺/LISTO. Play/Pause sin confirm |
+| `TabataConfig.tsx`             | ConfigRow con +/- para work/rest/rounds/countdown. Toggle sonido                                                  |
+| `TabataExerciseInfo.tsx`       | PDF-style dark card: badge categoría, nombre, S×R+Kg mini-cards. **Indicador de serie** (SERIE n/total + dots verde/dorado/gris) visible solo durante timer activo |
+| `TabataTimer.tsx` (orquestador)| Props: `exercises?`, `turnoInfo?`, `onBack`. States: config, disabledIds (Set), showListModal, showTutorial, showExitModal, dontShowAgain. **Exercise toggle** on/off en lista idle. **List modal** bottom-sheet con status dots. **Tutorial modal** (primera vez, localStorage). **Exit modal** confirmación al salir con timer activo |
+
+### Integración con coach-app.jsx
+
+- `extractTimerExercises(turno, sem, meso, normativos)` (~L22923): extrae ejercicios del turno para el cronómetro
+  - `pushCompRows(comps, prefix)`: usa `buildComplementarioRow` para extraer nombre/kg/reps/series de cada columna de intensidad
+  - Principales: `forEach` sobre `row.cols`, cada intensidad genera entrada separada con sufijo `intens%`
+  - Cada `TabataExercise`: `{id, name, category, kg, reps, series, notes?}`
+- `cronometroExercises` / `cronometroTurnoInfo` states en AtletaPanel (~L34265)
+- Botón "ENTRENAR" en turno header de PagePDF pasa `{semana, turno, dia, momento}`
+- Overlay renderiza `<TabataTimer>` con props
+- Standalone mode: `atletaView==="cronometro"` sin exercises ni turnoInfo
+
+### Paleta Hard-Coded (NO usa CSS vars)
+
+`#0a0c10` bg, `#0d1117` card, `#12151c` surface, `#1e2733` borders, `#0f1520` data rows, `#1a1a2e` badges, `#1a1f2a` buttons, `#d4a832` gold, `#47e8a0` green, `#e8c547` gold accent, `#e87447` orange, `#8a95a8` muted, `#6b7590` secondary muted, `#e8eaf0` text
+
+### localStorage Keys
+
+| Key                               | Uso                                 |
+| --------------------------------- | ----------------------------------- |
+| `liftplan_cronometro_config`      | Configuración timer (JSON)          |
+| `liftplan_cronometro_tutorial_seen` | "1" si tutorial ya fue cerrado    |

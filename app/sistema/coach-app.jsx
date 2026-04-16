@@ -32,12 +32,14 @@ import {
   LogOut,
   Shield,
   Search,
+  Timer,
 } from "lucide-react";
+import { TabataTimer } from "../../components/cronometro";
 
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.2.2";
+const APP_VERSION = "1.3.0";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -22395,6 +22397,7 @@ function PagePDF({
   normativos: normativosProp = null,
   tablas: tablasProp = null,
   hideActions = false,
+  onStartTimer = null,
 }) {
   const previewRef = React.useRef(null);
   const normativos =
@@ -22914,6 +22917,74 @@ function PagePDF({
       cols,
       isComplementario,
     };
+  };
+
+  // ── Extract exercise data for timer ──
+  const extractTimerExercises = (semIdx, tIdx) => {
+    if (semIdx == null || tIdx == null) return [];
+    const sem = meso.semanas[semIdx];
+    if (!sem) return [];
+    const turno = sem.turnos[tIdx];
+    if (!turno) return [];
+    const result = [];
+
+    const pushCompRows = (comps, prefix) => {
+      (comps || []).forEach((comp, ci) => {
+        if (!comp.ejercicio_id && !comp.nombre_custom && !comp.aclaracion) return;
+        const row = buildComplementarioRow(comp, semIdx, tIdx);
+        if (!row || !row.cols.length) {
+          // Si no hay bloques con contenido, al menos agregar la entrada base
+          const ejData = comp.ejercicio_id
+            ? normativos.find((e) => e.id === Number(comp.ejercicio_id))
+            : null;
+          const nombre = comp.nombre_custom || (ejData ? ejData.nombre : "Ejercicio");
+          const acl = comp.aclaracion ? ` (${comp.aclaracion})` : "";
+          result.push({
+            id: comp.id || `${prefix}-${ci}`,
+            name: nombre + acl,
+            category: ejData?.categoria || "Complementarios",
+            kg: null,
+            reps: null,
+            series: 3,
+            notes: "",
+          });
+          return;
+        }
+        row.cols.forEach((col) => {
+          result.push({
+            id: (comp.id || `${prefix}-${ci}`) + (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
+            name: row.nombre + (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
+            category: row.categoria,
+            kg: col.kg || null,
+            reps: col.r ? String(col.r) : null,
+            series: col.s || 3,
+            notes: col.note || "",
+          });
+        });
+      });
+    };
+
+    pushCompRows(turno.complementarios_before, "cb");
+
+    turno.ejercicios.filter((e) => e.ejercicio_id).forEach((ej) => {
+      const row = buildEjercicioRow(ej, semIdx, tIdx, false);
+      if (!row || !row.cols.length) return;
+      row.cols.forEach((col) => {
+        result.push({
+          id: ej.id + (row.cols.length > 1 ? `-${col.intens}` : ""),
+          name: row.nombre + (row.cols.length > 1 ? ` (${col.intens}%)` : ""),
+          category: row.categoria,
+          kg: col.kg || null,
+          reps: col.r ? String(col.r) : null,
+          series: col.s || 3,
+          notes: col.note || "",
+        });
+      });
+    });
+
+    pushCompRows(turno.complementarios_after, "ca");
+
+    return result;
   };
 
   const isPretemp = meso.pretemporada === true || meso.pretemporada === "true";
@@ -24527,22 +24598,59 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                       <div
                         className="pdf-turno-header"
                         id={`pdf-turno-${semIdx}-${tIdx}`}
-                        onClick={() => toggleTurno(turnoKey)}
+                        style={{ display: "flex", alignItems: "center" }}
                       >
-                        <span className="pdf-turno-num">
-                          Turno {isPretemp ? tOff + tIdx + 1 : tIdx + 1}
-                        </span>
-                        {dia && (
-                          <span className="pdf-turno-dia">
-                            {dia}
-                            {momento ? ` · ${momento}` : ""}
-                          </span>
-                        )}
-                        <span
-                          className={`pdf-turno-chevron${isExpanded ? " open" : ""}`}
+                        <div
+                          onClick={() => toggleTurno(turnoKey)}
+                          style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
                         >
-                          <ChevronDown size={14} />
-                        </span>
+                          <span className="pdf-turno-num">
+                            Turno {isPretemp ? tOff + tIdx + 1 : tIdx + 1}
+                          </span>
+                          {dia && (
+                            <span className="pdf-turno-dia">
+                              {dia}
+                              {momento ? ` · ${momento}` : ""}
+                            </span>
+                          )}
+                          <span
+                            className={`pdf-turno-chevron${isExpanded ? " open" : ""}`}
+                          >
+                            <ChevronDown size={14} />
+                          </span>
+                        </div>
+                        {onStartTimer && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const exercises = extractTimerExercises(semIdx, tIdx);
+                              if (exercises.length > 0) onStartTimer(exercises, {
+                                semana: semIdx + 1,
+                                turno: isPretemp ? tOff + tIdx + 1 : tIdx + 1,
+                                dia: dia || null,
+                                momento: momento || null,
+                              });
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 5,
+                              padding: "4px 12px",
+                              borderRadius: 6,
+                              border: "1px solid #47e8a0",
+                              background: "rgba(71,232,160,.12)",
+                              color: "#47e8a0",
+                              cursor: "pointer",
+                              fontFamily: "'Bebas Neue'",
+                              fontSize: 12,
+                              letterSpacing: ".05em",
+                              flexShrink: 0,
+                              transition: "all .2s",
+                            }}
+                          >
+                            <Timer size={13} /> ENTRENAR
+                          </button>
+                        )}
                       </div>
 
                       <div
@@ -34159,9 +34267,11 @@ function AtletaPanel({ session, profile, onLogout }) {
   const [selectedMeso, setSelectedMeso] = useState(null);
   const [coachNormativos, setCoachNormativos] = useState(null);
   const [coachTablas, setCoachTablas] = useState(null);
-  const [atletaView, setAtletaView] = useState(null); // "resumen" | "normativos" | null
+  const [atletaView, setAtletaView] = useState(null); // "resumen" | "normativos" | "cronometro" | null
   const [normSearch, setNormSearch] = useState("");
   const [atletaNormOvr, setAtletaNormOvr] = useState({});
+  const [cronometroExercises, setCronometroExercises] = useState(null);
+  const [cronometroTurnoInfo, setCronometroTurnoInfo] = useState(null);
   const mesoScrollRef = useRef(0);
   const mesoIdRef = useRef(null);
 
@@ -34447,9 +34557,51 @@ function AtletaPanel({ session, profile, onLogout }) {
             normativos={atletaNormativos}
             tablas={coachTablas || TABLA_DEFAULT}
             hideActions
+            onStartTimer={(exercises, turnoInfo) => {
+              setCronometroExercises(exercises);
+              setCronometroTurnoInfo(turnoInfo || null);
+            }}
           />
         </div>
+        {/* Cronómetro overlay */}
+        {cronometroExercises && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              background: "var(--bg)",
+              overflow: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}
+            ref={(el) => {
+              if (el) {
+                document.body.style.overflow = "hidden";
+              } else {
+                document.body.style.overflow = "";
+              }
+            }}
+          >
+            <TabataTimer
+              exercises={cronometroExercises}
+              turnoInfo={cronometroTurnoInfo}
+              onBack={() => { setCronometroExercises(null); setCronometroTurnoInfo(null); }}
+            />
+          </div>
+        )}
       </div>
+    );
+  }
+
+  // Show Cronómetro standalone (from home button)
+  if (atletaView === "cronometro") {
+    return (
+      <TabataTimer
+        exercises={[]}
+        onBack={() => {
+          setAtletaView(null);
+        }}
+      />
     );
   }
 
@@ -35265,6 +35417,62 @@ function AtletaPanel({ session, profile, onLogout }) {
             </button>
           );
         })()}
+
+        {/* Cronómetro — navigation card */}
+        <button
+          onClick={() => {
+            setCronometroExercises(null);
+            setAtletaView("cronometro");
+          }}
+          style={{
+            width: "100%",
+            textAlign: "left",
+            cursor: "pointer",
+            background: "var(--surface)",
+            border: "1px solid var(--green)",
+            borderRadius: 12,
+            padding: "16px 20px",
+            marginBottom: 20,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            transition: "all .2s",
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: "rgba(71,232,160,.13)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Timer size={20} style={{ color: "var(--green)" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: "'Bebas Neue'",
+                fontSize: 18,
+                color: "var(--green)",
+                letterSpacing: ".04em",
+              }}
+            >
+              CRONÓMETRO
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>
+              Timer de entrenamiento
+            </div>
+          </div>
+          <ChevronLeft
+            size={16}
+            style={{ color: "var(--green)", transform: "rotate(180deg)" }}
+          />
+        </button>
 
         {/* No active mesociclos */}
         {activeMesos.length === 0 && (
