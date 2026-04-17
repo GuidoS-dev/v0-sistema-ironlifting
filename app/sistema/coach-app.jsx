@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.11";
+const APP_VERSION = "1.3.12";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -33259,6 +33259,15 @@ function LoginScreen({ onAuth, recoveryMode: initialRecovery = false, initialMsg
 // ── Auth wrapper — carga Supabase JS y maneja sesión ────────────────────────
 
 function CoachApp({ session, profile, onLogout }) {
+  // ── Clear dynamic tabs on new browser session (prevents accumulation) ──
+  // sessionStorage survives refreshes but is cleared when the browser closes,
+  // so tabs only reset on a truly new session.
+  if (typeof window !== "undefined" && !sessionStorage.getItem("ironlifting_session")) {
+    sessionStorage.setItem("ironlifting_session", "1");
+    localStorage.removeItem("liftplan_atletas_tabs");
+    localStorage.removeItem("liftplan_plantillas_tabs");
+  }
+
   // tab puede ser: "atletas" | "normativos" | "calculadora" | "atleta:ID"
   const [tab, setTab] = useState("atletas");
   const [refPanel, setRefPanel] = useState(false);
