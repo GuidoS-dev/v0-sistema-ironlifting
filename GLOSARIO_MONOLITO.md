@@ -9,7 +9,7 @@
 | Rango (aprox.) | Sección                                      | Descripción                                                                                                                                                                                                                                                                                                                                                                                     |
 | -------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, ChevronDown, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                                                                                     |
-| 33             | **APP_VERSION**                              | `"1.3.13"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                                                                                    |
+| 33             | **APP_VERSION**                              | `"1.3.12"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                                                                                    |
 | 35–38          | **Supabase Config**                          | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` (10000ms)                                                                                                                                                                                                                                                                                                                          |
 | 38–82          | **Sanitización**                             | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput` (anti prototype-pollution), `sanitizeRequestBody`                                                                                                                                                                                                                                                                                         |
 | 83–131         | **localStorage Safe**                        | `_freeLocalStorageSpace` (purga hist* y plt_draft*), `safeSetItem` (retry on QuotaExceededError)                                                                                                                                                                                                                                                                                                |
@@ -342,7 +342,7 @@ Focus: `requestAnimationFrame` + `focusPlanillaField()`
 
 **Reads localStorage:** `liftplan_normativos`, `liftplan_tablas`, `liftplan_pt_${meso.id}_*` (6 keys)
 **Helpers:** `getRepsVal`, `getCell`, `GC/GB` (grupo colors/bgs), `metricas` (by semana), `BarChartSVG`, `GrupoBar`, `buildComplementarioRow`, `buildPretemporadaRow`, `buildEjercicioRow`, `toggleTurno(key)`, `toggleAllTurnos(semIdx, turnos)`
-**Handlers:** `handleShareWhatsApp` (compose URL), `handleDownload` (HTML blob con inline CSS+JS interactivo, expande todo temporalmente para captura, valores congelados con data-frozen + MutationObserver)
+**Handlers:** `handleShareWhatsApp` (compose URL), `handleDownload` (HTML blob estático sin JS, expande todo temporalmente para captura, CSS overrides fuerzan todo visible)
 **CSS:** ~1700 líneas de CSS dedicado (pdfStyle template literal)
 
 **Collapsible Turnos (v1.3.0):**
@@ -362,7 +362,7 @@ Focus: `requestAnimationFrame` + `focusPlanillaField()`
 - Todas las semanas se renderizan pero inactivas tienen `display:none`
 - Mobile nav pills sincronizan con `pdfActiveSem`
 - Turno buttons del mobile nav ahora toggle expand del turno
-- Download HTML incluye JS interactivo (collapsible turnos + week tabs) pero valores congelados con `data-frozen` + `MutationObserver` que impide cualquier modificación de series/reps/kgs/métricas
+- Download HTML es 100% estático (sin JS): CSS overrides fuerzan todos los turnos expandidos, todas las semanas visibles, chevrons/tabs/mobile-nav ocultos
 
 **Limpieza UI (v1.3.1):**
 
@@ -584,7 +584,7 @@ Focus: `requestAnimationFrame` + `focusPlanillaField()`
 
 | Constante                   | Línea  | Contenido                                                                                         |
 | --------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
-| `APP_VERSION`               | 33     | `"1.3.13"`                                                                                         |
+| `APP_VERSION`               | 33     | `"1.3.12"`                                                                                         |
 | `SUPA_TIMEOUT_MS`           | 38     | `10000` (10s)                                                                                     |
 | `SESSION_KEY`               | 133    | `"sb_session"`                                                                                    |
 | `PROFILE_KEY_PREFIX`        | 134    | `"sb_profile_"`                                                                                   |
