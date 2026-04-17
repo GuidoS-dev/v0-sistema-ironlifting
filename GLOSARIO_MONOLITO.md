@@ -9,7 +9,7 @@
 | Rango (aprox.) | Sección                                      | Descripción                                                                                                                                                                                                                                                                                                                                                                                     |
 | -------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, ChevronDown, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                                                                                     |
-| 33             | **APP_VERSION**                              | `"1.4.4"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                                                                                    |
+| 33             | **APP_VERSION**                              | `"1.4.5"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                                                                                    |
 | 35–38          | **Supabase Config**                          | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` (10000ms)                                                                                                                                                                                                                                                                                                                          |
 | 38–82          | **Sanitización**                             | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput` (anti prototype-pollution), `sanitizeRequestBody`                                                                                                                                                                                                                                                                                         |
 | 83–131         | **localStorage Safe**                        | `_freeLocalStorageSpace` (purga hist* y plt_draft*), `safeSetItem` (retry on QuotaExceededError)                                                                                                                                                                                                                                                                                                |
@@ -1028,6 +1028,7 @@ Excepto pretemporada: `.pdf-table tr.pretemporada-row td[data-label]:has(.cell-e
 | ✅ v1.4.3    | Security: supabase-proxy hardening                                                   | 512KB body limit, path traversal guard (bloquea `..` y `//`), sin detail en 504 |
 | ✅ v1.4.4    | Cronómetro: al adelantar ejercicios con >> rápido, series se contaban mal (stale closure) | `SKIP_FORWARD`/`NEXT_EXERCISE`/`PREV_EXERCISE` ahora reciben `exerciseRounds[]` array; reducer computa `totalRounds` desde su propio estado |
 | ✅ v1.4.4    | Cronómetro: overlay fijo sin `safe-area-inset-top` — contenido detrás del notch en iOS  | Agregado `paddingTop: env(safe-area-inset-top, 0px)` al div overlay en AtletaPanel |
+| ✅ v1.4.5    | Cronómetro: pretemporada no extraía ejercicios — `extractTimerExercises` solo tenía branches para regular/escuela | Agregado branch `isPretemp` que usa `buildPretemporadaRow` + filtra por `ejercicio_ids` (mismo patrón que `semTurnos`) |
 
 ---
 
@@ -1084,9 +1085,10 @@ Componentes en `components/cronometro/`. NO están en el monolito — son TypeSc
 
 ### Integración con coach-app.jsx
 
-- `extractTimerExercises(turno, sem, meso, normativos)` (~L22923): extrae ejercicios del turno para el cronómetro
-  - `pushCompRows(comps, prefix)`: usa `buildComplementarioRow` para extraer nombre/kg/reps/series de cada columna de intensidad
-  - Principales: `forEach` sobre `row.cols`, cada intensidad genera entrada separada con sufijo `intens%`
+- `extractTimerExercises(semIdx, tIdx)` (~L23130): extrae ejercicios del turno para el cronómetro
+  - `pushCompRows(comps, prefix)`: usa `buildComplementarioRow` para extraer nombre/kg/reps/series de cada columna
+  - Tres branches: `isPretemp` → `buildPretemporadaRow` (ejercicio_ids + bloques), `isEscuelaPdf` → `buildEscuelaRow` (bloques), else → `buildEjercicioRow` (intensidades)
+  - Principales: `forEach` sobre `row.cols`, cada bloque/intensidad genera entrada separada con sufijo `pct%`/`intens%`
   - Cada `TabataExercise`: `{id, name, category, kg, reps, series, notes?}`
 - `cronometroExercises` / `cronometroTurnoInfo` states en AtletaPanel (~L34265)
 - Botón "ENTRENAR" en turno header de PagePDF pasa `{semana, turno, dia, momento}`

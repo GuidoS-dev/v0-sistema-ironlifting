@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.4.4";
+const APP_VERSION = "1.4.5";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23179,7 +23179,47 @@ function PagePDF({
 
     pushCompRows(turno.complementarios_before, "cb");
 
-    if (isEscuelaPdf) {
+    if (isPretemp) {
+      // Pretemporada: ejercicios usan ejercicio_ids + bloques
+      (turno.ejercicios || [])
+        .filter(
+          (e) =>
+            (e.ejercicio_ids && e.ejercicio_ids.some((sub) => sub.eid)) ||
+            e.nombre_custom ||
+            e.aclaracion,
+        )
+        .forEach((ej) => {
+          const row = buildPretemporadaRow(ej);
+          if (!row || !row.cols.length) {
+            // Fallback: at least push a basic entry
+            result.push({
+              id: ej.id || `pretemp-${result.length}`,
+              name: row ? row.nombre : (ej.nombre_custom || "Ejercicio"),
+              category: row ? row.categoria : "Complementarios",
+              kg: null,
+              reps: null,
+              series: 3,
+              notes: "",
+            });
+            return;
+          }
+          row.cols.forEach((col) => {
+            result.push({
+              id:
+                (ej.id || `pretemp-${result.length}`) +
+                (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
+              name:
+                row.nombre +
+                (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
+              category: row.categoria,
+              kg: col.kg || null,
+              reps: col.r ? String(col.r) : null,
+              series: col.s || 3,
+              notes: col.note || "",
+            });
+          });
+        });
+    } else if (isEscuelaPdf) {
       // Escuela: usar buildEscuelaRow (bloques)
       turno.ejercicios
         .filter((e) => e.ejercicio_id)
