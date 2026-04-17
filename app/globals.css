@@ -50,10 +50,21 @@
   /* Custom gold colors */
   --gold: #e8c547;
   --gold-light: #f5d96a;
-  --gold-dark: #b8941e;
+  --gold-dark: #d4a832;
   --green: #47e8a0;
   --blue: #47b4e8;
   --red: #e05050;
+  --orange: #e87447;
+  --purple: #9b87e8;
+  /* Cronómetro surfaces */
+  --surface-inset: #0f1520;
+  --badge-bg: #1a1a2e;
+  --confirm-bg: #2a2510;
+  --timer-idle-bg: #12151c;
+  --timer-countdown-bg: #1a1a10;
+  --timer-work-bg: #1a1210;
+  --timer-rest-bg: #101a14;
+  --timer-finished-bg: #1a1810;
 }
 
 .dark {
@@ -162,4 +173,10 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Timer button focus ring */
+.timer-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

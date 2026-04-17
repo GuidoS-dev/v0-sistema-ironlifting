@@ -11,7 +11,7 @@ import {
   TIME_STEP,
 } from "./constants";
 
-interface TabataConfigPanelProps {
+export interface TabataConfigPanelProps {
   config: TabataConfig;
   onChange: (config: TabataConfig) => void;
   showRounds?: boolean;
@@ -44,9 +44,9 @@ function ConfigRow({
     width: 44,
     height: 44,
     borderRadius: 10,
-    border: "1px solid #1e2733",
-    background: "#1a1f2a",
-    color: "#e8eaf0",
+    border: "1px solid var(--border)",
+    background: "var(--secondary)",
+    color: "var(--foreground)",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -59,9 +59,9 @@ function ConfigRow({
     <div style={{ marginBottom: 20 }}>
       <div
         style={{
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: "var(--font-sans)",
           fontSize: 12,
-          color: "#6b7590",
+          color: "var(--muted-foreground)",
           letterSpacing: ".06em",
           textTransform: "uppercase",
           marginBottom: 8,
@@ -78,6 +78,7 @@ function ConfigRow({
         }}
       >
         <button
+          className="timer-btn"
           style={{ ...btnStyle, opacity: disableMinus ? 0.3 : 1 }}
           onClick={onDecrement}
           disabled={disableMinus}
@@ -87,9 +88,9 @@ function ConfigRow({
         </button>
         <div
           style={{
-            fontFamily: "'Bebas Neue', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: 32,
-            color: "#e8eaf0",
+            color: "var(--foreground)",
             letterSpacing: ".04em",
             minWidth: 80,
             textAlign: "center",
@@ -98,6 +99,7 @@ function ConfigRow({
           {display}
         </div>
         <button
+          className="timer-btn"
           style={{ ...btnStyle, opacity: disablePlus ? 0.3 : 1 }}
           onClick={onIncrement}
           disabled={disablePlus}
@@ -110,7 +112,7 @@ function ConfigRow({
   );
 }
 
-export default function TabataConfigPanel({
+export function TabataConfigPanel({
   config,
   onChange,
   showRounds = true,
@@ -175,6 +177,7 @@ export default function TabataConfigPanel({
         }}
       >
         <button
+          className="timer-btn"
           onClick={() => update({ soundEnabled: !config.soundEnabled })}
           style={{
             display: "flex",
@@ -182,13 +185,13 @@ export default function TabataConfigPanel({
             gap: 8,
             padding: "10px 20px",
             borderRadius: 10,
-            border: "1px solid #1e2733",
+            border: "1px solid var(--border)",
             background: config.soundEnabled
-              ? "rgba(71,228,160,.1)"
-              : "#1a1f2a",
-            color: config.soundEnabled ? "#47e8a0" : "#6b7590",
+              ? "color-mix(in srgb, var(--green) 10%, transparent)"
+              : "var(--secondary)",
+            color: config.soundEnabled ? "var(--green)" : "var(--muted-foreground)",
             cursor: "pointer",
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: 13,
             transition: "all .2s",
           }}
@@ -203,3 +206,5 @@ export default function TabataConfigPanel({
     </div>
   );
 }
+
+export default TabataConfigPanel;

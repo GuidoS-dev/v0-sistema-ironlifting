@@ -4,7 +4,7 @@ import React from "react";
 import type { TabataExercise } from "./types";
 import { CAT_COLORS } from "./constants";
 
-interface TabataExerciseInfoProps {
+export interface TabataExerciseInfoProps {
   exercise: TabataExercise;
   exerciseIndex: number;
   totalExercises: number;
@@ -12,14 +12,14 @@ interface TabataExerciseInfoProps {
   totalRounds?: number;
 }
 
-export default function TabataExerciseInfo({
+export function TabataExerciseInfo({
   exercise,
   exerciseIndex,
   totalExercises,
   currentRound,
   totalRounds,
 }: TabataExerciseInfoProps) {
-  const catColor = CAT_COLORS[exercise.category] || "#888";
+  const catColor = CAT_COLORS[exercise.category] || "var(--muted-foreground)";
 
   return (
     <div style={{ width: "100%", padding: "0 16px" }}>
@@ -27,7 +27,7 @@ export default function TabataExerciseInfo({
       <div
         style={{
           fontSize: 10,
-          color: "#888",
+          color: "var(--muted-foreground)",
           textTransform: "uppercase",
           letterSpacing: ".06em",
           textAlign: "center",
@@ -40,8 +40,8 @@ export default function TabataExerciseInfo({
       {/* PDF-style dark card */}
       <div
         style={{
-          background: "#0d1117",
-          border: "1px solid #1e2733",
+          background: "var(--card)",
+          border: "1px solid var(--border)",
           borderRadius: 10,
           overflow: "hidden",
           boxShadow: "0 3px 12px rgba(0,0,0,.28)",
@@ -52,8 +52,8 @@ export default function TabataExerciseInfo({
           style={{
             display: "flex",
             alignItems: "center",
-            borderBottom: "1px solid #1e2733",
-            background: "#0d1117",
+            borderBottom: "1px solid var(--border)",
+            background: "var(--card)",
           }}
         >
           {/* Category badge */}
@@ -74,7 +74,7 @@ export default function TabataExerciseInfo({
                 padding: "2px 5px",
                 borderRadius: 3,
                 background: catColor,
-                color: "#0d1117",
+                color: "var(--card)",
                 opacity: 0.9,
               }}
             >
@@ -86,11 +86,10 @@ export default function TabataExerciseInfo({
             style={{
               flex: 1,
               padding: "12px 12px 12px 8px",
-              fontFamily:
-                "'Helvetica Neue', Helvetica, Arial, sans-serif",
+              fontFamily: "var(--font-sans)",
               fontSize: 14,
               fontWeight: 700,
-              color: "#e8e8e8",
+              color: "var(--foreground)",
               letterSpacing: ".01em",
               lineHeight: 1.2,
             }}
@@ -107,15 +106,15 @@ export default function TabataExerciseInfo({
               alignItems: "center",
               gap: 6,
               padding: "8px 14px",
-              background: "#0a0c10",
-              borderBottom: "1px solid #1e2733",
+              background: "var(--background)",
+              borderBottom: "1px solid var(--border)",
             }}
           >
             <span
               style={{
-                fontFamily: "'Bebas Neue', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontSize: 12,
-                color: "#8a95a8",
+                color: "var(--muted-foreground)",
                 letterSpacing: ".04em",
               }}
             >
@@ -123,14 +122,14 @@ export default function TabataExerciseInfo({
             </span>
             <span
               style={{
-                fontFamily: "'Bebas Neue', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontSize: 14,
-                color: "#e8eaf0",
+                color: "var(--foreground)",
                 letterSpacing: ".04em",
               }}
             >
               {currentRound}
-              <span style={{ color: "#6b7590" }}> / </span>
+              <span style={{ color: "var(--muted-foreground)" }}> / </span>
               {totalRounds}
             </span>
             {/* Mini dots */}
@@ -144,10 +143,10 @@ export default function TabataExerciseInfo({
                     borderRadius: "50%",
                     background:
                       i < currentRound - 1
-                        ? "#47e8a0"
+                        ? "var(--green)"
                         : i === currentRound - 1
-                          ? "#d4a832"
-                          : "#1e2733",
+                          ? "var(--gold-dark)"
+                          : "var(--border)",
                     transition: "background .3s",
                   }}
                 />
@@ -163,10 +162,10 @@ export default function TabataExerciseInfo({
             alignItems: "center",
             padding: 0,
             borderBottom: exercise.notes
-              ? "1px solid #1a2030"
+              ? "1px solid var(--secondary)"
               : "none",
             minHeight: 42,
-            background: "#0f1520",
+            background: "var(--surface-inset)",
           }}
         >
           {/* Series label */}
@@ -178,9 +177,9 @@ export default function TabataExerciseInfo({
               alignItems: "center",
               justifyContent: "center",
               alignSelf: "stretch",
-              background: "#0d1117",
-              borderRight: "1px solid #1e2733",
-              color: "#d4a832",
+              background: "var(--card)",
+              borderRight: "1px solid var(--border)",
+              color: "var(--gold-dark)",
               fontSize: 11,
               fontWeight: 700,
             }}
@@ -196,8 +195,7 @@ export default function TabataExerciseInfo({
               alignItems: "center",
               gap: 0,
               padding: "10px 14px",
-              fontFamily:
-                "'Helvetica Neue', Helvetica, Arial, sans-serif",
+              fontFamily: "var(--font-sans)",
             }}
           >
             {/* S×R mini-card */}
@@ -207,8 +205,8 @@ export default function TabataExerciseInfo({
                   style={{
                     fontSize: 15,
                     fontWeight: 800,
-                    color: "#fff",
-                    background: "#1a1a2e",
+                    color: "var(--foreground)",
+                    background: "var(--badge-bg)",
                     padding: "5px 0 5px 10px",
                     borderRadius: "6px 0 0 6px",
                     letterSpacing: "-.3px",
@@ -219,7 +217,7 @@ export default function TabataExerciseInfo({
                     style={{
                       fontSize: 11,
                       fontWeight: 600,
-                      color: "#d4a832",
+                      color: "var(--gold-dark)",
                       margin: "0 2px",
                     }}
                   >
@@ -230,8 +228,8 @@ export default function TabataExerciseInfo({
                   style={{
                     fontSize: 15,
                     fontWeight: 800,
-                    color: "#fff",
-                    background: "#1a1a2e",
+                    color: "var(--foreground)",
+                    background: "var(--badge-bg)",
                     padding: "5px 10px 5px 0",
                     borderRadius: "0 6px 6px 0",
                     letterSpacing: "-.3px",
@@ -248,8 +246,8 @@ export default function TabataExerciseInfo({
                 style={{
                   fontSize: 15,
                   fontWeight: 800,
-                  color: "#fff",
-                  background: "#1a1a2e",
+                  color: "var(--foreground)",
+                  background: "var(--badge-bg)",
                   padding: "5px 10px",
                   borderRadius: 6,
                   whiteSpace: "nowrap",
@@ -261,7 +259,7 @@ export default function TabataExerciseInfo({
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: "#d4a832",
+                    color: "var(--gold-dark)",
                     marginLeft: 2,
                   }}
                 >
@@ -279,9 +277,9 @@ export default function TabataExerciseInfo({
             style={{
               padding: "6px 14px 8px 62px",
               fontSize: 10,
-              color: "#8a95a8",
+              color: "var(--muted-foreground)",
               fontStyle: "italic",
-              background: "#0f1520",
+              background: "var(--surface-inset)",
             }}
           >
             {exercise.notes}
@@ -291,3 +289,5 @@ export default function TabataExerciseInfo({
     </div>
   );
 }
+
+export default TabataExerciseInfo;

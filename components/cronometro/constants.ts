@@ -13,12 +13,12 @@ export const TUTORIAL_SEEN_KEY = "liftplan_cronometro_tutorial_seen";
 
 export const PHASE_COLORS: Record<TimerPhase, { bg: string; accent: string }> =
   {
-    idle: { bg: "#12151c", accent: "#6b7590" },
-    countdown: { bg: "#1a1a10", accent: "#e8c547" },
-    work: { bg: "#1a1210", accent: "#e87447" },
-    rest: { bg: "#101a14", accent: "#47e8a0" },
-    exerciseComplete: { bg: "#101a14", accent: "#47e8a0" },
-    finished: { bg: "#1a1810", accent: "#e8c547" },
+    idle: { bg: "var(--timer-idle-bg)", accent: "var(--muted-foreground)" },
+    countdown: { bg: "var(--timer-countdown-bg)", accent: "var(--gold)" },
+    work: { bg: "var(--timer-work-bg)", accent: "var(--orange)" },
+    rest: { bg: "var(--timer-rest-bg)", accent: "var(--green)" },
+    exerciseComplete: { bg: "var(--timer-rest-bg)", accent: "var(--green)" },
+    finished: { bg: "var(--timer-finished-bg)", accent: "var(--gold)" },
   };
 
 export const PHASE_LABELS: Record<TimerPhase, string> = {
@@ -31,11 +31,11 @@ export const PHASE_LABELS: Record<TimerPhase, string> = {
 };
 
 export const CAT_COLORS: Record<string, string> = {
-  Arranque: "#e8c547",
-  Envion: "#47b4e8",
-  Tirones: "#e87447",
-  Piernas: "#47e8a0",
-  Complementarios: "#9b87e8",
+  Arranque: "var(--gold)",
+  Envion: "var(--blue)",
+  Tirones: "var(--orange)",
+  Piernas: "var(--green)",
+  Complementarios: "var(--purple)",
 };
 
 export const MIN_TIME = 5;

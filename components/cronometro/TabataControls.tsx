@@ -41,10 +41,10 @@ function useConfirmAction(action: () => void, timeout = 2000) {
   return { armed, handleClick };
 }
 
-const CONFIRM_RING = "0 0 0 3px rgba(212,168,50,.7)";
+const CONFIRM_RING = "0 0 0 3px var(--gold-dark)";
 
 
-interface TabataControlsProps {
+export interface TabataControlsProps {
   phase: TimerPhase;
   isRunning: boolean;
   hasExercises: boolean;
@@ -70,8 +70,8 @@ const NAV_BTN: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   transition: "all .2s",
-  background: "#1a1f2a",
-  color: "#e8eaf0",
+  background: "var(--secondary)",
+  color: "var(--foreground)",
 };
 
 const RESET_BTN: React.CSSProperties = {
@@ -84,11 +84,11 @@ const RESET_BTN: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   transition: "all .2s",
-  background: "#1a1f2a",
-  color: "#6b7590",
+  background: "var(--secondary)",
+  color: "var(--muted-foreground)",
 };
 
-export default function TabataControls({
+export function TabataControls({
   phase,
   isRunning,
   hasExercises,
@@ -122,7 +122,7 @@ export default function TabataControls({
     justifyContent: "center",
     transition: "all .2s",
     background: colors.accent,
-    color: "#0a0c10",
+    color: "var(--background)",
   };
 
   // ── Idle ──
@@ -136,8 +136,8 @@ export default function TabataControls({
           gap: 20,
         }}
       >
-        <button style={mainBtn} onClick={onStart} aria-label="Iniciar">
-          <Play size={28} fill="#0a0c10" />
+        <button className="timer-btn" style={mainBtn} onClick={onStart} aria-label="Iniciar">
+          <Play size={28} fill="currentColor" />
         </button>
       </div>
     );
@@ -155,7 +155,8 @@ export default function TabataControls({
         }}
       >
         <button
-          style={{ ...mainBtn, background: "#d4a832" }}
+          className="timer-btn"
+          style={{ ...mainBtn, background: "var(--gold-dark)" }}
           onClick={onReset}
           aria-label="Reiniciar"
         >
@@ -178,6 +179,7 @@ export default function TabataControls({
       >
         {canPrev && (
           <button
+            className="timer-btn"
             style={NAV_BTN}
             onClick={onPrev}
             aria-label="Ejercicio anterior"
@@ -186,13 +188,14 @@ export default function TabataControls({
           </button>
         )}
         <button
-          style={{ ...mainBtn, background: "#47e8a0" }}
+          className="timer-btn"
+          style={{ ...mainBtn, background: "var(--green)" }}
           onClick={onNext}
           aria-label="Siguiente ejercicio"
         >
-          <SkipForward size={28} fill="#0a0c10" />
+          <SkipForward size={28} fill="currentColor" />
         </button>
-        <button style={RESET_BTN} onClick={onReset} aria-label="Reiniciar">
+        <button className="timer-btn" style={RESET_BTN} onClick={onReset} aria-label="Reiniciar">
           <RotateCcw size={18} />
         </button>
       </div>
@@ -222,64 +225,72 @@ export default function TabataControls({
       >
         {hasExercises && (
           <button
+            className="timer-btn"
             style={{
               ...NAV_BTN,
               opacity: canPrev ? 1 : 0.3,
               boxShadow: confirmPrev.armed ? CONFIRM_RING : "none",
-              background: confirmPrev.armed ? "#2a2510" : "#1a1f2a",
+              background: confirmPrev.armed ? "var(--confirm-bg)" : "var(--secondary)",
+              color: confirmPrev.armed ? "var(--gold-dark)" : "var(--foreground)",
             }}
             onClick={confirmPrev.handleClick}
             disabled={!canPrev}
             aria-label={confirmPrev.armed ? "Confirmar: ejercicio anterior" : "Ejercicio anterior"}
           >
-            <SkipBack size={22} color={confirmPrev.armed ? "#d4a832" : "#e8eaf0"} />
+            <SkipBack size={22} />
           </button>
         )}
 
         <button
+          className="timer-btn"
           style={mainBtn}
           onClick={isRunning ? onPause : onResume}
           aria-label={isRunning ? "Pausar" : "Reanudar"}
         >
           {isRunning ? (
-            <Pause size={28} fill="#0a0c10" />
+            <Pause size={28} fill="currentColor" />
           ) : (
-            <Play size={28} fill="#0a0c10" />
+            <Play size={28} fill="currentColor" />
           )}
         </button>
 
         {hasExercises && (
           <button
+            className="timer-btn"
             style={{
               ...NAV_BTN,
               opacity: canNext ? 1 : 0.3,
               boxShadow: confirmNext.armed ? CONFIRM_RING : "none",
-              background: confirmNext.armed ? "#2a2510" : "#1a1f2a",
+              background: confirmNext.armed ? "var(--confirm-bg)" : "var(--secondary)",
+              color: confirmNext.armed ? "var(--gold-dark)" : "var(--foreground)",
             }}
             onClick={confirmNext.handleClick}
             disabled={!canNext}
             aria-label={confirmNext.armed ? "Confirmar: siguiente serie" : "Siguiente serie"}
           >
-            <SkipForward size={22} color={confirmNext.armed ? "#d4a832" : "#e8eaf0"} />
+            <SkipForward size={22} />
           </button>
         )}
 
         <button
+          className="timer-btn"
           style={{
             ...RESET_BTN,
             boxShadow: confirmRestart.armed ? CONFIRM_RING : "none",
-            background: confirmRestart.armed ? "#2a2510" : "#1a1f2a",
+            background: confirmRestart.armed ? "var(--confirm-bg)" : "var(--secondary)",
+            color: confirmRestart.armed ? "var(--gold-dark)" : "var(--muted-foreground)",
           }}
           onClick={confirmRestart.handleClick}
           aria-label={confirmRestart.armed ? "Confirmar: reiniciar fase" : "Reiniciar fase actual"}
         >
-          <RotateCcw size={18} color={confirmRestart.armed ? "#d4a832" : "#6b7590"} />
+          <RotateCcw size={18} />
         </button>
       </div>
 
       {/* LISTO button — skip current phase */}
       {canSkipPhase && (
         <button
+          className="timer-btn"
           onClick={confirmSkipPhase.handleClick}
           style={{
             display: "flex",
@@ -288,11 +299,13 @@ export default function TabataControls({
             gap: 6,
             padding: "8px 28px",
             borderRadius: 10,
-            border: confirmSkipPhase.armed ? "1px solid #d4a832" : "1px solid #1e2733",
-            background: confirmSkipPhase.armed ? "rgba(42,37,16,.9)" : "rgba(13,17,23,.85)",
-            color: confirmSkipPhase.armed ? "#d4a832" : "#47e8a0",
+            border: confirmSkipPhase.armed ? "1px solid var(--gold-dark)" : "1px solid var(--border)",
+            background: confirmSkipPhase.armed
+              ? "color-mix(in srgb, var(--confirm-bg) 90%, transparent)"
+              : "color-mix(in srgb, var(--card) 85%, transparent)",
+            color: confirmSkipPhase.armed ? "var(--gold-dark)" : "var(--green)",
             cursor: "pointer",
-            fontFamily: "'Bebas Neue', sans-serif",
+            fontFamily: "var(--font-display)",
             fontSize: 14,
             letterSpacing: ".06em",
             transition: "all .2s",
@@ -306,3 +319,5 @@ export default function TabataControls({
     </div>
   );
 }
+
+export default TabataControls;

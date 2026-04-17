@@ -4,7 +4,7 @@ import React from "react";
 import type { TimerPhase } from "./types";
 import { PHASE_COLORS, PHASE_LABELS } from "./constants";
 
-interface TabataDisplayProps {
+export interface TabataDisplayProps {
   phase: TimerPhase;
   timeLeft: number;
   totalPhaseTime: number;
@@ -18,7 +18,7 @@ function formatTime(seconds: number): string {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function TabataDisplay({
+export function TabataDisplay({
   phase,
   timeLeft,
   totalPhaseTime,
@@ -38,6 +38,9 @@ export default function TabataDisplay({
   const progress = isActive ? (totalPhaseTime - timeLeft) / totalPhaseTime : 0;
   const strokeDashoffset = circumference * (1 - progress);
 
+  const isFinishedOrComplete =
+    phase === "finished" || phase === "exerciseComplete";
+
   return (
     <div
       style={{
@@ -50,7 +53,7 @@ export default function TabataDisplay({
       {/* Phase label */}
       <div
         style={{
-          fontFamily: "'Bebas Neue', sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: 28,
           letterSpacing: ".08em",
           color: colors.accent,
@@ -74,26 +77,27 @@ export default function TabataDisplay({
           width={radius * 2}
           height={radius * 2}
           style={{ transform: "rotate(-90deg)" }}
+          aria-hidden="true"
         >
           <circle
             cx={radius}
             cy={radius}
             r={normalizedRadius}
             fill="none"
-            stroke="#1e2733"
             strokeWidth={strokeWidth}
+            style={{ stroke: "var(--border)" }}
           />
           <circle
             cx={radius}
             cy={radius}
             r={normalizedRadius}
             fill="none"
-            stroke={colors.accent}
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             style={{
+              stroke: colors.accent,
               transition: "stroke-dashoffset .95s linear, stroke .3s ease",
             }}
           />
@@ -110,8 +114,16 @@ export default function TabataDisplay({
           }}
         >
           <div
+            role="timer"
+            aria-label={
+              isFinishedOrComplete
+                ? "Completado"
+                : phase === "idle"
+                  ? "Listo para iniciar"
+                  : `${formatTime(timeLeft)} restantes`
+            }
             style={{
-              fontFamily: "'Bebas Neue', sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: phase === "countdown" ? 80 : 56,
               color: colors.accent,
               letterSpacing: ".02em",
@@ -119,13 +131,18 @@ export default function TabataDisplay({
               transition: "font-size .3s ease, color .3s ease",
             }}
           >
-            {phase === "idle"
-              ? "—"
-              : phase === "finished" || phase === "exerciseComplete"
-                ? "✓"
-                : phase === "countdown"
-                  ? timeLeft
-                  : formatTime(timeLeft)}
+            {phase === "idle" ? (
+              "—"
+            ) : isFinishedOrComplete ? (
+              <>
+                <span aria-hidden="true">✓</span>
+                <span className="sr-only">Completado</span>
+              </>
+            ) : phase === "countdown" ? (
+              timeLeft
+            ) : (
+              formatTime(timeLeft)
+            )}
           </div>
         </div>
       </div>
@@ -134,9 +151,9 @@ export default function TabataDisplay({
       {(phase === "work" || phase === "rest") && (
         <div
           style={{
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "var(--font-sans)",
             fontSize: 14,
-            color: "#8a95a8",
+            color: "var(--muted-foreground)",
             textAlign: "center",
           }}
         >
@@ -146,3 +163,5 @@ export default function TabataDisplay({
     </div>
   );
 }
+
+export default TabataDisplay;
