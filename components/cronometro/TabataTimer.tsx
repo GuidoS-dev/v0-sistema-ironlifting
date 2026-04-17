@@ -94,6 +94,15 @@ export function TabataTimer({
     });
   }, []);
 
+  const disabledExercises = useMemo(
+    () => exercises.filter((ex) => disabledIds.has(ex.id)),
+    [exercises, disabledIds],
+  );
+
+  const restoreAll = useCallback(() => {
+    setDisabledIds(new Set());
+  }, []);
+
   // ── Timer hook (uses only active exercises) ──
   const timer = useTabataTimer(config, activeExercises);
   const {
@@ -808,8 +817,38 @@ export function TabataTimer({
           </div>
         )}
 
+        {/* ── Disabled exercises banner (above controls, idle only) ── */}
+        {phase === "idle" && disabledExercises.length > 0 && (
+          <div
+            role="status"
+            style={{
+              margin: "0 16px",
+              padding: "6px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "color-mix(in srgb, var(--orange) 10%, var(--card))",
+              border: "1px solid color-mix(in srgb, var(--orange) 30%, var(--border))",
+              borderRadius: 8,
+              flexShrink: 0,
+            }}
+          >
+            <EyeOff size={14} style={{ color: "var(--orange)", flexShrink: 0 }} />
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--orange)",
+                fontFamily: "var(--font-sans)",
+              }}
+            >
+              {disabledExercises.length} ejercicio{disabledExercises.length > 1 ? "s" : ""} oculto{disabledExercises.length > 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+
         {/* ── Controls ── */}
-        <div style={{ padding: phase === "idle" ? "8px 16px 16px" : "0", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 24, width: "100%" }}>
+        <div style={{ padding: phase === "idle" ? "8px 16px 0" : "0", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 24, width: "100%" }}>
           {isTimerActive && (
             <TabataDisplay
               phase={phase}
@@ -836,6 +875,108 @@ export function TabataTimer({
             onRestartPhase={actions.restartPhase}
           />
         </div>
+
+        {/* ── Disabled exercises list + restore (below controls, idle only) ── */}
+        {phase === "idle" && disabledExercises.length > 0 && (
+          <div
+            style={{
+              margin: "0 16px",
+              padding: "0 0 16px",
+              flexShrink: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                color: "var(--muted-foreground)",
+                letterSpacing: ".06em",
+                textTransform: "uppercase",
+                marginBottom: 2,
+              }}
+            >
+              Ejercicios ocultos
+            </div>
+            {disabledExercises.map((ex) => {
+              const gc = CAT_COLORS[ex.category] || "var(--muted-foreground)";
+              return (
+                <div
+                  key={ex.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleExercise(ex.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleExercise(ex.id);
+                    }
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 10px",
+                    background: "var(--background)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    userSelect: "none",
+                    opacity: 0.6,
+                    transition: "opacity .15s",
+                  }}
+                  onPointerEnter={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "0.85"; }}
+                  onPointerLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "0.6"; }}
+                >
+                  <EyeOff size={12} style={{ color: "var(--muted-foreground)", flexShrink: 0 }} />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--muted-foreground)",
+                      textDecoration: "line-through",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
+                    {ex.name}
+                  </span>
+                  <Eye size={12} style={{ color: gc, flexShrink: 0 }} />
+                </div>
+              );
+            })}
+            <button
+              onClick={restoreAll}
+              style={{
+                marginTop: 4,
+                padding: "6px 16px",
+                background: "none",
+                border: "1px solid color-mix(in srgb, var(--orange) 40%, var(--border))",
+                borderRadius: 8,
+                color: "var(--orange)",
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: "var(--font-sans)",
+                cursor: "pointer",
+                letterSpacing: ".02em",
+                transition: "background .15s, border-color .15s",
+                alignSelf: "center",
+              }}
+              onPointerEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--orange) 10%, var(--card))";
+              }}
+              onPointerLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "none";
+              }}
+            >
+              Restaurar todos
+            </button>
+          </div>
+        )}
 
 
       </div>
