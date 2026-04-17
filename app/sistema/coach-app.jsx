@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.10";
+const APP_VERSION = "1.3.11";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -2588,6 +2588,26 @@ const css = `
     .vol-val{font-size:22px}
     .scroll-x{-webkit-overflow-scrolling:touch}
     .planilla-tabla td,.planilla-tabla th{padding:2px 2px !important;font-size:9px !important}
+  }
+
+  /* ── Focus-visible for interactive cards ── */
+  .atleta-card-btn:focus-visible{
+    outline:none;
+    box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--gold);
+  }
+  .atleta-nav-btn:focus-visible{
+    outline:none;
+    box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--blue);
+  }
+
+  /* ── Reduced-motion global guard ── */
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+      animation-duration:0.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:0.01ms !important;
+      scroll-behavior:auto !important;
+    }
   }
 `;
 
@@ -23474,7 +23494,7 @@ function PagePDF({
     .pdf-footer {
       display: flex; justify-content: space-between; align-items: center;
       border-top: 1px solid #e0e0e0; padding-top: 6px; margin-top: 8px;
-      font-size: 7px; color: #aaa;
+      font-size: 7px; color: #767676;
     }
     .pdf-footer strong { color: #1a1a2e; }
 
@@ -23978,15 +23998,13 @@ function PagePDF({
         left: 0;
         right: 0;
         z-index: 100;
-        background: rgba(13,17,23,.92);
-        -webkit-backdrop-filter: blur(16px) saturate(1.4);
-        backdrop-filter: blur(16px) saturate(1.4);
-        border-top: 1px solid rgba(240,180,41,.25);
+        background: #0d1117;
+        border-top: 1px solid rgba(240,180,41,.18);
         padding: 10px 12px 0;
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 36px);
         gap: 0;
         align-items: stretch;
-        box-shadow: 0 -8px 32px rgba(0,0,0,.6);
+        box-shadow: 0 -4px 20px rgba(0,0,0,.45);
         transition: transform .35s ease, opacity .35s ease;
       }
       .pdf-mobile-nav.mob-nav-hidden {
@@ -24078,9 +24096,7 @@ function PagePDF({
         bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
         right: 12px;
         z-index: 99;
-        background: rgba(13,17,23,.88);
-        -webkit-backdrop-filter: blur(12px) saturate(1.3);
-        backdrop-filter: blur(12px) saturate(1.3);
+        background: #0d1117;
         border: 1px solid rgba(240,180,41,.3);
         border-radius: 20px;
         padding: 6px 14px;
@@ -35361,6 +35377,7 @@ function AtletaPanel({ session, profile, onLogout }) {
     const currentSemana = currentWeek != null ? m.semanas?.[currentWeek] : null;
     return (
       <button
+        className="atleta-card-btn"
         onClick={() => setSelectedMeso(m)}
         style={{
           width: "100%",
@@ -35608,14 +35625,18 @@ function AtletaPanel({ session, profile, onLogout }) {
                     </div>
                     <div
                       style={{
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: 700,
                         color: "var(--gold)",
                         fontFamily: "'Bebas Neue'",
+                        display: "flex",
+                        alignItems: "baseline",
+                        justifyContent: "center",
+                        gap: 4,
                       }}
                     >
                       {primaryMeso.irm_arranque}
-                      <span style={{ fontSize: 14, color: "var(--muted)" }}>
+                      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, fontFamily: "'DM Sans'" }}>
                         kg
                       </span>
                     </div>
@@ -35643,14 +35664,18 @@ function AtletaPanel({ session, profile, onLogout }) {
                     </div>
                     <div
                       style={{
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: 700,
                         color: "var(--blue)",
                         fontFamily: "'Bebas Neue'",
+                        display: "flex",
+                        alignItems: "baseline",
+                        justifyContent: "center",
+                        gap: 4,
                       }}
                     >
                       {primaryMeso.irm_envion}
-                      <span style={{ fontSize: 14, color: "var(--muted)" }}>
+                      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, fontFamily: "'DM Sans'" }}>
                         kg
                       </span>
                     </div>
@@ -35695,13 +35720,14 @@ function AtletaPanel({ session, profile, onLogout }) {
         {/* Resumen — navigation card */}
         {primaryMeso && primaryMeso.semanas?.length > 0 && (
           <button
+            className="atleta-nav-btn"
             onClick={() => setAtletaView("resumen")}
             style={{
               width: "100%",
               textAlign: "left",
               cursor: "pointer",
               background: "var(--surface)",
-              border: "1px solid var(--blue)",
+              border: "1px solid var(--border)",
               borderRadius: 12,
               padding: "16px 20px",
               marginBottom: 12,
@@ -35753,6 +35779,7 @@ function AtletaPanel({ session, profile, onLogout }) {
           if (!norms || norms.length === 0) return null;
           return (
             <button
+              className="atleta-nav-btn"
               onClick={() => setAtletaView("normativos")}
               style={{
                 width: "100%",
@@ -35808,6 +35835,7 @@ function AtletaPanel({ session, profile, onLogout }) {
 
         {/* Cronómetro — navigation card */}
         <button
+          className="atleta-nav-btn"
           onClick={() => {
             setCronometroExercises(null);
             setAtletaView("cronometro");
