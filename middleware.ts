@@ -61,9 +61,9 @@ export function middleware(request: NextRequest) {
   // Disable DNS prefetching to reduce passive fingerprinting
   response.headers.set('X-DNS-Prefetch-Control', 'off')
 
-  // CSP in Report-Only mode — logs violations in browser devtools without
-  // blocking anything. Review for a few days, then flip to enforcing mode.
-  response.headers.set('Content-Security-Policy-Report-Only', CSP_DIRECTIVES)
+  // CSP enforcing mode — blocks requests that violate the policy.
+  // If something breaks, revert this commit to go back to Report-Only.
+  response.headers.set('Content-Security-Policy', CSP_DIRECTIVES)
 
   return response
 }
