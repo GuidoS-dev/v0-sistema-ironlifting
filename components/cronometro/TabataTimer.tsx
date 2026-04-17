@@ -549,7 +549,7 @@ export function TabataTimer({
                   textTransform: "uppercase",
                 }}
               >
-                Ejercicios del turno
+                Selecciona los ejercicios a quitar
               </div>
               <div
                 style={{
@@ -808,7 +808,20 @@ export function TabataTimer({
 
         {/* ── Config panel (idle state) ── */}
         {phase === "idle" && (
-          <div style={{ padding: "0 16px", flexShrink: 0, width: "100%", display: "flex", justifyContent: "center" }}>
+          <div style={{ padding: "16px 16px 0", flexShrink: 0, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+            <div
+              style={{
+                fontSize: 10,
+                color: "var(--muted-foreground)",
+                letterSpacing: ".06em",
+                textTransform: "uppercase",
+                marginBottom: 4,
+                width: "100%",
+                textAlign: "center",
+              }}
+            >
+              Configurar timers
+            </div>
             <TabataConfigPanel
               config={config}
               onChange={handleConfigChange}
@@ -822,7 +835,7 @@ export function TabataTimer({
           <div
             role="status"
             style={{
-              margin: "0 16px",
+              margin: "12px 16px 0",
               padding: "6px 12px",
               display: "flex",
               alignItems: "center",
