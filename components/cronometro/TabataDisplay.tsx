@@ -34,7 +34,7 @@ export function TabataDisplay({
   const circumference = 2 * Math.PI * normalizedRadius;
 
   const isActive =
-    phase === "work" || phase === "rest" || phase === "countdown";
+    phase === "work" || phase === "rest" || phase === "countdown" || phase === "intensityRest";
   const progress = isActive ? (totalPhaseTime - timeLeft) / totalPhaseTime : 0;
   const strokeDashoffset = circumference * (1 - progress);
 

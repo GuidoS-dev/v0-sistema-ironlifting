@@ -203,7 +203,7 @@ export function TabataControls({
   }
 
   // ── Running / Paused ──
-  const canSkipPhase = phase === "work" || phase === "rest" || phase === "countdown";
+  const canSkipPhase = phase === "work" || phase === "rest" || phase === "countdown" || phase === "intensityRest";
 
   return (
     <div

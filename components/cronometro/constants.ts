@@ -17,6 +17,7 @@ export const PHASE_COLORS: Record<TimerPhase, { bg: string; accent: string }> =
     countdown: { bg: "var(--timer-countdown-bg)", accent: "var(--gold)" },
     work: { bg: "var(--timer-work-bg)", accent: "var(--orange)" },
     rest: { bg: "var(--timer-rest-bg)", accent: "var(--green)" },
+    intensityRest: { bg: "var(--timer-rest-bg)", accent: "var(--gold-dark)" },
     exerciseComplete: { bg: "var(--timer-rest-bg)", accent: "var(--green)" },
     finished: { bg: "var(--timer-finished-bg)", accent: "var(--gold)" },
   };
@@ -26,6 +27,7 @@ export const PHASE_LABELS: Record<TimerPhase, string> = {
   countdown: "PREPARATE",
   work: "TRABAJO",
   rest: "DESCANSO",
+  intensityRest: "CARGÁ LA BARRA",
   exerciseComplete: "EJERCICIO COMPLETO",
   finished: "TERMINADO",
 };

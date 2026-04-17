@@ -14,6 +14,11 @@ export interface TabataExercise {
   reps: string | null;
   series: number;
   notes?: string;
+  baseId?: string;
+  baseName?: string;
+  intensityLabel?: string;
+  intensityIndex?: number;
+  totalIntensities?: number;
 }
 
 export type TimerPhase =
@@ -21,6 +26,7 @@ export type TimerPhase =
   | "countdown"
   | "work"
   | "rest"
+  | "intensityRest"
   | "exerciseComplete"
   | "finished";
 
@@ -37,8 +43,10 @@ export type TimerAction =
   | { type: "START"; countdownTime: number; totalRounds: number }
   | {
       type: "TICK";
-      config: Pick<TabataConfig, "workTime" | "restTime">;
+      config: Pick<TabataConfig, "workTime" | "restTime" | "countdownTime">;
       exerciseCount: number;
+      nextExerciseSameGroup?: boolean;
+      nextExerciseRounds?: number;
     }
   | { type: "PAUSE" }
   | { type: "RESUME" }
@@ -61,8 +69,10 @@ export type TimerAction =
     }
   | {
       type: "SKIP_PHASE";
-      config: Pick<TabataConfig, "workTime" | "restTime">;
+      config: Pick<TabataConfig, "workTime" | "restTime" | "countdownTime">;
       exerciseCount: number;
+      nextExerciseSameGroup?: boolean;
+      nextExerciseRounds?: number;
     }
   | {
       type: "RESTART_PHASE";

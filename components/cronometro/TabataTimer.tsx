@@ -117,7 +117,7 @@ export function TabataTimer({
     if (prevPhaseRef.current !== phase) {
       prevPhaseRef.current = phase;
       if (phase === "work") sound.workStart();
-      if (phase === "rest") sound.restStart();
+      if (phase === "rest" || phase === "intensityRest") sound.restStart();
       if (phase === "finished" || phase === "exerciseComplete")
         sound.finished();
     }
@@ -130,7 +130,7 @@ export function TabataTimer({
       else sound.countdownTick();
     }
     if (
-      (phase === "work" || phase === "rest") &&
+      (phase === "work" || phase === "rest" || phase === "intensityRest") &&
       timeLeft <= 3 &&
       timeLeft > 0
     ) {
@@ -167,6 +167,61 @@ export function TabataTimer({
   const hasActiveExercises = activeExercises.length > 0;
   const currentExercise = hasActiveExercises ? activeExercises[currentExerciseIndex] : null;
 
+  // ── Group info for multi-intensity exercises ──
+  const groupInfo = useMemo(() => {
+    if (!hasActiveExercises || !currentExercise) return null;
+
+    // Compute unique groups: exercises with the same baseId are one group
+    const seenBases = new Set<string>();
+    let totalGroups = 0;
+    let groupIndex = 0;
+    let foundCurrent = false;
+    for (const ex of activeExercises) {
+      const key = ex.baseId || ex.id;
+      if (!seenBases.has(key)) {
+        if (!foundCurrent) groupIndex = totalGroups;
+        seenBases.add(key);
+        totalGroups++;
+      }
+      if (ex.id === currentExercise.id) foundCurrent = true;
+    }
+
+    // Find prev/next in same group
+    let prevGroupExercise: TabataExercise | null = null;
+    let nextGroupExercise: TabataExercise | null = null;
+    if (currentExercise.baseId) {
+      const idx = currentExerciseIndex;
+      if (idx > 0) {
+        const prev = activeExercises[idx - 1];
+        if (prev.baseId === currentExercise.baseId) prevGroupExercise = prev;
+      }
+      if (idx < activeExercises.length - 1) {
+        const next = activeExercises[idx + 1];
+        if (next.baseId === currentExercise.baseId) nextGroupExercise = next;
+      }
+    }
+
+    return { prevGroupExercise, nextGroupExercise, groupIndex, totalGroups };
+  }, [activeExercises, currentExercise, currentExerciseIndex, hasActiveExercises]);
+
+  // ── Grouped exercises for idle list ──
+  const exerciseGroups = useMemo(() => {
+    type Group = { baseId: string; baseName: string; exercises: { ex: TabataExercise; originalIndex: number }[] };
+    const groups: Group[] = [];
+    const map = new Map<string, Group>();
+    exercises.forEach((ex, i) => {
+      const key = ex.baseId || ex.id;
+      let g = map.get(key);
+      if (!g) {
+        g = { baseId: key, baseName: ex.baseName || ex.name, exercises: [] };
+        map.set(key, g);
+        groups.push(g);
+      }
+      g.exercises.push({ ex, originalIndex: i });
+    });
+    return groups;
+  }, [exercises]);
+
   // ── Phase colors for background tint ──
   const colors = PHASE_COLORS[phase];
   const isTimerActive = phase !== "idle";
@@ -185,7 +240,7 @@ export function TabataTimer({
     for (let i = 0; i < currentExerciseIndex; i++) {
       done += activeExercises[i].series;
     }
-    done += currentRound - 1 + (phase === "rest" ? 1 : 0);
+    done += currentRound - 1 + (phase === "rest" || phase === "intensityRest" ? 1 : 0);
     if (phase === "finished") return 1;
     if (phase === "exerciseComplete") done += 1;
     return Math.min(done / totalSeries, 1);
@@ -323,6 +378,11 @@ export function TabataTimer({
             totalExercises={activeExercises.length}
             currentRound={isTimerActive ? currentRound : undefined}
             totalRounds={isTimerActive ? totalRounds : undefined}
+            prevGroupExercise={groupInfo?.prevGroupExercise}
+            nextGroupExercise={groupInfo?.nextGroupExercise}
+            groupIndex={groupInfo?.groupIndex}
+            totalGroups={groupInfo?.totalGroups}
+            phase={phase}
           />
         )}
 
@@ -455,201 +515,245 @@ export function TabataTimer({
               {activeExercises.length}/{exercises.length}
             </div>
           </div>
-          {exercises.map((ex, i) => {
-            const gc = CAT_COLORS[ex.category] || "var(--muted-foreground)";
-            const isDisabled = disabledIds.has(ex.id);
+          {exerciseGroups.map((group, gIdx) => {
+            const isMulti = group.exercises.length > 1;
             return (
               <div
-                key={ex.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleExercise(ex.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggleExercise(ex.id);
-                  }
-                }}
+                key={group.baseId}
                 style={{
-                  background: isDisabled ? "var(--background)" : "var(--card)",
-                  border: `1px solid ${isDisabled ? "var(--border)" : "var(--border)"}`,
-                  borderRadius: 10,
                   marginBottom: 8,
-                  overflow: "hidden",
-                  boxShadow: isDisabled ? "none" : "0 2px 8px rgba(0,0,0,.2)",
-                  display: "flex",
-                  flexFlow: "row wrap",
-                  opacity: isDisabled ? 0.4 : 1,
-                  transition: "opacity .2s, box-shadow .2s",
-                  cursor: "pointer",
-                  userSelect: "none",
+                  ...(isMulti
+                    ? {
+                        border: "1px solid color-mix(in srgb, var(--gold-dark) 30%, var(--border))",
+                        borderRadius: 12,
+                        overflow: "hidden",
+                      }
+                    : {}),
                 }}
               >
-                {/* Badge */}
-                <div
-                  style={{
-                    width: 40,
-                    minWidth: 40,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    alignSelf: "stretch",
-                    borderBottom: `1px solid var(--border)`,
-                    background: isDisabled ? "var(--background)" : "var(--card)",
-                  }}
-                >
-                  {isDisabled ? (
-                    <EyeOff size={12} color="var(--muted-foreground)" />
-                  ) : (
-                    <span
-                      style={{
-                        fontSize: 8,
-                        fontWeight: 800,
-                        padding: "2px 4px",
-                        borderRadius: 3,
-                        background: gc,
-                        color: "var(--card)",
-                        opacity: 0.85,
-                      }}
-                    >
-                      {i + 1}
-                    </span>
-                  )}
-                </div>
-                {/* Name */}
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    padding: "8px 10px 8px 6px",
-                    borderBottom: `1px solid var(--border)`,
-                    background: isDisabled ? "var(--background)" : "var(--card)",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
-                      letterSpacing: ".01em",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      textDecoration: isDisabled ? "line-through" : "none",
-                    }}
-                  >
-                    {ex.name}
-                  </span>
-                </div>
-                {/* Data row */}
-                <div
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    minHeight: 34,
-                    background: isDisabled ? "var(--background)" : "var(--surface-inset)",
-                  }}
-                >
+                {/* Group header for multi-intensity */}
+                {isMulti && (
                   <div
                     style={{
-                      width: 40,
-                      minWidth: 40,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      alignSelf: "stretch",
-                      background: isDisabled ? "var(--background)" : "var(--card)",
-                      borderRight: `1px solid var(--border)`,
-                      color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
+                      gap: 6,
+                      padding: "6px 10px",
+                      background: "color-mix(in srgb, var(--gold-dark) 8%, var(--card))",
+                      borderBottom: "1px solid var(--border)",
                       fontSize: 10,
                       fontWeight: 700,
+                      color: "var(--gold-dark)",
+                      letterSpacing: ".04em",
+                      textTransform: "uppercase",
+                      fontFamily: "var(--font-display)",
                     }}
                   >
-                    {ex.series}×
+                    <Hash size={10} />
+                    {group.baseName}
+                    <span style={{ marginLeft: "auto", fontSize: 9, opacity: 0.7 }}>
+                      {group.exercises.length} intensidades
+                    </span>
                   </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "6px 10px",
-                      gap: 0,
-                      fontFamily: "var(--font-sans)",
-                    }}
-                  >
-                    {ex.reps && (
+                )}
+                {group.exercises.map(({ ex, originalIndex }, subIdx) => {
+                  const gc = CAT_COLORS[ex.category] || "var(--muted-foreground)";
+                  const isDisabled = disabledIds.has(ex.id);
+                  return (
+                    <div
+                      key={ex.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => toggleExercise(ex.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toggleExercise(ex.id);
+                        }
+                      }}
+                      style={{
+                        background: isDisabled ? "var(--background)" : "var(--card)",
+                        border: isMulti ? "none" : `1px solid var(--border)`,
+                        borderRadius: isMulti ? 0 : 10,
+                        borderBottom: isMulti && subIdx < group.exercises.length - 1 ? "1px solid var(--border)" : "none",
+                        overflow: "hidden",
+                        boxShadow: isDisabled || isMulti ? "none" : "0 2px 8px rgba(0,0,0,.2)",
+                        display: "flex",
+                        flexFlow: "row wrap",
+                        opacity: isDisabled ? 0.4 : 1,
+                        transition: "opacity .2s, box-shadow .2s",
+                        cursor: "pointer",
+                        userSelect: "none",
+                      }}
+                    >
+                      {/* Badge */}
                       <div
-                        style={{ display: "flex", alignItems: "center" }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 800,
-                            color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
-                            background: isDisabled ? "var(--background)" : "var(--badge-bg)",
-                            padding: "3px 0 3px 8px",
-                            borderRadius: "5px 0 0 5px",
-                          }}
-                        >
-                          {ex.series}
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 600,
-                              color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
-                              margin: "0 2px",
-                            }}
-                          >
-                            ×
-                          </span>
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 800,
-                            color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
-                            background: isDisabled ? "var(--background)" : "var(--badge-bg)",
-                            padding: "3px 8px 3px 0",
-                            borderRadius: "0 5px 5px 0",
-                          }}
-                        >
-                          {ex.reps}
-                        </span>
-                      </div>
-                    )}
-                    {ex.kg != null && (
-                      <span
                         style={{
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
-                          background: isDisabled ? "var(--background)" : "var(--badge-bg)",
-                          padding: "3px 8px",
-                          borderRadius: 5,
-                          whiteSpace: "nowrap",
-                          marginLeft: 4,
+                          width: 40,
+                          minWidth: 40,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          alignSelf: "stretch",
+                          borderBottom: `1px solid var(--border)`,
+                          background: isDisabled ? "var(--background)" : "var(--card)",
                         }}
                       >
-                        {ex.kg}
+                        {isDisabled ? (
+                          <EyeOff size={12} color="var(--muted-foreground)" />
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: 8,
+                              fontWeight: 800,
+                              padding: "2px 4px",
+                              borderRadius: 3,
+                              background: gc,
+                              color: "var(--card)",
+                              opacity: 0.85,
+                            }}
+                          >
+                            {isMulti ? `${gIdx + 1}.${subIdx + 1}` : gIdx + 1}
+                          </span>
+                        )}
+                      </div>
+                      {/* Name */}
+                      <div
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          padding: "8px 10px 8px 6px",
+                          borderBottom: `1px solid var(--border)`,
+                          background: isDisabled ? "var(--background)" : "var(--card)",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
                         <span
                           style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
-                            marginLeft: 2,
+                            fontFamily: "var(--font-sans)",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
+                            letterSpacing: ".01em",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            textDecoration: isDisabled ? "line-through" : "none",
                           }}
                         >
-                          {" "}
-                          kg
+                          {isMulti ? (ex.intensityLabel || ex.name) : ex.name}
                         </span>
-                      </span>
-                    )}
-                  </div>
-                </div>
+                      </div>
+                      {/* Data row */}
+                      <div
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          minHeight: 34,
+                          background: isDisabled ? "var(--background)" : "var(--surface-inset)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 40,
+                            minWidth: 40,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            alignSelf: "stretch",
+                            background: isDisabled ? "var(--background)" : "var(--card)",
+                            borderRight: `1px solid var(--border)`,
+                            color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
+                            fontSize: 10,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {ex.series}×
+                        </div>
+                        <div
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            padding: "6px 10px",
+                            gap: 0,
+                            fontFamily: "var(--font-sans)",
+                          }}
+                        >
+                          {ex.reps && (
+                            <div
+                              style={{ display: "flex", alignItems: "center" }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 800,
+                                  color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
+                                  background: isDisabled ? "var(--background)" : "var(--badge-bg)",
+                                  padding: "3px 0 3px 8px",
+                                  borderRadius: "5px 0 0 5px",
+                                }}
+                              >
+                                {ex.series}
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
+                                    margin: "0 2px",
+                                  }}
+                                >
+                                  ×
+                                </span>
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 800,
+                                  color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
+                                  background: isDisabled ? "var(--background)" : "var(--badge-bg)",
+                                  padding: "3px 8px 3px 0",
+                                  borderRadius: "0 5px 5px 0",
+                                }}
+                              >
+                                {ex.reps}
+                              </span>
+                            </div>
+                          )}
+                          {ex.kg != null && (
+                            <span
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 800,
+                                color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
+                                background: isDisabled ? "var(--background)" : "var(--badge-bg)",
+                                padding: "3px 8px",
+                                borderRadius: 5,
+                                whiteSpace: "nowrap",
+                                marginLeft: 4,
+                              }}
+                            >
+                              {ex.kg}
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
+                                  marginLeft: 2,
+                                }}
+                              >
+                                {" "}
+                                kg
+                              </span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}

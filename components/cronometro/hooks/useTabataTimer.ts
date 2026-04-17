@@ -56,6 +56,15 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
               exerciseCount > 0 &&
               state.currentExerciseIndex < exerciseCount - 1;
             if (hasMore) {
+              // If next exercise is in the same intensity group → auto-rest
+              if (action.nextExerciseSameGroup) {
+                return {
+                  ...state,
+                  phase: "intensityRest",
+                  timeLeft: config.restTime,
+                  isRunning: true,
+                };
+              }
               return {
                 ...state,
                 phase: "exerciseComplete",
@@ -80,6 +89,20 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
             timeLeft: config.workTime,
             currentRound: state.currentRound + 1,
           };
+
+        case "intensityRest": {
+          // Auto-advance to next exercise in the same group
+          const nextIdx = state.currentExerciseIndex + 1;
+          return {
+            ...state,
+            currentExerciseIndex: nextIdx,
+            currentRound: 1,
+            totalRounds: action.nextExerciseRounds ?? state.totalRounds,
+            phase: "countdown",
+            timeLeft: config.countdownTime,
+            isRunning: true,
+          };
+        }
 
         default:
           return state;
@@ -168,6 +191,14 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
             exerciseCount > 0 &&
             state.currentExerciseIndex < exerciseCount - 1;
           if (hasMore) {
+            if (action.nextExerciseSameGroup) {
+              return {
+                ...state,
+                phase: "intensityRest",
+                timeLeft: config.restTime,
+                isRunning: true,
+              };
+            }
             return {
               ...state,
               phase: "exerciseComplete",
@@ -192,6 +223,18 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
           currentRound: state.currentRound + 1,
         };
       }
+      if (state.phase === "intensityRest") {
+        const nextIdx = state.currentExerciseIndex + 1;
+        return {
+          ...state,
+          currentExerciseIndex: nextIdx,
+          currentRound: 1,
+          totalRounds: action.nextExerciseRounds ?? state.totalRounds,
+          phase: "countdown",
+          timeLeft: config.countdownTime,
+          isRunning: true,
+        };
+      }
       return state;
     }
 
@@ -203,7 +246,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
       if (state.phase === "work") {
         return { ...state, timeLeft: config.workTime, isRunning: true };
       }
-      if (state.phase === "rest") {
+      if (state.phase === "rest" || state.phase === "intensityRest") {
         return { ...state, timeLeft: config.restTime, isRunning: true };
       }
       return state;
@@ -229,6 +272,10 @@ export function useTabataTimer(
   const exerciseRoundsRef = useRef<number[]>([]);
   exerciseRoundsRef.current = exercises.map((e) => e.series);
 
+  // Pre-compute baseId array for group detection
+  const exerciseBaseIdsRef = useRef<(string | undefined)[]>([]);
+  exerciseBaseIdsRef.current = exercises.map((e) => e.baseId);
+
   const getRoundsForExercise = useCallback(
     (idx: number) => {
       if (exercises.length > 0 && exercises[idx]) {
@@ -243,13 +290,22 @@ export function useTabataTimer(
   useEffect(() => {
     if (state.isRunning) {
       intervalRef.current = setInterval(() => {
+        const curIdx = state.currentExerciseIndex;
+        const nextIdx = curIdx + 1;
+        const curBase = exerciseBaseIdsRef.current[curIdx];
+        const nextBase = exerciseBaseIdsRef.current[nextIdx];
+        const nextSameGroup = !!(curBase && nextBase && curBase === nextBase);
+
         dispatch({
           type: "TICK",
           config: {
             workTime: configRef.current.workTime,
             restTime: configRef.current.restTime,
+            countdownTime: configRef.current.countdownTime,
           },
           exerciseCount,
+          nextExerciseSameGroup: nextSameGroup,
+          nextExerciseRounds: exerciseRoundsRef.current[nextIdx],
         });
       }, 1000);
     } else {
@@ -264,7 +320,7 @@ export function useTabataTimer(
         intervalRef.current = null;
       }
     };
-  }, [state.isRunning, exerciseCount]);
+  }, [state.isRunning, state.currentExerciseIndex, exerciseCount]);
 
   const start = useCallback(() => {
     dispatch({
@@ -312,12 +368,20 @@ export function useTabataTimer(
   }, [state.currentExerciseIndex, config.countdownTime]);
 
   const skipPhase = useCallback(() => {
+    const curIdx = state.currentExerciseIndex;
+    const nextIdx = curIdx + 1;
+    const curBase = exerciseBaseIdsRef.current[curIdx];
+    const nextBase = exerciseBaseIdsRef.current[nextIdx];
+    const nextSameGroup = !!(curBase && nextBase && curBase === nextBase);
+
     dispatch({
       type: "SKIP_PHASE",
-      config: { workTime: config.workTime, restTime: config.restTime },
+      config: { workTime: config.workTime, restTime: config.restTime, countdownTime: config.countdownTime },
       exerciseCount,
+      nextExerciseSameGroup: nextSameGroup,
+      nextExerciseRounds: exerciseRoundsRef.current[nextIdx],
     });
-  }, [config.workTime, config.restTime, exerciseCount]);
+  }, [config.workTime, config.restTime, config.countdownTime, exerciseCount, state.currentExerciseIndex]);
 
   const restartPhase = useCallback(() => {
     dispatch({
@@ -337,6 +401,7 @@ export function useTabataTimer(
       case "work":
         return config.workTime;
       case "rest":
+      case "intensityRest":
         return config.restTime;
       default:
         return 1;

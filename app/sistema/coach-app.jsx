@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.4.5";
+const APP_VERSION = "1.5.0";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23159,19 +23159,28 @@ function PagePDF({
           });
           return;
         }
-        row.cols.forEach((col) => {
+        const compId = comp.id || `${prefix}-${ci}`;
+        const hasMulti = row.cols.length > 1;
+        row.cols.forEach((col, colIdx) => {
           result.push({
-            id:
-              (comp.id || `${prefix}-${ci}`) +
-              (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
+            id: compId + (hasMulti ? `-${col.pct || ""}` : ""),
             name:
               row.nombre +
-              (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
+              (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
             category: row.categoria,
             kg: col.kg || null,
             reps: col.r ? String(col.r) : null,
             series: col.s || 3,
             notes: col.note || "",
+            ...(hasMulti
+              ? {
+                  baseId: compId,
+                  baseName: row.nombre,
+                  intensityLabel: col.pct ? `${col.pct}%` : undefined,
+                  intensityIndex: colIdx,
+                  totalIntensities: row.cols.length,
+                }
+              : {}),
           });
         });
       });
@@ -23203,19 +23212,28 @@ function PagePDF({
             });
             return;
           }
-          row.cols.forEach((col) => {
+          const ptId = ej.id || `pretemp-${result.length}`;
+          const hasMulti = row.cols.length > 1;
+          row.cols.forEach((col, colIdx) => {
             result.push({
-              id:
-                (ej.id || `pretemp-${result.length}`) +
-                (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
+              id: ptId + (hasMulti ? `-${col.pct || ""}` : ""),
               name:
                 row.nombre +
-                (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
+                (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
               category: row.categoria,
               kg: col.kg || null,
               reps: col.r ? String(col.r) : null,
               series: col.s || 3,
               notes: col.note || "",
+              ...(hasMulti
+                ? {
+                    baseId: ptId,
+                    baseName: row.nombre,
+                    intensityLabel: col.pct ? `${col.pct}%` : undefined,
+                    intensityIndex: colIdx,
+                    totalIntensities: row.cols.length,
+                  }
+                : {}),
             });
           });
         });
@@ -23226,17 +23244,27 @@ function PagePDF({
         .forEach((ej) => {
           const row = buildEscuelaRow(ej);
           if (!row || !row.cols.length) return;
-          row.cols.forEach((col) => {
+          const hasMulti = row.cols.length > 1;
+          row.cols.forEach((col, colIdx) => {
             result.push({
-              id: ej.id + (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
+              id: ej.id + (hasMulti ? `-${col.pct || ""}` : ""),
               name:
                 row.nombre +
-                (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
+                (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
               category: row.categoria,
               kg: col.kg || null,
               reps: col.r ? String(col.r) : null,
               series: col.s || 3,
               notes: col.note || "",
+              ...(hasMulti
+                ? {
+                    baseId: ej.id,
+                    baseName: row.nombre,
+                    intensityLabel: col.pct ? `${col.pct}%` : undefined,
+                    intensityIndex: colIdx,
+                    totalIntensities: row.cols.length,
+                  }
+                : {}),
             });
           });
         });
@@ -23246,16 +23274,26 @@ function PagePDF({
         .forEach((ej) => {
           const row = buildEjercicioRow(ej, semIdx, tIdx, false);
           if (!row || !row.cols.length) return;
-          row.cols.forEach((col) => {
+          const hasMulti = row.cols.length > 1;
+          row.cols.forEach((col, colIdx) => {
             result.push({
-              id: ej.id + (row.cols.length > 1 ? `-${col.intens}` : ""),
+              id: ej.id + (hasMulti ? `-${col.intens}` : ""),
               name:
-                row.nombre + (row.cols.length > 1 ? ` (${col.intens}%)` : ""),
+                row.nombre + (hasMulti ? ` (${col.intens}%)` : ""),
               category: row.categoria,
               kg: col.kg || null,
               reps: col.r ? String(col.r) : null,
               series: col.s || 3,
               notes: col.note || "",
+              ...(hasMulti
+                ? {
+                    baseId: ej.id,
+                    baseName: row.nombre,
+                    intensityLabel: `${col.intens}%`,
+                    intensityIndex: colIdx,
+                    totalIntensities: row.cols.length,
+                  }
+                : {}),
             });
           });
         });
