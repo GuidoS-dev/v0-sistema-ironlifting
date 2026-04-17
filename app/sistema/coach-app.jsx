@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.4.1";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -16453,6 +16453,18 @@ function SembradoMensual({
                     }}
                   >
                     Semana {s.numero}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color: "var(--muted)",
+                      marginTop: 1,
+                      opacity: 0.8,
+                    }}
+                  >
+                    {formatFechaSemana(
+                      getFechaSemanaEfectiva(meso.fecha_inicio, s),
+                    ) || "—"}
                   </div>
                   <div
                     style={{
