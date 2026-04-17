@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.4.2";
+const APP_VERSION = "1.4.3";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -18057,6 +18057,7 @@ function EditVolModal({ meso, onSave, onClose }) {
               </span>
               <input
                 className="form-input"
+                name="fecha_override"
                 type="date"
                 value={s.fecha_override || ""}
                 onChange={(e) => {
@@ -31061,6 +31062,7 @@ function PageCalculadora({ coachId }) {
         <div style={{ padding: "8px 16px 0" }}>
           <input
             type="text"
+            name="irm_description"
             value={tablas._descriptions?.[tabIRM] || ""}
             onChange={(e) => {
               const newDescriptions = { ...tablas._descriptions, [tabIRM]: e.target.value };
@@ -35345,6 +35347,7 @@ function AtletaPanel({ session, profile, onLogout }) {
             />
             <input
               type="text"
+              name="norm_search"
               placeholder="Buscar ejercicio..."
               value={normSearch}
               onChange={(e) => setNormSearch(e.target.value)}
