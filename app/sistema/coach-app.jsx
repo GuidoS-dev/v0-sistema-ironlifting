@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.6";
+const APP_VERSION = "1.3.7";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -32591,7 +32591,7 @@ function PanelReferencia({
 // AUTH — Login / Register screens
 // ═══════════════════════════════════════════════════════════════
 
-function LoginScreen({ onAuth, recoveryMode: initialRecovery = false }) {
+function LoginScreen({ onAuth, recoveryMode: initialRecovery = false, initialMsg = "" }) {
   const [mode, setMode] = useState(initialRecovery ? "recovery" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32602,7 +32602,7 @@ function LoginScreen({ onAuth, recoveryMode: initialRecovery = false }) {
   const [codigoCoach, setCodigoCoach] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState(initialMsg);
   const [logs, setLogs] = useState([]);
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState(0);
@@ -35841,6 +35841,7 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [recoveryMode, setRecoveryMode] = useState(false);
+  const [confirmMsg, setConfirmMsg] = useState("");
 
   const withTimeout = useCallback((promise, ms) => {
     return Promise.race([
@@ -35879,6 +35880,12 @@ export default function App() {
             // Password recovery — show reset form instead of logging in
             setRecoveryMode(true);
             setSession(callbackSession);
+            setAuthLoading(false);
+            return;
+          }
+          if (callbackSession._callbackType === "signup") {
+            // Email confirmed — show login with success message
+            setConfirmMsg("¡Cuenta confirmada! Ya podés iniciar sesión.");
             setAuthLoading(false);
             return;
           }
@@ -36025,7 +36032,7 @@ export default function App() {
           .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
         `}</style>
-        <LoginScreen onAuth={(s) => { setRecoveryMode(false); setSession(s); }} recoveryMode={recoveryMode} />
+        <LoginScreen onAuth={(s) => { setRecoveryMode(false); setConfirmMsg(""); setSession(s); }} recoveryMode={recoveryMode} initialMsg={confirmMsg} />
       </>
     );
   }
