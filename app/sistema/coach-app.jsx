@@ -39,7 +39,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.1";
+const APP_VERSION = "1.3.2";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -21163,42 +21163,65 @@ function PageResumen({
     let sumIntMed = 0,
       repsConIRM = 0;
 
+    const _isEscuela = meso.escuela === true || meso.escuela === "true";
+
     pairs.forEach(({ ej, semIdx, tIdx }) => {
       const ejData = normativos.find((e) => e.id === Number(ej.ejercicio_id));
       if (!ejData) return;
-      const repsVal = getRepsVal(ej, semIdx, tIdx);
-      const calcs = calcSeriesRepsKg(
-        tablas,
-        ej,
-        ejData,
-        irm_arr,
-        irm_env,
-        meso.modo,
-        repsVal,
-      );
-      if (!calcs) return;
 
       let vR = 0,
         vK = 0;
-      INTENSIDADES.forEach((intens, iIdx) => {
-        const c = calcs[iIdx];
-        if (!c) return;
-        const ckf = (f) => `${semIdx}-${tIdx}-${ej.id}-${intens}-${f}`;
-        const getV = (f, def) =>
-          cellManualSaved.has(ckf(f))
-            ? Number(cellEditSaved[ckf(f)]) || 0
-            : def || 0;
-        const s = getV("series", c.series);
-        const r = getV("reps", c.reps_serie);
-        const kg = getV("kg", c.kg);
-        if (r === 0) return;
-        const sEff = s && s > 0 ? s : 1;
-        const rT = Math.round(sEff) * Math.round(r);
-        if (rT === 0) return;
-        vR += rT;
-        vK += rT * (kg || 0);
-        sumIntReps += intens * rT;
-      });
+
+      if (_isEscuela) {
+        // Escuela: usar bloques directamente (no hay intensidades/sembrado)
+        (ej.bloques || []).forEach((bloque) => {
+          const s = Number(bloque.series) || 0;
+          const r = Number(bloque.reps) || 0;
+          const rT = Math.round(s) * Math.round(r);
+          if (rT === 0) return;
+          let kg = bloque.kg != null ? Number(bloque.kg) : null;
+          if (kg == null && bloque.pct) {
+            const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+            if (irm && ejData.pct_base)
+              kg = Math.round(((irm * ejData.pct_base / 100 * bloque.pct / 100) * 2)) / 2;
+          }
+          vR += rT;
+          vK += rT * (kg || 0);
+          sumIntReps += (bloque.pct || 0) * rT;
+        });
+      } else {
+        const repsVal = getRepsVal(ej, semIdx, tIdx);
+        const calcs = calcSeriesRepsKg(
+          tablas,
+          ej,
+          ejData,
+          irm_arr,
+          irm_env,
+          meso.modo,
+          repsVal,
+        );
+        if (!calcs) return;
+
+        INTENSIDADES.forEach((intens, iIdx) => {
+          const c = calcs[iIdx];
+          if (!c) return;
+          const ckf = (f) => `${semIdx}-${tIdx}-${ej.id}-${intens}-${f}`;
+          const getV = (f, def) =>
+            cellManualSaved.has(ckf(f))
+              ? Number(cellEditSaved[ckf(f)]) || 0
+              : def || 0;
+          const s = getV("series", c.series);
+          const r = getV("reps", c.reps_serie);
+          const kg = getV("kg", c.kg);
+          if (r === 0) return;
+          const sEff = s && s > 0 ? s : 1;
+          const rT = Math.round(sEff) * Math.round(r);
+          if (rT === 0) return;
+          vR += rT;
+          vK += rT * (kg || 0);
+          sumIntReps += intens * rT;
+        });
+      }
 
       volReps += vR;
       volKg += vK;
@@ -21241,6 +21264,7 @@ function PageResumen({
   };
 
   // ── Métricas por semana ───────────────────────────────────────────────────
+  const _isEscuelaMeso = meso.escuela === true || meso.escuela === "true";
   const metSemanas = meso.semanas.map((sem, semIdx) => {
     const pairs = sem.turnos.flatMap((t, tIdx) =>
       t.ejercicios
@@ -21249,8 +21273,10 @@ function PageResumen({
     );
     return {
       label: `Sem ${sem.numero}`,
-      pct: sem.pct_volumen,
-      plan: Math.round((meso.volumen_total * sem.pct_volumen) / 100),
+      pct: sem.pct_volumen ?? null,
+      plan: meso.volumen_total && sem.pct_volumen
+        ? Math.round((meso.volumen_total * sem.pct_volumen) / 100)
+        : null,
       ...calcMetricas(pairs),
     };
   });
@@ -21622,11 +21648,13 @@ function PageResumen({
                 <YAxis tick={{ fill: "var(--muted)", fontSize: 9 }} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Bar
-                  dataKey="Planificado"
-                  fill="rgba(232,197,71,.2)"
-                  radius={[3, 3, 0, 0]}
-                />
+                {!_isEscuelaMeso && (
+                  <Bar
+                    dataKey="Planificado"
+                    fill="rgba(232,197,71,.2)"
+                    radius={[3, 3, 0, 0]}
+                  />
+                )}
                 <Bar
                   dataKey="Vol. Real"
                   fill="var(--gold)"
@@ -22511,6 +22539,7 @@ function PagePDF({
   };
 
   // Calcular métricas resumen por semana
+  const isEscuelaPdf = meso.escuela === true || meso.escuela === "true";
   const metricas = meso.semanas.map((sem, semIdx) => {
     let volReps = 0,
       volKg = 0,
@@ -22532,33 +22561,55 @@ function PagePDF({
             (e) => e.id === Number(ej.ejercicio_id),
           );
           if (!ejData) return;
-          const repsVal = getRepsVal(ej, semIdx, tIdx);
-          const calcs = calcSeriesRepsKg(
-            tablas,
-            ej,
-            ejData,
-            irm_arr,
-            irm_env,
-            meso.modo,
-            repsVal,
-          );
-          if (!calcs) return;
+
           let vR = 0,
             vK = 0;
-          INTENSIDADES.forEach((intens, iIdx) => {
-            const c = calcs[iIdx];
-            if (!c) return;
-            const k2 = `${semIdx}-${tIdx}-${ej.id}`;
-            const s = getCell(k2, intens, "series", c.series);
-            const r = getCell(k2, intens, "reps", c.reps_serie);
-            const kg = getCell(k2, intens, "kg", c.kg);
-            if (!r) return;
-            const sEff = s && s > 0 ? s : 1;
-            const rT = Math.round(sEff) * Math.round(r);
-            vR += rT;
-            vK += rT * (kg || 0);
-            sumIntReps += intens * rT;
-          });
+
+          if (isEscuelaPdf) {
+            // Escuela: usar bloques directamente
+            (ej.bloques || []).forEach((bloque) => {
+              const s = Number(bloque.series) || 0;
+              const r = Number(bloque.reps) || 0;
+              const rT = Math.round(s) * Math.round(r);
+              if (rT === 0) return;
+              let kg = bloque.kg != null ? Number(bloque.kg) : null;
+              if (kg == null && bloque.pct) {
+                const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+                if (irm && ejData.pct_base)
+                  kg = Math.round(((irm * ejData.pct_base / 100 * bloque.pct / 100) * 2)) / 2;
+              }
+              vR += rT;
+              vK += rT * (kg || 0);
+              sumIntReps += (bloque.pct || 0) * rT;
+            });
+          } else {
+            const repsVal = getRepsVal(ej, semIdx, tIdx);
+            const calcs = calcSeriesRepsKg(
+              tablas,
+              ej,
+              ejData,
+              irm_arr,
+              irm_env,
+              meso.modo,
+              repsVal,
+            );
+            if (!calcs) return;
+            INTENSIDADES.forEach((intens, iIdx) => {
+              const c = calcs[iIdx];
+              if (!c) return;
+              const k2 = `${semIdx}-${tIdx}-${ej.id}`;
+              const s = getCell(k2, intens, "series", c.series);
+              const r = getCell(k2, intens, "reps", c.reps_serie);
+              const kg = getCell(k2, intens, "kg", c.kg);
+              if (!r) return;
+              const sEff = s && s > 0 ? s : 1;
+              const rT = Math.round(sEff) * Math.round(r);
+              vR += rT;
+              vK += rT * (kg || 0);
+              sumIntReps += intens * rT;
+            });
+          }
+
           volReps += vR;
           volKg += vK;
           const cat = ejData.categoria || "Complementarios";
@@ -22947,23 +22998,44 @@ function PagePDF({
 
     pushCompRows(turno.complementarios_before, "cb");
 
-    turno.ejercicios
-      .filter((e) => e.ejercicio_id)
-      .forEach((ej) => {
-        const row = buildEjercicioRow(ej, semIdx, tIdx, false);
-        if (!row || !row.cols.length) return;
-        row.cols.forEach((col) => {
-          result.push({
-            id: ej.id + (row.cols.length > 1 ? `-${col.intens}` : ""),
-            name: row.nombre + (row.cols.length > 1 ? ` (${col.intens}%)` : ""),
-            category: row.categoria,
-            kg: col.kg || null,
-            reps: col.r ? String(col.r) : null,
-            series: col.s || 3,
-            notes: col.note || "",
+    if (isEscuelaPdf) {
+      // Escuela: usar buildEscuelaRow (bloques)
+      turno.ejercicios
+        .filter((e) => e.ejercicio_id)
+        .forEach((ej) => {
+          const row = buildEscuelaRow(ej);
+          if (!row || !row.cols.length) return;
+          row.cols.forEach((col) => {
+            result.push({
+              id: ej.id + (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
+              name: row.nombre + (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
+              category: row.categoria,
+              kg: col.kg || null,
+              reps: col.r ? String(col.r) : null,
+              series: col.s || 3,
+              notes: col.note || "",
+            });
           });
         });
-      });
+    } else {
+      turno.ejercicios
+        .filter((e) => e.ejercicio_id)
+        .forEach((ej) => {
+          const row = buildEjercicioRow(ej, semIdx, tIdx, false);
+          if (!row || !row.cols.length) return;
+          row.cols.forEach((col) => {
+            result.push({
+              id: ej.id + (row.cols.length > 1 ? `-${col.intens}` : ""),
+              name: row.nombre + (row.cols.length > 1 ? ` (${col.intens}%)` : ""),
+              category: row.categoria,
+              kg: col.kg || null,
+              reps: col.r ? String(col.r) : null,
+              series: col.s || 3,
+              notes: col.note || "",
+            });
+          });
+        });
+    }
 
     pushCompRows(turno.complementarios_after, "ca");
 
@@ -22971,6 +23043,39 @@ function PagePDF({
   };
 
   const isPretemp = meso.pretemporada === true || meso.pretemporada === "true";
+
+  // Helper para construir row de ejercicio Escuela (bloques)
+  const buildEscuelaRow = (ej) => {
+    const ejData = normativos.find((e) => e.id === Number(ej.ejercicio_id));
+    if (!ejData) return null;
+    const cols = (ej.bloques || [])
+      .map((bloque) => {
+        let kg = bloque.kg != null ? Number(bloque.kg) : null;
+        if (kg == null && bloque.pct) {
+          const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+          if (irm && ejData.pct_base)
+            kg = Math.round(((irm * ejData.pct_base / 100 * bloque.pct / 100) * 2)) / 2;
+        }
+        return {
+          pct: bloque.pct,
+          s: bloque.series,
+          r: bloque.reps,
+          kg: kg != null ? kg : bloque.kg,
+          note: bloque.nota || "",
+        };
+      })
+      .filter(hasComplementarioBlockContent);
+    const nombre = ejData.nombre;
+    const aclaracion = ej.aclaracion ? ` (${ej.aclaracion})` : "";
+    return {
+      id: ej.ejercicio_id,
+      nombre: nombre + aclaracion,
+      categoria: ejData.categoria,
+      cols,
+      isCompBloques: true,
+      isEscuelaRow: true,
+    };
+  };
 
   const semTurnos = meso.semanas.map((sem, semIdx) => {
     const turnos = sem.turnos
@@ -22988,6 +23093,14 @@ function PagePDF({
           if (!ejsPretemp.length) return null;
           ejsPretemp.forEach((ej) => {
             const row = buildPretemporadaRow(ej);
+            if (row) rows.push(row);
+          });
+        } else if (isEscuelaPdf) {
+          // Escuela: ejercicios usan ejercicio_id + bloques (sin intensidades)
+          const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
+          if (!ejs.length) return null;
+          ejs.forEach((ej) => {
+            const row = buildEscuelaRow(ej);
             if (row) rows.push(row);
           });
         } else {
@@ -24519,6 +24632,13 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                       <div className="pdf-sem-details">
                         {turnos.length} turno{turnos.length !== 1 ? "s" : ""}
                       </div>
+                    ) : isEscuelaPdf ? (
+                      <>
+                        <div className="pdf-sem-details">
+                          Escuela Inicial · Nivel {meso.escuela_nivel || "—"}
+                        </div>
+                        {met && <GrupoBar levGrupo={met.levGrupo} />}
+                      </>
                     ) : (
                       <>
                         <div className="pdf-sem-details">
@@ -24673,6 +24793,10 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                   const hasPretemporadaRows = rows.some(
                                     (r) => r.isPretemporadaRow,
                                   );
+                                  const hasEscuelaRows = rows.some(
+                                    (r) => r.isEscuelaRow,
+                                  );
+                                  const hasPctCol = hasPretemporadaRows || hasEscuelaRows;
 
                                   if (
                                     hasCompBloques &&
@@ -24689,7 +24813,7 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                         key={bIdx}
                                         className="intens-header"
                                         style={{
-                                          width: hasPretemporadaRows ? 72 : 58,
+                                          width: hasPctCol ? 72 : 58,
                                         }}
                                       >
                                         Bloque{bIdx + 1}
@@ -24721,6 +24845,10 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                   const hasPretemporadaRows = rows.some(
                                     (r) => r.isPretemporadaRow,
                                   );
+                                  const hasEscuelaRows2 = rows.some(
+                                    (r) => r.isEscuelaRow,
+                                  );
+                                  const hasPctCol2 = hasPretemporadaRows || hasEscuelaRows2;
 
                                   if (
                                     hasCompBloques &&
@@ -24738,14 +24866,14 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                           style={{
                                             display: "grid",
                                             gridTemplateColumns:
-                                              hasPretemporadaRows
+                                              hasPctCol2
                                                 ? "1fr 1fr 1fr 1fr"
                                                 : "1fr 1fr 1fr",
                                             gap: 0,
                                             fontSize: 6.5,
                                           }}
                                         >
-                                          {hasPretemporadaRows && (
+                                          {hasPctCol2 && (
                                             <span>%</span>
                                           )}
                                           <span>Ser</span>
@@ -24943,7 +25071,7 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                                     data-label={
                                                       col?.pct != null
                                                         ? `${col.pct}%`
-                                                        : row.isPretemporadaRow
+                                                        : (row.isPretemporadaRow || row.isEscuelaRow)
                                                           ? `B${bIdx + 1}`
                                                           : ""
                                                     }
@@ -24960,14 +25088,14 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                                   data-label={
                                                     col?.pct != null
                                                       ? `${col.pct}%`
-                                                      : row.isPretemporadaRow
+                                                      : (row.isPretemporadaRow || row.isEscuelaRow)
                                                         ? `B${bIdx + 1}`
                                                         : ""
                                                   }
                                                   style={{ background: gb }}
                                                 >
                                                   <div className="cell-data">
-                                                    {row.isPretemporadaRow &&
+                                                    {(row.isPretemporadaRow || row.isEscuelaRow) &&
                                                       col.pct != null && (
                                                         <span className="cell-pct-pretemp">
                                                           {col.pct}%
@@ -25116,8 +25244,8 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
               <thead>
                 <tr>
                   <th style={{ textAlign: "left" }}>Semana</th>
-                  <th>% Vol</th>
-                  <th>Planificado</th>
+                  {!isEscuelaPdf && <th>% Vol</th>}
+                  {!isEscuelaPdf && <th>Planificado</th>}
                   <th>Vol. Reps</th>
                   <th>Vol. Kg</th>
                   <th>Peso Medio</th>
@@ -25132,12 +25260,14 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                       <td style={{ textAlign: "left", fontWeight: 700 }}>
                         Semana {sem.numero}
                       </td>
-                      <td>{sem.pct_volumen}%</td>
-                      <td>
-                        {Math.round(
-                          (meso.volumen_total * sem.pct_volumen) / 100,
-                        )}
-                      </td>
+                      {!isEscuelaPdf && <td>{sem.pct_volumen}%</td>}
+                      {!isEscuelaPdf && (
+                        <td>
+                          {Math.round(
+                            (meso.volumen_total * sem.pct_volumen) / 100,
+                          )}
+                        </td>
+                      )}
                       <td style={{ fontWeight: 700, color: "#b8860b" }}>
                         {m.volReps || "—"}
                       </td>
@@ -25153,8 +25283,8 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                 })}
                 <tr>
                   <td style={{ textAlign: "left" }}>TOTAL</td>
-                  <td>100%</td>
-                  <td>{meso.volumen_total}</td>
+                  {!isEscuelaPdf && <td>100%</td>}
+                  {!isEscuelaPdf && <td>{meso.volumen_total}</td>}
                   <td style={{ color: "#b8860b" }}>{totalVolReps || "—"}</td>
                   <td style={{ color: "#1565c0" }}>{totalVolKg || "—"}</td>
                   <td style={{ color: "#1b5e20" }}>

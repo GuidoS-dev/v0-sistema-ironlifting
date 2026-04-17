@@ -9,7 +9,7 @@
 | Rango (aprox.) | Sección                                      | Descripción                                                                                                                                                                                                                                                                                                                          |
 | -------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, ChevronDown, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                          |
-| 33             | **APP_VERSION**                              | `"1.3.1"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                         |
+| 33             | **APP_VERSION**                              | `"1.3.2"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                         |
 | 35–38          | **Supabase Config**                          | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` (10000ms)                                                                                                                                                                                                                                                               |
 | 38–82          | **Sanitización**                             | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput` (anti prototype-pollution), `sanitizeRequestBody`                                                                                                                                                                                                                              |
 | 83–131         | **localStorage Safe**                        | `_freeLocalStorageSpace` (purga hist* y plt_draft*), `safeSetItem` (retry on QuotaExceededError)                                                                                                                                                                                                                                     |
@@ -810,6 +810,35 @@ Excepto pretemporada: `.pdf-table tr.pretemporada-row td[data-label]:has(.cell-e
 
 ---
 
+## 11. Estructura de Datos: Escuela vs Normal vs Pretemporada
+
+### Escuela Mesociclo
+- **Flags**: `escuela: true`, `escuela_nivel: "1"-"5"`, `num_bloques_basica: 3`
+- **NO tiene**: `volumen_total`, `sem.pct_volumen`, `sem.reps_ajustadas`, `ej.intensidad`
+- **Ejercicio**: `{ejercicio_id, bloques: [{pct, series, reps, kg, nota}]}`
+- **Kg calc**: `IRM × pct_base / 100 × bloque.pct / 100` (en `calcKgBasica`)
+- **Tabs visibles**: Planilla (PlanillaBasica), Resumen (PageResumen), PDF, Normativos
+- **Resumen/PDF métricas**: itera `ej.bloques` — volReps=Σ(series×reps), volKg=Σ(series×reps×kg)
+- **PDF rows**: `buildEscuelaRow` → `isCompBloques:true, isEscuelaRow:true` (muestra % col)
+- **Saved via**: `base.semanas = dataMeso.semanas` (as-is, no transform)
+
+### Normal Mesociclo (con Sembrado)
+- **Flags**: `escuela: false`, `pretemporada: false`
+- **Tiene**: `volumen_total`, `sem.pct_volumen`, `sem.reps_ajustadas`, `ej.intensidad` (65-95)
+- **Ejercicio**: `{ejercicio_id, intensidad, tabla}` — sin bloques
+- **Kg calc**: `calcSeriesRepsKg` → lookup tablas → INTENSIDADES
+- **Resumen/PDF métricas**: `getRepsVal` + `calcSeriesRepsKg` + `INTENSIDADES.forEach`
+- **PDF rows**: `buildEjercicioRow` → intensidades columns
+
+### Pretemporada
+- **Flags**: `pretemporada: true`
+- **Ejercicio**: `{ejercicio_ids: [{eid, link}], bloques: [...]}` — multi-exercise
+- **Kg calc**: MENOR pct_base entre sub-ejercicios (`calcKgPretemp`)
+- **Resumen**: Tab oculto (no existe)
+- **PDF rows**: `buildPretemporadaRow` → `isCompBloques:true, isPretemporadaRow:true`
+
+---
+
 ## 11. CSS Classes Catálogo
 
 ### Layout
@@ -967,6 +996,9 @@ Excepto pretemporada: `.pdf-table tr.pretemporada-row td[data-label]:has(.cell-e
 | ✅ v1.0.8    | Bottom nav PDF pegada al home indicator en iPhone                                  | `padding-bottom: calc(env(safe-area-inset-bottom) + 36px)`                         |
 | ✅ v1.0.9    | UX mobile atleta: navbar siempre visible ocupa espacio                             | Auto-hide tras 1s sin scroll, solo hideActions                                     |
 | ✅ v1.0.11   | Atleta pierde contexto de semana/turno cuando nav se oculta                        | `.mob-nav-indicator` pill flotante                                                 |
+| ✅ v1.3.2    | Escuela: Resumen muestra todo en 0 — `calcMetricas` usaba intensidades/sembrado    | Branch `_isEscuela` en PageResumen.calcMetricas: itera `ej.bloques` directamente   |
+| ✅ v1.3.2    | Escuela: PDF muestra ejercicios vacíos y resumen con pct_volumen undefined         | `isEscuelaPdf` branch en metricas + `buildEscuelaRow` + sem header + tabla resumen |
+| ✅ v1.3.2    | Escuela: PDF timer `extractTimerExercises` usaba `buildEjercicioRow` (intensidades)| Usa `buildEscuelaRow` para Escuela, despacha bloques correctamente                 |
 
 ---
 
