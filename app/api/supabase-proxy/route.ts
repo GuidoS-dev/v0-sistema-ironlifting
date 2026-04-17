@@ -12,6 +12,10 @@ const RATE_LIMIT_WINDOW_MS = Number(
 
 const ALLOWED_PREFIXES = ["/auth/v1/", "/rest/v1/"];
 
+// Maximum request body size (512 KB). Any payload above this is almost
+// certainly abuse — legitimate app requests are small JSON objects.
+const MAX_BODY_BYTES = 512 * 1024;
+
 // Allowed origins — add your custom domain here if you have one
 const ALLOWED_ORIGINS = new Set(
   (process.env.ALLOWED_ORIGINS || "")
@@ -86,6 +90,8 @@ function sanitizeRequestBody(body: string, contentType: string | null) {
 function getTargetUrl(path: string) {
   if (!SUPABASE_URL) return null;
   if (!ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix))) return null;
+  // Block path traversal attempts (e.g. /rest/v1/../../admin)
+  if (path.includes("..") || path.includes("//")) return null;
   return `${SUPABASE_URL}${path}`;
 }
 
@@ -153,6 +159,16 @@ async function handleProxy(req: NextRequest) {
     if (isBodyMethod) {
       const rawBody = await req.text();
       if (rawBody) {
+        // Reject oversized payloads early
+        if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+          return new Response(
+            JSON.stringify({ error: "Request body too large." }),
+            {
+              status: 413,
+              headers: { "content-type": "application/json" },
+            },
+          );
+        }
         const contentType = req.headers.get("content-type");
         try {
           body = sanitizeRequestBody(rawBody, contentType);
@@ -210,7 +226,7 @@ async function handleProxy(req: NextRequest) {
     console.error(`[supabase-proxy] ${req.method} ${path} → ${message}:`, (error as Error)?.message || error);
 
     return new Response(
-      JSON.stringify({ error: message, detail: (error as Error)?.message }),
+      JSON.stringify({ error: message }),
       {
         status: 504,
         headers: { "content-type": "application/json" },
