@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.9";
+const APP_VERSION = "1.3.10";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -496,9 +496,49 @@ const sb = {
     },
   },
 
-  // Handle email confirmation / password-recovery callback from URL hash
+  // Handle email confirmation / password-recovery callback from URL hash or PKCE query params
   _handleEmailCallback: async () => {
     if (typeof window === "undefined") return null;
+
+    // --- PKCE flow: Supabase redirects with ?token_hash=...&type=signup ---
+    const searchParams = new URLSearchParams(window.location.search);
+    const tokenHash = searchParams.get("token_hash");
+    const pkceType = searchParams.get("type"); // "signup", "recovery", "magiclink"
+    if (tokenHash && pkceType) {
+      try {
+        const r = await _fetchWithTimeout(
+          `${SUPA_URL}/auth/v1/verify`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
+            body: JSON.stringify({ token_hash: tokenHash, type: pkceType }),
+          },
+        );
+        const { data } = await _readResponseSafe(r);
+        // Clean URL
+        window.history.replaceState(null, "", window.location.pathname);
+        if (!r.ok || !data?.access_token) {
+          // Verification failed but we still know the type — return marker so caller can show message
+          return { _callbackType: pkceType, _verifyFailed: true };
+        }
+        const session = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          token_type: data.token_type || "bearer",
+          user: data.user,
+          _callbackType: pkceType,
+        };
+        _session = session;
+        saveSession(session);
+        _emitAuth("SIGNED_IN", session);
+        return session;
+      } catch {
+        window.history.replaceState(null, "", window.location.pathname);
+        return { _callbackType: pkceType, _verifyFailed: true };
+      }
+    }
+
+    // --- Implicit flow: hash fragment with access_token ---
     const hash = window.location.hash;
     if (!hash || !hash.includes("access_token")) return null;
     try {
@@ -32716,7 +32756,7 @@ function LoginScreen({ onAuth, recoveryMode: initialRecovery = false, initialMsg
       password,
       options: {
         data: { nombre: registeredNombre, rol },
-        emailRedirectTo: `${window.location.origin}/auth/login`,
+        emailRedirectTo: `${window.location.origin}/sistema`,
       },
     });
     setLoading(false);
@@ -35895,6 +35935,12 @@ export default function App() {
         const callbackSession = await sb._handleEmailCallback();
         if (callbackSession && mounted) {
           if (callbackSession._callbackType === "recovery") {
+            if (callbackSession._verifyFailed) {
+              // Recovery link expired or already used
+              setConfirmMsg("");
+              setAuthLoading(false);
+              return;
+            }
             // Password recovery — show reset form instead of logging in
             setRecoveryMode(true);
             setSession(callbackSession);
@@ -35904,6 +35950,11 @@ export default function App() {
           if (callbackSession._callbackType === "signup") {
             // Email confirmed — show login with success message
             setConfirmMsg("¡Cuenta confirmada! Ya podés iniciar sesión.");
+            setAuthLoading(false);
+            return;
+          }
+          // Other callback types (magiclink, etc.) — if verify failed, just show login
+          if (callbackSession._verifyFailed) {
             setAuthLoading(false);
             return;
           }
