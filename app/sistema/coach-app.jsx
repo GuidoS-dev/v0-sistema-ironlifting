@@ -33,13 +33,15 @@ import {
   Shield,
   Search,
   Timer,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { TabataTimer } from "../../components/cronometro";
 
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.5";
+const APP_VERSION = "1.3.6";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -33022,8 +33024,9 @@ function LoginScreen({ onAuth, recoveryMode: initialRecovery = false }) {
                         lineHeight: 1,
                       }}
                       tabIndex={-1}
+                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
-                      {showPassword ? "🙈" : "👁"}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
@@ -33080,8 +33083,9 @@ function LoginScreen({ onAuth, recoveryMode: initialRecovery = false }) {
                         lineHeight: 1,
                       }}
                       tabIndex={-1}
+                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
-                      {showPassword ? "🙈" : "👁"}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
