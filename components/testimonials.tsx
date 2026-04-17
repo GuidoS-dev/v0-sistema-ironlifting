@@ -25,7 +25,7 @@ const testimonials = [
     name: "Carlos Vega",
     role: "Entrenador de box",
     content: "Como entrenador, aprendí muchísimo de la programación y la periodización. Ahora aplico estos principios con mis propios atletas.",
-    rating: 5,
+    rating: 4,
   },
 ]
 
@@ -38,11 +38,11 @@ export function Testimonials() {
           <div className="mb-12 text-center">
             <Badge
               variant="outline"
-              className="mb-4 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547]"
+              className="mb-4 border-primary/30 bg-primary/10 text-primary"
             >
               Resultados Reales
             </Badge>
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="mb-4 font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground sm:text-4xl">
               Lo que dicen nuestros atletas
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
@@ -59,7 +59,7 @@ export function Testimonials() {
                 className="border-border/50 bg-card/50"
               >
                 <CardContent className="p-6">
-                  <Quote className="mb-4 h-8 w-8 text-[#e8c547]/30" />
+                  <Quote className="mb-4 h-8 w-8 text-primary/30" />
 
                   <p className="mb-4 text-foreground leading-relaxed">
                     {`"${testimonial.content}"`}
@@ -74,14 +74,17 @@ export function Testimonials() {
                         {testimonial.role}
                       </p>
                     </div>
-                    <div className="flex gap-0.5">
+                    <div className="flex gap-0.5" aria-hidden="true">
                       {Array.from({ length: testimonial.rating }).map((_, i) => (
                         <Star
                           key={i}
-                          className="h-4 w-4 fill-[#e8c547] text-[#e8c547]"
+                          className="h-4 w-4 fill-primary text-primary"
                         />
                       ))}
                     </div>
+                    <span className="sr-only">
+                      {testimonial.rating} de 5 estrellas
+                    </span>
                   </div>
                 </CardContent>
               </Card>

@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge"
 import {
   Accordion,
   AccordionContent,
@@ -43,18 +42,15 @@ const faqs = [
 
 export function FAQ() {
   return (
-    <section className="bg-card py-20">
+    <section className="bg-card py-16">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl">
           {/* Header */}
-          <div className="mb-12 text-center">
-            <Badge
-              variant="outline"
-              className="mb-4 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547]"
-            >
+          <div className="mb-12 max-w-2xl">
+            <span className="mb-3 block text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               Preguntas Frecuentes
-            </Badge>
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            </span>
+            <h2 className="mb-4 font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground sm:text-4xl">
               ¿Tienes dudas?
             </h2>
             <p className="text-muted-foreground">
@@ -64,13 +60,13 @@ export function FAQ() {
 
           {/* Accordion */}
           <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, index) => (
+            {faqs.map((faq) => (
               <AccordionItem
-                key={index}
-                value={`item-${index}`}
+                key={faq.question}
+                value={faq.question}
                 className="border-border/50"
               >
-                <AccordionTrigger className="text-left text-foreground hover:text-[#e8c547] hover:no-underline">
+                <AccordionTrigger className="text-left text-foreground hover:text-primary hover:no-underline">
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground leading-relaxed">

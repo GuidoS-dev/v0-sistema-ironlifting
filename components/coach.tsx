@@ -29,12 +29,12 @@ export function Coach() {
             <div>
               <Badge
                 variant="outline"
-                className="mb-4 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547]"
+                className="mb-4 border-primary/30 bg-primary/10 text-primary"
               >
                 Nuestro Coach Principal
               </Badge>
 
-              <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              <h2 className="mb-4 font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground sm:text-4xl">
                 Hugo Palacios
               </h2>
 
@@ -52,8 +52,8 @@ export function Coach() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {highlights.map((item) => (
                   <div key={item.text} className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#e8c547]/10">
-                      <item.icon className="h-5 w-5 text-[#e8c547]" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <item.icon className="h-5 w-5 text-primary" />
                     </div>
                     <span className="text-sm text-foreground leading-relaxed">
                       {item.text}

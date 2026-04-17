@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Brain, Target, TrendingUp, Video, BarChart3, HeartPulse } from "lucide-react"
 
@@ -41,17 +40,14 @@ export function Methodology() {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           {/* Header */}
-          <div className="mb-12 text-center">
-            <Badge
-              variant="outline"
-              className="mb-4 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547]"
-            >
+          <div className="mb-12 max-w-2xl">
+            <span className="mb-3 block text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               Nuestra Metodología
-            </Badge>
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            </span>
+            <h2 className="mb-4 font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground sm:text-4xl">
               Sistema de entrenamiento comprobado
             </h2>
-            <p className="mx-auto max-w-2xl text-muted-foreground">
+            <p className="text-muted-foreground">
               Una metodología desarrollada durante más de tres décadas,
               perfeccionada con cada atleta y validada en competencias internacionales.
             </p>
@@ -62,11 +58,11 @@ export function Methodology() {
             {methods.map((method) => (
               <Card
                 key={method.title}
-                className="border-border/50 bg-card/50 transition-colors hover:border-[#e8c547]/30"
+                className="border-border/50 bg-card/50 transition-colors hover:border-primary/30"
               >
                 <CardHeader>
-                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-[#e8c547]/10">
-                    <method.icon className="h-6 w-6 text-[#e8c547]" />
+                  <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <method.icon className="h-6 w-6 text-primary" />
                   </div>
                   <CardTitle className="text-foreground">{method.title}</CardTitle>
                 </CardHeader>

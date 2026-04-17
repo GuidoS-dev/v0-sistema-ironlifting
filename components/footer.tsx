@@ -12,7 +12,7 @@ export function Footer() {
       <section className="bg-linear-to-b from-background to-card py-20">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="mb-4 font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground sm:text-4xl">
               ¿Listo para transformar tu entrenamiento?
             </h2>
             <p className="mb-8 text-lg text-muted-foreground">
@@ -23,7 +23,7 @@ export function Footer() {
               <Button
                 asChild
                 size="lg"
-                className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold px-8"
+                className="bg-primary hover:bg-[var(--gold-light)] text-primary-foreground font-semibold px-8"
               >
                 <a href="#planes">Elegir mi plan ahora</a>
               </Button>
@@ -31,7 +31,7 @@ export function Footer() {
                 asChild
                 variant="outline"
                 size="lg"
-                className="border-[#e8c547]/30 text-[#e8c547] hover:bg-[#e8c547]/10 px-8"
+                className="border-primary/30 text-primary hover:bg-primary/10 px-8"
               >
                 <a href={WHATSAPP_BASE_URL} target="_blank" rel="noopener noreferrer">
                   <MessageCircle className="mr-2 h-4 w-4" />
@@ -50,9 +50,12 @@ export function Footer() {
             <div className="grid gap-8 md:grid-cols-4">
               {/* Brand */}
               <div className="md:col-span-2">
-                <a href="#inicio" className="mb-4 flex items-center gap-3">
+                <a
+                  href="#inicio"
+                  className="mb-4 flex items-center gap-3 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
                   <LogoILSolo size={32} />
-                  <span className="font-[family-name:var(--font-display)] text-lg tracking-wider text-[#e8c547]">
+                  <span className="font-[family-name:var(--font-display)] text-lg tracking-wider text-primary">
                     IRONLIFTING
                   </span>
                 </a>
@@ -65,7 +68,7 @@ export function Footer() {
                     href="https://instagram.com/sistema.ironlifting"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-[#e8c547] hover:text-[#0a0c12]"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     aria-label="Instagram"
                   >
                     <Instagram className="h-4 w-4" />
@@ -74,7 +77,7 @@ export function Footer() {
                     href={WHATSAPP_BASE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-[#e8c547] hover:text-[#0a0c12]"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     aria-label="WhatsApp"
                   >
                     <MessageCircle className="h-4 w-4" />
@@ -87,27 +90,27 @@ export function Footer() {
                 <h4 className="mb-4 font-semibold text-foreground">Enlaces</h4>
                 <ul className="space-y-2 text-sm">
                   <li>
-                    <a href="#inicio" className="text-muted-foreground hover:text-foreground">
+                    <a href="#inicio" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                       Inicio
                     </a>
                   </li>
                   <li>
-                    <a href="#metodologia" className="text-muted-foreground hover:text-foreground">
+                    <a href="#metodologia" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                       Metodología
                     </a>
                   </li>
                   <li>
-                    <a href="#coach" className="text-muted-foreground hover:text-foreground">
+                    <a href="#coach" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                       Nuestro Coach
                     </a>
                   </li>
                   <li>
-                    <a href="#trayectoria" className="text-muted-foreground hover:text-foreground">
+                    <a href="#trayectoria" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                       Trayectoria
                     </a>
                   </li>
                   <li>
-                    <a href="#planes" className="text-muted-foreground hover:text-foreground">
+                    <a href="#planes" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                       Planes
                     </a>
                   </li>
@@ -123,7 +126,7 @@ export function Footer() {
                       href="https://instagram.com/sistema.ironlifting"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                      className="flex items-center gap-2 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       <Instagram className="h-4 w-4" />
                       @sistema.ironlifting
@@ -134,7 +137,7 @@ export function Footer() {
                       href={WHATSAPP_BASE_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                      className="flex items-center gap-2 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       <MessageCircle className="h-4 w-4" />
                       +54 9 341 242-4210

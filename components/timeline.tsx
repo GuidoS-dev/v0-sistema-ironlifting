@@ -74,11 +74,11 @@ export function Timeline() {
           <div className="mb-12 text-center">
             <Badge 
               variant="outline" 
-              className="mb-4 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547]"
+              className="mb-4 border-primary/30 bg-primary/10 text-primary"
             >
               Nuestra Trayectoria
             </Badge>
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="mb-4 font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground sm:text-4xl">
               Un viaje de constancia y superación
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
@@ -106,19 +106,19 @@ export function Timeline() {
                     <div
                       className={`inline-block rounded-lg border p-4 transition-all ${
                         event.highlight
-                          ? "border-[#e8c547] bg-[#e8c547]/10"
-                          : "border-border/50 bg-muted/30"
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-muted/50"
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         {event.highlight ? (
-                          <Trophy className="h-5 w-5 text-[#e8c547]" />
+                          <Trophy className="h-5 w-5 text-primary" />
                         ) : (
                           <Medal className="h-5 w-5 text-muted-foreground" />
                         )}
                         <span className="font-bold text-foreground">{event.year}</span>
                         {event.highlight && (
-                          <Badge className="bg-[#e8c547] text-[#0a0c12] text-xs">
+                          <Badge className="bg-primary text-primary-foreground text-xs">
                             Olímpicos
                           </Badge>
                         )}
@@ -126,7 +126,7 @@ export function Timeline() {
                       <p className="mt-1 font-medium text-foreground">{event.event}</p>
                       <p className="text-sm text-muted-foreground">{event.location}</p>
                       {event.athlete && (
-                        <p className="mt-1 text-sm font-medium text-[#e8c547]">
+                        <p className="mt-1 text-sm font-medium text-primary">
                           {event.athlete}
                         </p>
                       )}
@@ -136,7 +136,7 @@ export function Timeline() {
                   {/* Center dot */}
                   <div
                     className={`hidden md:flex h-4 w-4 shrink-0 rounded-full ${
-                      event.highlight ? "bg-[#e8c547]" : "bg-muted-foreground"
+                      event.highlight ? "bg-primary" : "bg-muted-foreground"
                     }`}
                   />
 
@@ -153,7 +153,7 @@ export function Timeline() {
               <DialogTrigger asChild>
                 <Button
                   size="lg"
-                  className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
+                  className="bg-primary hover:bg-[var(--gold-light)] text-primary-foreground font-semibold"
                 >
                   Ver recorrido completo
                   <ChevronRight className="ml-2 h-4 w-4" />
@@ -170,14 +170,14 @@ export function Timeline() {
                     {allAchievements.map((athlete) => (
                       <div key={athlete.athlete}>
                         <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-foreground">
-                          <Trophy className="h-5 w-5 text-[#e8c547]" />
+                          <Trophy className="h-5 w-5 text-primary" />
                           {athlete.athlete}
                         </h3>
                         <ul className="space-y-2 pl-7">
                           {athlete.achievements.map((achievement) => (
                             <li
                               key={achievement}
-                              className="text-muted-foreground before:mr-2 before:text-[#e8c547] before:content-['•']"
+                              className="text-muted-foreground before:mr-2 before:text-primary before:content-['•']"
                             >
                               {achievement}
                             </li>

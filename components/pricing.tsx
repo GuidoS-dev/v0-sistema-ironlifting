@@ -95,18 +95,18 @@ export function Pricing() {
           <div className="mb-8 text-center">
             <Badge
               variant="outline"
-              className="mb-4 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547]"
+              className="mb-4 border-primary/30 bg-primary/10 text-primary"
             >
               Planes de Membresía
             </Badge>
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="mb-4 font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground sm:text-4xl">
               Elige tu plan
             </h2>
           </div>
 
           {/* Opportunity text */}
-          <div className="mx-auto mb-10 max-w-3xl rounded-lg border border-[#e8c547]/20 bg-[#e8c547]/5 p-6 text-center">
-            <Sparkles className="mx-auto mb-3 h-6 w-6 text-[#e8c547]" />
+          <div className="mx-auto mb-10 max-w-3xl rounded-lg border border-primary/20 bg-primary/5 p-6 text-center">
+            <Sparkles className="mx-auto mb-3 h-6 w-6 text-primary" />
             <p className="text-foreground leading-relaxed">
               <span className="font-semibold">
                 Una oportunidad única gracias a internet:
@@ -128,7 +128,7 @@ export function Pricing() {
             <Switch
               checked={isAnnual}
               onCheckedChange={setIsAnnual}
-              className="data-[state=checked]:bg-[#e8c547]"
+              className="data-[state=checked]:bg-primary"
             />
             <span
               className={`text-sm font-medium ${isAnnual ? "text-foreground" : "text-muted-foreground"}`}
@@ -136,7 +136,7 @@ export function Pricing() {
               Anual
             </span>
             {isAnnual && (
-              <Badge className="bg-[#e8c547] text-[#0a0c12]">35% OFF</Badge>
+              <Badge className="bg-primary text-primary-foreground">35% OFF</Badge>
             )}
           </div>
 
@@ -153,13 +153,13 @@ export function Pricing() {
               return (
                 <Card
                   key={plan.name}
-                  className={`relative flex flex-col border-border/50 bg-card ${
-                    plan.popular ? "border-[#e8c547] ring-1 ring-[#e8c547]" : ""
+                  className={`relative flex flex-col bg-card ${
+                    plan.popular ? "border-primary" : "border-border/50"
                   }`}
                 >
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-[#e8c547] text-[#0a0c12] px-3">
+                      <Badge className="bg-primary text-primary-foreground px-3">
                         Más elegido
                       </Badge>
                     </div>
@@ -191,7 +191,7 @@ export function Pricing() {
                       </div>
                       <Badge
                         variant="outline"
-                        className="mt-2 border-[#e8c547]/50 bg-[#e8c547]/10 text-[#e8c547]"
+                        className="mt-2 border-primary/50 bg-primary/10 text-primary"
                       >
                         35% OFF
                       </Badge>
@@ -200,13 +200,13 @@ export function Pricing() {
                     {/* Spots */}
                     <div
                       className={`mb-6 rounded-lg p-3 text-center ${
-                        plan.spots <= 5 ? "bg-[#e8c547]/10" : "bg-muted/50"
+                        plan.spots <= 5 ? "bg-primary/10" : "bg-muted/50"
                       }`}
                     >
                       <p
                         className={`text-sm font-medium ${
                           plan.spots <= 5
-                            ? "text-[#e8c547]"
+                            ? "text-primary"
                             : "text-muted-foreground"
                         }`}
                       >
@@ -219,7 +219,7 @@ export function Pricing() {
                     <ul className="space-y-3">
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#e8c547]" />
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                           <span className="text-sm text-muted-foreground">
                             {feature}
                           </span>
@@ -233,7 +233,7 @@ export function Pricing() {
                       asChild
                       className={`w-full ${
                         plan.popular
-                          ? "bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
+                          ? "bg-primary hover:bg-[var(--gold-light)] text-primary-foreground font-semibold"
                           : "bg-muted hover:bg-muted/80 text-foreground"
                       }`}
                     >
@@ -253,7 +253,7 @@ export function Pricing() {
 
           {/* Guarantee */}
           <div className="mt-10 flex items-center justify-center gap-3 text-center">
-            <Shield className="h-6 w-6 text-[#e8c547]" />
+            <Shield className="h-6 w-6 text-primary" />
             <p className="text-muted-foreground">
               <span className="font-semibold text-foreground">
                 Garantía de progreso real:

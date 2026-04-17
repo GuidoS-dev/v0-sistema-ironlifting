@@ -22,9 +22,12 @@ export function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <a href="#inicio" className="flex items-center gap-3">
+        <a
+          href="#inicio"
+          className="flex items-center gap-3 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
           <LogoILSolo size={36} />
-          <span className="font-[family-name:var(--font-display)] text-xl tracking-wider text-[#e8c547]">
+          <span className="font-[family-name:var(--font-display)] text-xl tracking-wider text-primary">
             IRONLIFTING
           </span>
         </a>
@@ -35,7 +38,7 @@ export function Navbar() {
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               {link.label}
             </a>
@@ -56,7 +59,7 @@ export function Navbar() {
           </Button>
           <Button
             asChild
-            className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
+            className="bg-primary hover:bg-[var(--gold-light)] text-primary-foreground font-semibold"
           >
             <a href="#planes">Elegir mi plan</a>
           </Button>
@@ -77,7 +80,7 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setIsOpen(false)}
-                  className="text-lg font-medium text-foreground transition-colors hover:text-primary"
+                  className="rounded-sm text-lg font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   {link.label}
                 </a>
@@ -94,7 +97,7 @@ export function Navbar() {
               </Button>
               <Button
                 asChild
-                className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold"
+                className="bg-primary hover:bg-[var(--gold-light)] text-primary-foreground font-semibold"
               >
                 <a href="#planes" onClick={() => setIsOpen(false)}>
                   Elegir mi plan

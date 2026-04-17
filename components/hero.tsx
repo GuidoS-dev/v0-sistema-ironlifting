@@ -1,8 +1,6 @@
-'use client'
-
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Trophy, Calendar, Target } from "lucide-react"
+import { Users, Trophy, Calendar, Target, ChevronDown } from "lucide-react"
 import { LogoHorizontal } from "@/components/logos"
 
 const stats = [
@@ -29,7 +27,7 @@ export function Hero() {
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-background/85" />
 
-      <div className="container relative z-10 mx-auto px-4 py-20 pb-32">
+      <div className="container relative z-10 mx-auto px-4 py-32">
         <div className="mx-auto max-w-4xl text-center">
           {/* Logo */}
           <div className="mb-8 flex justify-center">
@@ -39,15 +37,15 @@ export function Hero() {
           {/* Badge */}
           <Badge
             variant="outline"
-            className="mb-6 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547] px-4 py-1 max-w-full whitespace-normal text-center leading-snug"
+            className="mb-6 border-primary/30 bg-primary/10 text-primary px-4 py-1 max-w-full whitespace-normal text-center leading-snug"
           >
             Programación científica y técnica profesional para todos los niveles
           </Badge>
 
           {/* Headline */}
-          <h1 className="mb-6 text-balance font-[family-name:var(--font-display)] text-4xl tracking-wide text-foreground sm:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-balance font-[family-name:var(--font-display)] text-3xl tracking-wide text-foreground sm:text-5xl lg:text-6xl">
             TRANSFORMA TU ENTRENAMIENTO DE{" "}
-            <span className="text-[#e8c547]">HALTEROFILIA</span>
+            <span className="text-primary">HALTEROFILIA</span>
           </h1>
 
           {/* Subheadline */}
@@ -61,7 +59,7 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              className="bg-[#e8c547] hover:bg-[#f5d96a] text-[#0a0c12] font-semibold px-8"
+              className="bg-primary hover:bg-[var(--gold-light)] text-primary-foreground font-semibold px-8"
             >
               <a href="#planes">Comenzar ahora</a>
             </Button>
@@ -69,7 +67,7 @@ export function Hero() {
               asChild
               variant="outline"
               size="lg"
-              className="border-[#e8c547]/30 text-[#e8c547] hover:bg-[#e8c547]/10 px-8"
+              className="border-primary/30 text-primary hover:bg-primary/10 px-8"
             >
               <a href="#metodologia">Conocer metodología</a>
             </Button>
@@ -80,9 +78,9 @@ export function Hero() {
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="flex flex-col items-center rounded-lg border border-border/50 bg-card/50 p-4 backdrop-blur-sm"
+                className="flex flex-col items-center rounded-lg border border-border/60 bg-background/40 p-4"
               >
-                <stat.icon className="mb-2 h-6 w-6 text-[#e8c547]" />
+                <stat.icon className="mb-2 h-6 w-6 text-primary" />
                 <span className="text-2xl font-bold text-foreground">{stat.value}</span>
                 <span className="text-sm text-muted-foreground">{stat.label}</span>
               </div>
@@ -92,20 +90,14 @@ export function Hero() {
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-        <button 
-          onClick={() => {
-            const element = document.getElementById("metodologia") || document.querySelector("section:nth-of-type(2)")
-            element?.scrollIntoView({ behavior: "smooth" })
-          }}
-          className="flex flex-col items-center gap-3 text-[#e8c547] hover:text-[#f5d96a] transition-colors duration-300 group cursor-pointer"
-        >
-          <span className="text-sm font-semibold uppercase tracking-wider">Descubre más</span>
-          <div className="h-10 w-6 rounded-full border-2 border-[#e8c547] group-hover:border-[#f5d96a] p-2 transition-colors">
-            <div className="h-2 w-full rounded-full bg-[#e8c547] group-hover:bg-[#f5d96a] animate-bounce transition-colors" />
-          </div>
-        </button>
-      </div>
+      <a
+        href="#metodologia"
+        aria-label="Ir a metodología"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 rounded-sm text-primary opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <span className="text-xs font-medium uppercase tracking-wider">Descubre más</span>
+        <ChevronDown className="h-5 w-5" aria-hidden="true" />
+      </a>
     </section>
   )
 }

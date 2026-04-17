@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge"
 import { UserPlus, ClipboardList, Dumbbell } from "lucide-react"
 
 const steps = [
@@ -29,13 +28,10 @@ export function HowItWorks() {
         <div className="mx-auto max-w-6xl">
           {/* Header */}
           <div className="mb-12 text-center">
-            <Badge
-              variant="outline"
-              className="mb-4 border-[#e8c547]/30 bg-[#e8c547]/10 text-[#e8c547]"
-            >
+            <span className="mb-3 block text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               Cómo Funciona
-            </Badge>
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            </span>
+            <h2 className="mb-4 font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground sm:text-4xl">
               3 pasos para comenzar
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
@@ -49,23 +45,31 @@ export function HowItWorks() {
               <div key={step.number} className="relative">
                 {/* Connector line */}
                 {index < steps.length - 1 && (
-                  <div className="absolute left-1/2 top-12 hidden h-px w-full bg-border md:block" />
+                  <div className="absolute left-1/2 top-7 hidden h-px w-full bg-border md:block" />
                 )}
 
-                <div className="relative flex flex-col items-center text-center">
-                  {/* Number badge */}
-                  <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#e8c547] bg-[#e8c547]/10">
-                    <step.icon className="h-10 w-10 text-[#e8c547]" />
-                  </div>
-
-                  <span className="mb-2 text-sm font-bold text-[#e8c547]">
-                    PASO {step.number}
+                <div className="relative flex flex-col items-start gap-4 text-left sm:flex-row sm:items-center">
+                  {/* Big display number */}
+                  <span
+                    aria-hidden="true"
+                    className="font-[family-name:var(--font-display)] text-5xl leading-none tracking-wide text-primary/30 sm:text-6xl"
+                  >
+                    {step.number}
                   </span>
 
-                  <h3 className="mb-2 text-xl font-bold text-foreground">
+                  {/* Small icon circle */}
+                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-border bg-background">
+                    <step.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-primary">
+                    Paso {step.number}
+                  </span>
+                  <h3 className="mb-2 text-xl font-semibold text-foreground">
                     {step.title}
                   </h3>
-
                   <p className="text-muted-foreground leading-relaxed">
                     {step.description}
                   </p>
