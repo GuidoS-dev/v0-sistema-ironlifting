@@ -9,7 +9,7 @@
 | Rango (aprox.) | Sección                                      | Descripción                                                                                                                                                                                                                                                                                                                                                                                     |
 | -------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1–31           | **Imports**                                  | React (useState, useEffect, useRef, useCallback, useMemo), lucide-react icons (Download, Send, FileText, MessageCircle, ChevronLeft, ChevronDown, Minus, Plus, Pencil, Trash2, Library, Copy, Files, Clipboard, User, Briefcase, X, Undo2, Redo2, Droplets, Sprout, Zap, CloudMoon, LogOut, Shield, Search)                                                                                     |
-| 33             | **APP_VERSION**                              | `"1.4.0"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                                                                                    |
+| 33             | **APP_VERSION**                              | `"1.4.2"` — se muestra en loading screens y footer del login                                                                                                                                                                                                                                                                                                                                    |
 | 35–38          | **Supabase Config**                          | `SUPA_URL`, `SUPA_ANON`, `SUPA_CONFIG_OK`, `SUPA_TIMEOUT_MS` (10000ms)                                                                                                                                                                                                                                                                                                                          |
 | 38–82          | **Sanitización**                             | `toTitleCase`, `sanitizeStringInput`, `sanitizeInput` (anti prototype-pollution), `sanitizeRequestBody`                                                                                                                                                                                                                                                                                         |
 | 83–131         | **localStorage Safe**                        | `_freeLocalStorageSpace` (purga hist* y plt_draft*), `safeSetItem` (retry on QuotaExceededError)                                                                                                                                                                                                                                                                                                |
@@ -586,7 +586,7 @@ Focus: `requestAnimationFrame` + `focusPlanillaField()`
 
 | Constante                   | Línea  | Contenido                                                                                         |
 | --------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
-| `APP_VERSION`               | 33     | `"1.4.0"`                                                                                         |
+| `APP_VERSION`               | 33     | `"1.4.2"`                                                                                         |
 | `SUPA_TIMEOUT_MS`           | 38     | `10000` (10s)                                                                                     |
 | `SESSION_KEY`               | 133    | `"sb_session"`                                                                                    |
 | `PROFILE_KEY_PREFIX`        | 134    | `"sb_profile_"`                                                                                   |
@@ -762,9 +762,19 @@ Excepto pretemporada: `.pdf-table tr.pretemporada-row td[data-label]:has(.cell-e
 
 ### Conflict Resolution: Last-Write-Wins (LWW)
 
-- Compara `_updated_at` timestamps
+- Compara `_updated_at` timestamps con **`dbTs > localTs`** (estricto). Empate gana **local**.
+  - Motivo (fix v1.4.2): un pull inmediatamente posterior al propio push tiene `dbTs == localTs`; si DB ganara el empate, `restoreMesoOverrides` pisaría los 10 keys de localStorage y cualquier edición de override hecha entre el push y el pull se perdería (síntoma: celdas del sembrado "se vuelven a como estaban").
+  - Aplicado en `pullAtletas` (~L33757) y `pullMesociclos` (~L33852).
 - Delta sync: `updated_at > lastSyncTs`
 - Skips items pending delete (`pendingDelete*Ref`)
+
+### Flush de timers al ocultar/cerrar pestaña (`syncOverrides`)
+
+`visibilitychange(hidden)` y `beforeunload` llaman a `syncOverrides(useKeepalive)` (~L34043-L34110), que ahora vacía:
+
+1. Timers lentos (`atletaSyncTimerRef`, `mesoSyncTimerRef`) — ya existía.
+2. **Timers de overrides** (`mesoOverrideSyncTimersRef`, `atletaOverrideSyncTimersRef`, 800ms) — fix v1.4.2. Antes se perdía la escritura si el usuario cambiaba de pestaña dentro de esos 800ms (especialmente en mobile).
+3. `flushPlantillaSync()` — ya existía.
 
 ---
 

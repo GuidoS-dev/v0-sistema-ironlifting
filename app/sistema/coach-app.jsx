@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.4.1";
+const APP_VERSION = "1.4.2";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -33754,7 +33754,10 @@ function CoachApp({ session, profile, onLogout }) {
             const localTs = local._updated_at
               ? new Date(local._updated_at).getTime()
               : 0;
-            if (dbTs >= localTs) {
+            // LWW: empate (dbTs === localTs) gana local — evita que un pull
+            // que trae nuestra propia escritura pise overrides editados después
+            // del push sin haber bumpeado _updated_at del meso.
+            if (dbTs > localTs) {
               // DB gana — restaurar overrides de DB
               const raw = appAtletas.find((r) => r.app_id === dbItem.id);
               if (raw) {
@@ -33849,7 +33852,8 @@ function CoachApp({ session, profile, onLogout }) {
             const localTs = local._updated_at
               ? new Date(local._updated_at).getTime()
               : 0;
-            if (dbTs >= localTs) {
+            // LWW: empate gana local — ver nota en pullAtletas.
+            if (dbTs > localTs) {
               // DB gana — restaurar overrides de DB
               const raw = appMesos.find((r) => r.app_id === dbItem.id);
               if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
@@ -34066,6 +34070,44 @@ function CoachApp({ session, profile, onLogout }) {
           sb.from("atletas")
             .upsert(
               currAtletas.map((a) => atletaToDb(a, coachId)),
+              { onConflict: "app_id" },
+            )
+            .catch(() => {});
+        }
+      }
+      // Flush de timers de OVERRIDES (800ms) — los de celdas/sembrado, que
+      // son los que más frecuentemente se pierden al ocultar/cerrar pestaña.
+      const pendingMesoOvrIds = Array.from(
+        mesoOverrideSyncTimersRef.current.keys(),
+      );
+      if (pendingMesoOvrIds.length > 0) {
+        mesoOverrideSyncTimersRef.current.forEach((t) => clearTimeout(t));
+        mesoOverrideSyncTimersRef.current.clear();
+        const mesosToFlush = mesociclosRef.current.filter((m) =>
+          pendingMesoOvrIds.includes(m.id),
+        );
+        if (mesosToFlush.length > 0) {
+          sb.from("mesociclos")
+            .upsert(
+              mesosToFlush.map((m) => mesoToDb(m, coachId)),
+              { onConflict: "app_id" },
+            )
+            .catch(() => {});
+        }
+      }
+      const pendingAtletaOvrIds = Array.from(
+        atletaOverrideSyncTimersRef.current.keys(),
+      );
+      if (pendingAtletaOvrIds.length > 0) {
+        atletaOverrideSyncTimersRef.current.forEach((t) => clearTimeout(t));
+        atletaOverrideSyncTimersRef.current.clear();
+        const atletasToFlush = atletasRef.current.filter((a) =>
+          pendingAtletaOvrIds.includes(a.id),
+        );
+        if (atletasToFlush.length > 0) {
+          sb.from("atletas")
+            .upsert(
+              atletasToFlush.map((a) => atletaToDb(a, coachId)),
               { onConflict: "app_id" },
             )
             .catch(() => {});
