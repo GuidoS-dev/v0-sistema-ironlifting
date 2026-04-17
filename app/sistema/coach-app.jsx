@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.12";
+const APP_VERSION = "1.4.0";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -4626,6 +4626,8 @@ function EjercicioRow({
         <option value={1}>Tabla 1</option>
         <option value={2}>Tabla 2</option>
         <option value={3}>Tabla 3</option>
+        <option value={4}>Tabla 4</option>
+        <option value={5}>Tabla 5</option>
       </select>
       <input
         name="field_3"
@@ -5234,10 +5236,9 @@ function calcSeriesRepsKg(
   const kgBase =
     ejData.pct_base && irmAtleta ? (irmAtleta * ejData.pct_base) / 100 : null;
 
-  // Tabla de distribución de intensidades (T1, T2 o T3)
+  // Tabla de distribución de intensidades (T1..T5)
   // El índice de fila es la intensidad del ejercicio en el sembrado (ej.intensidad: 65-95)
-  const tablaKey =
-    ej.tabla === 2 ? "tabla2" : ej.tabla === 3 ? "tabla3" : "tabla1";
+  const tablaKey = `tabla${Math.min(5, Math.max(1, Number(ej.tabla) || 1))}`;
   const tablaData = tablas[tablaKey];
   const tablaRow = tablaData?.find((r) => r.irm === Number(ej.intensidad));
 
@@ -14724,6 +14725,72 @@ const TABLA_DEFAULT = {
     { irm: 94, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 10, 95: 80 },
     { irm: 95, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 0, 90: 0, 95: 100 },
   ],
+  tabla4: [
+    { irm: 65, 50: 19, 60: 27, 70: 38, 75: 11, 80: 5, 85: 0, 90: 0, 95: 0 },
+    { irm: 66, 50: 18, 60: 24, 70: 35, 75: 15, 80: 8, 85: 0, 90: 0, 95: 0 },
+    { irm: 67, 50: 16, 60: 21, 70: 34, 75: 16.5, 80: 12.5, 85: 0, 90: 0, 95: 0 },
+    { irm: 68, 50: 15, 60: 19, 70: 31, 75: 17.5, 80: 17.5, 85: 0, 90: 0, 95: 0 },
+    { irm: 69, 50: 14, 60: 16, 70: 27, 75: 25, 80: 18, 85: 0, 90: 0, 95: 0 },
+    { irm: 70, 50: 0, 60: 24, 70: 37, 75: 24.4, 80: 10.6, 85: 4, 90: 0, 95: 0 },
+    { irm: 71, 50: 0, 60: 20, 70: 36, 75: 26, 80: 12, 85: 6, 90: 0, 95: 0 },
+    { irm: 72, 50: 0, 60: 20, 70: 32, 75: 28, 80: 14, 85: 6, 90: 0, 95: 0 },
+    { irm: 73, 50: 0, 60: 16, 70: 27, 75: 28, 80: 19, 85: 7, 90: 3, 95: 0 },
+    { irm: 74, 50: 0, 60: 12, 70: 26, 75: 27, 80: 23, 85: 8, 90: 4, 95: 0 },
+    { irm: 75, 50: 0, 60: 13, 70: 19, 75: 24, 80: 26, 85: 13, 90: 5, 95: 0 },
+    { irm: 76, 50: 0, 60: 11, 70: 20, 75: 22.2, 80: 20.8, 85: 20, 90: 6, 95: 0 },
+    { irm: 77, 50: 0, 60: 8, 70: 17, 75: 22, 80: 25, 85: 21, 90: 7, 95: 0 },
+    { irm: 78, 50: 0, 60: 8, 70: 19, 75: 18, 80: 23, 85: 22, 90: 8, 95: 2 },
+    { irm: 79, 50: 0, 60: 0, 70: 19, 75: 21, 80: 26, 85: 24, 90: 10, 95: 0 },
+    { irm: 80, 50: 0, 60: 0, 70: 18, 75: 18, 80: 25, 85: 24, 90: 15, 95: 0 },
+    { irm: 81, 50: 0, 60: 0, 70: 10, 75: 20, 80: 28, 85: 22, 90: 15, 95: 5 },
+    { irm: 82, 50: 0, 60: 0, 70: 0, 75: 0, 80: 70, 85: 20, 90: 10, 95: 0 },
+    { irm: 83, 50: 0, 60: 0, 70: 0, 75: 0, 80: 50, 85: 40, 90: 10, 95: 0 },
+    { irm: 84, 50: 0, 60: 0, 70: 0, 75: 0, 80: 40, 85: 40, 90: 20, 95: 0 },
+    { irm: 85, 50: 0, 60: 0, 70: 0, 75: 0, 80: 30, 85: 40, 90: 30, 95: 0 },
+    { irm: 86, 50: 0, 60: 0, 70: 0, 75: 0, 80: 25, 85: 40, 90: 25, 95: 10 },
+    { irm: 87, 50: 0, 60: 0, 70: 0, 75: 0, 80: 10, 85: 50, 90: 30, 95: 10 },
+    { irm: 88, 50: 0, 60: 0, 70: 0, 75: 0, 80: 10, 85: 40, 90: 30, 95: 20 },
+    { irm: 89, 50: 0, 60: 0, 70: 0, 75: 0, 80: 10, 85: 20, 90: 50, 95: 20 },
+    { irm: 90, 50: 0, 60: 0, 70: 10, 75: 20, 80: 28, 85: 22, 90: 15, 95: 5 },
+    { irm: 91, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 70, 95: 20 },
+    { irm: 92, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 50, 95: 40 },
+    { irm: 93, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 30, 95: 60 },
+    { irm: 94, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 10, 95: 80 },
+    { irm: 95, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 0, 90: 0, 95: 100 },
+  ],
+  tabla5: [
+    { irm: 65, 50: 19, 60: 27, 70: 38, 75: 11, 80: 5, 85: 0, 90: 0, 95: 0 },
+    { irm: 66, 50: 18, 60: 24, 70: 35, 75: 15, 80: 8, 85: 0, 90: 0, 95: 0 },
+    { irm: 67, 50: 16, 60: 21, 70: 34, 75: 16.5, 80: 12.5, 85: 0, 90: 0, 95: 0 },
+    { irm: 68, 50: 15, 60: 19, 70: 31, 75: 17.5, 80: 17.5, 85: 0, 90: 0, 95: 0 },
+    { irm: 69, 50: 14, 60: 16, 70: 27, 75: 25, 80: 18, 85: 0, 90: 0, 95: 0 },
+    { irm: 70, 50: 0, 60: 24, 70: 37, 75: 24.4, 80: 10.6, 85: 4, 90: 0, 95: 0 },
+    { irm: 71, 50: 0, 60: 20, 70: 36, 75: 26, 80: 12, 85: 6, 90: 0, 95: 0 },
+    { irm: 72, 50: 0, 60: 20, 70: 32, 75: 28, 80: 14, 85: 6, 90: 0, 95: 0 },
+    { irm: 73, 50: 0, 60: 16, 70: 27, 75: 28, 80: 19, 85: 7, 90: 3, 95: 0 },
+    { irm: 74, 50: 0, 60: 12, 70: 26, 75: 27, 80: 23, 85: 8, 90: 4, 95: 0 },
+    { irm: 75, 50: 0, 60: 13, 70: 19, 75: 24, 80: 26, 85: 13, 90: 5, 95: 0 },
+    { irm: 76, 50: 0, 60: 11, 70: 20, 75: 22.2, 80: 20.8, 85: 20, 90: 6, 95: 0 },
+    { irm: 77, 50: 0, 60: 8, 70: 17, 75: 22, 80: 25, 85: 21, 90: 7, 95: 0 },
+    { irm: 78, 50: 0, 60: 8, 70: 19, 75: 18, 80: 23, 85: 22, 90: 8, 95: 2 },
+    { irm: 79, 50: 0, 60: 0, 70: 19, 75: 21, 80: 26, 85: 24, 90: 10, 95: 0 },
+    { irm: 80, 50: 0, 60: 0, 70: 18, 75: 18, 80: 25, 85: 24, 90: 15, 95: 0 },
+    { irm: 81, 50: 0, 60: 0, 70: 10, 75: 20, 80: 28, 85: 22, 90: 15, 95: 5 },
+    { irm: 82, 50: 0, 60: 0, 70: 0, 75: 0, 80: 70, 85: 20, 90: 10, 95: 0 },
+    { irm: 83, 50: 0, 60: 0, 70: 0, 75: 0, 80: 50, 85: 40, 90: 10, 95: 0 },
+    { irm: 84, 50: 0, 60: 0, 70: 0, 75: 0, 80: 40, 85: 40, 90: 20, 95: 0 },
+    { irm: 85, 50: 0, 60: 0, 70: 0, 75: 0, 80: 30, 85: 40, 90: 30, 95: 0 },
+    { irm: 86, 50: 0, 60: 0, 70: 0, 75: 0, 80: 25, 85: 40, 90: 25, 95: 10 },
+    { irm: 87, 50: 0, 60: 0, 70: 0, 75: 0, 80: 10, 85: 50, 90: 30, 95: 10 },
+    { irm: 88, 50: 0, 60: 0, 70: 0, 75: 0, 80: 10, 85: 40, 90: 30, 95: 20 },
+    { irm: 89, 50: 0, 60: 0, 70: 0, 75: 0, 80: 10, 85: 20, 90: 50, 95: 20 },
+    { irm: 90, 50: 0, 60: 0, 70: 10, 75: 20, 80: 28, 85: 22, 90: 15, 95: 5 },
+    { irm: 91, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 70, 95: 20 },
+    { irm: 92, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 50, 95: 40 },
+    { irm: 93, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 30, 95: 60 },
+    { irm: 94, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 10, 90: 10, 95: 80 },
+    { irm: 95, 50: 0, 60: 0, 70: 0, 75: 0, 80: 0, 85: 0, 90: 0, 95: 100 },
+  ],
   lookup_general: [
     { intens: 50, modo: "Prep", reps: 1, series: 1, reps_serie: 1 },
     { intens: 50, modo: "Prep", reps: 2, series: 1, reps_serie: 2 },
@@ -15712,7 +15779,7 @@ function EjCelda({
       <button
         type="button"
         onClick={() =>
-          onChange({ ...ej, tabla: ej.tabla >= 3 ? 1 : ej.tabla + 1 })
+          onChange({ ...ej, tabla: ej.tabla >= 5 ? 1 : ej.tabla + 1 })
         }
         onKeyDown={(e) => {
           const byCode =
@@ -15722,9 +15789,13 @@ function EjCelda({
                 ? 2
                 : e.code === "Digit3" || e.code === "Numpad3"
                   ? 3
-                  : null;
+                  : e.code === "Digit4" || e.code === "Numpad4"
+                    ? 4
+                    : e.code === "Digit5" || e.code === "Numpad5"
+                      ? 5
+                      : null;
           const byKey =
-            e.key === "1" ? 1 : e.key === "2" ? 2 : e.key === "3" ? 3 : null;
+            e.key === "1" ? 1 : e.key === "2" ? 2 : e.key === "3" ? 3 : e.key === "4" ? 4 : e.key === "5" ? 5 : null;
           const picked = byCode || byKey;
           if (!picked) return;
           e.preventDefault();
@@ -15750,9 +15821,9 @@ function EjCelda({
           justifyContent: "center",
           gap: 2,
         }}
-        title="Tabla (click para alternar, teclas 1/2/3 para seleccionar)"
+        title="Tabla (click para alternar, teclas 1-5 para seleccionar)"
       >
-        <span>{`T${Math.min(3, Math.max(1, Number(ej.tabla) || 1))}`}</span>
+        <span>{`T${Math.min(5, Math.max(1, Number(ej.tabla) || 1))}`}</span>
         <span style={{ color: "var(--muted)", fontSize: 9 }}>▼</span>
       </button>
 
@@ -30242,12 +30313,17 @@ function PageNormativos({ coachId, isActive = false }) {
 
 // ─── PAGE CALCULADORA ────────────────────────────────────────────────────────
 function PageCalculadora({ coachId }) {
+  const DEFAULT_DESCRIPTIONS = {
+    tabla1: "", tabla2: "", tabla3: "", tabla4: "", tabla5: "",
+  };
+
   const normalizeTablas = (value) => {
-    if (!value || typeof value !== "object") return TABLA_DEFAULT;
+    if (!value || typeof value !== "object") return { ...TABLA_DEFAULT, _descriptions: { ...DEFAULT_DESCRIPTIONS } };
     const merged = { ...TABLA_DEFAULT };
     Object.keys(TABLA_DEFAULT).forEach((k) => {
       if (Array.isArray(value[k])) merged[k] = value[k];
     });
+    merged._descriptions = { ...DEFAULT_DESCRIPTIONS, ...(value._descriptions || {}) };
     return merged;
   };
 
@@ -30913,6 +30989,8 @@ function PageCalculadora({ coachId }) {
                 { id: "tabla1", label: "Tabla 1" },
                 { id: "tabla2", label: "Tabla 2" },
                 { id: "tabla3", label: "Tabla 3" },
+                { id: "tabla4", label: "Tabla 4" },
+                { id: "tabla5", label: "Tabla 5" },
               ].map((t) => (
                 <button
                   key={t.id}
@@ -30931,9 +31009,10 @@ function PageCalculadora({ coachId }) {
                         ? "2px solid var(--gold)"
                         : "2px solid transparent",
                     transition: "all .2s",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {t.label}
+                  {t.label}{tablas._descriptions?.[t.id] ? ` — ${tablas._descriptions[t.id]}` : ""}
                 </button>
               ))
             : [
@@ -30965,6 +31044,33 @@ function PageCalculadora({ coachId }) {
         </div>
       </div>
 
+      {/* Descripción editable por tabla (solo sección IRM) */}
+      {seccion === "irm" && (
+        <div style={{ padding: "8px 16px 0" }}>
+          <input
+            type="text"
+            value={tablas._descriptions?.[tabIRM] || ""}
+            onChange={(e) => {
+              const newDescriptions = { ...tablas._descriptions, [tabIRM]: e.target.value };
+              saveTablas({ ...tablas, _descriptions: newDescriptions });
+            }}
+            placeholder="Descripción (ej: Principiantes, Avanzados...)"
+            style={{
+              width: "100%",
+              padding: "6px 10px",
+              background: "var(--bg2)",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              color: "var(--fg)",
+              fontFamily: "'DM Sans'",
+              fontSize: 12,
+              outline: "none",
+            }}
+            maxLength={60}
+          />
+        </div>
+      )}
+
       {/* Contenido */}
       <div className="card">
         {seccion === "irm" ? renderTablaIRM(tabIRM) : renderLookup(tabSR)}
@@ -30974,12 +31080,9 @@ function PageCalculadora({ coachId }) {
       {testIRM &&
         (() => {
           const { tablaKey, origRow, editRow } = testIRM;
-          const tablaLabel =
-            tablaKey === "tabla1"
-              ? "Tabla 1"
-              : tablaKey === "tabla2"
-                ? "Tabla 2"
-                : "Tabla 3";
+          const tablaNum = tablaKey.replace("tabla", "");
+          const tablaDesc = tablas._descriptions?.[tablaKey];
+          const tablaLabel = `Tabla ${tablaNum}${tablaDesc ? ` — ${tablaDesc}` : ""}`;
           const stepVal = (col, delta) => {
             const key = String(col);
             const cur = editRow[key] || 0;
