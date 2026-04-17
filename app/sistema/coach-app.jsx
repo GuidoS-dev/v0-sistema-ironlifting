@@ -39,7 +39,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.4";
+const APP_VERSION = "1.3.5";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -486,6 +486,7 @@ const sb = {
       const access_token = params.get("access_token");
       const refresh_token = params.get("refresh_token");
       const token_type = params.get("token_type");
+      const type = params.get("type"); // "signup", "recovery", "magiclink"
       if (!access_token) return null;
       // Fetch user info with the token
       const r = await _fetchWithTimeout(`${SUPA_URL}/auth/v1/user`, {
@@ -502,6 +503,7 @@ const sb = {
         refresh_token,
         token_type: token_type || "bearer",
         user: data,
+        _callbackType: type || null,
       };
       _session = session;
       saveSession(session);
@@ -21184,9 +21186,13 @@ function PageResumen({
           if (rT === 0) return;
           let kg = bloque.kg != null ? Number(bloque.kg) : null;
           if (kg == null && bloque.pct) {
-            const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+            const irm =
+              ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
             if (irm && ejData.pct_base)
-              kg = Math.round(((irm * ejData.pct_base / 100 * bloque.pct / 100) * 2)) / 2;
+              kg =
+                Math.round(
+                  ((((irm * ejData.pct_base) / 100) * bloque.pct) / 100) * 2,
+                ) / 2;
           }
           vR += rT;
           vK += rT * (kg || 0);
@@ -21277,9 +21283,10 @@ function PageResumen({
     return {
       label: `Sem ${sem.numero}`,
       pct: sem.pct_volumen ?? null,
-      plan: meso.volumen_total && sem.pct_volumen
-        ? Math.round((meso.volumen_total * sem.pct_volumen) / 100)
-        : null,
+      plan:
+        meso.volumen_total && sem.pct_volumen
+          ? Math.round((meso.volumen_total * sem.pct_volumen) / 100)
+          : null,
       ...calcMetricas(pairs),
     };
   });
@@ -22577,9 +22584,16 @@ function PagePDF({
               if (rT === 0) return;
               let kg = bloque.kg != null ? Number(bloque.kg) : null;
               if (kg == null && bloque.pct) {
-                const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+                const irm =
+                  ejData.base === "arranque"
+                    ? Number(irm_arr)
+                    : Number(irm_env);
                 if (irm && ejData.pct_base)
-                  kg = Math.round(((irm * ejData.pct_base / 100 * bloque.pct / 100) * 2)) / 2;
+                  kg =
+                    Math.round(
+                      ((((irm * ejData.pct_base) / 100) * bloque.pct) / 100) *
+                        2,
+                    ) / 2;
               }
               vR += rT;
               vK += rT * (kg || 0);
@@ -23011,7 +23025,9 @@ function PagePDF({
           row.cols.forEach((col) => {
             result.push({
               id: ej.id + (row.cols.length > 1 ? `-${col.pct || ""}` : ""),
-              name: row.nombre + (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
+              name:
+                row.nombre +
+                (row.cols.length > 1 && col.pct ? ` (${col.pct}%)` : ""),
               category: row.categoria,
               kg: col.kg || null,
               reps: col.r ? String(col.r) : null,
@@ -23029,7 +23045,8 @@ function PagePDF({
           row.cols.forEach((col) => {
             result.push({
               id: ej.id + (row.cols.length > 1 ? `-${col.intens}` : ""),
-              name: row.nombre + (row.cols.length > 1 ? ` (${col.intens}%)` : ""),
+              name:
+                row.nombre + (row.cols.length > 1 ? ` (${col.intens}%)` : ""),
               category: row.categoria,
               kg: col.kg || null,
               reps: col.r ? String(col.r) : null,
@@ -23055,9 +23072,13 @@ function PagePDF({
       .map((bloque) => {
         let kg = bloque.kg != null ? Number(bloque.kg) : null;
         if (kg == null && bloque.pct) {
-          const irm = ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+          const irm =
+            ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
           if (irm && ejData.pct_base)
-            kg = Math.round(((irm * ejData.pct_base / 100 * bloque.pct / 100) * 2)) / 2;
+            kg =
+              Math.round(
+                ((((irm * ejData.pct_base) / 100) * bloque.pct) / 100) * 2,
+              ) / 2;
         }
         return {
           pct: bloque.pct,
@@ -24799,7 +24820,8 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                   const hasEscuelaRows = rows.some(
                                     (r) => r.isEscuelaRow,
                                   );
-                                  const hasPctCol = hasPretemporadaRows || hasEscuelaRows;
+                                  const hasPctCol =
+                                    hasPretemporadaRows || hasEscuelaRows;
 
                                   if (
                                     hasCompBloques &&
@@ -24851,7 +24873,8 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                   const hasEscuelaRows2 = rows.some(
                                     (r) => r.isEscuelaRow,
                                   );
-                                  const hasPctCol2 = hasPretemporadaRows || hasEscuelaRows2;
+                                  const hasPctCol2 =
+                                    hasPretemporadaRows || hasEscuelaRows2;
 
                                   if (
                                     hasCompBloques &&
@@ -24868,17 +24891,14 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                         <div
                                           style={{
                                             display: "grid",
-                                            gridTemplateColumns:
-                                              hasPctCol2
-                                                ? "1fr 1fr 1fr 1fr"
-                                                : "1fr 1fr 1fr",
+                                            gridTemplateColumns: hasPctCol2
+                                              ? "1fr 1fr 1fr 1fr"
+                                              : "1fr 1fr 1fr",
                                             gap: 0,
                                             fontSize: 6.5,
                                           }}
                                         >
-                                          {hasPctCol2 && (
-                                            <span>%</span>
-                                          )}
+                                          {hasPctCol2 && <span>%</span>}
                                           <span>Ser</span>
                                           <span>Rep</span>
                                           <span>Kg</span>
@@ -25074,7 +25094,8 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                                     data-label={
                                                       col?.pct != null
                                                         ? `${col.pct}%`
-                                                        : (row.isPretemporadaRow || row.isEscuelaRow)
+                                                        : row.isPretemporadaRow ||
+                                                            row.isEscuelaRow
                                                           ? `B${bIdx + 1}`
                                                           : ""
                                                     }
@@ -25091,14 +25112,16 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                                   data-label={
                                                     col?.pct != null
                                                       ? `${col.pct}%`
-                                                      : (row.isPretemporadaRow || row.isEscuelaRow)
+                                                      : row.isPretemporadaRow ||
+                                                          row.isEscuelaRow
                                                         ? `B${bIdx + 1}`
                                                         : ""
                                                   }
                                                   style={{ background: gb }}
                                                 >
                                                   <div className="cell-data">
-                                                    {(row.isPretemporadaRow || row.isEscuelaRow) &&
+                                                    {(row.isPretemporadaRow ||
+                                                      row.isEscuelaRow) &&
                                                       col.pct != null && (
                                                         <span className="cell-pct-pretemp">
                                                           {col.pct}%
@@ -32566,10 +32589,12 @@ function PanelReferencia({
 // AUTH — Login / Register screens
 // ═══════════════════════════════════════════════════════════════
 
-function LoginScreen({ onAuth }) {
-  const [mode, setMode] = useState("login");
+function LoginScreen({ onAuth, recoveryMode: initialRecovery = false }) {
+  const [mode, setMode] = useState(initialRecovery ? "recovery" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [nombre, setNombre] = useState("");
   const [rol, setRol] = useState("atleta");
   const [codigoCoach, setCodigoCoach] = useState("");
@@ -32577,34 +32602,58 @@ function LoginScreen({ onAuth }) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [logs, setLogs] = useState([]);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState(0);
 
   const log = (txt, type = "info") => {
     const ts = new Date().toLocaleTimeString();
     setLogs((prev) => [...prev.slice(-15), { ts, txt, type }]);
   };
 
+  const normalizeEmail = (e) => e.trim().toLowerCase();
+
   const handleLogin = async () => {
     if (!email || !password) {
       setError("Completá email y contraseña");
       return;
     }
+    // Client-side rate limit
+    const now = Date.now();
+    if (lockoutUntil > now) {
+      const secs = Math.ceil((lockoutUntil - now) / 1000);
+      setError(`Demasiados intentos. Esperá ${secs}s.`);
+      return;
+    }
     setLoading(true);
     setError("");
     const { data, error } = await sb.auth.signInWithPassword({
-      email,
+      email: normalizeEmail(email),
       password,
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      const attempts = loginAttempts + 1;
+      setLoginAttempts(attempts);
+      if (attempts >= 5) {
+        setLockoutUntil(Date.now() + 30000);
+        setLoginAttempts(0);
+        setError("Demasiados intentos fallidos. Esperá 30 segundos.");
+      } else {
+        setError(error.message);
+      }
       return;
     }
+    setLoginAttempts(0);
     onAuth(data.session);
   };
 
   const handleRegister = async () => {
     if (!email || !password) {
       setError("Completá email y contraseña");
+      return;
+    }
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
       return;
     }
     setLoading(true);
@@ -32638,9 +32687,12 @@ function LoginScreen({ onAuth }) {
       }
     }
 
-    const registeredNombre = toTitleCase(nombre || email.split("@")[0]);
+    const normalizedEmail = normalizeEmail(email);
+    const registeredNombre = toTitleCase(
+      nombre || normalizedEmail.split("@")[0],
+    );
     const { data, error } = await sb.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         data: { nombre: registeredNombre, rol },
@@ -32657,7 +32709,11 @@ function LoginScreen({ onAuth }) {
     fetch("/api/notify-registration", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, nombre: registeredNombre, tipo: rol }),
+      body: JSON.stringify({
+        email: normalizedEmail,
+        nombre: registeredNombre,
+        tipo: rol,
+      }),
     }).catch(() => {});
     setError("");
     setMsg(
@@ -32672,15 +32728,61 @@ function LoginScreen({ onAuth }) {
       setError("Ingresá tu email primero");
       return;
     }
+    if (loading) return;
     setLoading(true);
     setError("");
-    const { error } = await sb.auth.resetPasswordForEmail(email);
+    const { error } = await sb.auth.resetPasswordForEmail(
+      normalizeEmail(email),
+    );
     setLoading(false);
     if (error) {
       setError(error.message);
       return;
     }
     setMsg("Se envió un link para restablecer tu contraseña.");
+  };
+
+  const handleRecovery = async () => {
+    if (!newPassword) {
+      setError("Ingresá tu nueva contraseña");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const r = await _fetchWithTimeout(`${SUPA_URL}/auth/v1/user`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPA_ANON,
+          Authorization: `bearer ${_session?.access_token}`,
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const { data, raw } = await _readResponseSafe(r);
+      setLoading(false);
+      if (!r.ok) {
+        setError(
+          _authErrorMessage(
+            r.status,
+            data,
+            raw,
+            "No se pudo cambiar la contraseña.",
+          ),
+        );
+        return;
+      }
+      setMsg("Contraseña actualizada. Ya podés ingresar.");
+      setMode("login");
+      setNewPassword("");
+    } catch {
+      setLoading(false);
+      setError("No se pudo conectar con Supabase.");
+    }
   };
 
   return (
@@ -32726,7 +32828,8 @@ function LoginScreen({ onAuth }) {
             padding: 28,
           }}
         >
-          {/* Tabs login/register */}
+          {/* Tabs login/register — hide in recovery mode */}
+          {mode !== "recovery" && (
           <div
             style={{
               display: "flex",
@@ -32747,6 +32850,8 @@ function LoginScreen({ onAuth }) {
                   setMode(v);
                   setError("");
                   setMsg("");
+                  setPassword("");
+                  setShowPassword(false);
                   setRol("atleta");
                   setCodigoCoach("");
                 }}
@@ -32769,11 +32874,14 @@ function LoginScreen({ onAuth }) {
               </button>
             ))}
           </div>
+          )}
 
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              mode === "login" ? handleLogin() : handleRegister();
+              if (mode === "recovery") handleRecovery();
+              else if (mode === "login") handleLogin();
+              else handleRegister();
             }}
             style={{ display: "flex", flexDirection: "column", gap: 14 }}
           >
@@ -32872,34 +32980,113 @@ function LoginScreen({ onAuth }) {
               </>
             )}
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Email</label>
-              <input
-                name="field_92"
-                className="form-input"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@ejemplo.com"
-              />
-            </div>
+            {mode === "recovery" ? (
+              <>
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: "var(--text)",
+                    textAlign: "center",
+                    marginBottom: 4,
+                  }}
+                >
+                  Ingresá tu nueva contraseña
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Nueva contraseña</label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      name="field_95"
+                      className="form-input"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      style={{ paddingRight: 40 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      style={{
+                        position: "absolute",
+                        right: 8,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: "var(--muted)",
+                        cursor: "pointer",
+                        fontSize: 16,
+                        padding: 4,
+                        lineHeight: 1,
+                      }}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? "🙈" : "👁"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Email</label>
+                  <input
+                    name="field_92"
+                    className="form-input"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@ejemplo.com"
+                  />
+                </div>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Contraseña</label>
-              <input
-                name="field_93"
-                className="form-input"
-                type="password"
-                autoComplete={
-                  mode === "register" ? "new-password" : "current-password"
-                }
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={
-                  mode === "register" ? "Mínimo 6 caracteres" : "Tu contraseña"
-                }
-              />
-            </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Contraseña</label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      name="field_93"
+                      className="form-input"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete={
+                        mode === "register"
+                          ? "new-password"
+                          : "current-password"
+                      }
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={
+                        mode === "register"
+                          ? "Mínimo 6 caracteres"
+                          : "Tu contraseña"
+                      }
+                      style={{ paddingRight: 40 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      style={{
+                        position: "absolute",
+                        right: 8,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: "var(--muted)",
+                        cursor: "pointer",
+                        fontSize: 16,
+                        padding: 4,
+                        lineHeight: 1,
+                      }}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? "🙈" : "👁"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
             {error && (
               <div
@@ -32945,25 +33132,29 @@ function LoginScreen({ onAuth }) {
             >
               {loading
                 ? "Procesando…"
-                : mode === "login"
-                  ? "Ingresar"
-                  : rol === "coach"
-                    ? "Crear cuenta Coach"
-                    : "Crear cuenta Atleta"}
+                : mode === "recovery"
+                  ? "Guardar nueva contraseña"
+                  : mode === "login"
+                    ? "Ingresar"
+                    : rol === "coach"
+                      ? "Crear cuenta Coach"
+                      : "Crear cuenta Atleta"}
             </button>
 
             {mode === "login" && (
               <button
                 type="button"
                 onClick={handleForgot}
+                disabled={loading}
                 style={{
                   background: "none",
                   border: "none",
                   color: "var(--muted)",
                   fontSize: 12,
-                  cursor: "pointer",
+                  cursor: loading ? "default" : "pointer",
                   textAlign: "center",
                   padding: "4px",
+                  opacity: loading ? 0.5 : 1,
                 }}
               >
                 Olvidé mi contraseña
@@ -35645,6 +35836,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   const withTimeout = useCallback((promise, ms) => {
     return Promise.race([
@@ -35679,6 +35871,13 @@ export default function App() {
         // First, check if this is a callback from email confirmation/recovery
         const callbackSession = await sb._handleEmailCallback();
         if (callbackSession && mounted) {
+          if (callbackSession._callbackType === "recovery") {
+            // Password recovery — show reset form instead of logging in
+            setRecoveryMode(true);
+            setSession(callbackSession);
+            setAuthLoading(false);
+            return;
+          }
           setSession(callbackSession);
           if (callbackSession.user?.id) {
             void loadProfile(callbackSession.user.id);
@@ -35804,8 +36003,8 @@ export default function App() {
     );
   }
 
-  // Not logged in
-  if (!session) {
+  // Not logged in (or recovery mode — show password reset form)
+  if (!session || recoveryMode) {
     return (
       <>
         <style>{`
@@ -35822,7 +36021,7 @@ export default function App() {
           .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
         `}</style>
-        <LoginScreen onAuth={setSession} />
+        <LoginScreen onAuth={(s) => { setRecoveryMode(false); setSession(s); }} recoveryMode={recoveryMode} />
       </>
     );
   }
