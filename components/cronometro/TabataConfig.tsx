@@ -65,6 +65,7 @@ function ConfigRow({
           letterSpacing: ".06em",
           textTransform: "uppercase",
           marginBottom: 8,
+          textAlign: "center",
         }}
       >
         {label}

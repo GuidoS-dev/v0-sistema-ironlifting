@@ -893,7 +893,7 @@ export function TabataTimer({
         {phase === "idle" && disabledExercises.length > 0 && (
           <div
             style={{
-              margin: "0 16px",
+              margin: "16px 16px 0",
               padding: "0 0 16px",
               flexShrink: 0,
               display: "flex",
