@@ -433,74 +433,57 @@ export function TabataTimer({
                     background: "var(--card)",
                     border: "1px solid var(--gold-dark)",
                     borderRadius: 12,
-                    padding: "10px 14px",
+                    padding: "12px 16px",
                     display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
+                    alignItems: "center",
+                    gap: 10,
                     boxShadow: "0 0 12px color-mix(in srgb, var(--gold-dark) 20%, transparent)",
                   }}
                 >
-                  {/* Name row */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {/* Badge */}
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: "3px 7px",
+                      borderRadius: 5,
+                      background: nc,
+                      color: "var(--card)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {currentExerciseIndex + 2}
+                  </span>
+                  {/* Name */}
+                  <span
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: "var(--foreground)",
+                      fontFamily: "var(--font-sans)",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      flex: 1,
+                    }}
+                  >
+                    {next.name}
+                  </span>
+                  {/* Kg */}
+                  {next.kg != null && (
                     <span
                       style={{
-                        fontSize: 8,
+                        fontSize: 15,
                         fontWeight: 800,
-                        padding: "2px 5px",
-                        borderRadius: 4,
-                        background: nc,
-                        color: "var(--card)",
-                      }}
-                    >
-                      {currentExerciseIndex + 2}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "var(--foreground)",
+                        color: "var(--gold)",
                         fontFamily: "var(--font-sans)",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        flex: 1,
+                        flexShrink: 0,
                       }}
                     >
-                      {next.name}
+                      {next.kg}
+                      <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 2 }}>kg</span>
                     </span>
-                  </div>
-                  {/* Data chips */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: "var(--foreground)",
-                        background: "var(--badge-bg)",
-                        padding: "3px 8px",
-                        borderRadius: 5,
-                      }}
-                    >
-                      {next.series}
-                      <span style={{ fontSize: 10, fontWeight: 600, color: "var(--gold-dark)", margin: "0 2px" }}>×</span>
-                      {next.reps}
-                    </span>
-                    {next.kg != null && (
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          color: "var(--foreground)",
-                          background: "var(--badge-bg)",
-                          padding: "3px 8px",
-                          borderRadius: 5,
-                        }}
-                      >
-                        {next.kg}
-                        <span style={{ fontSize: 10, fontWeight: 600, color: "var(--gold-dark)", marginLeft: 2 }}> kg</span>
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             );
