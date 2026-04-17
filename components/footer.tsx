@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button"
-import { Instagram, MessageCircle } from "lucide-react"
-import { LogoILSolo } from "@/components/logos"
+import { LogoILSolo } from "@/components/logos";
+import { Button } from "@/components/ui/button";
+import { Instagram, MessageCircle } from "lucide-react";
 
-const WHATSAPP_NUMBER = "5493412424210"
-const WHATSAPP_BASE_URL = `https://wa.me/${WHATSAPP_NUMBER}`
+const WHATSAPP_NUMBER = "5493412424210";
+const WHATSAPP_BASE_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 export function Footer() {
   return (
@@ -16,8 +16,9 @@ export function Footer() {
               ¿Listo para transformar tu entrenamiento?
             </h2>
             <p className="mb-8 text-lg text-muted-foreground">
-              Únete a más de 100 atletas que ya están progresando con Sistema Ironlifting.
-              Metodología científica, técnica profesional y resultados comprobados.
+              Únete a más de 100 atletas que ya están progresando con Sistema
+              Ironlifting. Metodología científica, técnica profesional y
+              resultados comprobados.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button
@@ -33,7 +34,11 @@ export function Footer() {
                 size="lg"
                 className="border-primary/30 text-primary hover:bg-primary/10 px-8"
               >
-                <a href={WHATSAPP_BASE_URL} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={WHATSAPP_BASE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Contactar
                 </a>
@@ -61,7 +66,8 @@ export function Footer() {
                 </a>
                 <p className="mb-4 max-w-md text-sm text-muted-foreground leading-relaxed">
                   Programa de Halterofilia con más de 35 años de experiencia.
-                  Metodología científica y técnica profesional para atletas de todos los niveles.
+                  Metodología científica y técnica profesional para atletas de
+                  todos los niveles.
                 </p>
                 <div className="flex gap-4">
                   <a
@@ -90,27 +96,42 @@ export function Footer() {
                 <h4 className="mb-4 font-semibold text-foreground">Enlaces</h4>
                 <ul className="space-y-2 text-sm">
                   <li>
-                    <a href="#inicio" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                    <a
+                      href="#inicio"
+                      className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
                       Inicio
                     </a>
                   </li>
                   <li>
-                    <a href="#metodologia" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                    <a
+                      href="#metodologia"
+                      className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
                       Metodología
                     </a>
                   </li>
                   <li>
-                    <a href="#coach" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                    <a
+                      href="#coach"
+                      className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
                       Nuestro Coach
                     </a>
                   </li>
                   <li>
-                    <a href="#trayectoria" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                    <a
+                      href="#trayectoria"
+                      className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
                       Trayectoria
                     </a>
                   </li>
                   <li>
-                    <a href="#planes" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                    <a
+                      href="#planes"
+                      className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
                       Planes
                     </a>
                   </li>
@@ -150,12 +171,13 @@ export function Footer() {
             {/* Bottom */}
             <div className="mt-12 border-t border-border pt-8 text-center">
               <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Sistema Ironlifting. Todos los derechos reservados.
+                © {new Date().getFullYear()} Sistema Ironlifting. Todos los
+                derechos reservados.
               </p>
             </div>
           </div>
         </div>
       </footer>
     </>
-  )
+  );
 }

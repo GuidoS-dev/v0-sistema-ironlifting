@@ -1,14 +1,14 @@
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Users, Trophy, Calendar, Target, ChevronDown } from "lucide-react"
-import { LogoHorizontal } from "@/components/logos"
+import { LogoHorizontal } from "@/components/logos";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, ChevronDown, Target, Trophy, Users } from "lucide-react";
 
 const stats = [
   { icon: Users, value: "100+", label: "Atletas entrenados" },
   { icon: Calendar, value: "35+", label: "Años de experiencia" },
   { icon: Trophy, value: "2", label: "Participaciones Olímpicas" },
   { icon: Target, value: "50+", label: "Medallas internacionales" },
-]
+];
 
 export function Hero() {
   return (
@@ -50,8 +50,9 @@ export function Hero() {
 
           {/* Subheadline */}
           <p className="mx-auto mb-8 max-w-2xl text-pretty text-lg text-muted-foreground sm:text-xl">
-            Programación científica y técnica profesional con más de 35 años de experiencia.
-            Metodología probada con resultados comprobados a nivel olímpico.
+            Programación científica y técnica profesional con más de 35 años de
+            experiencia. Metodología probada con resultados comprobados a nivel
+            olímpico.
           </p>
 
           {/* CTA Buttons */}
@@ -81,8 +82,12 @@ export function Hero() {
                 className="flex flex-col items-center rounded-lg border border-border/60 bg-background/40 p-4"
               >
                 <stat.icon className="mb-2 h-6 w-6 text-primary" />
-                <span className="text-2xl font-bold text-foreground">{stat.value}</span>
-                <span className="text-sm text-muted-foreground">{stat.label}</span>
+                <span className="text-2xl font-bold text-foreground">
+                  {stat.value}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {stat.label}
+                </span>
               </div>
             ))}
           </div>
@@ -95,9 +100,11 @@ export function Hero() {
         aria-label="Ir a metodología"
         className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 rounded-sm text-primary opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        <span className="text-xs font-medium uppercase tracking-wider">Descubre más</span>
+        <span className="text-xs font-medium uppercase tracking-wider">
+          Descubre más
+        </span>
         <ChevronDown className="h-5 w-5" aria-hidden="true" />
       </a>
     </section>
-  )
+  );
 }

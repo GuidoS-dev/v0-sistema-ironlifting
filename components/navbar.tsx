@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, LogIn } from "lucide-react"
-import { LogoILSolo } from "@/components/logos"
+import { LogoILSolo } from "@/components/logos";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { LogIn, Menu } from "lucide-react";
+import { useState } from "react";
 
 const navLinks = [
   { href: "#inicio", label: "Inicio" },
@@ -13,10 +13,10 @@ const navLinks = [
   { href: "#trayectoria", label: "Trayectoria" },
   { href: "#testimonios", label: "Testimonios" },
   { href: "#planes", label: "Planes" },
-]
+];
 
 export function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -108,5 +108,5 @@ export function Navbar() {
         </Sheet>
       </div>
     </header>
-  )
+  );
 }

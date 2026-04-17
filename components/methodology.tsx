@@ -1,38 +1,57 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Brain, Target, TrendingUp, Video, BarChart3, HeartPulse } from "lucide-react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  BarChart3,
+  Brain,
+  HeartPulse,
+  Target,
+  TrendingUp,
+  Video,
+} from "lucide-react";
 
 const methods = [
   {
     icon: Brain,
     title: "Programación Científica",
-    description: "Planes de entrenamiento basados en principios científicos de periodización y adaptación neuromuscular.",
+    description:
+      "Planes de entrenamiento basados en principios científicos de periodización y adaptación neuromuscular.",
   },
   {
     icon: Target,
     title: "Técnica Profesional",
-    description: "Enfoque detallado en la ejecución técnica de los movimientos: arranque y envión.",
+    description:
+      "Enfoque detallado en la ejecución técnica de los movimientos: arranque y envión.",
   },
   {
     icon: TrendingUp,
     title: "Progresión Individualizada",
-    description: "Cada atleta avanza a su propio ritmo con objetivos claros y medibles semana a semana.",
+    description:
+      "Cada atleta avanza a su propio ritmo con objetivos claros y medibles semana a semana.",
   },
   {
     icon: Video,
     title: "Análisis de Video",
-    description: "Revisión técnica mediante video para correcciones precisas y mejora continua.",
+    description:
+      "Revisión técnica mediante video para correcciones precisas y mejora continua.",
   },
   {
     icon: BarChart3,
     title: "Seguimiento de Datos",
-    description: "Control exhaustivo de cargas, volúmenes e intensidades para optimizar el rendimiento.",
+    description:
+      "Control exhaustivo de cargas, volúmenes e intensidades para optimizar el rendimiento.",
   },
   {
     icon: HeartPulse,
     title: "Recuperación Inteligente",
-    description: "Protocolos de recuperación y prevención de lesiones integrados en la programación.",
+    description:
+      "Protocolos de recuperación y prevención de lesiones integrados en la programación.",
   },
-]
+];
 
 export function Methodology() {
   return (
@@ -49,7 +68,8 @@ export function Methodology() {
             </h2>
             <p className="text-muted-foreground">
               Una metodología desarrollada durante más de tres décadas,
-              perfeccionada con cada atleta y validada en competencias internacionales.
+              perfeccionada con cada atleta y validada en competencias
+              internacionales.
             </p>
           </div>
 
@@ -64,7 +84,9 @@ export function Methodology() {
                   <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                     <method.icon className="h-6 w-6 text-primary" />
                   </div>
-                  <CardTitle className="text-foreground">{method.title}</CardTitle>
+                  <CardTitle className="text-foreground">
+                    {method.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-muted-foreground leading-relaxed">
@@ -77,5 +99,5 @@ export function Methodology() {
         </div>
       </div>
     </section>
-  )
+  );
 }

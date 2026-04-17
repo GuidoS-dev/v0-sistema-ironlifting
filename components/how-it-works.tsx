@@ -1,25 +1,28 @@
-import { UserPlus, ClipboardList, Dumbbell } from "lucide-react"
+import { ClipboardList, Dumbbell, UserPlus } from "lucide-react";
 
 const steps = [
   {
     number: "01",
     icon: UserPlus,
     title: "Elige tu plan",
-    description: "Selecciona el plan que mejor se adapte a tus objetivos y nivel actual. Cada plan incluye diferentes niveles de seguimiento y personalización.",
+    description:
+      "Selecciona el plan que mejor se adapte a tus objetivos y nivel actual. Cada plan incluye diferentes niveles de seguimiento y personalización.",
   },
   {
     number: "02",
     icon: ClipboardList,
     title: "Evaluación inicial",
-    description: "Realizamos una evaluación completa de tu técnica, fuerza y movilidad para crear un programa 100% personalizado para ti.",
+    description:
+      "Realizamos una evaluación completa de tu técnica, fuerza y movilidad para crear un programa 100% personalizado para ti.",
   },
   {
     number: "03",
     icon: Dumbbell,
     title: "Comienza a entrenar",
-    description: "Accede a tu programación semanal, videos técnicos y seguimiento continuo. Progresa con constancia y método.",
+    description:
+      "Accede a tu programación semanal, videos técnicos y seguimiento continuo. Progresa con constancia y método.",
   },
-]
+];
 
 export function HowItWorks() {
   return (
@@ -35,7 +38,8 @@ export function HowItWorks() {
               3 pasos para comenzar
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
-              Un proceso simple para que empiezes a entrenarte metodologicamente.
+              Un proceso simple para que empiezes a entrenarte
+              metodologicamente.
             </p>
           </div>
 
@@ -59,7 +63,10 @@ export function HowItWorks() {
 
                   {/* Small icon circle */}
                   <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-border bg-background">
-                    <step.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                    <step.icon
+                      className="h-5 w-5 text-primary"
+                      aria-hidden="true"
+                    />
                   </div>
                 </div>
 
@@ -80,5 +87,5 @@ export function HowItWorks() {
         </div>
       </div>
     </section>
-  )
+  );
 }

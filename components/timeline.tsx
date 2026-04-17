@@ -1,22 +1,70 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Medal, Trophy, ChevronRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChevronRight, Medal, Trophy } from "lucide-react";
+import { useState } from "react";
 
 const mainEvents = [
-  { year: "2002", event: "Juegos Sudamericanos", location: "São Paulo", highlight: false },
-  { year: "2004", event: "Mundial Junior", location: "Budapest", highlight: false },
-  { year: "2006", event: "Campeonato Panamericano", location: "Guatemala", highlight: false },
-  { year: "2008", event: "Juegos Olímpicos", location: "Beijing", athlete: "Carlos Espeleta", highlight: true },
-  { year: "2011", event: "Juegos Panamericanos", location: "Guadalajara", highlight: false },
-  { year: "2014", event: "Juegos Sudamericanos", location: "Santiago", highlight: false },
-  { year: "2016", event: "Juegos Olímpicos", location: "Río de Janeiro", athlete: "Joana Palacios", highlight: true },
-  { year: "2019", event: "Juegos Panamericanos", location: "Lima", highlight: false },
-]
+  {
+    year: "2002",
+    event: "Juegos Sudamericanos",
+    location: "São Paulo",
+    highlight: false,
+  },
+  {
+    year: "2004",
+    event: "Mundial Junior",
+    location: "Budapest",
+    highlight: false,
+  },
+  {
+    year: "2006",
+    event: "Campeonato Panamericano",
+    location: "Guatemala",
+    highlight: false,
+  },
+  {
+    year: "2008",
+    event: "Juegos Olímpicos",
+    location: "Beijing",
+    athlete: "Carlos Espeleta",
+    highlight: true,
+  },
+  {
+    year: "2011",
+    event: "Juegos Panamericanos",
+    location: "Guadalajara",
+    highlight: false,
+  },
+  {
+    year: "2014",
+    event: "Juegos Sudamericanos",
+    location: "Santiago",
+    highlight: false,
+  },
+  {
+    year: "2016",
+    event: "Juegos Olímpicos",
+    location: "Río de Janeiro",
+    athlete: "Joana Palacios",
+    highlight: true,
+  },
+  {
+    year: "2019",
+    event: "Juegos Panamericanos",
+    location: "Lima",
+    highlight: false,
+  },
+];
 
 const allAchievements = [
   {
@@ -61,10 +109,10 @@ const allAchievements = [
       "Campeón Nacional juvenil",
     ],
   },
-]
+];
 
 export function Timeline() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <section id="trayectoria" className="bg-card py-20">
@@ -72,8 +120,8 @@ export function Timeline() {
         <div className="mx-auto max-w-6xl">
           {/* Header */}
           <div className="mb-12 text-center">
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className="mb-4 border-primary/30 bg-primary/10 text-primary"
             >
               Nuestra Trayectoria
@@ -82,8 +130,8 @@ export function Timeline() {
               Un viaje de constancia y superación
             </h2>
             <p className="mx-auto max-w-2xl text-muted-foreground">
-              Más de tres décadas formando atletas de élite, 
-              con participaciones en los escenarios más importantes del mundo.
+              Más de tres décadas formando atletas de élite, con participaciones
+              en los escenarios más importantes del mundo.
             </p>
           </div>
 
@@ -91,7 +139,7 @@ export function Timeline() {
           <div className="relative">
             {/* Timeline line */}
             <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-border md:block hidden" />
-            
+
             {/* Events */}
             <div className="space-y-8">
               {mainEvents.map((event, index) => (
@@ -102,7 +150,9 @@ export function Timeline() {
                   }`}
                 >
                   {/* Content */}
-                  <div className={`flex-1 ${index % 2 === 0 ? "md:text-right" : "md:text-left"}`}>
+                  <div
+                    className={`flex-1 ${index % 2 === 0 ? "md:text-right" : "md:text-left"}`}
+                  >
                     <div
                       className={`inline-block rounded-lg border p-4 transition-all ${
                         event.highlight
@@ -116,15 +166,21 @@ export function Timeline() {
                         ) : (
                           <Medal className="h-5 w-5 text-muted-foreground" />
                         )}
-                        <span className="font-bold text-foreground">{event.year}</span>
+                        <span className="font-bold text-foreground">
+                          {event.year}
+                        </span>
                         {event.highlight && (
                           <Badge className="bg-primary text-primary-foreground text-xs">
                             Olímpicos
                           </Badge>
                         )}
                       </div>
-                      <p className="mt-1 font-medium text-foreground">{event.event}</p>
-                      <p className="text-sm text-muted-foreground">{event.location}</p>
+                      <p className="mt-1 font-medium text-foreground">
+                        {event.event}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {event.location}
+                      </p>
                       {event.athlete && (
                         <p className="mt-1 text-sm font-medium text-primary">
                           {event.athlete}
@@ -193,5 +249,5 @@ export function Timeline() {
         </div>
       </div>
     </section>
-  )
+  );
 }

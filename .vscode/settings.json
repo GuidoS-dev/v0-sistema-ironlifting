@@ -1,8 +1,109 @@
 {
+  // === GitHub Copilot — load AGENTS.md and project instructions automatically ===
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "github.copilot.chat.codeGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    { "file": "AGENTS.md" },
+    { "file": "design-system/components.md" }
+  ],
+  "github.copilot.chat.testGeneration.instructions": [
+    { "file": "AGENTS.md" }
+  ],
+  "github.copilot.chat.reviewSelection.instructions": [
+    { "file": "AGENTS.md" }
+  ],
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Use Conventional Commits (feat, fix, refactor, chore, docs, style, perf, test). Imperative, lowercase, no period. Scope in parens when relevant. ≤72 chars."
+    }
+  ],
+
+  // === Custom Agents — files that appear in the Copilot Chat agent dropdown ===
+  // (Previously known as "chat modes" — same feature, new name as of 2026.)
+  "chat.agentFilesLocations": {
+    ".github/agents": true
+  },
+
+  // === Editor — sane defaults that match the design philosophy ===
+  "editor.fontFamily": "'Geist Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace",
+  "editor.fontSize": 13,
+  "editor.fontLigatures": true,
+  "editor.lineHeight": 1.6,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": true,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.suggestSelection": "first",
+  "editor.cursorBlinking": "smooth",
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.smoothScrolling": true,
+  "editor.minimap.enabled": false,
+  "editor.renderWhitespace": "selection",
+  "editor.stickyScroll.enabled": true,
+  "editor.inlineSuggest.enabled": true,
+  "editor.linkedEditing": true,
+
+  // === Files ===
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.eol": "\n",
+
+  // === Workbench ===
+  "workbench.editor.enablePreview": false,
+  "workbench.tree.indent": 16,
+  "workbench.list.smoothScrolling": true,
+
+  // === Tailwind CSS IntelliSense ===
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cx\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+
+  // === TypeScript ===
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.suggest.autoImports": true,
+  "typescript.inlayHints.parameterNames.enabled": "literals",
+  "typescript.inlayHints.variableTypes.enabled": false,
+
+  // === Per-language formatters ===
+  "[typescript]":      { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascript]":      { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]":            { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[jsonc]":           { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[css]":             { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[html]":            { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[markdown]":        { "editor.defaultFormatter": "esbenp.prettier-vscode", "editor.wordWrap": "on" },
+
+  // === Search & Explorer noise reduction ===
   "search.exclude": {
-    "**/.claude/worktrees/**": true
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.turbo": true,
+    "**/coverage": true,
+    "**/pnpm-lock.yaml": true,
+    "**/package-lock.json": true
   },
   "files.watcherExclude": {
-    "**/.claude/worktrees/**": true
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true
   }
 }

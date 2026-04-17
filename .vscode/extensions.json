@@ -1,0 +1,22 @@
+{
+  // Note: the old `github.copilot` extension was deprecated in early 2026.
+  // Inline suggestions (ghost text) and chat now ship together inside `github.copilot-chat`.
+  "recommendations": [
+    "github.copilot-chat",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "stivo.tailwind-fold",
+    "yoavbls.pretty-ts-errors",
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker",
+    "wix.vscode-import-cost",
+    "formulahendry.auto-rename-tag",
+    "naumovs.color-highlight",
+    "anweber.vscode-css-formatter",
+    "csstools.postcss",
+    "antfu.icons-carbon",
+    "ms-vscode.vscode-typescript-next",
+    "vivaxy.vscode-conventional-commits"
+  ]
+}

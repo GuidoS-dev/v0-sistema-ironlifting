@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.8";
+const APP_VERSION = "1.3.9";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -205,6 +205,17 @@ async function _readResponseSafe(r) {
   }
 }
 
+// Map common Supabase GoTrue messages → user-friendly Spanish
+const _authMessageMap = {
+  "invalid login credentials": "Email o contraseña incorrectos. Revisá los datos e intentá de nuevo.",
+  "email not confirmed": "Tu cuenta aún no fue confirmada. Revisá tu casilla de email (incluyendo spam).",
+  "user not found": "No existe una cuenta con ese email.",
+  "user already registered": "Ya existe una cuenta con ese email. Intentá iniciar sesión.",
+  "signup is disabled": "El registro de nuevos usuarios está deshabilitado.",
+  "email rate limit exceeded": "Demasiados intentos. Esperá unos minutos antes de volver a intentar.",
+  "over_email_send_rate_limit": "Demasiados emails enviados. Esperá unos minutos.",
+};
+
 function _authErrorMessage(status, data, raw, fallback) {
   if (status == null) {
     return fallback;
@@ -212,7 +223,14 @@ function _authErrorMessage(status, data, raw, fallback) {
   if (status === 504 || /upstream\s+request\s+timeout/i.test(raw || "")) {
     return "Supabase no responde (504). Intentá de nuevo en 1-2 minutos.";
   }
-  return data?.error_description || data?.msg || fallback;
+  // Try to match a known Supabase message to a friendly Spanish translation
+  const supaMsg = (data?.error_description || data?.msg || data?.message || "").toLowerCase();
+  const errorCode = (data?.error_code || data?.code || "").toLowerCase();
+  const friendly = _authMessageMap[supaMsg] || _authMessageMap[errorCode];
+  if (friendly) return friendly;
+  // If the message is in English and not mapped, return the fallback instead
+  if (supaMsg && /^[a-z0-9\s_.,!-]+$/i.test(supaMsg)) return fallback;
+  return supaMsg || fallback;
 }
 
 function _runtimeErrorMessage(error, fallback) {

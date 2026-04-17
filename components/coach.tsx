@@ -1,12 +1,12 @@
-import { Badge } from "@/components/ui/badge"
-import { Award, Medal, Users, Target } from "lucide-react"
+import { Badge } from "@/components/ui/badge";
+import { Award, Medal, Target, Users } from "lucide-react";
 
 const highlights = [
   { icon: Medal, text: "Participaciones Olímpicas como entrenador" },
   { icon: Award, text: "Múltiples medallistas internacionales" },
   { icon: Users, text: "Formador de campeones sudamericanos" },
   { icon: Target, text: "Metodología científica y personalizada" },
-]
+];
 
 export function Coach() {
   return (
@@ -39,13 +39,16 @@ export function Coach() {
               </h2>
 
               <p className="mb-6 text-lg text-muted-foreground leading-relaxed">
-                Entrenador con más de 30 años de experiencia en Halterofilia, con participaciones en Juegos Olímpicos como entrenador de atletas de élite. Su metodología científica y su enfoque técnico han formado campeones nacionales, sudamericanos y panamericanos.
+                Entrenador con más de 30 años de experiencia en Halterofilia,
+                con participaciones en Juegos Olímpicos como entrenador de
+                atletas de élite. Su metodología científica y su enfoque técnico
+                han formado campeones nacionales, sudamericanos y panamericanos.
               </p>
 
               <p className="mb-8 text-muted-foreground leading-relaxed">
                 Su filosofía se basa en la constancia, la técnica perfecta y la
-                programación individualizada. Cada atleta recibe un plan adaptado
-                a sus necesidades, capacidades y objetivos específicos.
+                programación individualizada. Cada atleta recibe un plan
+                adaptado a sus necesidades, capacidades y objetivos específicos.
               </p>
 
               {/* Highlights */}
@@ -66,5 +69,5 @@ export function Coach() {
         </div>
       </div>
     </section>
-  )
+  );
 }

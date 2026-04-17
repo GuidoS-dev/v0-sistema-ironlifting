@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,23 +12,23 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Check, Shield, Sparkles } from "lucide-react";
+import { useState } from "react";
 
 const WHATSAPP_NUMBER = "5493412424210";
 
 const whatsappMessages: Record<string, string> = {
-  Básico: `Hola, me interesa el Plan Básico de Sistema Ironlifting. 
-Quiero agendar una cita para que me expliquen el programa y empezar lo antes posible. 
+  Básico: `Hola, me interesa el Plan Básico de Sistema Ironlifting.
+Quiero agendar una cita para que me expliquen el programa y empezar lo antes posible.
 Gracias!`,
-  Intermedio: `Hola, me interesa el Plan Intermedio de Sistema Ironlifting. 
-Quiero agendar una cita para evaluar mi nivel actual y arrancar con la programación personalizada. 
+  Intermedio: `Hola, me interesa el Plan Intermedio de Sistema Ironlifting.
+Quiero agendar una cita para evaluar mi nivel actual y arrancar con la programación personalizada.
 Gracias!`,
-  Pro: `Hola, me interesa el Plan Pro de Sistema Ironlifting. 
-Quiero agendar una cita para que revisemos mi caso en detalle y empecemos con el seguimiento completo. 
+  Pro: `Hola, me interesa el Plan Pro de Sistema Ironlifting.
+Quiero agendar una cita para que revisemos mi caso en detalle y empecemos con el seguimiento completo.
 Gracias!`,
 };
 
-const formatPrice = (n: number) =>
-  n.toLocaleString("es-AR");
+const formatPrice = (n: number) => n.toLocaleString("es-AR");
 
 const getWhatsAppUrl = (planName: string) => {
   const message = encodeURIComponent(whatsappMessages[planName] || "");
@@ -136,7 +135,9 @@ export function Pricing() {
               Anual
             </span>
             {isAnnual && (
-              <Badge className="bg-primary text-primary-foreground">35% OFF</Badge>
+              <Badge className="bg-primary text-primary-foreground">
+                35% OFF
+              </Badge>
             )}
           </div>
 
