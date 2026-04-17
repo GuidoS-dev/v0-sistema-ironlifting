@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.11";
+const APP_VERSION = "1.3.12";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -24336,88 +24336,24 @@ body{margin:0;padding:0;background:#fff;font-family:'Helvetica Neue',Helvetica,A
 }
 @media screen and (min-width:769px){body{padding:16px}}
 @media screen and (max-width:768px){
-  body{padding-top:calc(env(safe-area-inset-top,0px) + 52px);padding-left:0;padding-right:0;padding-bottom:0}
-  .pdf-sem-header{top:calc(env(safe-area-inset-top,0px) + 52px)!important}
+  body{padding-top:env(safe-area-inset-top,0px);padding-left:0;padding-right:0;padding-bottom:0}
 }
 @media print{@page{size:A4 landscape;margin:8mm}body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-sem-header{top:0!important}}
 ${pdfStyle}
+/* ══ Static download overrides — all content always visible ══ */
+.pdf-page { display: block !important; }
+.pdf-turno-content { max-height: none !important; opacity: 1 !important; overflow: visible !important; }
+.pdf-turno-chevron { display: none !important; }
+.pdf-turno-header { cursor: default !important; pointer-events: none !important; }
+.pdf-sem-tabs-wrap { display: none !important; }
+.pdf-sem-tabs-actions { display: none !important; }
+.pdf-mobile-nav { display: none !important; }
+.mob-nav-indicator { display: none !important; }
+#pdf-preview { padding-bottom: 0 !important; }
 </style>
 </head>
 <body>
 ${capturedHTML}
-<script>
-// Posicionar turno sticky debajo de semana header, considerando offset de barra de visor
-function updateStickyTurnos(){
-  var isMobile=window.innerWidth<=768;
-  var barOffset=isMobile?52:0;
-  document.querySelectorAll('.pdf-page').forEach(function(page){
-    var semH=page.querySelector('.pdf-sem-header');
-    if(!semH)return;
-    if(isMobile)semH.style.top=barOffset+'px';
-    var h=semH.offsetHeight+barOffset;
-    page.querySelectorAll('.pdf-turno-header').forEach(function(t){
-      t.style.top=h+'px';
-    });
-  });
-}
-updateStickyTurnos();
-window.addEventListener('resize',updateStickyTurnos);
-window.addEventListener('load',updateStickyTurnos);
-
-// Collapsible turnos
-document.querySelectorAll('.pdf-turno-header').forEach(function(header){
-  // Start all collapsed
-  var content=header.nextElementSibling;
-  if(content&&content.classList.contains('pdf-turno-content')){
-    content.classList.remove('expanded');
-    var chev=header.querySelector('.pdf-turno-chevron');
-    if(chev)chev.classList.remove('open');
-  }
-  header.addEventListener('click',function(){
-    var c=this.nextElementSibling;
-    if(!c||!c.classList.contains('pdf-turno-content'))return;
-    var chev=this.querySelector('.pdf-turno-chevron');
-    c.classList.toggle('expanded');
-    if(chev)chev.classList.toggle('open');
-  });
-});
-
-// Week tabs
-(function(){
-  var tabs=document.querySelectorAll('.pdf-sem-tab');
-  var pages=document.querySelectorAll('.pdf-page[data-sem-idx]');
-  if(!tabs.length||!pages.length)return;
-  // Show only first week initially
-  pages.forEach(function(p,i){p.style.display=i===0?'':'none'});
-  tabs.forEach(function(tab){
-    tab.addEventListener('click',function(){
-      var idx=parseInt(this.dataset.semIdx||this.getAttribute('data-sem-idx'));
-      tabs.forEach(function(t){t.classList.remove('active')});
-      this.classList.add('active');
-      pages.forEach(function(p){
-        var pIdx=parseInt(p.dataset.semIdx);
-        p.style.display=pIdx===idx?'':'none';
-      });
-    });
-  });
-  // Expand/collapse all button
-  var toggleBtn=document.querySelector('.pdf-sem-tabs-actions button');
-  if(toggleBtn){
-    toggleBtn.addEventListener('click',function(){
-      var activePage=document.querySelector('.pdf-page[data-sem-idx]:not([style*="display: none"])');
-      if(!activePage)return;
-      var contents=activePage.querySelectorAll('.pdf-turno-content');
-      var allExp=Array.from(contents).every(function(c){return c.classList.contains('expanded')});
-      contents.forEach(function(c){
-        c.classList.toggle('expanded',!allExp);
-        var h=c.previousElementSibling;
-        if(h){var chev=h.querySelector('.pdf-turno-chevron');if(chev)chev.classList.toggle('open',!allExp);}
-      });
-      this.textContent=allExp?'Expandir todos':'Colapsar todos';
-    });
-  }
-})();
-</script>
 </body></html>`;
       // Crear blob y link de descarga — funciona en la mayoría de browsers modernos
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
