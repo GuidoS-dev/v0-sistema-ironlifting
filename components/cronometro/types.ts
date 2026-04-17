@@ -45,17 +45,17 @@ export type TimerAction =
   | { type: "RESET" }
   | {
       type: "NEXT_EXERCISE";
-      totalRounds: number;
+      exerciseRounds: number[];
       countdownTime: number;
     }
   | {
       type: "PREV_EXERCISE";
-      totalRounds: number;
+      exerciseRounds: number[];
       countdownTime: number;
     }
   | {
       type: "SKIP_FORWARD";
-      totalRoundsNextExercise: number;
+      exerciseRounds: number[];
       countdownTime: number;
       exerciseCount: number;
     }

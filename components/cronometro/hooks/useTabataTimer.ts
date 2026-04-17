@@ -95,24 +95,26 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
     case "RESET":
       return { ...INITIAL_STATE };
 
-    case "NEXT_EXERCISE":
+    case "NEXT_EXERCISE": {
+      const nextIdx = state.currentExerciseIndex + 1;
       return {
         ...state,
-        currentExerciseIndex: state.currentExerciseIndex + 1,
+        currentExerciseIndex: nextIdx,
         currentRound: 1,
-        totalRounds: action.totalRounds,
+        totalRounds: action.exerciseRounds[nextIdx] ?? state.totalRounds,
         phase: "countdown",
         timeLeft: action.countdownTime,
         isRunning: true,
       };
+    }
 
     case "PREV_EXERCISE": {
-      const newIdx = Math.max(0, state.currentExerciseIndex - 1);
+      const prevIdx = Math.max(0, state.currentExerciseIndex - 1);
       return {
         ...state,
-        currentExerciseIndex: newIdx,
+        currentExerciseIndex: prevIdx,
         currentRound: 1,
-        totalRounds: action.totalRounds,
+        totalRounds: action.exerciseRounds[prevIdx] ?? state.totalRounds,
         phase: "countdown",
         timeLeft: action.countdownTime,
         isRunning: true,
@@ -131,15 +133,14 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
         };
       }
       // Last round — move to next exercise if available
-      const hasNext =
-        action.exerciseCount > 0 &&
-        state.currentExerciseIndex < action.exerciseCount - 1;
+      const nextIdx = state.currentExerciseIndex + 1;
+      const hasNext = action.exerciseCount > 0 && nextIdx < action.exerciseCount;
       if (hasNext) {
         return {
           ...state,
-          currentExerciseIndex: state.currentExerciseIndex + 1,
+          currentExerciseIndex: nextIdx,
           currentRound: 1,
-          totalRounds: action.totalRoundsNextExercise,
+          totalRounds: action.exerciseRounds[nextIdx] ?? state.totalRounds,
           phase: "countdown",
           timeLeft: action.countdownTime,
           isRunning: true,
@@ -224,6 +225,10 @@ export function useTabataTimer(
 
   const exerciseCount = exercises.length;
 
+  // Pre-compute rounds array so actions don't rely on stale closure index
+  const exerciseRoundsRef = useRef<number[]>([]);
+  exerciseRoundsRef.current = exercises.map((e) => e.series);
+
   const getRoundsForExercise = useCallback(
     (idx: number) => {
       if (exercises.length > 0 && exercises[idx]) {
@@ -275,45 +280,36 @@ export function useTabataTimer(
 
   const nextExercise = useCallback(() => {
     if (state.currentExerciseIndex < exerciseCount - 1) {
-      const nextIdx = state.currentExerciseIndex + 1;
       dispatch({
         type: "NEXT_EXERCISE",
-        totalRounds: getRoundsForExercise(nextIdx),
+        exerciseRounds: exerciseRoundsRef.current,
         countdownTime: config.countdownTime,
       });
     }
   }, [
     state.currentExerciseIndex,
     exerciseCount,
-    getRoundsForExercise,
     config.countdownTime,
   ]);
 
   const skipForward = useCallback(() => {
-    const nextIdx = Math.min(state.currentExerciseIndex + 1, exerciseCount - 1);
     dispatch({
       type: "SKIP_FORWARD",
-      totalRoundsNextExercise: getRoundsForExercise(nextIdx),
+      exerciseRounds: exerciseRoundsRef.current,
       countdownTime: config.countdownTime,
       exerciseCount,
     });
-  }, [
-    state.currentExerciseIndex,
-    exerciseCount,
-    getRoundsForExercise,
-    config.countdownTime,
-  ]);
+  }, [config.countdownTime, exerciseCount]);
 
   const prevExercise = useCallback(() => {
     if (state.currentExerciseIndex > 0) {
-      const prevIdx = state.currentExerciseIndex - 1;
       dispatch({
         type: "PREV_EXERCISE",
-        totalRounds: getRoundsForExercise(prevIdx),
+        exerciseRounds: exerciseRoundsRef.current,
         countdownTime: config.countdownTime,
       });
     }
-  }, [state.currentExerciseIndex, getRoundsForExercise, config.countdownTime]);
+  }, [state.currentExerciseIndex, config.countdownTime]);
 
   const skipPhase = useCallback(() => {
     dispatch({
