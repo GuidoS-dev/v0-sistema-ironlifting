@@ -335,8 +335,26 @@ export function TabataTimer({
           </div>
         )}
 
-        {/* Help button / spacer */}
-        <div style={{ width: 70, display: "flex", justifyContent: "flex-end" }}>
+        {/* Right-side buttons */}
+        <div style={{ width: 70, display: "flex", justifyContent: "flex-end", gap: 4 }}>
+          {isTimerActive && hasActiveExercises && (
+            <button
+              className="timer-btn"
+              onClick={() => setShowListModal(true)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--gold-dark)",
+                cursor: "pointer",
+                padding: "8px 4px",
+                display: "flex",
+                alignItems: "center",
+              }}
+              aria-label="Ver listado completo"
+            >
+              <List size={18} />
+            </button>
+          )}
           {!isTimerActive && hasExercises && (
             <button
               className="timer-btn"
@@ -526,34 +544,7 @@ export function TabataTimer({
           onRestartPhase={actions.restartPhase}
         />
 
-        {/* ── Listado button (visible during active timer) ── */}
-        {isTimerActive && hasActiveExercises && (
-          <button
-            className="timer-btn"
-            onClick={() => setShowListModal(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              padding: "10px 24px",
-              borderRadius: 10,
-              border: "1px solid var(--border)",
-              background: "color-mix(in srgb, var(--card) 85%, transparent)",
-              color: "var(--gold-dark)",
-              cursor: "pointer",
-              fontFamily: "var(--font-display)",
-              fontSize: 14,
-              letterSpacing: ".06em",
-              marginTop: 4,
-              transition: "all .2s",
-            }}
-            aria-label="Ver listado completo"
-          >
-            <List size={16} />
-            VER LISTADO ({phase === "finished" ? activeExercises.length : currentExerciseIndex}/{activeExercises.length})
-          </button>
-        )}
+
       </div>
 
       {/* ── Progress bar ── */}
@@ -966,123 +957,188 @@ export function TabataTimer({
               </div>
             </div>
 
-            {/* Exercise list */}
+            {/* Exercise list — grouped by baseId */}
             <div
               style={{
                 flex: 1,
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
-                padding: "8px 16px 20px",
+                padding: "8px 12px 20px",
               }}
             >
-              {activeExercises.map((ex, i) => {
-                const isDone =
-                  phase === "finished" ||
-                  i < currentExerciseIndex ||
-                  (i === currentExerciseIndex &&
-                    phase === "exerciseComplete");
-                const isCurrent =
-                  i === currentExerciseIndex &&
-                  phase !== "finished" &&
-                  phase !== "exerciseComplete";
-                const gc = CAT_COLORS[ex.category] || "var(--muted-foreground)";
+              {(() => {
+                // Build groups from activeExercises
+                type ModalGroup = { baseId: string; baseName: string; items: { ex: TabataExercise; flatIndex: number }[] };
+                const groups: ModalGroup[] = [];
+                const gMap = new Map<string, ModalGroup>();
+                activeExercises.forEach((ex, i) => {
+                  const key = ex.baseId || ex.id;
+                  let g = gMap.get(key);
+                  if (!g) {
+                    g = { baseId: key, baseName: ex.baseName || ex.name, items: [] };
+                    gMap.set(key, g);
+                    groups.push(g);
+                  }
+                  g.items.push({ ex, flatIndex: i });
+                });
 
-                return (
-                  <div
-                    key={ex.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "10px 0",
-                      borderBottom:
-                        i < activeExercises.length - 1
-                          ? "1px solid var(--border)"
-                          : "none",
-                    }}
-                  >
-                    {/* Status dot */}
+                return groups.map((group, gIdx) => {
+                  const isMulti = group.items.length > 1;
+                  return (
                     <div
+                      key={group.baseId}
                       style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        flexShrink: 0,
-                        background: isDone
-                          ? "var(--green)"
-                          : isCurrent
-                            ? "var(--gold)"
-                            : "var(--border)",
-                        boxShadow: isCurrent
-                          ? "0 0 6px color-mix(in srgb, var(--gold) 50%, transparent)"
-                          : "none",
-                        transition: "background .3s",
+                        marginBottom: 8,
+                        ...(isMulti
+                          ? {
+                              border: "1px solid color-mix(in srgb, var(--gold-dark) 30%, var(--border))",
+                              borderRadius: 10,
+                              overflow: "hidden",
+                            }
+                          : {}),
                       }}
-                    />
+                    >
+                      {/* Group header for multi-intensity */}
+                      {isMulti && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "5px 10px",
+                            background: "color-mix(in srgb, var(--gold-dark) 8%, var(--card))",
+                            borderBottom: "1px solid var(--border)",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: "var(--gold-dark)",
+                            letterSpacing: ".04em",
+                            textTransform: "uppercase",
+                            fontFamily: "var(--font-display)",
+                          }}
+                        >
+                          <Hash size={10} />
+                          {group.baseName}
+                          <span style={{ marginLeft: "auto", fontSize: 9, opacity: 0.7 }}>
+                            {group.items.length} int.
+                          </span>
+                        </div>
+                      )}
+                      {group.items.map(({ ex, flatIndex }, subIdx) => {
+                        const isDone =
+                          phase === "finished" ||
+                          flatIndex < currentExerciseIndex ||
+                          (flatIndex === currentExerciseIndex && phase === "exerciseComplete");
+                        const isCurrent =
+                          flatIndex === currentExerciseIndex &&
+                          phase !== "finished" &&
+                          phase !== "exerciseComplete";
+                        const gc = CAT_COLORS[ex.category] || "var(--muted-foreground)";
 
-                    {/* Exercise info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: isDone
-                            ? "var(--green)"
-                            : isCurrent
-                              ? "var(--foreground)"
-                              : "var(--muted-foreground)",
-                          fontFamily: "var(--font-sans)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          textDecoration: isDone ? "line-through" : "none",
-                          transition: "color .3s",
-                        }}
-                      >
-                        {ex.name}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: isDone ? "color-mix(in srgb, var(--green) 60%, transparent)" : "var(--muted-foreground)",
-                          marginTop: 2,
-                        }}
-                      >
-                        {ex.series}×{ex.reps || "—"}
-                        {ex.kg != null ? ` · ${ex.kg}kg` : ""}
-                      </div>
+                        return (
+                          <div
+                            key={ex.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              padding: "8px 10px",
+                              background: isCurrent
+                                ? "color-mix(in srgb, var(--gold) 6%, var(--card))"
+                                : "transparent",
+                              borderBottom:
+                                isMulti && subIdx < group.items.length - 1
+                                  ? "1px solid var(--border)"
+                                  : !isMulti && gIdx < groups.length - 1
+                                    ? "1px solid var(--border)"
+                                    : "none",
+                            }}
+                          >
+                            {/* Status dot */}
+                            <div
+                              style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: "50%",
+                                flexShrink: 0,
+                                background: isDone
+                                  ? "var(--green)"
+                                  : isCurrent
+                                    ? "var(--gold)"
+                                    : "var(--border)",
+                                boxShadow: isCurrent
+                                  ? "0 0 6px color-mix(in srgb, var(--gold) 50%, transparent)"
+                                  : "none",
+                                transition: "background .3s",
+                              }}
+                            />
+
+                            {/* Exercise info */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: isDone
+                                    ? "var(--green)"
+                                    : isCurrent
+                                      ? "var(--foreground)"
+                                      : "var(--muted-foreground)",
+                                  fontFamily: "var(--font-sans)",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  textDecoration: isDone ? "line-through" : "none",
+                                  transition: "color .3s",
+                                }}
+                              >
+                                {isMulti ? (ex.intensityLabel || ex.name) : ex.name}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  color: isDone ? "color-mix(in srgb, var(--green) 60%, transparent)" : "var(--muted-foreground)",
+                                  marginTop: 2,
+                                }}
+                              >
+                                {ex.series}×{ex.reps || "—"}
+                                {ex.kg != null ? ` · ${ex.kg}kg` : ""}
+                              </div>
+                            </div>
+
+                            {/* Category dot */}
+                            <div
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: "50%",
+                                background: gc,
+                                opacity: isDone ? 0.4 : 0.7,
+                                flexShrink: 0,
+                              }}
+                            />
+
+                            {/* Current indicator */}
+                            {isCurrent && (
+                              <div
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: 800,
+                                  color: "var(--gold)",
+                                  letterSpacing: ".05em",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <span aria-hidden="true">▶</span>
+                                <span className="sr-only">Ejercicio actual</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    {/* Category dot */}
-                    <div
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: gc,
-                        opacity: isDone ? 0.4 : 0.7,
-                        flexShrink: 0,
-                      }}
-                    />
-
-                    {/* Current indicator */}
-                    {isCurrent && (
-                      <div
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 800,
-                          color: "var(--gold)",
-                          letterSpacing: ".05em",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <span aria-hidden="true">▶</span>
-                        <span className="sr-only">Ejercicio actual</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>
