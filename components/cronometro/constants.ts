@@ -1,7 +1,7 @@
 import type { TabataConfig, TimerPhase } from "./types";
 
 export const DEFAULT_CONFIG: TabataConfig = {
-  workTime: 120,
+  workTime: 30,
   restTime: 90,
   rounds: 8,
   countdownTime: 5,
