@@ -39,7 +39,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.2";
+const APP_VERSION = "1.3.3";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -392,7 +392,10 @@ const sb = {
     },
     signUp: async ({ email, password, options }) => {
       try {
-        const r = await _fetchWithTimeout(`${SUPA_URL}/auth/v1/signup`, {
+        const _signupUrl = options?.emailRedirectTo
+          ? `${SUPA_URL}/auth/v1/signup?redirect_to=${encodeURIComponent(options.emailRedirectTo)}`
+          : `${SUPA_URL}/auth/v1/signup`;
+        const r = await _fetchWithTimeout(_signupUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
           body: JSON.stringify({ email, password, data: options?.data || {} }),
@@ -32641,6 +32644,7 @@ function LoginScreen({ onAuth }) {
       password,
       options: {
         data: { nombre: registeredNombre, rol },
+        emailRedirectTo: `${window.location.origin}/auth/login`,
       },
     });
     setLoading(false);
