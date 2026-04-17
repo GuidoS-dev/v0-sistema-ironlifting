@@ -39,7 +39,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.3.3";
+const APP_VERSION = "1.3.4";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -32933,18 +32933,23 @@ function LoginScreen({ onAuth }) {
             <button
               className="btn btn-gold"
               type="submit"
+              disabled={loading}
               style={{
                 width: "100%",
                 justifyContent: "center",
                 padding: "12px 0",
                 fontSize: 14,
+                opacity: loading ? 0.5 : 1,
+                pointerEvents: loading ? "none" : "auto",
               }}
             >
-              {mode === "login"
-                ? "Ingresar"
-                : rol === "coach"
-                  ? "Crear cuenta Coach"
-                  : "Crear cuenta Atleta"}
+              {loading
+                ? "Procesando…"
+                : mode === "login"
+                  ? "Ingresar"
+                  : rol === "coach"
+                    ? "Crear cuenta Coach"
+                    : "Crear cuenta Atleta"}
             </button>
 
             {mode === "login" && (
