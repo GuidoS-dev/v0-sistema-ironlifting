@@ -670,7 +670,11 @@ export function TabataTimer({
             groupIndex={groupInfo?.groupIndex}
             totalGroups={groupInfo?.totalGroups}
             phase={phase}
-            nextExercise={nextDifferentExercise?.exercise ?? null}
+            nextExercise={
+              showSiguienteButton
+                ? (nextDifferentExercise?.exercise ?? null)
+                : null
+            }
             hidePrevIntensityCard={
               showSiguienteButton ||
               (currentExercise.intensityIndex != null &&
