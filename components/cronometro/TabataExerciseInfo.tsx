@@ -332,7 +332,7 @@ export function TabataExerciseInfo({
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             gap: 10,
             padding: "10px 14px 8px",
           }}
@@ -363,9 +363,12 @@ export function TabataExerciseInfo({
               fontWeight: 700,
               color: "var(--foreground)",
               fontFamily: "var(--font-sans)",
-              whiteSpace: "nowrap",
+              lineHeight: 1.3,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical" as const,
               overflow: "hidden",
-              textOverflow: "ellipsis",
+              paddingTop: 4,
             }}
           >
             {displayExercise.baseName || displayExercise.name}
@@ -661,7 +664,7 @@ export function TabataExerciseInfo({
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "center",
+                      alignItems: "flex-start",
                       gap: 10,
                       padding: "10px 14px",
                       borderBottom: "1px solid var(--border)",
@@ -693,9 +696,12 @@ export function TabataExerciseInfo({
                         fontWeight: 700,
                         color: "var(--foreground)",
                         fontFamily: "var(--font-sans)",
-                        whiteSpace: "nowrap",
+                        lineHeight: 1.3,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical" as const,
                         overflow: "hidden",
-                        textOverflow: "ellipsis",
+                        paddingTop: 3,
                       }}
                     >
                       {nextExercise.baseName || nextExercise.name}
