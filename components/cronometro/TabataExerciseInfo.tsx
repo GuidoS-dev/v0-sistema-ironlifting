@@ -260,6 +260,13 @@ export function TabataExerciseInfo({
         {counterLabel}
       </div>
 
+      {/* ── Done intensity mini-card (above main card) ── */}
+      {isGrouped && prevGroupExercise && !hidePrevIntensityCard && (
+        <div style={{ marginBottom: 6 }}>
+          <IntensityMiniCard exercise={prevGroupExercise} variant="done" />
+        </div>
+      )}
+
       {/* ══ Main HUD Panel ══ */}
       <div
         style={{
@@ -489,39 +496,26 @@ export function TabataExerciseInfo({
 
       </div>
 
-      {/* ── Intensity mini-cards (prev done / next upcoming) — outside main card ── */}
-      {isGrouped && (prevGroupExercise || nextGroupExercise) && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            marginTop: 6,
-            padding: "6px 14px 8px",
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-          }}
-        >
-          {prevGroupExercise && !hidePrevIntensityCard && (
-            <IntensityMiniCard exercise={prevGroupExercise} variant="done" />
-          )}
-          {nextGroupExercise && (
-            <IntensityMiniCard exercise={nextGroupExercise} variant="upcoming" />
-          )}
-          {exercise.intensityIndex != null &&
-            exercise.totalIntensities != null &&
-            exercise.totalIntensities > 1 && (
-              <div style={{ display: "flex", justifyContent: "center", paddingTop: 4 }}>
-                <IntensitySteps
-                  currentIndex={exercise.intensityIndex}
-                  total={exercise.totalIntensities}
-                  isDuringRest={isIntensityRest}
-                />
-              </div>
-            )}
+      {/* ── Upcoming intensity mini-card (below main card) ── */}
+      {isGrouped && nextGroupExercise && (
+        <div style={{ marginTop: 6 }}>
+          <IntensityMiniCard exercise={nextGroupExercise} variant="upcoming" />
         </div>
       )}
+
+      {/* ── Intensity step dots ── */}
+      {isGrouped &&
+        exercise.intensityIndex != null &&
+        exercise.totalIntensities != null &&
+        exercise.totalIntensities > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
+            <IntensitySteps
+              currentIndex={exercise.intensityIndex}
+              total={exercise.totalIntensities}
+              isDuringRest={isIntensityRest}
+            />
+          </div>
+        )}
 
       {/* ── CARGÁ LA BARRA banner (intensityRest phase) ── */}
       {isIntensityRest && nextGroupExercise && (
