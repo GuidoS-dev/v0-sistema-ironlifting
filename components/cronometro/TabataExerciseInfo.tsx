@@ -688,6 +688,7 @@ export function TabataExerciseInfo({
                     <div
                       style={{
                         flex: 1,
+                        minWidth: 0,
                         fontSize: 14,
                         fontWeight: 700,
                         color: "var(--foreground)",
@@ -697,8 +698,46 @@ export function TabataExerciseInfo({
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {nextExercise.name}
+                      {nextExercise.baseName || nextExercise.name}
                     </div>
+                    {nextExercise.intensityLabel && (
+                      <div
+                        style={{
+                          flexShrink: 0,
+                          padding: "2px 6px",
+                          borderRadius: 5,
+                          background: "var(--background)",
+                          border: "1px solid color-mix(in srgb, var(--gold-dark) 40%, var(--border))",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: "var(--gold)",
+                          letterSpacing: ".02em",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {nextExercise.intensityLabel}
+                      </div>
+                    )}
+                    {nextExercise.normativoId && (
+                      <div
+                        style={{
+                          flexShrink: 0,
+                          padding: "2px 6px",
+                          borderRadius: 5,
+                          background: "var(--background)",
+                          border: "1px solid color-mix(in srgb, var(--gold-dark) 40%, var(--border))",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: "var(--gold)",
+                          letterSpacing: ".02em",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        #{nextExercise.normativoId}
+                      </div>
+                    )}
                   </div>
 
                   {/* Compact stat strip */}
