@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.6.1";
+const APP_VERSION = "1.6.2";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -34298,16 +34298,14 @@ function CoachApp({ session, profile, onLogout }) {
 
     const onHide = () => {
       if (document.visibilityState === "hidden") {
-        // Flush debounce timers antes de sincronizar
-        if (atletaSyncTimerRef.current) {
-          clearTimeout(atletaSyncTimerRef.current);
-          atletaSyncTimerRef.current = null;
-        }
-        if (mesoSyncTimerRef.current) {
-          clearTimeout(mesoSyncTimerRef.current);
-          mesoSyncTimerRef.current = null;
-        }
+        // Cancel debounce timers but keep refs non-null so syncOverrides
+        // knows there were pending changes and flushes them to DB.
+        if (atletaSyncTimerRef.current) clearTimeout(atletaSyncTimerRef.current);
+        if (mesoSyncTimerRef.current) clearTimeout(mesoSyncTimerRef.current);
         syncOverrides();
+        // Safe to clear refs AFTER syncOverrides has checked them
+        atletaSyncTimerRef.current = null;
+        mesoSyncTimerRef.current = null;
       }
     };
 
