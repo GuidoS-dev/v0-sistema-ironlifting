@@ -245,7 +245,7 @@ export function TabataExerciseInfo({
       : `Ejercicio ${exerciseIndex + 1} de ${totalExercises}`;
 
   return (
-    <div style={{ width: "100%", padding: "0 16px" }}>
+    <div style={{ width: "100%", padding: "0 12px" }}>
       {/* Exercise counter */}
       <div
         style={{
@@ -254,7 +254,7 @@ export function TabataExerciseInfo({
           textTransform: "uppercase",
           letterSpacing: ".06em",
           textAlign: "center",
-          marginBottom: 8,
+          marginBottom: 4,
         }}
       >
         {counterLabel}
@@ -319,7 +319,7 @@ export function TabataExerciseInfo({
             display: "flex",
             alignItems: "center",
             gap: 10,
-            padding: "14px 16px 10px",
+            padding: "10px 14px 8px",
           }}
         >
           <div
@@ -374,8 +374,8 @@ export function TabataExerciseInfo({
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 8,
-            padding: "8px 16px 14px",
+            gap: 6,
+            padding: "6px 14px 10px",
           }}
         >
           {[
@@ -397,7 +397,7 @@ export function TabataExerciseInfo({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                padding: "10px 4px",
+                padding: "7px 4px",
                 position: "relative",
               }}
             >
@@ -458,7 +458,7 @@ export function TabataExerciseInfo({
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "10px 16px",
+              padding: "6px 14px",
               borderTop: "1px solid var(--border)",
               background: "var(--surface-inset)",
             }}
@@ -513,7 +513,7 @@ export function TabataExerciseInfo({
         {exercise.notes && (
           <div
             style={{
-              padding: "6px 16px 8px",
+              padding: "4px 14px 6px",
               fontSize: 10,
               color: "var(--muted-foreground)",
               fontStyle: "italic",
@@ -530,8 +530,8 @@ export function TabataExerciseInfo({
       {isIntensityRest && nextGroupExercise && (
         <div
           style={{
-            marginTop: 8,
-            padding: "10px 16px",
+            marginTop: 6,
+            padding: "8px 14px",
             background:
               "color-mix(in srgb, var(--gold-dark) 10%, var(--card))",
             border: "1px solid var(--gold-dark)",
@@ -591,7 +591,7 @@ export function TabataExerciseInfo({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                  padding: "12px 0 6px",
+                  padding: "8px 0 4px",
                 }}
               >
                 <div

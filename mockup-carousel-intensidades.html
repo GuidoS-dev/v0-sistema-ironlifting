@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Boceto — Carrusel de Intensidades</title>
+<style>
+  /* ── Design tokens (same as app) ── */
+  :root {
+    --bg: #0a0c12;
+    --card: #161a24;
+    --surface-inset: #0f1520;
+    --border: rgba(255,255,255,.08);
+    --border-strong: rgba(255,255,255,.14);
+    --foreground: #e8e8e8;
+    --muted-foreground: #888;
+    --gold: #e8c547;
+    --gold-dark: #d4a832;
+    --green: #47e8a0;
+    --orange: #e87447;
+    --blue: #47b4e8;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 80px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: .08em;
+    color: var(--gold);
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted-foreground);
+    text-align: center;
+    margin-bottom: 24px;
+    max-width: 320px;
+    line-height: 1.5;
+  }
+
+  /* ── Carousel container ── */
+  .carousel-demo {
+    width: 100%;
+    max-width: 360px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .step-label {
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: .1em;
+    color: var(--gold-dark);
+    text-align: center;
+    margin-bottom: 12px;
+    margin-top: 32px;
+  }
+  .step-label:first-child { margin-top: 0; }
+
+  /* ── Cards ── */
+  .intensity-card {
+    width: 100%;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all .45s cubic-bezier(.16,1,.3,1);
+  }
+
+  /* Mini card (collapsed) */
+  .mini-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: var(--surface-inset);
+    border: 1px solid var(--border);
+    transition: all .45s cubic-bezier(.16,1,.3,1);
+  }
+  .mini-card.done {
+    opacity: .55;
+  }
+  .mini-card.upcoming {
+    opacity: .7;
+  }
+
+  .mini-card .icon-done {
+    width: 13px; height: 13px;
+    color: var(--green);
+  }
+  .mini-card .icon-next {
+    width: 13px; height: 13px;
+    color: var(--gold-dark);
+  }
+  .mini-card .label {
+    font-size: 11px;
+    font-weight: 700;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mini-card.done .label {
+    color: var(--green);
+    text-decoration: line-through;
+  }
+  .mini-card.upcoming .label {
+    color: var(--foreground);
+  }
+  .mini-card .kg {
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .mini-card.done .kg { color: var(--muted-foreground); }
+  .mini-card.upcoming .kg { color: var(--gold-dark); }
+  .mini-card .reps {
+    font-size: 10px;
+    color: var(--muted-foreground);
+  }
+
+  /* Full card */
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-header .number-badge {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--card);
+    flex-shrink: 0;
+  }
+  .card-header .name {
+    font-size: 16px;
+    font-weight: 700;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-header .intensity-badge {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: var(--foreground);
+  }
+
+  /* Stat pods */
+  .stat-pods {
+    display: flex;
+    padding: 12px 16px;
+    gap: 0;
+  }
+  .stat-pods .pod {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .stat-pods .pod + .pod {
+    border-left: 1px solid var(--border);
+  }
+  .stat-pods .pod-label {
+    font-family: var(--font-display);
+    font-size: 9px;
+    letter-spacing: .1em;
+    color: var(--muted-foreground);
+  }
+  .stat-pods .pod-value {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-pods .pod-unit {
+    font-size: 11px;
+    color: var(--gold-dark);
+    font-weight: 500;
+  }
+
+  /* Series bar */
+  .series-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-inset);
+  }
+  .series-bar .bar-label {
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: .06em;
+    color: var(--muted-foreground);
+  }
+  .series-bar .bar-value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .series-bar .dots {
+    display: flex;
+    gap: 5px;
+    margin-left: auto;
+  }
+  .series-bar .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    transition: all .3s;
+  }
+  .dot.done { background: var(--green); }
+  .dot.current { background: var(--gold); box-shadow: 0 0 8px rgba(232,197,71,.15); }
+  .dot.todo { background: rgba(232,197,71,.12); }
+
+  /* Intensity step dots */
+  .intensity-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    padding: 6px 0;
+  }
+  .intensity-dot {
+    height: 8px;
+    border-radius: 4px;
+    transition: all .3s;
+  }
+  .intensity-dot.done { width: 8px; background: var(--green); }
+  .intensity-dot.active { width: 20px; background: var(--gold-dark); }
+  .intensity-dot.pending { width: 8px; background: var(--border); }
+
+  /* ── ANIMATION ── */
+  .carousel-stack {
+    position: relative;
+    width: 100%;
+    perspective: 600px;
+  }
+
+  /* Animation keyframes */
+  @keyframes miniToMain {
+    0% {
+      transform: scale(.88) translateY(-4px);
+      opacity: .7;
+      border-radius: 8px;
+      max-height: 36px;
+    }
+    30% {
+      opacity: .85;
+      border-radius: 10px;
+    }
+    100% {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      border-radius: 14px;
+      max-height: 300px;
+    }
+  }
+
+  @keyframes mainToMiniDone {
+    0% {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      border-radius: 14px;
+      max-height: 300px;
+    }
+    70% {
+      opacity: .65;
+      border-radius: 10px;
+    }
+    100% {
+      transform: scale(.88) translateY(4px);
+      opacity: .55;
+      border-radius: 8px;
+      max-height: 36px;
+    }
+  }
+
+  @keyframes slideUpAndIn {
+    0% {
+      transform: translateY(20px) scale(.96);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeSlideDown {
+    0% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-12px);
+      opacity: .55;
+    }
+  }
+
+  /* ── Interactive demo ── */
+  .demo-container {
+    width: 100%;
+    max-width: 360px;
+    margin-top: 32px;
+  }
+
+  .demo-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: 340px;
+  }
+
+  /* Carousel slots */
+  .carousel-slot {
+    position: absolute;
+    width: 100%;
+    left: 0;
+    transition: all .5s cubic-bezier(.16,1,.3,1);
+  }
+
+  /* State 0: 70% active */
+  .state-0 .slot-done-60 { display: none; }
+  .state-0 .slot-active-70 { top: 0; opacity: 1; transform: scale(1); }
+  .state-0 .slot-upcoming-80 { top: calc(100% + 6px); opacity: .7; transform: scale(.96); }
+  .state-0 .slot-upcoming-90 { top: calc(100% + 48px); opacity: .5; transform: scale(.92); }
+  .state-0 .slot-next-exercise { top: calc(100% + 90px); opacity: .4; transform: scale(.88); }
+
+  /* State 1: 80% active, 70% done */
+  .state-1 .slot-done-60 { display: none; }
+  .state-1 .slot-active-70 { top: 0; opacity: .55; transform: scale(.88); pointer-events: none; }
+  .state-1 .slot-upcoming-80 { top: 44px; opacity: 1; transform: scale(1); }
+  .state-1 .slot-upcoming-90 { top: calc(44px + 100% + 6px); opacity: .7; transform: scale(.96); }
+  .state-1 .slot-next-exercise { top: calc(44px + 100% + 48px); opacity: .4; transform: scale(.88); }
+
+  /* State 2: 90% active, 70+80 done */
+  .state-2 .slot-done-60 { display: none; }
+  .state-2 .slot-active-70 { top: 0; opacity: .55; transform: scale(.88); pointer-events: none; }
+  .state-2 .slot-upcoming-80 { top: 44px; opacity: .55; transform: scale(.88); pointer-events: none; }
+  .state-2 .slot-upcoming-90 { top: 88px; opacity: 1; transform: scale(1); }
+  .state-2 .slot-next-exercise { top: calc(88px + 100% + 12px); opacity: .5; transform: scale(.92); }
+
+  /* Button row */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .btn {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all .15s ease-out;
+    color: var(--card);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .btn:active { transform: scale(.95); }
+  .btn-gold { background: var(--gold); }
+  .btn-gold:hover { background: var(--gold-dark); }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--foreground);
+  }
+  .btn-outline:hover { background: rgba(255,255,255,.04); }
+  .btn-green { background: var(--green); }
+  .btn-green:hover { background: #3dd98f; }
+
+  /* Controls explanation */
+  .controls-legend {
+    margin-top: 20px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-inset);
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--muted-foreground);
+  }
+  .controls-legend strong {
+    color: var(--foreground);
+    font-weight: 700;
+  }
+  .controls-legend .gold { color: var(--gold); }
+  .controls-legend .green { color: var(--green); }
+
+  /* Divider */
+  .section-divider {
+    width: 100%;
+    max-width: 360px;
+    height: 1px;
+    background: var(--border);
+    margin: 40px 0;
+  }
+
+  /* ── Interactive carousel (real animation) ── */
+  .live-carousel {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    overflow: visible;
+  }
+
+  .live-items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  /* Each item in the live carousel */
+  .live-item {
+    width: 100%;
+    transition: all .5s cubic-bezier(.16,1,.3,1);
+    transform-origin: top center;
+    overflow: hidden;
+  }
+
+  /* Mini state */
+  .live-item.is-mini {
+    max-height: 36px;
+    border-radius: 8px;
+  }
+  .live-item.is-mini.is-done {
+    opacity: .55;
+  }
+  .live-item.is-mini.is-upcoming {
+    opacity: .7;
+    transform: scale(.96);
+  }
+
+  /* Full state */
+  .live-item.is-full {
+    max-height: 500px;
+    opacity: 1;
+    transform: scale(1);
+    border-radius: 14px;
+  }
+
+  /* Collapsed state (hidden) */
+  .live-item.is-hidden {
+    max-height: 0;
+    opacity: 0;
+    transform: scale(.9);
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  /* Stacked next exercise */
+  .stacked-next {
+    width: 100%;
+    transition: all .5s cubic-bezier(.16,1,.3,1);
+    transform: scale(.96);
+    transform-origin: top center;
+    opacity: .75;
+    margin-top: 12px;
+  }
+
+  /* ── Explanation cards ── */
+  .explanation {
+    width: 100%;
+    max-width: 360px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(232,197,71,.04);
+    font-size: 11px;
+    color: var(--muted-foreground);
+    line-height: 1.6;
+  }
+  .explanation em { color: var(--gold); font-style: normal; font-weight: 700; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>CARRUSEL DE INTENSIDADES</h1>
+<p class="subtitle">
+  Boceto interactivo: la mini card se transforma en la card principal y la card actual se colapsa a mini card completada. Efecto de profundidad por superposición.
+</p>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SECTION 1: Static states for reference                  -->
+<!-- ════════════════════════════════════════════════════════ -->
+
+<div class="step-label">ESTADO A — INTENSIDAD 70% ACTIVA</div>
+<div class="carousel-demo">
+  <!-- Intensity dots -->
+  <div class="intensity-dots">
+    <div class="intensity-dot active"></div>
+    <div class="intensity-dot pending"></div>
+    <div class="intensity-dot pending"></div>
+  </div>
+
+  <!-- Active card: 70% -->
+  <div class="intensity-card" style="margin-bottom: 6px;">
+    <div class="card-header">
+      <div class="number-badge" style="background: var(--gold);">1</div>
+      <div class="name">Arranque de Potencia</div>
+      <div class="intensity-badge" style="background: rgba(232,197,71,.12); border: 1px solid rgba(232,197,71,.2);">70%</div>
+    </div>
+    <div class="stat-pods">
+      <div class="pod"><div class="pod-label">SERIES</div><div class="pod-value">3</div></div>
+      <div class="pod"><div class="pod-label">REPS</div><div class="pod-value">5</div></div>
+      <div class="pod"><div class="pod-label">CARGA</div><div class="pod-value">60 <span class="pod-unit">kg</span></div></div>
+    </div>
+    <div class="series-bar">
+      <span class="bar-label">SERIE</span>
+      <span class="bar-value">2/3</span>
+      <div class="dots">
+        <div class="dot done"></div>
+        <div class="dot current"></div>
+        <div class="dot todo"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upcoming mini: 80% -->
+  <div class="mini-card upcoming" style="margin-bottom: 6px;">
+    <svg class="icon-next" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10M7 17 17 7"/></svg>
+    <span class="label" style="color: var(--foreground);">80% — 65 kg</span>
+    <span class="kg" style="color: var(--gold-dark);">3×4</span>
+  </div>
+
+  <!-- Upcoming mini: 90% -->
+  <div class="mini-card upcoming" style="opacity: .5;">
+    <svg class="icon-next" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10M7 17 17 7"/></svg>
+    <span class="label" style="color: var(--foreground);">90% — 75 kg</span>
+    <span class="kg" style="color: var(--gold-dark);">2×2</span>
+  </div>
+</div>
+
+<div class="step-label">ESTADO B — INTENSIDAD 80% ACTIVA (70% COMPLETADA)</div>
+<div class="carousel-demo">
+  <!-- Intensity dots -->
+  <div class="intensity-dots">
+    <div class="intensity-dot done"></div>
+    <div class="intensity-dot active"></div>
+    <div class="intensity-dot pending"></div>
+  </div>
+
+  <!-- Done mini: 70% -->
+  <div class="mini-card done" style="margin-bottom: 6px;">
+    <svg class="icon-done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 13 4 4L19 7"/></svg>
+    <span class="label">70% — 60 kg</span>
+    <span class="reps">3×5 ✓</span>
+  </div>
+
+  <!-- Active card: 80% -->
+  <div class="intensity-card" style="margin-bottom: 6px;">
+    <div class="card-header">
+      <div class="number-badge" style="background: var(--gold);">1</div>
+      <div class="name">Arranque de Potencia</div>
+      <div class="intensity-badge" style="background: rgba(232,197,71,.12); border: 1px solid rgba(232,197,71,.2);">80%</div>
+    </div>
+    <div class="stat-pods">
+      <div class="pod"><div class="pod-label">SERIES</div><div class="pod-value">3</div></div>
+      <div class="pod"><div class="pod-label">REPS</div><div class="pod-value">4</div></div>
+      <div class="pod"><div class="pod-label">CARGA</div><div class="pod-value">65 <span class="pod-unit">kg</span></div></div>
+    </div>
+    <div class="series-bar">
+      <span class="bar-label">SERIE</span>
+      <span class="bar-value">1/3</span>
+      <div class="dots">
+        <div class="dot current"></div>
+        <div class="dot todo"></div>
+        <div class="dot todo"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upcoming mini: 90% -->
+  <div class="mini-card upcoming">
+    <svg class="icon-next" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10M7 17 17 7"/></svg>
+    <span class="label" style="color: var(--foreground);">90% — 75 kg</span>
+    <span class="kg" style="color: var(--gold-dark);">2×2</span>
+  </div>
+</div>
+
+<div class="step-label">ESTADO C — INTENSIDAD 90% ACTIVA (70%+80% COMPLETADAS)</div>
+<div class="carousel-demo">
+  <!-- Intensity dots -->
+  <div class="intensity-dots">
+    <div class="intensity-dot done"></div>
+    <div class="intensity-dot done"></div>
+    <div class="intensity-dot active"></div>
+  </div>
+
+  <!-- Done minis -->
+  <div class="mini-card done" style="margin-bottom: 4px;">
+    <svg class="icon-done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 13 4 4L19 7"/></svg>
+    <span class="label">70% — 60 kg</span>
+    <span class="reps">3×5 ✓</span>
+  </div>
+  <div class="mini-card done" style="margin-bottom: 6px;">
+    <svg class="icon-done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 13 4 4L19 7"/></svg>
+    <span class="label">80% — 65 kg</span>
+    <span class="reps">3×4 ✓</span>
+  </div>
+
+  <!-- Active card: 90% -->
+  <div class="intensity-card" style="margin-bottom: 12px;">
+    <div class="card-header">
+      <div class="number-badge" style="background: var(--gold);">1</div>
+      <div class="name">Arranque de Potencia</div>
+      <div class="intensity-badge" style="background: rgba(232,197,71,.12); border: 1px solid rgba(232,197,71,.2);">90%</div>
+    </div>
+    <div class="stat-pods">
+      <div class="pod"><div class="pod-label">SERIES</div><div class="pod-value">2</div></div>
+      <div class="pod"><div class="pod-label">REPS</div><div class="pod-value">2</div></div>
+      <div class="pod"><div class="pod-label">CARGA</div><div class="pod-value">75 <span class="pod-unit">kg</span></div></div>
+    </div>
+    <div class="series-bar">
+      <span class="bar-label">SERIE</span>
+      <span class="bar-value">1/2</span>
+      <div class="dots">
+        <div class="dot current"></div>
+        <div class="dot todo"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stacked next exercise (different group) -->
+  <div style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 0;">
+    <div style="flex: 1; max-width: 40px; height: 1px; background: color-mix(in srgb, var(--gold-dark) 25%, transparent);"></div>
+    <span style="font-family: var(--font-display); font-size: 10px; letter-spacing: .1em; color: var(--gold-dark);">SIGUIENTE</span>
+    <div style="flex: 1; max-width: 40px; height: 1px; background: color-mix(in srgb, var(--gold-dark) 25%, transparent);"></div>
+  </div>
+
+  <div style="transform: scale(.96); transform-origin: top center; opacity: .75;">
+    <div class="intensity-card">
+      <div class="card-header">
+        <div class="number-badge" style="background: var(--blue);">2</div>
+        <div class="name">Envión en Cajón</div>
+      </div>
+      <div class="stat-pods" style="background: var(--surface-inset);">
+        <div class="pod"><div class="pod-label">SERIES</div><div class="pod-value">4</div></div>
+        <div class="pod"><div class="pod-label">REPS</div><div class="pod-value">3</div></div>
+        <div class="pod"><div class="pod-label">CARGA</div><div class="pod-value">70 <span class="pod-unit">kg</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SECTION 2: Interactive animated carousel                -->
+<!-- ════════════════════════════════════════════════════════ -->
+
+<h1>DEMO INTERACTIVA</h1>
+<p class="subtitle">
+  Tocá "LISTO" para completar la fase actual. Tocá "SIGUIENTE %" para avanzar a la siguiente intensidad con animación de carrusel.
+</p>
+
+<div class="live-carousel" id="liveCarousel">
+  <div class="intensity-dots" id="liveSteps"></div>
+  <div class="live-items-container" id="liveItems"></div>
+</div>
+
+<div class="btn-row" style="margin-top: 16px;">
+  <button class="btn btn-outline" id="btnReset" title="Reiniciar demo">↺ RESET</button>
+  <button class="btn btn-gold" id="btnNext">SIGUIENTE %</button>
+</div>
+
+<div class="explanation" style="margin-top: 16px;">
+  <em>Transición:</em> La mini card upcoming se expande (scale .88 → 1, opacity .7 → 1, maxHeight 36px → full) mientras la card activa se colapsa (scale 1 → .88, opacity 1 → .55, maxHeight full → 36px). Ambas animaciones corren en paralelo con <em>ease-out-expo</em> (500ms).
+</div>
+
+<div class="controls-legend" style="margin-top: 12px;">
+  <strong>Mapeo de botones (v1.7.3):</strong><br>
+  <span class="gold">LISTO</span> → <code>skipPhase</code> — completa fase actual (work→rest, rest→siguiente work, etc.)<br>
+  <span class="gold">⏩</span> → <code>skipForward</code> — salta a siguiente serie (o siguiente ejercicio si última serie)<br>
+  <span class="green">SIGUIENTE</span> → <code>nextExercise</code> — solo visible cuando NO quedan más % del ejercicio actual y existe un próximo ejercicio diferente
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SECTION 3: Transition diagram                          -->
+<!-- ════════════════════════════════════════════════════════ -->
+
+<div class="section-divider"></div>
+<h1>FLUJO DE TRANSICIONES</h1>
+
+<div style="width: 100%; max-width: 360px; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); margin-top: 8px;">
+  <pre style="font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); line-height: 1.8; overflow-x: auto; white-space: pre;">
+┌─────────────────────────────────────────┐
+│  [Mini upcoming 70%] ─ scale(.88), .7   │
+│  ════════════════════════                │
+│  [FULL CARD 70%] ─ scale(1), 1.0        │
+│  ════════════════════════                │
+│  [Mini upcoming 80%] ─ scale(.88), .7   │
+│  [Mini upcoming 90%] ─ scale(.88), .5   │
+└─────────────────────────────────────────┘
+          │
+          │ LISTO (× series) → skipPhase
+          │ completa work→rest→work→...
+          │
+          │ Última serie del 70%:
+          │ skipPhase → intensityRest
+          │ "CARGÁ LA BARRA → 80%"
+          ▼
+┌─────────────────────────────────────────┐
+│  [Mini done 70%] ─ scale(.88), .55 ✓   │
+│  ════════════════════════                │
+│  [FULL CARD 80%] ─ scale(1), 1.0        │
+│  ════════════════════════                │
+│  [Mini upcoming 90%] ─ scale(.88), .7   │
+└─────────────────────────────────────────┘
+          │
+          │ ...misma secuencia...
+          ▼
+┌─────────────────────────────────────────┐
+│  [Mini done 70%] ─ .55 ✓               │
+│  [Mini done 80%] ─ .55 ✓               │
+│  ════════════════════════                │
+│  [FULL CARD 90%] ─ scale(1), 1.0        │
+│  ════════════════════════                │
+│  ─── SIGUIENTE ───                      │
+│  [Stacked: Envión en Cajón] ─ .75       │
+└─────────────────────────────────────────┘
+  </pre>
+</div>
+
+<script>
+  // ── Live carousel demo ──
+  const intensities = [
+    { label: '70%', kg: 60, series: 3, reps: 5, color: 'var(--gold)' },
+    { label: '80%', kg: 65, series: 3, reps: 4, color: 'var(--gold)' },
+    { label: '90%', kg: 75, series: 2, reps: 2, color: 'var(--gold)' },
+  ];
+
+  let activeIndex = 0;
+
+  function renderDots() {
+    const el = document.getElementById('liveSteps');
+    el.innerHTML = intensities.map((_, i) => {
+      const cls = i < activeIndex ? 'done' : i === activeIndex ? 'active' : 'pending';
+      return `<div class="intensity-dot ${cls}"></div>`;
+    }).join('');
+  }
+
+  function buildMiniDone(int) {
+    return `
+      <div class="mini-card done" style="transition: all .5s cubic-bezier(.16,1,.3,1);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><path d="m5 13 4 4L19 7"/></svg>
+        <span class="label" style="color: var(--green); text-decoration: line-through;">${int.label} — ${int.kg} kg</span>
+        <span class="reps">${int.series}×${int.reps} ✓</span>
+      </div>`;
+  }
+
+  function buildMiniUpcoming(int) {
+    return `
+      <div class="mini-card upcoming" style="transition: all .5s cubic-bezier(.16,1,.3,1);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="label" style="color: var(--foreground);">${int.label} — ${int.kg} kg</span>
+        <span class="kg" style="color: var(--gold-dark);">${int.series}×${int.reps}</span>
+      </div>`;
+  }
+
+  function buildFullCard(int, idx) {
+    return `
+      <div class="intensity-card" style="transition: all .5s cubic-bezier(.16,1,.3,1);">
+        <div class="card-header">
+          <div class="number-badge" style="background: var(--gold);">1</div>
+          <div class="name">Arranque de Potencia</div>
+          <div class="intensity-badge" style="background: rgba(232,197,71,.12); border: 1px solid rgba(232,197,71,.2);">${int.label}</div>
+        </div>
+        <div class="stat-pods">
+          <div class="pod"><div class="pod-label">SERIES</div><div class="pod-value">${int.series}</div></div>
+          <div class="pod"><div class="pod-label">REPS</div><div class="pod-value">${int.reps}</div></div>
+          <div class="pod"><div class="pod-label">CARGA</div><div class="pod-value">${int.kg} <span class="pod-unit">kg</span></div></div>
+        </div>
+        <div class="series-bar">
+          <span class="bar-label">SERIE</span>
+          <span class="bar-value">1/${int.series}</span>
+          <div class="dots">
+            ${Array.from({length: int.series}, (_, i) =>
+              `<div class="dot ${i === 0 ? 'current' : 'todo'}"></div>`
+            ).join('')}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function render() {
+    renderDots();
+    const container = document.getElementById('liveItems');
+    let html = '';
+
+    // Done minis
+    for (let i = 0; i < activeIndex; i++) {
+      html += buildMiniDone(intensities[i]);
+    }
+
+    // Active full card
+    if (activeIndex < intensities.length) {
+      html += buildFullCard(intensities[activeIndex], activeIndex);
+    }
+
+    // Upcoming minis
+    for (let i = activeIndex + 1; i < intensities.length; i++) {
+      html += buildMiniUpcoming(intensities[i]);
+    }
+
+    // If last intensity, show stacked next exercise
+    if (activeIndex === intensities.length - 1) {
+      html += `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0 6px;">
+          <div style="flex: 1; max-width: 40px; height: 1px; background: color-mix(in srgb, var(--gold-dark) 25%, transparent);"></div>
+          <span style="font-family: var(--font-display); font-size: 10px; letter-spacing: .1em; color: var(--gold-dark);">SIGUIENTE</span>
+          <div style="flex: 1; max-width: 40px; height: 1px; background: color-mix(in srgb, var(--gold-dark) 25%, transparent);"></div>
+        </div>
+        <div style="transform: scale(.96); transform-origin: top center; opacity: .75;">
+          <div class="intensity-card">
+            <div class="card-header">
+              <div class="number-badge" style="background: var(--blue);">2</div>
+              <div class="name">Envión en Cajón</div>
+            </div>
+            <div class="stat-pods" style="background: var(--surface-inset);">
+              <div class="pod"><div class="pod-label">SERIES</div><div class="pod-value">4</div></div>
+              <div class="pod"><div class="pod-label">REPS</div><div class="pod-value">3</div></div>
+              <div class="pod"><div class="pod-label">CARGA</div><div class="pod-value">70 <span class="pod-unit">kg</span></div></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // All done state
+    if (activeIndex >= intensities.length) {
+      html = '';
+      for (let i = 0; i < intensities.length; i++) {
+        html += buildMiniDone(intensities[i]);
+      }
+      html += `
+        <div style="text-align: center; padding: 20px 0;">
+          <div style="font-family: var(--font-display); font-size: 16px; letter-spacing: .1em; color: var(--green); margin-bottom: 4px;">✓ TODAS LAS INTENSIDADES COMPLETADAS</div>
+          <div style="font-size: 11px; color: var(--muted-foreground);">Arranque de Potencia — 3 intensidades</div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 0;">
+          <div style="flex: 1; max-width: 40px; height: 1px; background: color-mix(in srgb, var(--gold-dark) 25%, transparent);"></div>
+          <span style="font-family: var(--font-display); font-size: 10px; letter-spacing: .1em; color: var(--gold-dark);">SIGUIENTE EJERCICIO</span>
+          <div style="flex: 1; max-width: 40px; height: 1px; background: color-mix(in srgb, var(--gold-dark) 25%, transparent);"></div>
+        </div>
+        <div class="intensity-card" style="animation: slideUpAndIn .5s cubic-bezier(.16,1,.3,1) both;">
+          <div class="card-header">
+            <div class="number-badge" style="background: var(--blue);">2</div>
+            <div class="name">Envión en Cajón</div>
+          </div>
+          <div class="stat-pods" style="background: var(--surface-inset);">
+            <div class="pod"><div class="pod-label">SERIES</div><div class="pod-value">4</div></div>
+            <div class="pod"><div class="pod-label">REPS</div><div class="pod-value">3</div></div>
+            <div class="pod"><div class="pod-label">CARGA</div><div class="pod-value">70 <span class="pod-unit">kg</span></div></div>
+          </div>
+        </div>`;
+    }
+
+    container.innerHTML = html;
+
+    // Update button text
+    const btn = document.getElementById('btnNext');
+    if (activeIndex >= intensities.length) {
+      btn.textContent = 'COMPLETADO';
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+    } else if (activeIndex === intensities.length - 1) {
+      btn.textContent = 'COMPLETAR 90%';
+      btn.classList.remove('btn-gold');
+      btn.classList.add('btn-green');
+    } else {
+      btn.textContent = `SIGUIENTE % → ${intensities[activeIndex + 1]?.label || ''}`;
+      btn.classList.remove('btn-green');
+      btn.classList.add('btn-gold');
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
+  }
+
+  document.getElementById('btnNext').addEventListener('click', () => {
+    if (activeIndex < intensities.length) {
+      activeIndex++;
+      render();
+    }
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    activeIndex = 0;
+    render();
+  });
+
+  // Initial render
+  render();
+</script>
+
+</body>
+</html>

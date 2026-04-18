@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Ironlifting — Carousel Ideas (Boceto)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0a0c12;
+      --bg-surface: #0f1520;
+      --card:       #161a24;
+      --card-elevated: #1c2030;
+      --border:     rgba(232, 197, 71, .12);
+      --border-strong: rgba(232, 197, 71, .25);
+      --fg:         #f0ead6;
+      --fg-muted:   #888680;
+      --fg-subtle:  #5a5856;
+      --gold:       #e8c547;
+      --gold-dark:  #d4a832;
+      --gold-dim:   rgba(232, 197, 71, .08);
+      --gold-glow:  rgba(232, 197, 71, .15);
+      --green:      #47e8a0;
+      --orange:     #e87447;
+      --blue:       #47b4e8;
+      --purple:     #9b87e8;
+      --red:        #e05050;
+      --font-display: 'Bebas Neue', Impact, sans-serif;
+      --font-sans:    'Inter', -apple-system, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--fg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Page layout ─── */
+    .page {
+      max-width: 420px;
+      margin: 0 auto;
+      min-height: 100dvh;
+    }
+
+    .idea-section {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .idea-label {
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: .12em;
+      color: var(--gold);
+      text-transform: uppercase;
+      padding: 0 20px;
+      margin-bottom: 4px;
+    }
+
+    .idea-desc {
+      font-size: 12px;
+      color: var(--fg-muted);
+      padding: 0 20px;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    /* ─── Shared: Timer ring (simplified for mockup) ─── */
+    .timer-ring {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 4px solid rgba(232,197,71,.15);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+    }
+    .timer-ring::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 4px solid transparent;
+      border-top-color: var(--orange);
+      border-right-color: var(--orange);
+      transform: rotate(120deg);
+    }
+    .timer-time {
+      font-family: var(--font-display);
+      font-size: 48px;
+      letter-spacing: .02em;
+      color: var(--orange);
+    }
+    .timer-phase {
+      font-family: var(--font-display);
+      font-size: 22px;
+      letter-spacing: .08em;
+      color: var(--orange);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    /* ─── Nav tabs for switching ideas ─── */
+    .idea-nav {
+      display: flex;
+      gap: 0;
+      padding: 16px 20px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+    .idea-nav button {
+      flex: 1;
+      background: none;
+      border: none;
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: .08em;
+      color: var(--fg-muted);
+      padding: 12px 8px;
+      cursor: pointer;
+      position: relative;
+      transition: color .2s;
+    }
+    .idea-nav button:hover { color: var(--fg); }
+    .idea-nav button.active {
+      color: var(--gold);
+    }
+    .idea-nav button.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gold);
+    }
+
+    .page-title {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: .06em;
+      color: var(--gold);
+      text-align: center;
+      padding: 24px 20px 8px;
+    }
+    .page-subtitle {
+      font-size: 12px;
+      color: var(--fg-muted);
+      text-align: center;
+      padding: 0 20px 16px;
+      line-height: 1.5;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       IDEA A: HORIZONTAL TRACK CAROUSEL
+       ════════════════════════════════════════════════════════════════ */
+
+    .track-carousel {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .track-carousel::-webkit-scrollbar { display: none; }
+
+    .track-card {
+      scroll-snap-align: center;
+      flex-shrink: 0;
+      width: 280px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      overflow: hidden;
+      transition: all .3s cubic-bezier(.16,1,.3,1);
+    }
+    .track-card.current {
+      border-color: var(--border-strong);
+      box-shadow: 0 0 24px var(--gold-glow), inset 0 1px 0 rgba(232,197,71,.06);
+    }
+    .track-card.done {
+      opacity: .4;
+      filter: grayscale(.5);
+    }
+    .track-card.upcoming {
+      opacity: .7;
+    }
+
+    .track-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .track-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--card);
+      flex-shrink: 0;
+    }
+    .track-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .track-intensity {
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--gold);
+      letter-spacing: .02em;
+    }
+
+    /* The juicy data grid */
+    .track-data {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+    }
+    .track-data-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 8px;
+      border-right: 1px solid var(--border);
+    }
+    .track-data-cell:last-child { border-right: none; }
+    .track-data-label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: var(--fg-muted);
+      margin-bottom: 4px;
+    }
+    .track-data-value {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--fg);
+      letter-spacing: -.02em;
+    }
+    .track-data-value .unit {
+      font-size: 11px;
+      color: var(--gold-dark);
+      font-weight: 500;
+    }
+
+    .track-notes {
+      padding: 8px 14px;
+      font-size: 10px;
+      color: var(--fg-muted);
+      font-style: italic;
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       IDEA B: STACKED DEPTH CARDS
+       ════════════════════════════════════════════════════════════════ */
+
+    .stack-container {
+      padding: 0 20px;
+      position: relative;
+      perspective: 800px;
+    }
+
+    .stack-card {
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      overflow: hidden;
+      transition: all .4s cubic-bezier(.16,1,.3,1);
+    }
+
+    .stack-card.stack-current {
+      border-color: var(--border-strong);
+      box-shadow: 0 0 24px var(--gold-glow);
+      position: relative;
+      z-index: 3;
+    }
+
+    .stack-next-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 0 8px;
+    }
+    .stack-next-label span {
+      font-family: var(--font-display);
+      font-size: 10px;
+      letter-spacing: .1em;
+      color: var(--gold-dark);
+    }
+    .stack-next-label .line {
+      flex: 1;
+      max-width: 40px;
+      height: 1px;
+      background: var(--border-strong);
+    }
+
+    .stack-card.stack-next {
+      margin-top: 0;
+      opacity: .75;
+      position: relative;
+      z-index: 2;
+      transform: scale(.96);
+      transform-origin: top center;
+    }
+    .stack-card.stack-next-2 {
+      margin-top: -4px;
+      opacity: .4;
+      position: relative;
+      z-index: 1;
+      transform: scale(.92);
+      transform-origin: top center;
+    }
+
+    /* Card internals (shared between stack) */
+    .s-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .s-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--card);
+      flex-shrink: 0;
+    }
+    .s-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .s-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .s-intensity-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .s-intensity {
+      font-family: var(--font-display);
+      font-size: 14px;
+      color: var(--gold);
+      letter-spacing: .02em;
+    }
+
+    /* Pill-style data strip */
+    .s-data-strip {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--bg-surface);
+    }
+    .s-data-pill {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      position: relative;
+    }
+    .s-data-pill + .s-data-pill::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 1px;
+      background: var(--border);
+    }
+    .s-data-pill-label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: var(--fg-subtle);
+      margin-bottom: 2px;
+    }
+    .s-data-pill-value {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--fg);
+    }
+    .s-data-pill-value .unit {
+      font-size: 10px;
+      color: var(--gold-dark);
+      font-weight: 500;
+    }
+
+    /* Series dots inside stack */
+    .s-series-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .s-series-label {
+      font-family: var(--font-display);
+      font-size: 10px;
+      letter-spacing: .06em;
+      color: var(--fg-muted);
+    }
+    .s-series-dots {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+    .s-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      transition: background .3s;
+    }
+    .s-dot.done { background: var(--green); }
+    .s-dot.active { background: var(--gold); }
+    .s-dot.pending { background: rgba(232,197,71,.15); }
+
+
+    /* ════════════════════════════════════════════════════════════════
+       IDEA C: HUD COCKPIT VIEW
+       ════════════════════════════════════════════════════════════════ */
+
+    .hud-container {
+      padding: 0 16px;
+    }
+
+    /* Main exercise HUD panel */
+    .hud-panel {
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      background: var(--card);
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 32px var(--gold-glow);
+    }
+    .hud-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-dark), transparent);
+    }
+
+    .hud-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 10px;
+    }
+    .hud-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--card);
+      flex-shrink: 0;
+    }
+    .hud-exercise-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .hud-exercise-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--fg);
+    }
+    .hud-exercise-intensity {
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--gold);
+      letter-spacing: .02em;
+      margin-top: 2px;
+    }
+
+    /* Hexagonal stat pods */
+    .hud-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 8px 16px 14px;
+    }
+    .hud-stat {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 4px;
+      position: relative;
+    }
+    .hud-stat::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20%;
+      right: 20%;
+      height: 2px;
+      border-radius: 1px;
+    }
+    .hud-stat.active-stat::after {
+      background: var(--gold-dark);
+    }
+    .hud-stat-label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: var(--fg-subtle);
+      margin-bottom: 4px;
+    }
+    .hud-stat-value {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--fg);
+      line-height: 1;
+    }
+    .hud-stat-value .unit {
+      font-size: 11px;
+      color: var(--gold-dark);
+      font-weight: 500;
+    }
+
+    /* Series progress */
+    .hud-series {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+    .hud-series-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: .06em;
+      color: var(--fg-muted);
+    }
+    .hud-series-count {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--fg);
+    }
+    .hud-series-dots {
+      display: flex;
+      gap: 5px;
+      margin-left: auto;
+    }
+    .hud-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      transition: all .3s;
+    }
+    .hud-dot.done { background: var(--green); }
+    .hud-dot.active { background: var(--gold); box-shadow: 0 0 8px var(--gold-glow); }
+    .hud-dot.pending { background: rgba(232,197,71,.12); }
+
+    /* ── SIGUIENTE panel below ── */
+    .hud-next-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 8px;
+    }
+    .hud-next-divider .line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+    }
+    .hud-next-divider span {
+      font-family: var(--font-display);
+      font-size: 10px;
+      letter-spacing: .12em;
+      color: var(--gold-dark);
+      white-space: nowrap;
+    }
+
+    .hud-next-card {
+      margin: 0 16px;
+      border: 1px dashed var(--border-strong);
+      border-radius: 12px;
+      background: rgba(22, 26, 36, .6);
+      overflow: hidden;
+      display: flex;
+      align-items: stretch;
+    }
+    .hud-next-stripe {
+      width: 4px;
+      flex-shrink: 0;
+    }
+    .hud-next-body {
+      flex: 1;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .hud-next-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--fg);
+      opacity: .85;
+    }
+    .hud-next-meta {
+      display: flex;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg-muted);
+    }
+    .hud-next-meta .highlight {
+      color: var(--gold-dark);
+      font-weight: 700;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       IDEA D: CINEMATIC TICKER / TRAIN DEPARTURE BOARD
+       ════════════════════════════════════════════════════════════════ */
+
+    .ticker-container {
+      padding: 0 16px;
+    }
+
+    .ticker-board {
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      background: var(--bg-surface);
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0,0,0,.5);
+    }
+
+    .ticker-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+    }
+    .ticker-header-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--fg-muted);
+    }
+    .ticker-header-progress {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--gold-dark);
+      font-weight: 700;
+    }
+
+    /* Column labels */
+    .ticker-cols {
+      display: grid;
+      grid-template-columns: 36px 1fr 60px 60px 60px;
+      gap: 0;
+      padding: 6px 14px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-display);
+      font-size: 8px;
+      letter-spacing: .12em;
+      color: var(--fg-subtle);
+    }
+
+    /* Rows */
+    .ticker-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 60px 60px 60px;
+      gap: 0;
+      padding: 0 14px;
+      align-items: center;
+      min-height: 44px;
+      border-bottom: 1px solid rgba(232,197,71,.06);
+      transition: all .3s;
+    }
+    .ticker-row.row-done {
+      opacity: .35;
+    }
+    .ticker-row.row-current {
+      background: rgba(232,197,71,.06);
+      border-left: 3px solid var(--gold);
+      padding-left: 11px;
+    }
+    .ticker-row.row-next {
+      opacity: .75;
+    }
+    .ticker-row.row-future {
+      opacity: .4;
+    }
+
+    .ticker-num {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--fg-muted);
+    }
+    .row-current .ticker-num {
+      color: var(--gold);
+    }
+
+    .ticker-name-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 6px 8px;
+    }
+    .ticker-exercise-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .row-done .ticker-exercise-name {
+      text-decoration: line-through;
+      color: var(--fg-muted);
+    }
+    .ticker-exercise-intensity {
+      font-size: 10px;
+      color: var(--gold-dark);
+      font-family: var(--font-display);
+      letter-spacing: .04em;
+    }
+
+    .ticker-cell {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--fg);
+      text-align: center;
+    }
+    .ticker-cell .unit {
+      font-size: 9px;
+      color: var(--gold-dark);
+      font-weight: 500;
+    }
+    .row-done .ticker-cell {
+      color: var(--fg-muted);
+    }
+
+    /* Ticker active indicator */
+    .ticker-active-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--card);
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--orange);
+      animation: pulse 1.5s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(232, 116, 71, .5); }
+      50% { box-shadow: 0 0 0 6px rgba(232, 116, 71, 0); }
+    }
+    .ticker-active-text {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--orange);
+    }
+    .ticker-active-series {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--fg);
+    }
+
+
+    /* ════════════════════════════════════════════════════════════════
+       IDEA E: SPLIT-VIEW (Timer + Full Info Side)
+       This is the "exploit the carousel" idea — a carousel that
+       shows the CURRENT exercise info on one "page" and SWIPE to
+       see next exercise on the second "page"
+       ════════════════════════════════════════════════════════════════ */
+
+    .split-carousel-wrapper {
+      padding: 0 16px;
+    }
+
+    .split-carousel {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    .split-carousel::-webkit-scrollbar { display: none; }
+
+    .split-page {
+      scroll-snap-align: start;
+      flex-shrink: 0;
+      width: calc(100% - 24px);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      overflow: hidden;
+    }
+    .split-page.active-page {
+      border-color: var(--border-strong);
+      box-shadow: 0 0 24px var(--gold-glow);
+    }
+    .split-page.preview-page {
+      border-style: dashed;
+      border-color: rgba(232,197,71,.2);
+    }
+
+    /* Page indicator dots */
+    .split-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 0;
+    }
+    .split-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border-strong);
+    }
+    .split-dot.active { background: var(--gold); width: 18px; border-radius: 3px; }
+
+    /* Page content header */
+    .sp-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-display);
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: var(--gold-dark);
+      padding: 8px 14px 0;
+    }
+    .sp-tag-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .sp-exercise-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px 12px;
+    }
+    .sp-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--card);
+      flex-shrink: 0;
+    }
+    .sp-name-block {
+      flex: 1;
+      min-width: 0;
+    }
+    .sp-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--fg);
+    }
+    .sp-intensity {
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--gold);
+      letter-spacing: .02em;
+    }
+
+    /* Full-width data strip */
+    .sp-data {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+    .sp-data-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 4px;
+      position: relative;
+    }
+    .sp-data-cell + .sp-data-cell::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 1px;
+      background: var(--border);
+    }
+    .sp-data-label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: var(--fg-subtle);
+      margin-bottom: 4px;
+    }
+    .sp-data-val {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--fg);
+      line-height: 1;
+    }
+    .sp-data-val .unit {
+      font-size: 11px;
+      color: var(--gold-dark);
+      font-weight: 500;
+    }
+
+    /* Swipe hint */
+    .swipe-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-top: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--fg-subtle);
+    }
+    .swipe-arrow {
+      display: inline-block;
+      animation: swipeHint 2s ease-in-out infinite;
+    }
+    @keyframes swipeHint {
+      0%, 100% { transform: translateX(0); opacity: .4; }
+      50% { transform: translateX(6px); opacity: 1; }
+    }
+
+    /* ── "CARGÁ LA BARRA" enhanced banner ── */
+    .load-bar-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(212, 168, 50, .08);
+      border-top: 1px solid var(--border);
+    }
+    .load-bar-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(212, 168, 50, .15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+      font-size: 12px;
+    }
+    .load-bar-text {
+      flex: 1;
+    }
+    .load-bar-label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      letter-spacing: .08em;
+      color: var(--gold-dark);
+    }
+    .load-bar-value {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--fg);
+    }
+    .load-bar-value .unit {
+      font-size: 11px;
+      color: var(--gold-dark);
+      font-weight: 500;
+    }
+    .load-bar-detail {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg-muted);
+    }
+
+
+    /* ─── Utility ─── */
+    .cat-arranque { background: var(--gold); }
+    .cat-envion { background: var(--blue); }
+    .cat-tirones { background: var(--orange); }
+    .cat-piernas { background: var(--green); }
+    .cat-complementarios { background: var(--purple); }
+
+    .mt-16 { margin-top: 16px; }
+    .mb-20 { margin-bottom: 20px; }
+    .text-center { text-align: center; }
+
+    /* hide all sections by default, show .active */
+    .idea-section { display: none; }
+    .idea-section.active { display: block; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="page-title">BOCETO · CARRUSEL</div>
+    <div class="page-subtitle">
+      5 ideas para mostrar series, reps y kg del ejercicio actual y siguiente.<br>
+      Deslizá las tabs para ver cada concepto.
+    </div>
+
+    <!-- Nav -->
+    <nav class="idea-nav" id="nav">
+      <button class="active" data-target="idea-a">A · TRACK</button>
+      <button data-target="idea-b">B · STACK</button>
+      <button data-target="idea-c">C · HUD</button>
+      <button data-target="idea-d">D · TICKER</button>
+      <button data-target="idea-e">E · SWIPE</button>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         IDEA A: HORIZONTAL TRACK CAROUSEL
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="idea-section active" id="idea-a">
+      <div class="idea-label" style="margin-top:20px">A · HORIZONTAL TRACK</div>
+      <div class="idea-desc">
+        Carrusel horizontal debajo del timer. Las cards se deslizan lateralmente. 
+        La actual está centrada e iluminada; las siguientes muestran <strong>nombre, series, reps, kg</strong> anticipados. El atleta puede deslizar para espiar lo que viene.
+      </div>
+
+      <!-- Simplified timer -->
+      <div class="timer-phase">TRABAJO</div>
+      <div class="timer-ring" style="margin-bottom: 20px;">
+        <div class="timer-time">00:18</div>
+      </div>
+
+      <!-- Track carousel -->
+      <div class="track-carousel">
+        <!-- Done card -->
+        <div class="track-card done">
+          <div class="track-header">
+            <div class="track-badge cat-arranque">1</div>
+            <div class="track-name">Arranque en Bloque</div>
+            <div class="track-intensity">65%</div>
+          </div>
+          <div class="track-data">
+            <div class="track-data-cell">
+              <div class="track-data-label">SERIES</div>
+              <div class="track-data-value">4</div>
+            </div>
+            <div class="track-data-cell">
+              <div class="track-data-label">REPS</div>
+              <div class="track-data-value">3</div>
+            </div>
+            <div class="track-data-cell">
+              <div class="track-data-label">CARGA</div>
+              <div class="track-data-value">47<span class="unit">kg</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current card -->
+        <div class="track-card current">
+          <div class="track-header">
+            <div class="track-badge cat-arranque">2</div>
+            <div class="track-name">Arranque en Bloque</div>
+            <div class="track-intensity">75%</div>
+          </div>
+          <div class="track-data">
+            <div class="track-data-cell">
+              <div class="track-data-label">SERIES</div>
+              <div class="track-data-value">4</div>
+            </div>
+            <div class="track-data-cell">
+              <div class="track-data-label">REPS</div>
+              <div class="track-data-value">2</div>
+            </div>
+            <div class="track-data-cell">
+              <div class="track-data-label">CARGA</div>
+              <div class="track-data-value">54<span class="unit">kg</span></div>
+            </div>
+          </div>
+          <div class="track-notes">Foco en posición inicial y velocidad de tirón</div>
+        </div>
+
+        <!-- Upcoming card -->
+        <div class="track-card upcoming">
+          <div class="track-header">
+            <div class="track-badge cat-arranque">3</div>
+            <div class="track-name">Arranque en Bloque</div>
+            <div class="track-intensity">85%</div>
+          </div>
+          <div class="track-data">
+            <div class="track-data-cell">
+              <div class="track-data-label">SERIES</div>
+              <div class="track-data-value">3</div>
+            </div>
+            <div class="track-data-cell">
+              <div class="track-data-label">REPS</div>
+              <div class="track-data-value">1</div>
+            </div>
+            <div class="track-data-cell">
+              <div class="track-data-label">CARGA</div>
+              <div class="track-data-value">61<span class="unit">kg</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming card 2 -->
+        <div class="track-card upcoming">
+          <div class="track-header">
+            <div class="track-badge cat-envion">4</div>
+            <div class="track-name">Cargada al Pecho</div>
+            <div class="track-intensity">70%</div>
+          </div>
+          <div class="track-data">
+            <div class="track-data-cell">
+              <div class="track-data-label">SERIES</div>
+              <div class="track-data-value">5</div>
+            </div>
+            <div class="track-data-cell">
+              <div class="track-data-label">REPS</div>
+              <div class="track-data-value">2</div>
+            </div>
+            <div class="track-data-cell">
+              <div class="track-data-label">CARGA</div>
+              <div class="track-data-value">63<span class="unit">kg</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         IDEA B: STACKED DEPTH CARDS
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="idea-section" id="idea-b">
+      <div class="idea-label" style="margin-top:20px">B · STACKED DEPTH</div>
+      <div class="idea-desc">
+        Cards apiladas con efecto de profundidad. La actual es prominente, la siguiente asoma detrás con <strong>toda la info visible</strong> (series, reps, kg). Cero swipe necesario — todo a la vista.
+      </div>
+
+      <div class="timer-phase">TRABAJO</div>
+      <div class="timer-ring" style="margin-bottom: 20px;">
+        <div class="timer-time">00:22</div>
+      </div>
+
+      <div class="stack-container">
+        <!-- Current -->
+        <div class="stack-card stack-current">
+          <div class="s-header">
+            <div class="s-badge cat-arranque">2</div>
+            <div class="s-info">
+              <div class="s-name">Arranque en Bloque</div>
+              <div class="s-intensity-row">
+                <span class="s-intensity">75% · 54 kg</span>
+              </div>
+            </div>
+          </div>
+          <div class="s-data-strip">
+            <div class="s-data-pill">
+              <div class="s-data-pill-label">SERIES</div>
+              <div class="s-data-pill-value">4</div>
+            </div>
+            <div class="s-data-pill">
+              <div class="s-data-pill-label">REPS</div>
+              <div class="s-data-pill-value">2</div>
+            </div>
+            <div class="s-data-pill">
+              <div class="s-data-pill-label">CARGA</div>
+              <div class="s-data-pill-value">54<span class="unit">kg</span></div>
+            </div>
+          </div>
+          <div class="s-series-bar">
+            <span class="s-series-label">SERIE 2 / 4</span>
+            <div class="s-series-dots">
+              <div class="s-dot done"></div>
+              <div class="s-dot active"></div>
+              <div class="s-dot pending"></div>
+              <div class="s-dot pending"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Next label -->
+        <div class="stack-next-label">
+          <div class="line"></div>
+          <span>▼ SIGUIENTE</span>
+          <div class="line"></div>
+        </div>
+
+        <!-- Next card (visible behind, smaller) -->
+        <div class="stack-card stack-next">
+          <div class="s-header">
+            <div class="s-badge cat-arranque">3</div>
+            <div class="s-info">
+              <div class="s-name">Arranque en Bloque</div>
+              <div class="s-intensity-row">
+                <span class="s-intensity">85% · 61 kg</span>
+              </div>
+            </div>
+          </div>
+          <div class="s-data-strip">
+            <div class="s-data-pill">
+              <div class="s-data-pill-label">SERIES</div>
+              <div class="s-data-pill-value">3</div>
+            </div>
+            <div class="s-data-pill">
+              <div class="s-data-pill-label">REPS</div>
+              <div class="s-data-pill-value">1</div>
+            </div>
+            <div class="s-data-pill">
+              <div class="s-data-pill-label">CARGA</div>
+              <div class="s-data-pill-value">61<span class="unit">kg</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Peek card 2 -->
+        <div class="stack-card stack-next-2">
+          <div class="s-header">
+            <div class="s-badge cat-envion">4</div>
+            <div class="s-info">
+              <div class="s-name">Cargada al Pecho</div>
+              <div class="s-intensity-row">
+                <span class="s-intensity">70%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         IDEA C: HUD COCKPIT
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="idea-section" id="idea-c">
+      <div class="idea-label" style="margin-top:20px">C · HUD COCKPIT</div>
+      <div class="idea-desc">
+        Panel tipo "cockpit" con stat pods hexagonales. Info del ejercicio actual arriba con <strong>series, reps, kg</strong> prominentes. El siguiente aparece abajo en un panel anticipatorio con toda su info.
+      </div>
+
+      <div class="timer-phase">TRABAJO</div>
+      <div class="timer-ring" style="margin-bottom: 20px;">
+        <div class="timer-time">00:15</div>
+      </div>
+
+      <div class="hud-container">
+        <!-- Main HUD panel -->
+        <div class="hud-panel">
+          <div class="hud-top">
+            <div class="hud-badge cat-arranque">2</div>
+            <div class="hud-exercise-info">
+              <div class="hud-exercise-name">Arranque en Bloque</div>
+              <div class="hud-exercise-intensity">75% · Intensidad 2 de 3</div>
+            </div>
+          </div>
+
+          <div class="hud-stats">
+            <div class="hud-stat active-stat">
+              <div class="hud-stat-label">SERIES</div>
+              <div class="hud-stat-value">4</div>
+            </div>
+            <div class="hud-stat">
+              <div class="hud-stat-label">REPS</div>
+              <div class="hud-stat-value">2</div>
+            </div>
+            <div class="hud-stat">
+              <div class="hud-stat-label">CARGA</div>
+              <div class="hud-stat-value">54<span class="unit">kg</span></div>
+            </div>
+          </div>
+
+          <div class="hud-series">
+            <span class="hud-series-label">SERIE</span>
+            <span class="hud-series-count">2 / 4</span>
+            <div class="hud-series-dots">
+              <div class="hud-dot done"></div>
+              <div class="hud-dot active"></div>
+              <div class="hud-dot pending"></div>
+              <div class="hud-dot pending"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SIGUIENTE -->
+        <div class="hud-next-divider">
+          <div class="line"></div>
+          <span>▼ SIGUIENTE · 85%</span>
+          <div class="line"></div>
+        </div>
+
+        <div class="hud-next-card">
+          <div class="hud-next-stripe cat-arranque"></div>
+          <div class="hud-next-body">
+            <div class="hud-next-name">Arranque en Bloque</div>
+            <div class="hud-next-meta">
+              <span><span class="highlight">3</span> series</span>
+              <span><span class="highlight">1</span> rep</span>
+              <span><span class="highlight">61</span><span class="unit"> kg</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARGÁ LA BARRA enhanced -->
+        <div class="load-bar-banner" style="margin: 12px 0 0; border-radius: 10px; border: 1px dashed var(--border-strong);">
+          <div class="load-bar-icon">⬇</div>
+          <div class="load-bar-text">
+            <div class="load-bar-label">CARGÁ LA BARRA</div>
+            <div class="load-bar-value">61<span class="unit">kg</span></div>
+          </div>
+          <div class="load-bar-detail">3×1</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         IDEA D: CINEMATIC TICKER BOARD
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="idea-section" id="idea-d">
+      <div class="idea-label" style="margin-top:20px">D · TICKER BOARD</div>
+      <div class="idea-desc">
+        Estilo "tablero de tren / aeropuerto" — todas las filas visibles a la vez, 
+        como una tabla futurista. El atleta ve <strong>toda la sesión</strong> de un vistazo: qué hizo, qué hace, qué viene. Series, reps y kg en columnas.
+      </div>
+
+      <div class="timer-phase">TRABAJO</div>
+      <div class="timer-ring" style="margin-bottom: 20px;">
+        <div class="timer-time">00:11</div>
+      </div>
+
+      <div class="ticker-container">
+        <div class="ticker-board">
+          <div class="ticker-header">
+            <span class="ticker-header-label">SESIÓN COMPLETA</span>
+            <span class="ticker-header-progress">2/5 EJERCICIOS</span>
+          </div>
+
+          <!-- Column labels -->
+          <div class="ticker-cols">
+            <span>#</span>
+            <span>EJERCICIO</span>
+            <span style="text-align:center">SERIES</span>
+            <span style="text-align:center">REPS</span>
+            <span style="text-align:center">KG</span>
+          </div>
+
+          <!-- Done row -->
+          <div class="ticker-row row-done">
+            <span class="ticker-num">01</span>
+            <div class="ticker-name-col">
+              <span class="ticker-exercise-name">Arranque en Bloque</span>
+              <span class="ticker-exercise-intensity">65%</span>
+            </div>
+            <span class="ticker-cell">4</span>
+            <span class="ticker-cell">3</span>
+            <span class="ticker-cell">47<span class="unit">kg</span></span>
+          </div>
+
+          <!-- Current row -->
+          <div class="ticker-row row-current">
+            <span class="ticker-num">02</span>
+            <div class="ticker-name-col">
+              <span class="ticker-exercise-name">Arranque en Bloque</span>
+              <span class="ticker-exercise-intensity">75%</span>
+            </div>
+            <span class="ticker-cell">4</span>
+            <span class="ticker-cell">2</span>
+            <span class="ticker-cell">54<span class="unit">kg</span></span>
+          </div>
+
+          <!-- Next row -->
+          <div class="ticker-row row-next">
+            <span class="ticker-num">03</span>
+            <div class="ticker-name-col">
+              <span class="ticker-exercise-name">Arranque en Bloque</span>
+              <span class="ticker-exercise-intensity">85%</span>
+            </div>
+            <span class="ticker-cell">3</span>
+            <span class="ticker-cell">1</span>
+            <span class="ticker-cell">61<span class="unit">kg</span></span>
+          </div>
+
+          <!-- Future rows -->
+          <div class="ticker-row row-future">
+            <span class="ticker-num">04</span>
+            <div class="ticker-name-col">
+              <span class="ticker-exercise-name">Cargada al Pecho</span>
+              <span class="ticker-exercise-intensity">70%</span>
+            </div>
+            <span class="ticker-cell">5</span>
+            <span class="ticker-cell">2</span>
+            <span class="ticker-cell">63<span class="unit">kg</span></span>
+          </div>
+
+          <div class="ticker-row row-future">
+            <span class="ticker-num">05</span>
+            <div class="ticker-name-col">
+              <span class="ticker-exercise-name">Sentadilla Frontal</span>
+              <span class="ticker-exercise-intensity">80%</span>
+            </div>
+            <span class="ticker-cell">4</span>
+            <span class="ticker-cell">3</span>
+            <span class="ticker-cell">88<span class="unit">kg</span></span>
+          </div>
+
+          <!-- Active indicator -->
+          <div class="ticker-active-indicator">
+            <div class="pulse-dot"></div>
+            <span class="ticker-active-text">Arr. en Bloque · 75%</span>
+            <span class="ticker-active-series">Serie 2/4</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         IDEA E: SWIPEABLE PAGES CAROUSEL
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="idea-section" id="idea-e">
+      <div class="idea-label" style="margin-top:20px">E · SWIPEABLE INFO PAGES</div>
+      <div class="idea-desc">
+        La más "carrusel": dos páginas swipeables. La primera muestra el <strong>ejercicio actual</strong> con toda la info expandida. Deslizando a la derecha se ve el <strong>siguiente ejercicio completo</strong> (nombre, series, reps, kg, notas). 
+        El atleta puede espiar lo que viene sin interrumpir el timer.
+      </div>
+
+      <div class="timer-phase">TRABAJO</div>
+      <div class="timer-ring" style="margin-bottom: 16px;">
+        <div class="timer-time">00:24</div>
+      </div>
+
+      <!-- Dots indicator -->
+      <div class="split-dots">
+        <div class="split-dot active"></div>
+        <div class="split-dot"></div>
+        <div class="split-dot"></div>
+      </div>
+
+      <!-- Swipeable carousel -->
+      <div class="split-carousel-wrapper">
+        <div class="split-carousel">
+          <!-- Page 1: Current exercise -->
+          <div class="split-page active-page">
+            <div class="sp-tag">
+              <div class="sp-tag-dot" style="background: var(--orange);"></div>
+              AHORA · EJERCICIO 2 DE 5
+            </div>
+            <div class="sp-exercise-header">
+              <div class="sp-badge cat-arranque">2</div>
+              <div class="sp-name-block">
+                <div class="sp-name">Arranque en Bloque</div>
+                <div class="sp-intensity">75% · Intensidad 2/3</div>
+              </div>
+            </div>
+            <div class="sp-data">
+              <div class="sp-data-cell">
+                <div class="sp-data-label">SERIES</div>
+                <div class="sp-data-val">4</div>
+              </div>
+              <div class="sp-data-cell">
+                <div class="sp-data-label">REPS</div>
+                <div class="sp-data-val">2</div>
+              </div>
+              <div class="sp-data-cell">
+                <div class="sp-data-label">CARGA</div>
+                <div class="sp-data-val">54<span class="unit">kg</span></div>
+              </div>
+            </div>
+            <div class="s-series-bar">
+              <span class="s-series-label">SERIE 2 / 4</span>
+              <div class="s-series-dots">
+                <div class="s-dot done"></div>
+                <div class="s-dot active"></div>
+                <div class="s-dot pending"></div>
+                <div class="s-dot pending"></div>
+              </div>
+            </div>
+            <div class="swipe-hint">
+              Deslizá para ver lo que viene <span class="swipe-arrow">→</span>
+            </div>
+          </div>
+
+          <!-- Page 2: Next exercise -->
+          <div class="split-page preview-page">
+            <div class="sp-tag">
+              <div class="sp-tag-dot" style="background: var(--gold);"></div>
+              SIGUIENTE · CARGÁ 61 KG
+            </div>
+            <div class="sp-exercise-header">
+              <div class="sp-badge cat-arranque">3</div>
+              <div class="sp-name-block">
+                <div class="sp-name">Arranque en Bloque</div>
+                <div class="sp-intensity">85% · Intensidad 3/3</div>
+              </div>
+            </div>
+            <div class="sp-data">
+              <div class="sp-data-cell">
+                <div class="sp-data-label">SERIES</div>
+                <div class="sp-data-val">3</div>
+              </div>
+              <div class="sp-data-cell">
+                <div class="sp-data-label">REPS</div>
+                <div class="sp-data-val">1</div>
+              </div>
+              <div class="sp-data-cell">
+                <div class="sp-data-label">CARGA</div>
+                <div class="sp-data-val">61<span class="unit">kg</span></div>
+              </div>
+            </div>
+            <!-- Enhanced load banner -->
+            <div class="load-bar-banner">
+              <div class="load-bar-icon">⬇</div>
+              <div class="load-bar-text">
+                <div class="load-bar-label">PREPARAR BARRA</div>
+                <div class="load-bar-value">61<span class="unit">kg</span></div>
+              </div>
+              <div class="load-bar-detail">3 series × 1 rep</div>
+            </div>
+          </div>
+
+          <!-- Page 3: Future exercise -->
+          <div class="split-page preview-page">
+            <div class="sp-tag">
+              <div class="sp-tag-dot" style="background: var(--blue);"></div>
+              DESPUÉS · EJERCICIO 4
+            </div>
+            <div class="sp-exercise-header">
+              <div class="sp-badge cat-envion">4</div>
+              <div class="sp-name-block">
+                <div class="sp-name">Cargada al Pecho</div>
+                <div class="sp-intensity">70%</div>
+              </div>
+            </div>
+            <div class="sp-data">
+              <div class="sp-data-cell">
+                <div class="sp-data-label">SERIES</div>
+                <div class="sp-data-val">5</div>
+              </div>
+              <div class="sp-data-cell">
+                <div class="sp-data-label">REPS</div>
+                <div class="sp-data-val">2</div>
+              </div>
+              <div class="sp-data-cell">
+                <div class="sp-data-label">CARGA</div>
+                <div class="sp-data-val">63<span class="unit">kg</span></div>
+              </div>
+            </div>
+            <div class="load-bar-banner">
+              <div class="load-bar-icon">⬇</div>
+              <div class="load-bar-text">
+                <div class="load-bar-label">PREPARAR BARRA</div>
+                <div class="load-bar-value">63<span class="unit">kg</span></div>
+              </div>
+              <div class="load-bar-detail">5 series × 2 reps</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div style="height: 40px;"></div>
+  </div>
+
+  <script>
+    // Tab switching
+    const nav = document.getElementById('nav');
+    const buttons = nav.querySelectorAll('button');
+    const sections = document.querySelectorAll('.idea-section');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const targetId = btn.getAttribute('data-target');
+        sections.forEach(s => {
+          s.classList.toggle('active', s.id === targetId);
+        });
+      });
+    });
+
+    // Auto-scroll the track carousel to center the "current" card
+    const track = document.querySelector('.track-carousel');
+    if (track) {
+      const current = track.querySelector('.track-card.current');
+      if (current) {
+        requestAnimationFrame(() => {
+          const offset = current.offsetLeft - (track.offsetWidth - current.offsetWidth) / 2;
+          track.scrollTo({ left: offset, behavior: 'instant' });
+        });
+      }
+    }
+  </script>
+</body>
+</html>

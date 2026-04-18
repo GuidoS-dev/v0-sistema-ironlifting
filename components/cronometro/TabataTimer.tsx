@@ -104,7 +104,7 @@ function useDoubleTap(onConfirm: () => void, windowMs = 1500) {
   return { armed, trigger };
 }
 
-type DoubleTapButtonVariant = "circle" | "pill" | "pill-accent";
+type DoubleTapButtonVariant = "circle" | "circle-accent" | "pill" | "pill-accent";
 
 interface DoubleTapButtonProps {
   ariaLabel: string;
@@ -148,14 +148,28 @@ function DoubleTapButton({
   let variantStyle: CSSProperties;
   if (variant === "circle") {
     variantStyle = {
-      width: 56,
-      height: 56,
+      width: 48,
+      height: 48,
       borderRadius: "50%",
       background: armed ? "var(--gold)" : "var(--secondary)",
       color: armed ? "#0a0c12" : "var(--foreground)",
       boxShadow: armed
         ? "0 0 0 3px rgba(232,197,71,.25), 0 0 18px rgba(232,197,71,.35)"
         : "none",
+    };
+  } else if (variant === "circle-accent") {
+    variantStyle = {
+      width: 48,
+      height: 48,
+      borderRadius: "50%",
+      background: armed
+        ? "var(--gold)"
+        : "color-mix(in srgb, var(--gold-dark) 22%, var(--secondary))",
+      color: armed ? "#0a0c12" : "var(--gold)",
+      boxShadow: armed
+        ? "0 0 0 3px rgba(232,197,71,.3), 0 0 22px rgba(232,197,71,.5)"
+        : "0 0 14px rgba(232,197,71,.18)",
+      border: armed ? "none" : "1.5px solid var(--gold-dark)",
     };
   } else if (variant === "pill") {
     variantStyle = {
@@ -408,15 +422,22 @@ export function TabataTimer({
   }, [activeExercises, currentExercise, currentExerciseIndex, hasActiveExercises]);
 
   // ── Whether the immediate next step (skipForward) lands on a different exercise ──
-  // True only when on last series AND the very next entry in activeExercises has a different baseId.
-  const nextStepIsDifferentExercise = useMemo(() => {
+  // True only when on last series AND no more intensities of same exercise remain
+  // AND there IS a next exercise with a different baseId.
+  const showSiguienteButton = useMemo(() => {
     if (!currentExercise) return false;
+    // Still have rounds/series left for current intensity
     if (currentRound < totalRounds) return false;
-    const next = activeExercises[currentExerciseIndex + 1];
-    if (!next) return false;
+    // Check if there are more intensities of same exercise ahead
     const currentBase = currentExercise.baseId || currentExercise.id;
-    const nextBase = next.baseId || next.id;
-    return currentBase !== nextBase;
+    for (let i = currentExerciseIndex + 1; i < activeExercises.length; i++) {
+      const ex = activeExercises[i];
+      const exBase = ex.baseId || ex.id;
+      if (exBase === currentBase) return false; // still intensities left
+      // Found a different exercise — show Siguiente
+      return true;
+    }
+    return false; // no more exercises at all
   }, [
     activeExercises,
     currentExercise,
@@ -631,7 +652,7 @@ export function TabataTimer({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: isTimerActive ? "center" : "flex-start",
-          gap: isTimerActive ? 24 : 0,
+          gap: isTimerActive ? 12 : 0,
           padding: isTimerActive ? "0 16px" : "0",
           overflow: isTimerActive ? "visible" : "hidden",
         }}
@@ -650,7 +671,13 @@ export function TabataTimer({
             totalGroups={groupInfo?.totalGroups}
             phase={phase}
             nextExercise={nextDifferentExercise?.exercise ?? null}
-            hidePrevIntensityCard={nextStepIsDifferentExercise}
+            hidePrevIntensityCard={
+              showSiguienteButton ||
+              (currentExercise.intensityIndex != null &&
+                currentExercise.totalIntensities != null &&
+                currentExercise.intensityIndex >=
+                  currentExercise.totalIntensities - 1)
+            }
           />
         )}
 
@@ -1108,7 +1135,7 @@ export function TabataTimer({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 24,
+            gap: 12,
             width: "100%",
           }}
         >
@@ -1120,7 +1147,7 @@ export function TabataTimer({
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 20,
+                gap: 10,
                 width: "100%",
               }}
             >
@@ -1146,20 +1173,19 @@ export function TabataTimer({
                 }
               />
 
-              {/* Controls below timer — all require double tap */}
+              {/* Controls below timer — single compact row */}
               {phase !== "countdown" && (
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 10,
+                    gap: 12,
                     width: "100%",
                     paddingInline: 16,
-                    flexWrap: "wrap",
                   }}
                 >
-                  {/* Prev */}
+                  {/* ⏮ Prev exercise — double tap */}
                   <DoubleTapButton
                     ariaLabel="Ejercicio anterior"
                     onConfirm={
@@ -1171,54 +1197,71 @@ export function TabataTimer({
                         : currentExerciseIndex <= 0
                     }
                     variant="circle"
-                    icon={<SkipBack size={20} />}
+                    icon={<SkipBack size={18} />}
                   />
 
-                  {/* Pause / Resume — only when timer is in an active phase */}
+                  {/* ⏸ Pause / ▶ Resume — direct tap, no double-tap */}
                   {phase !== "exerciseComplete" && (
-                    <DoubleTapButton
-                      ariaLabel={isRunning ? "Pausar" : "Reanudar"}
-                      onConfirm={isRunning ? actions.pause : actions.resume}
-                      variant="pill"
-                      label={isRunning ? "PAUSA" : "REANUDAR"}
-                      icon={
-                        isRunning ? <Pause size={18} /> : <Play size={18} />
-                      }
-                    />
+                    <button
+                      type="button"
+                      onClick={isRunning ? actions.pause : actions.resume}
+                      aria-label={isRunning ? "Pausar" : "Reanudar"}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: "50%",
+                        border: "none",
+                        background: "var(--secondary)",
+                        color: "var(--foreground)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        transition: "background .15s ease-out",
+                      }}
+                    >
+                      {isRunning ? <Pause size={18} /> : <Play size={18} />}
+                    </button>
                   )}
 
-                  {/* LISTO — always visible during active phases. Jumps to next exercise. */}
+                  {/* ✓ Listo — double tap, completes current phase */}
                   <DoubleTapButton
                     ariaLabel={
                       phase === "exerciseComplete"
-                        ? "Listo, iniciar siguiente ejercicio"
-                        : "Marcar ejercicio como completado"
+                        ? "Iniciar siguiente ejercicio"
+                        : "Completar fase actual"
                     }
                     onConfirm={
                       phase === "exerciseComplete"
                         ? actions.start
-                        : actions.nextExercise
+                        : actions.skipPhase
                     }
-                    disabled={
-                      phase !== "exerciseComplete" &&
-                      !nextDifferentExercise &&
-                      currentExerciseIndex >= activeExercises.length - 1
-                    }
-                    variant="pill-accent"
-                    label="LISTO"
+                    variant="circle-accent"
                     icon={<Check size={18} />}
                   />
 
-                  {/* Siguiente — only when on last series and next entry is a different exercise */}
-                  {nextStepIsDifferentExercise &&
-                    phase !== "exerciseComplete" && (
-                      <DoubleTapButton
-                        ariaLabel="Siguiente ejercicio"
-                        onConfirm={actions.skipForward}
-                        variant="circle"
-                        icon={<SkipForward size={20} />}
-                      />
-                    )}
+                  {/* ⏭ Skip forward — double tap */}
+                  <DoubleTapButton
+                    ariaLabel="Siguiente serie"
+                    onConfirm={actions.skipForward}
+                    disabled={
+                      phase === "exerciseComplete" || (
+                        isBlockMode
+                          ? !(
+                              currentRound < totalRounds ||
+                              currentBlockIndex < blockCount - 1
+                            )
+                          : !(
+                              currentRound < totalRounds ||
+                              currentExerciseIndex <
+                                activeExercises.length - 1
+                            )
+                      )
+                    }
+                    variant="circle"
+                    icon={<SkipForward size={18} />}
+                  />
                 </div>
               )}
             </div>

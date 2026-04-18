@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Atleta Home: Actual vs Propuesta</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #111;
+    color: #e5e5e5;
+    min-height: 100vh;
+  }
+
+  /* Toggle bar */
+  .toggle-bar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    background: rgba(17,17,17,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #222;
+  }
+  .toggle-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .toggle-btn.active {
+    background: #fff;
+    color: #111;
+    border-color: #fff;
+  }
+  .toggle-btn:hover:not(.active) {
+    border-color: #555;
+    color: #ccc;
+  }
+
+  .comparison {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    padding: 32px 20px 60px;
+    flex-wrap: wrap;
+  }
+
+  .phone-frame {
+    width: 375px;
+    flex-shrink: 0;
+    transition: opacity .3s;
+  }
+  .phone-frame.hidden { display: none; }
+
+  .phone-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: .06em;
+    text-align: center;
+    margin-bottom: 16px;
+    color: #888;
+  }
+  .phone-label span { color: #e5e5e5; }
+
+  .phone-screen {
+    background: #0a0a0a;
+    border-radius: 24px;
+    border: 1px solid #222;
+    padding: 20px;
+    min-height: 700px;
+  }
+
+  /* ============ SHARED STYLES ============ */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .header-name { font-size: 14px; font-weight: 600; color: #e5e5e5; }
+  .header-role { font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+  .header-logo {
+    width: 100px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue';
+    font-size: 16px;
+    letter-spacing: .08em;
+    color: #888;
+    border: 1px solid #222;
+  }
+  .header-logout {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #222;
+    background: transparent;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: .04em;
+  }
+
+  .irm-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .irm-card {
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .irm-label {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .irm-value {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: 'Bebas Neue', sans-serif;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+  }
+  .irm-unit {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    color: #666;
+  }
+
+  .meso-section { margin-bottom: 20px; }
+
+  .meso-card {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    background: #0f0f0f;
+    border-radius: 12px;
+    padding: 0;
+    margin-bottom: 10px;
+    font-family: 'DM Sans', sans-serif;
+    color: #e5e5e5;
+    transition: all .2s;
+    overflow: hidden;
+  }
+  .meso-card-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+  }
+  .meso-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .meso-name {
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meso-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+    align-items: center;
+  }
+  .meso-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+  }
+  .meso-irm {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+    align-items: center;
+    font-size: 11px;
+    color: #666;
+  }
+  .meso-arrow {
+    color: #666;
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .nav-card {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all .2s;
+    background: #0f0f0f;
+  }
+  .nav-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+  }
+  .nav-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: .04em;
+  }
+  .nav-subtitle {
+    font-size: 11px;
+    color: #666;
+  }
+  .nav-arrow {
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* Side-by-side on wide screens */
+  @media (min-width: 900px) {
+    .comparison.side-by-side { flex-wrap: nowrap; }
+    .comparison.side-by-side .phone-frame { display: block !important; }
+  }
+
+  /* View mode label */
+  .view-label {
+    text-align: center;
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 24px;
+    padding: 0 20px;
+  }
+
+  /* Annotation callouts */
+  .annotation {
+    font-size: 11px;
+    color: #555;
+    border-left: 2px solid #333;
+    padding-left: 8px;
+    margin: 8px 0 16px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="toggle-bar">
+  <button class="toggle-btn active" onclick="setView('side')">Lado a lado</button>
+  <button class="toggle-btn" onclick="setView('current')">Solo actual</button>
+  <button class="toggle-btn" onclick="setView('proposed')">Solo propuesta</button>
+</div>
+
+<div class="view-label">Comparación de la vista Home del Atleta — haz scroll para ver todo</div>
+
+<div class="comparison side-by-side" id="comparison">
+
+  <!-- =========== CURRENT =========== -->
+  <div class="phone-frame" id="frame-current">
+    <div class="phone-label">ACTUAL <span>🎨 5 colores de acento</span></div>
+    <div class="phone-screen">
+
+      <!-- Header -->
+      <div class="header">
+        <div>
+          <div class="header-name">Juan Pérez</div>
+          <div class="header-role" style="color: #e8c547;">ATLETA</div>
+        </div>
+        <div class="header-logo">IRONLIFTING</div>
+        <div class="header-logout">⏻</div>
+      </div>
+
+      <!-- Section: Marcas Históricas -->
+      <div class="section-title" style="color: #e8c547; border-bottom: 2px solid #e8c547;">
+        MARCAS HISTÓRICAS
+      </div>
+      <div class="irm-grid">
+        <div class="irm-card" style="background: #0f0f0f; border: 1px solid #222;">
+          <div class="irm-label" style="color: #666;">ARRANQUE</div>
+          <div class="irm-value" style="color: #e8c547;">95 <span class="irm-unit">kg</span></div>
+        </div>
+        <div class="irm-card" style="background: #0f0f0f; border: 1px solid #222;">
+          <div class="irm-label" style="color: #666;">ENVIÓN</div>
+          <div class="irm-value" style="color: #47b4e8;">120 <span class="irm-unit">kg</span></div>
+        </div>
+      </div>
+
+      <!-- Section: Mesociclo Activo -->
+      <div class="meso-section">
+        <div class="section-title" style="color: #e8c547; border-bottom: 2px solid #e8c547;">
+          MESOCICLO ACTIVO
+        </div>
+        <div class="meso-card" style="border: 2px solid #e8c547;">
+          <div class="meso-card-inner">
+            <div class="meso-avatar" style="background: rgba(232,197,71,.15); color: #e8c547;">P</div>
+            <div style="flex:1; min-width:0;">
+              <div class="meso-name">Preparación — Abril 2026</div>
+              <div class="meso-badges">
+                <span class="meso-badge" style="background: rgba(232,80,71,.15); color: #e84747; border: 1px solid rgba(232,80,71,.3);">Competitivo</span>
+                <span class="meso-badge" style="background: rgba(71,232,160,.15); color: #47e8a0; border: 1px solid rgba(71,232,160,.3);">Activo</span>
+              </div>
+              <div class="meso-irm">
+                <span>ARR: <strong style="color: #e8c547;">95</strong>kg</span>
+                <span>ENV: <strong style="color: #47b4e8;">120</strong>kg</span>
+              </div>
+            </div>
+            <div class="meso-arrow">›</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav: Resumen -->
+      <div class="nav-card" style="border: 1px solid #47b4e8;">
+        <div class="nav-icon" style="background: rgba(71,180,232,.13); color: #47b4e8;">📄</div>
+        <div style="flex:1;">
+          <div class="nav-title" style="color: #47b4e8;">RESUMEN</div>
+          <div class="nav-subtitle">Preparación — Abril 2026</div>
+        </div>
+        <div class="nav-arrow" style="color: #47b4e8;">›</div>
+      </div>
+
+      <!-- Nav: Normativos -->
+      <div class="nav-card" style="border: 1px solid #9b87e8;">
+        <div class="nav-icon" style="background: rgba(155,135,232,.13); color: #9b87e8;">📚</div>
+        <div style="flex:1;">
+          <div class="nav-title" style="color: #9b87e8;">NORMATIVOS</div>
+          <div class="nav-subtitle">12 ejercicios</div>
+        </div>
+        <div class="nav-arrow" style="color: #9b87e8;">›</div>
+      </div>
+
+      <!-- Nav: Cronómetro -->
+      <div class="nav-card" style="border: 1px solid #47e8a0;">
+        <div class="nav-icon" style="background: rgba(71,232,160,.13); color: #47e8a0;">⏱</div>
+        <div style="flex:1;">
+          <div class="nav-title" style="color: #47e8a0;">CRONÓMETRO</div>
+          <div class="nav-subtitle">Timer de entrenamiento</div>
+        </div>
+        <div class="nav-arrow" style="color: #47e8a0;">›</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========== PROPOSED =========== -->
+  <div class="phone-frame" id="frame-proposed">
+    <div class="phone-label">PROPUESTA <span>⚡ Monochrome + Gold</span></div>
+    <div class="phone-screen">
+
+      <!-- Header -->
+      <div class="header">
+        <div>
+          <div class="header-name">Juan Pérez</div>
+          <div class="header-role" style="color: #e8c547;">ATLETA</div>
+        </div>
+        <div class="header-logo">IRONLIFTING</div>
+        <div class="header-logout">⏻</div>
+      </div>
+
+      <!-- Section: Marcas Históricas — neutral title -->
+      <div class="section-title" style="color: #e5e5e5; border-bottom: 1px solid #333;">
+        MARCAS HISTÓRICAS
+      </div>
+      <div class="irm-grid">
+        <div class="irm-card" style="background: #0f0f0f; border: 1px solid #222;">
+          <div class="irm-label" style="color: #666;">ARRANQUE</div>
+          <div class="irm-value" style="color: #e8c547;">95 <span class="irm-unit">kg</span></div>
+        </div>
+        <div class="irm-card" style="background: #0f0f0f; border: 1px solid #222;">
+          <div class="irm-label" style="color: #666;">ENVIÓN</div>
+          <div class="irm-value" style="color: #e8c547;">120 <span class="irm-unit">kg</span></div>
+        </div>
+      </div>
+      <div class="annotation">↑ Ambos IRM en gold — el color destaca la data, las etiquetas los diferencian.</div>
+
+      <!-- Section: Mesociclo Activo — neutral title -->
+      <div class="meso-section">
+        <div class="section-title" style="color: #e5e5e5; border-bottom: 1px solid #333;">
+          MESOCICLO ACTIVO
+        </div>
+        <div class="meso-card" style="border: 1px solid #333; border-left: 3px solid #e8c547;">
+          <div class="meso-card-inner">
+            <div class="meso-avatar" style="background: #1a1a1a; color: #999;">P</div>
+            <div style="flex:1; min-width:0;">
+              <div class="meso-name">Preparación — Abril 2026</div>
+              <div class="meso-badges">
+                <span class="meso-badge" style="background: #1a1a1a; color: #999; border: 1px solid #333;">Competitivo</span>
+                <span style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #666;">
+                  <span style="width: 6px; height: 6px; border-radius: 50%; background: #47e8a0; display: inline-block;"></span>
+                  Activo
+                </span>
+              </div>
+              <div class="meso-irm">
+                <span>ARR: <strong style="color: #e8c547;">95</strong>kg</span>
+                <span>ENV: <strong style="color: #e8c547;">120</strong>kg</span>
+              </div>
+            </div>
+            <div class="meso-arrow">›</div>
+          </div>
+        </div>
+        <div class="annotation">↑ Border-left gold marca el activo. Badges neutros. Punto verde sutil para "Activo".</div>
+      </div>
+
+      <!-- Nav: Resumen — neutral -->
+      <div class="nav-card" style="border: 1px solid #222;">
+        <div class="nav-icon" style="background: #1a1a1a; color: #999;">📄</div>
+        <div style="flex:1;">
+          <div class="nav-title" style="color: #e5e5e5;">RESUMEN</div>
+          <div class="nav-subtitle">Preparación — Abril 2026</div>
+        </div>
+        <div class="nav-arrow" style="color: #555;">›</div>
+      </div>
+
+      <!-- Nav: Normativos — neutral -->
+      <div class="nav-card" style="border: 1px solid #222;">
+        <div class="nav-icon" style="background: #1a1a1a; color: #999;">📚</div>
+        <div style="flex:1;">
+          <div class="nav-title" style="color: #e5e5e5;">NORMATIVOS</div>
+          <div class="nav-subtitle">12 ejercicios</div>
+        </div>
+        <div class="nav-arrow" style="color: #555;">›</div>
+      </div>
+
+      <!-- Nav: Cronómetro — neutral -->
+      <div class="nav-card" style="border: 1px solid #222;">
+        <div class="nav-icon" style="background: #1a1a1a; color: #999;">⏱</div>
+        <div style="flex:1;">
+          <div class="nav-title" style="color: #e5e5e5;">CRONÓMETRO</div>
+          <div class="nav-subtitle">Timer de entrenamiento</div>
+        </div>
+        <div class="nav-arrow" style="color: #555;">›</div>
+      </div>
+
+      <div class="annotation">↑ Cards de navegación uniformes — limpios, predecibles, profesionales.</div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function setView(mode) {
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const comp = document.getElementById('comparison');
+  const current = document.getElementById('frame-current');
+  const proposed = document.getElementById('frame-proposed');
+
+  if (mode === 'side') {
+    comp.classList.add('side-by-side');
+    current.classList.remove('hidden');
+    proposed.classList.remove('hidden');
+  } else if (mode === 'current') {
+    comp.classList.remove('side-by-side');
+    current.classList.remove('hidden');
+    proposed.classList.add('hidden');
+  } else {
+    comp.classList.remove('side-by-side');
+    current.classList.add('hidden');
+    proposed.classList.remove('hidden');
+  }
+}
+</script>
+
+</body>
+</html>

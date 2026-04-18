@@ -40,8 +40,8 @@ export function TabataDisplay({
   const label = PHASE_LABELS[phase];
   const showBlockInfo = totalBlocks != null && totalBlocks > 0;
 
-  const radius = 120;
-  const strokeWidth = 8;
+  const radius = 90;
+  const strokeWidth = 6;
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = 2 * Math.PI * normalizedRadius;
 
@@ -63,7 +63,7 @@ export function TabataDisplay({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 12,
+        gap: 6,
       }}
     >
       {/* Block indicator */}
@@ -107,11 +107,11 @@ export function TabataDisplay({
       <div
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: 28,
+          fontSize: 20,
           letterSpacing: ".08em",
           color: colors.accent,
           textAlign: "center",
-          minHeight: 36,
+          minHeight: 26,
           transition: "color .3s ease",
         }}
       >
@@ -192,7 +192,7 @@ export function TabataDisplay({
             }
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: phase === "countdown" ? 80 : 56,
+              fontSize: phase === "countdown" ? 60 : 42,
               color: colors.accent,
               letterSpacing: ".02em",
               lineHeight: 1,
@@ -230,7 +230,7 @@ export function TabataDisplay({
             <div
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: 18,
+                fontSize: 14,
                 letterSpacing: ".12em",
                 color: "var(--gold-dark)",
               }}
