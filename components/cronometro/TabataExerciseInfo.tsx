@@ -364,10 +364,7 @@ export function TabataExerciseInfo({
               color: "var(--foreground)",
               fontFamily: "var(--font-sans)",
               lineHeight: 1.3,
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical" as const,
-              overflow: "hidden",
+              wordBreak: "break-word" as const,
               paddingTop: 4,
             }}
           >
@@ -697,10 +694,7 @@ export function TabataExerciseInfo({
                         color: "var(--foreground)",
                         fontFamily: "var(--font-sans)",
                         lineHeight: 1.3,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical" as const,
-                        overflow: "hidden",
+                        wordBreak: "break-word" as const,
                         paddingTop: 3,
                       }}
                     >
