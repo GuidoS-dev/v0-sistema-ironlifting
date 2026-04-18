@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.6.2";
+const APP_VERSION = "1.6.3";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -34300,7 +34300,8 @@ function CoachApp({ session, profile, onLogout }) {
       if (document.visibilityState === "hidden") {
         // Cancel debounce timers but keep refs non-null so syncOverrides
         // knows there were pending changes and flushes them to DB.
-        if (atletaSyncTimerRef.current) clearTimeout(atletaSyncTimerRef.current);
+        if (atletaSyncTimerRef.current)
+          clearTimeout(atletaSyncTimerRef.current);
         if (mesoSyncTimerRef.current) clearTimeout(mesoSyncTimerRef.current);
         syncOverrides();
         // Safe to clear refs AFTER syncOverrides has checked them
@@ -35782,76 +35783,13 @@ function AtletaPanel({ session, profile, onLogout }) {
             </div>
             <div
               style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                marginTop: 6,
-                alignItems: "center",
+                fontSize: 12,
+                color: "var(--muted)",
+                marginTop: 4,
               }}
             >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: "2px 10px",
-                  borderRadius: 20,
-                  background:
-                    m.modo === "Competitivo"
-                      ? "rgba(232,80,71,.15)"
-                      : "rgba(100,180,232,.15)",
-                  color:
-                    m.modo === "Competitivo" ? "var(--red)" : "var(--blue)",
-                  border: `1px solid ${m.modo === "Competitivo" ? "var(--red)" : "var(--blue)"}30`,
-                }}
-              >
-                {m.modo}
-              </span>
-              {isActive && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: "2px 10px",
-                    borderRadius: 20,
-                    background: "rgba(71,232,160,.15)",
-                    color: "var(--green)",
-                    border: "1px solid rgba(71,232,160,.3)",
-                  }}
-                >
-                  Activo
-                </span>
-              )}
+              {m.semanas?.length || 0} semana{(m.semanas?.length || 0) !== 1 ? "s" : ""}
             </div>
-            {/* IRM values */}
-            {(m.irm_arranque || m.irm_envion) && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  marginTop: 6,
-                  alignItems: "center",
-                }}
-              >
-                {m.irm_arranque && (
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                    ARR:{" "}
-                    <strong style={{ color: "var(--gold)" }}>
-                      {m.irm_arranque}
-                    </strong>
-                    kg
-                  </span>
-                )}
-                {m.irm_envion && (
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                    ENV:{" "}
-                    <strong style={{ color: "var(--blue)" }}>
-                      {m.irm_envion}
-                    </strong>
-                    kg
-                  </span>
-                )}
-              </div>
-            )}
           </div>
           {/* Arrow */}
           <ChevronLeft
