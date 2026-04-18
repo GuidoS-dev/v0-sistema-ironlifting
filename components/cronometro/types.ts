@@ -1,9 +1,18 @@
+export interface TabataBlock {
+  id: string;
+  name: string;
+  workTime: number;
+  restTime: number;
+  rounds: number;
+}
+
 export interface TabataConfig {
   workTime: number;
   restTime: number;
   rounds: number;
   countdownTime: number;
   soundEnabled: boolean;
+  blocks: TabataBlock[];
 }
 
 export interface TabataExercise {
@@ -26,6 +35,7 @@ export type TimerPhase =
   | "countdown"
   | "work"
   | "rest"
+  | "blockRest"
   | "intensityRest"
   | "exerciseComplete"
   | "finished";
@@ -37,6 +47,7 @@ export interface TimerState {
   totalRounds: number;
   isRunning: boolean;
   currentExerciseIndex: number;
+  currentBlockIndex: number;
 }
 
 export type TimerAction =
@@ -47,6 +58,9 @@ export type TimerAction =
       exerciseCount: number;
       nextExerciseSameGroup?: boolean;
       nextExerciseRounds?: number;
+      /** Block-mode fields */
+      blocks?: TabataBlock[];
+      blockCount?: number;
     }
   | { type: "PAUSE" }
   | { type: "RESUME" }
@@ -73,8 +87,20 @@ export type TimerAction =
       exerciseCount: number;
       nextExerciseSameGroup?: boolean;
       nextExerciseRounds?: number;
+      blocks?: TabataBlock[];
+      blockCount?: number;
     }
   | {
       type: "RESTART_PHASE";
       config: Pick<TabataConfig, "workTime" | "restTime" | "countdownTime">;
+    }
+  | {
+      type: "NEXT_BLOCK";
+      blocks: TabataBlock[];
+      countdownTime: number;
+    }
+  | {
+      type: "PREV_BLOCK";
+      blocks: TabataBlock[];
+      countdownTime: number;
     };

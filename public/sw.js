@@ -1,4 +1,4 @@
-const CACHE_NAME = "ironlifting-v1.5.7";
+const CACHE_NAME = "ironlifting-v1.6.0";
 
 const PRECACHE_URLS = [
   "/sistema",

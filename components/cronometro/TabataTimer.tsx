@@ -10,6 +10,7 @@ import { useTabataSound } from "./hooks/useTabataSound";
 import TabataDisplay from "./TabataDisplay";
 import TabataControls from "./TabataControls";
 import TabataConfigPanel from "./TabataConfig";
+import { TabataBlockConfig } from "./TabataBlockConfig";
 import TabataExerciseInfo from "./TabataExerciseInfo";
 
 interface TurnoInfo {
@@ -113,8 +114,13 @@ export function TabataTimer({
     totalRounds,
     isRunning,
     currentExerciseIndex,
+    currentBlockIndex,
     actions,
   } = timer;
+
+  const blocks = config.blocks;
+  const blockCount = blocks.length;
+  const isBlockMode = !hasExercises && blockCount > 0;
 
   // ── Side effects ──
   useWakeLock(isRunning);
@@ -126,7 +132,7 @@ export function TabataTimer({
     if (prevPhaseRef.current !== phase) {
       prevPhaseRef.current = phase;
       if (phase === "work") sound.workStart();
-      if (phase === "rest" || phase === "intensityRest") sound.restStart();
+      if (phase === "rest" || phase === "intensityRest" || phase === "blockRest") sound.restStart();
       if (phase === "finished" || phase === "exerciseComplete")
         sound.finished();
     }
@@ -139,7 +145,7 @@ export function TabataTimer({
       else sound.countdownTick();
     }
     if (
-      (phase === "work" || phase === "rest" || phase === "intensityRest") &&
+      (phase === "work" || phase === "rest" || phase === "intensityRest" || phase === "blockRest") &&
       timeLeft <= 3 &&
       timeLeft > 0
     ) {
@@ -235,11 +241,23 @@ export function TabataTimer({
   const colors = PHASE_COLORS[phase];
   const isTimerActive = phase !== "idle";
 
-  // ── Overall progress (across all exercises + rounds) ──
+  // ── Overall progress (across all exercises/blocks + rounds) ──
   const overallProgress = (() => {
+    if (phase === "finished") return 1;
+    if (phase === "idle") return 0;
+
+    // Block mode: progress across all blocks and their rounds
+    if (isBlockMode) {
+      const totalRoundsAll = blocks.reduce((sum, b) => sum + b.rounds, 0);
+      let done = 0;
+      for (let i = 0; i < currentBlockIndex; i++) {
+        done += blocks[i].rounds;
+      }
+      done += currentRound - 1 + (phase === "rest" || phase === "blockRest" ? 1 : 0);
+      return Math.min(done / totalRoundsAll, 1);
+    }
+
     if (!hasActiveExercises) {
-      if (phase === "finished") return 1;
-      if (phase === "idle") return 0;
       const totalWork = config.rounds;
       const done = currentRound - 1 + (phase === "rest" ? 1 : 0);
       return done / totalWork;
@@ -250,7 +268,6 @@ export function TabataTimer({
       done += activeExercises[i].series;
     }
     done += currentRound - 1 + (phase === "rest" || phase === "intensityRest" ? 1 : 0);
-    if (phase === "finished") return 1;
     if (phase === "exerciseComplete") done += 1;
     return Math.min(done / totalSeries, 1);
   })();
@@ -809,24 +826,60 @@ export function TabataTimer({
         {/* ── Config panel (idle state) ── */}
         {phase === "idle" && (
           <div style={{ padding: "16px 16px 0", flexShrink: 0, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
-            <div
-              style={{
-                fontSize: 10,
-                color: "var(--muted-foreground)",
-                letterSpacing: ".06em",
-                textTransform: "uppercase",
-                marginBottom: 4,
-                width: "100%",
-                textAlign: "center",
-              }}
-            >
-              Configurar timers
-            </div>
-            <TabataConfigPanel
-              config={config}
-              onChange={handleConfigChange}
-              showRounds={!hasActiveExercises}
-            />
+            {isBlockMode ? (
+              /* Block mode: show block editor */
+              <>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "var(--muted-foreground)",
+                    letterSpacing: ".06em",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                    width: "100%",
+                    textAlign: "center",
+                  }}
+                >
+                  Configurar bloques
+                </div>
+                <TabataBlockConfig
+                  blocks={blocks}
+                  onChange={(newBlocks) =>
+                    handleConfigChange({ ...config, blocks: newBlocks })
+                  }
+                />
+                {/* Countdown + sound config below blocks */}
+                <div style={{ marginTop: 12, width: "100%" }}>
+                  <TabataConfigPanel
+                    config={config}
+                    onChange={handleConfigChange}
+                    showRounds={false}
+                  />
+                </div>
+              </>
+            ) : (
+              /* Exercise mode or single timer: original config panel */
+              <>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "var(--muted-foreground)",
+                    letterSpacing: ".06em",
+                    textTransform: "uppercase",
+                    marginBottom: 4,
+                    width: "100%",
+                    textAlign: "center",
+                  }}
+                >
+                  Configurar timers
+                </div>
+                <TabataConfigPanel
+                  config={config}
+                  onChange={handleConfigChange}
+                  showRounds={!hasActiveExercises}
+                />
+              </>
+            )}
           </div>
         )}
 
@@ -869,21 +922,28 @@ export function TabataTimer({
               totalPhaseTime={totalPhaseTime}
               currentRound={currentRound}
               totalRounds={totalRounds}
+              currentBlockIndex={isBlockMode ? currentBlockIndex : undefined}
+              totalBlocks={isBlockMode ? blockCount : undefined}
+              blockName={isBlockMode ? blocks[currentBlockIndex]?.name : undefined}
             />
           )}
 
           <TabataControls
             phase={phase}
             isRunning={isRunning}
-            hasExercises={hasActiveExercises}
-            canPrev={currentExerciseIndex > 0}
-            canNext={currentRound < totalRounds || currentExerciseIndex < activeExercises.length - 1}
+            hasExercises={hasActiveExercises || isBlockMode}
+            canPrev={isBlockMode ? currentBlockIndex > 0 : currentExerciseIndex > 0}
+            canNext={
+              isBlockMode
+                ? currentRound < totalRounds || currentBlockIndex < blockCount - 1
+                : currentRound < totalRounds || currentExerciseIndex < activeExercises.length - 1
+            }
             onStart={actions.start}
             onPause={actions.pause}
             onResume={actions.resume}
             onReset={actions.reset}
             onNext={actions.skipForward}
-            onPrev={actions.prevExercise}
+            onPrev={isBlockMode ? actions.prevBlock : actions.prevExercise}
             onSkipPhase={actions.skipPhase}
             onRestartPhase={actions.restartPhase}
           />

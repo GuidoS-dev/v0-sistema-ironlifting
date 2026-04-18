@@ -1,2 +1,2 @@
 export { TabataTimer } from "./TabataTimer";
-export type { TabataConfig, TabataExercise, TimerPhase } from "./types";
+export type { TabataConfig, TabataBlock, TabataExercise, TimerPhase } from "./types";

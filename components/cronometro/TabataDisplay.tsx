@@ -10,6 +10,9 @@ export interface TabataDisplayProps {
   totalPhaseTime: number;
   currentRound: number;
   totalRounds: number;
+  currentBlockIndex?: number;
+  totalBlocks?: number;
+  blockName?: string;
 }
 
 function formatTime(seconds: number): string {
@@ -24,9 +27,13 @@ export function TabataDisplay({
   totalPhaseTime,
   currentRound,
   totalRounds,
+  currentBlockIndex,
+  totalBlocks,
+  blockName,
 }: TabataDisplayProps) {
   const colors = PHASE_COLORS[phase];
   const label = PHASE_LABELS[phase];
+  const showBlockInfo = totalBlocks != null && totalBlocks > 0;
 
   const radius = 120;
   const strokeWidth = 8;
@@ -34,7 +41,7 @@ export function TabataDisplay({
   const circumference = 2 * Math.PI * normalizedRadius;
 
   const isActive =
-    phase === "work" || phase === "rest" || phase === "countdown" || phase === "intensityRest";
+    phase === "work" || phase === "rest" || phase === "countdown" || phase === "intensityRest" || phase === "blockRest";
   const progress = isActive ? (totalPhaseTime - timeLeft) / totalPhaseTime : 0;
   const strokeDashoffset = circumference * (1 - progress);
 
@@ -50,6 +57,43 @@ export function TabataDisplay({
         gap: 12,
       }}
     >
+      {/* Block indicator */}
+      {showBlockInfo && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+          }}
+        >
+          {blockName && (
+            <div
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 12,
+                fontWeight: 700,
+                color: "var(--gold-dark)",
+                letterSpacing: ".02em",
+              }}
+            >
+              {blockName}
+            </div>
+          )}
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 10,
+              letterSpacing: ".08em",
+              color: "var(--muted-foreground)",
+              textTransform: "uppercase",
+            }}
+          >
+            BLOQUE {(currentBlockIndex ?? 0) + 1} / {totalBlocks}
+          </div>
+        </div>
+      )}
+
       {/* Phase label */}
       <div
         style={{
@@ -148,7 +192,7 @@ export function TabataDisplay({
       </div>
 
       {/* Round info */}
-      {(phase === "work" || phase === "rest") && (
+      {(phase === "work" || phase === "rest" || phase === "blockRest") && (
         <div
           style={{
             fontFamily: "var(--font-sans)",
@@ -157,7 +201,11 @@ export function TabataDisplay({
             textAlign: "center",
           }}
         >
-          Serie {currentRound} de {totalRounds}
+          {phase === "blockRest" ? (
+            "Preparate para el siguiente bloque"
+          ) : (
+            <>Serie {currentRound} de {totalRounds}</>
+          )}
         </div>
       )}
     </div>

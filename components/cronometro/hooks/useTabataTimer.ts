@@ -3,6 +3,7 @@ import type {
   TimerState,
   TimerAction,
   TabataConfig,
+  TabataBlock,
   TabataExercise,
 } from "../types";
 
@@ -13,7 +14,26 @@ const INITIAL_STATE: TimerState = {
   totalRounds: 1,
   isRunning: false,
   currentExerciseIndex: 0,
+  currentBlockIndex: 0,
 };
+
+/* ── Helpers ── */
+
+/** Get the current block's config for work/rest, or fall back to global config */
+function blockConfig(
+  action: { blocks?: TabataBlock[]; config: Pick<TabataConfig, "workTime" | "restTime" | "countdownTime"> },
+  blockIndex: number,
+) {
+  const block = action.blocks?.[blockIndex];
+  if (block) {
+    return { workTime: block.workTime, restTime: block.restTime, countdownTime: action.config.countdownTime };
+  }
+  return action.config;
+}
+
+function isBlockMode(action: { blocks?: TabataBlock[]; exerciseCount?: number; blockCount?: number }) {
+  return (action.blockCount ?? 0) > 0 && (action.exerciseCount ?? 0) === 0;
+}
 
 function timerReducer(state: TimerState, action: TimerAction): TimerState {
   switch (action.type) {
@@ -24,6 +44,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
         timeLeft: action.countdownTime,
         totalRounds: action.totalRounds,
         currentRound: 1,
+        currentBlockIndex: 0,
         isRunning: true,
       };
 
@@ -43,25 +64,49 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
       }
 
       // timeLeft reached 0 — transition to next phase
-      const { config, exerciseCount } = action;
+      const useBlocks = isBlockMode(action);
+      const cfg = useBlocks
+        ? blockConfig(action, state.currentBlockIndex)
+        : action.config;
+      const { exerciseCount } = action;
 
       switch (state.phase) {
         case "countdown":
-          return { ...state, phase: "work", timeLeft: config.workTime };
+          return { ...state, phase: "work", timeLeft: cfg.workTime };
 
         case "work": {
           const isLastRound = state.currentRound >= state.totalRounds;
           if (isLastRound) {
+            // ── Block mode: advance to next block ──
+            if (useBlocks) {
+              const blockCount = action.blockCount ?? 0;
+              const hasMoreBlocks = state.currentBlockIndex < blockCount - 1;
+              if (hasMoreBlocks) {
+                const nextBlock = action.blocks![state.currentBlockIndex + 1];
+                return {
+                  ...state,
+                  phase: "blockRest",
+                  timeLeft: cfg.restTime,
+                  isRunning: true,
+                };
+              }
+              return {
+                ...state,
+                phase: "finished",
+                timeLeft: 0,
+                isRunning: false,
+              };
+            }
+            // ── Exercise mode ──
             const hasMore =
               exerciseCount > 0 &&
               state.currentExerciseIndex < exerciseCount - 1;
             if (hasMore) {
-              // If next exercise is in the same intensity group → auto-rest
               if (action.nextExerciseSameGroup) {
                 return {
                   ...state,
                   phase: "intensityRest",
-                  timeLeft: config.restTime,
+                  timeLeft: cfg.restTime,
                   isRunning: true,
                 };
               }
@@ -79,19 +124,33 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
               isRunning: false,
             };
           }
-          return { ...state, phase: "rest", timeLeft: config.restTime };
+          return { ...state, phase: "rest", timeLeft: cfg.restTime };
         }
 
         case "rest":
           return {
             ...state,
             phase: "work",
-            timeLeft: config.workTime,
+            timeLeft: cfg.workTime,
             currentRound: state.currentRound + 1,
           };
 
+        case "blockRest": {
+          // Advance to next block
+          const nextIdx = state.currentBlockIndex + 1;
+          const nextBlock = action.blocks?.[nextIdx];
+          return {
+            ...state,
+            currentBlockIndex: nextIdx,
+            currentRound: 1,
+            totalRounds: nextBlock?.rounds ?? state.totalRounds,
+            phase: "countdown",
+            timeLeft: cfg.countdownTime,
+            isRunning: true,
+          };
+        }
+
         case "intensityRest": {
-          // Auto-advance to next exercise in the same group
           const nextIdx = state.currentExerciseIndex + 1;
           return {
             ...state,
@@ -99,7 +158,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
             currentRound: 1,
             totalRounds: action.nextExerciseRounds ?? state.totalRounds,
             phase: "countdown",
-            timeLeft: config.countdownTime,
+            timeLeft: cfg.countdownTime,
             isRunning: true,
           };
         }
@@ -144,6 +203,35 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
       };
     }
 
+    case "NEXT_BLOCK": {
+      const nextIdx = state.currentBlockIndex + 1;
+      if (nextIdx >= action.blocks.length) return state;
+      const nextBlock = action.blocks[nextIdx];
+      return {
+        ...state,
+        currentBlockIndex: nextIdx,
+        currentRound: 1,
+        totalRounds: nextBlock.rounds,
+        phase: "countdown",
+        timeLeft: action.countdownTime,
+        isRunning: true,
+      };
+    }
+
+    case "PREV_BLOCK": {
+      const prevIdx = Math.max(0, state.currentBlockIndex - 1);
+      const prevBlock = action.blocks[prevIdx];
+      return {
+        ...state,
+        currentBlockIndex: prevIdx,
+        currentRound: 1,
+        totalRounds: prevBlock.rounds,
+        phase: "countdown",
+        timeLeft: action.countdownTime,
+        isRunning: true,
+      };
+    }
+
     case "SKIP_FORWARD": {
       // More rounds left → advance to next round
       if (state.currentRound < state.totalRounds) {
@@ -179,14 +267,31 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
     }
 
     case "SKIP_PHASE": {
-      // Skip current phase → same logic as TICK reaching 0
-      const { config, exerciseCount } = action;
+      const useBlocks = isBlockMode(action);
+      const cfg = useBlocks
+        ? blockConfig(action, state.currentBlockIndex)
+        : action.config;
+      const { exerciseCount } = action;
+
       if (state.phase === "countdown") {
-        return { ...state, phase: "work", timeLeft: config.workTime };
+        return { ...state, phase: "work", timeLeft: cfg.workTime };
       }
       if (state.phase === "work") {
         const isLastRound = state.currentRound >= state.totalRounds;
         if (isLastRound) {
+          if (useBlocks) {
+            const blockCount = action.blockCount ?? 0;
+            const hasMoreBlocks = state.currentBlockIndex < blockCount - 1;
+            if (hasMoreBlocks) {
+              return {
+                ...state,
+                phase: "blockRest",
+                timeLeft: cfg.restTime,
+                isRunning: true,
+              };
+            }
+            return { ...state, phase: "finished", timeLeft: 0, isRunning: false };
+          }
           const hasMore =
             exerciseCount > 0 &&
             state.currentExerciseIndex < exerciseCount - 1;
@@ -195,7 +300,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
               return {
                 ...state,
                 phase: "intensityRest",
-                timeLeft: config.restTime,
+                timeLeft: cfg.restTime,
                 isRunning: true,
               };
             }
@@ -206,21 +311,29 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
               isRunning: false,
             };
           }
-          return {
-            ...state,
-            phase: "finished",
-            timeLeft: 0,
-            isRunning: false,
-          };
+          return { ...state, phase: "finished", timeLeft: 0, isRunning: false };
         }
-        return { ...state, phase: "rest", timeLeft: config.restTime };
+        return { ...state, phase: "rest", timeLeft: cfg.restTime };
       }
       if (state.phase === "rest") {
         return {
           ...state,
           phase: "work",
-          timeLeft: config.workTime,
+          timeLeft: cfg.workTime,
           currentRound: state.currentRound + 1,
+        };
+      }
+      if (state.phase === "blockRest") {
+        const nextIdx = state.currentBlockIndex + 1;
+        const nextBlock = action.blocks?.[nextIdx];
+        return {
+          ...state,
+          currentBlockIndex: nextIdx,
+          currentRound: 1,
+          totalRounds: nextBlock?.rounds ?? state.totalRounds,
+          phase: "countdown",
+          timeLeft: cfg.countdownTime,
+          isRunning: true,
         };
       }
       if (state.phase === "intensityRest") {
@@ -231,7 +344,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
           currentRound: 1,
           totalRounds: action.nextExerciseRounds ?? state.totalRounds,
           phase: "countdown",
-          timeLeft: config.countdownTime,
+          timeLeft: cfg.countdownTime,
           isRunning: true,
         };
       }
@@ -246,7 +359,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
       if (state.phase === "work") {
         return { ...state, timeLeft: config.workTime, isRunning: true };
       }
-      if (state.phase === "rest" || state.phase === "intensityRest") {
+      if (state.phase === "rest" || state.phase === "intensityRest" || state.phase === "blockRest") {
         return { ...state, timeLeft: config.restTime, isRunning: true };
       }
       return state;
@@ -267,6 +380,9 @@ export function useTabataTimer(
   configRef.current = config;
 
   const exerciseCount = exercises.length;
+  const blocks = config.blocks;
+  const blockCount = blocks.length;
+  const isStandaloneBlockMode = exerciseCount === 0 && blockCount > 0;
 
   // Pre-compute rounds array so actions don't rely on stale closure index
   const exerciseRoundsRef = useRef<number[]>([]);
@@ -276,6 +392,9 @@ export function useTabataTimer(
   const exerciseBaseIdsRef = useRef<(string | undefined)[]>([]);
   exerciseBaseIdsRef.current = exercises.map((e) => e.baseId);
 
+  const blocksRef = useRef<TabataBlock[]>(blocks);
+  blocksRef.current = blocks;
+
   const getRoundsForExercise = useCallback(
     (idx: number) => {
       if (exercises.length > 0 && exercises[idx]) {
@@ -284,6 +403,18 @@ export function useTabataTimer(
       return config.rounds;
     },
     [exercises, config.rounds],
+  );
+
+  // For block mode, get the correct work/rest config for the current block
+  const getBlockConfig = useCallback(
+    (blockIdx: number) => {
+      const block = blocks[blockIdx];
+      if (block) {
+        return { workTime: block.workTime, restTime: block.restTime, countdownTime: config.countdownTime };
+      }
+      return { workTime: config.workTime, restTime: config.restTime, countdownTime: config.countdownTime };
+    },
+    [blocks, config.workTime, config.restTime, config.countdownTime],
   );
 
   // Interval management
@@ -296,16 +427,23 @@ export function useTabataTimer(
         const nextBase = exerciseBaseIdsRef.current[nextIdx];
         const nextSameGroup = !!(curBase && nextBase && curBase === nextBase);
 
+        // In block mode, use current block's config
+        const tickConfig = isStandaloneBlockMode
+          ? getBlockConfig(state.currentBlockIndex)
+          : {
+              workTime: configRef.current.workTime,
+              restTime: configRef.current.restTime,
+              countdownTime: configRef.current.countdownTime,
+            };
+
         dispatch({
           type: "TICK",
-          config: {
-            workTime: configRef.current.workTime,
-            restTime: configRef.current.restTime,
-            countdownTime: configRef.current.countdownTime,
-          },
+          config: tickConfig,
           exerciseCount,
           nextExerciseSameGroup: nextSameGroup,
           nextExerciseRounds: exerciseRoundsRef.current[nextIdx],
+          blocks: blocksRef.current,
+          blockCount,
         });
       }, 1000);
     } else {
@@ -320,15 +458,24 @@ export function useTabataTimer(
         intervalRef.current = null;
       }
     };
-  }, [state.isRunning, state.currentExerciseIndex, exerciseCount]);
+  }, [state.isRunning, state.currentExerciseIndex, state.currentBlockIndex, exerciseCount, blockCount, isStandaloneBlockMode, getBlockConfig]);
 
   const start = useCallback(() => {
-    dispatch({
-      type: "START",
-      countdownTime: config.countdownTime,
-      totalRounds: getRoundsForExercise(state.currentExerciseIndex),
-    });
-  }, [config.countdownTime, getRoundsForExercise, state.currentExerciseIndex]);
+    if (isStandaloneBlockMode) {
+      const firstBlock = blocks[0];
+      dispatch({
+        type: "START",
+        countdownTime: config.countdownTime,
+        totalRounds: firstBlock.rounds,
+      });
+    } else {
+      dispatch({
+        type: "START",
+        countdownTime: config.countdownTime,
+        totalRounds: getRoundsForExercise(state.currentExerciseIndex),
+      });
+    }
+  }, [config.countdownTime, getRoundsForExercise, state.currentExerciseIndex, isStandaloneBlockMode, blocks]);
 
   const pause = useCallback(() => dispatch({ type: "PAUSE" }), []);
   const resume = useCallback(() => dispatch({ type: "RESUME" }), []);
@@ -348,16 +495,67 @@ export function useTabataTimer(
     config.countdownTime,
   ]);
 
+  const nextBlock = useCallback(() => {
+    if (state.currentBlockIndex < blockCount - 1) {
+      dispatch({
+        type: "NEXT_BLOCK",
+        blocks: blocksRef.current,
+        countdownTime: config.countdownTime,
+      });
+    }
+  }, [state.currentBlockIndex, blockCount, config.countdownTime]);
+
+  const prevBlock = useCallback(() => {
+    if (state.currentBlockIndex > 0) {
+      dispatch({
+        type: "PREV_BLOCK",
+        blocks: blocksRef.current,
+        countdownTime: config.countdownTime,
+      });
+    }
+  }, [state.currentBlockIndex, config.countdownTime]);
+
   const skipForward = useCallback(() => {
+    if (isStandaloneBlockMode) {
+      // In block mode, skip forward = next round or next block
+      if (state.currentRound < state.totalRounds) {
+        dispatch({
+          type: "SKIP_FORWARD",
+          exerciseRounds: [],
+          countdownTime: config.countdownTime,
+          exerciseCount: 0,
+        });
+      } else if (state.currentBlockIndex < blockCount - 1) {
+        dispatch({
+          type: "NEXT_BLOCK",
+          blocks: blocksRef.current,
+          countdownTime: config.countdownTime,
+        });
+      } else {
+        // Last block, last round → finished
+        dispatch({ type: "RESET" });
+      }
+      return;
+    }
     dispatch({
       type: "SKIP_FORWARD",
       exerciseRounds: exerciseRoundsRef.current,
       countdownTime: config.countdownTime,
       exerciseCount,
     });
-  }, [config.countdownTime, exerciseCount]);
+  }, [config.countdownTime, exerciseCount, isStandaloneBlockMode, state.currentRound, state.totalRounds, state.currentBlockIndex, blockCount]);
 
   const prevExercise = useCallback(() => {
+    if (isStandaloneBlockMode) {
+      if (state.currentBlockIndex > 0) {
+        dispatch({
+          type: "PREV_BLOCK",
+          blocks: blocksRef.current,
+          countdownTime: config.countdownTime,
+        });
+      }
+      return;
+    }
     if (state.currentExerciseIndex > 0) {
       dispatch({
         type: "PREV_EXERCISE",
@@ -365,7 +563,7 @@ export function useTabataTimer(
         countdownTime: config.countdownTime,
       });
     }
-  }, [state.currentExerciseIndex, config.countdownTime]);
+  }, [state.currentExerciseIndex, state.currentBlockIndex, config.countdownTime, isStandaloneBlockMode]);
 
   const skipPhase = useCallback(() => {
     const curIdx = state.currentExerciseIndex;
@@ -374,35 +572,47 @@ export function useTabataTimer(
     const nextBase = exerciseBaseIdsRef.current[nextIdx];
     const nextSameGroup = !!(curBase && nextBase && curBase === nextBase);
 
+    const phaseConfig = isStandaloneBlockMode
+      ? getBlockConfig(state.currentBlockIndex)
+      : { workTime: config.workTime, restTime: config.restTime, countdownTime: config.countdownTime };
+
     dispatch({
       type: "SKIP_PHASE",
-      config: { workTime: config.workTime, restTime: config.restTime, countdownTime: config.countdownTime },
+      config: phaseConfig,
       exerciseCount,
       nextExerciseSameGroup: nextSameGroup,
       nextExerciseRounds: exerciseRoundsRef.current[nextIdx],
+      blocks: blocksRef.current,
+      blockCount,
     });
-  }, [config.workTime, config.restTime, config.countdownTime, exerciseCount, state.currentExerciseIndex]);
+  }, [config.workTime, config.restTime, config.countdownTime, exerciseCount, state.currentExerciseIndex, state.currentBlockIndex, isStandaloneBlockMode, getBlockConfig, blockCount]);
 
   const restartPhase = useCallback(() => {
+    const phaseConfig = isStandaloneBlockMode
+      ? getBlockConfig(state.currentBlockIndex)
+      : { workTime: config.workTime, restTime: config.restTime, countdownTime: config.countdownTime };
+
     dispatch({
       type: "RESTART_PHASE",
-      config: {
-        workTime: config.workTime,
-        restTime: config.restTime,
-        countdownTime: config.countdownTime,
-      },
+      config: phaseConfig,
     });
-  }, [config.workTime, config.restTime, config.countdownTime]);
+  }, [config.workTime, config.restTime, config.countdownTime, isStandaloneBlockMode, getBlockConfig, state.currentBlockIndex]);
 
+  // Compute totalPhaseTime based on current block or global config
   const totalPhaseTime = (() => {
+    const cfg = isStandaloneBlockMode
+      ? getBlockConfig(state.currentBlockIndex)
+      : { workTime: config.workTime, restTime: config.restTime, countdownTime: config.countdownTime };
+
     switch (state.phase) {
       case "countdown":
-        return config.countdownTime;
+        return cfg.countdownTime;
       case "work":
-        return config.workTime;
+        return cfg.workTime;
       case "rest":
       case "intensityRest":
-        return config.restTime;
+      case "blockRest":
+        return cfg.restTime;
       default:
         return 1;
     }
@@ -411,6 +621,18 @@ export function useTabataTimer(
   return {
     ...state,
     totalPhaseTime,
-    actions: { start, pause, resume, reset, nextExercise, skipForward, prevExercise, skipPhase, restartPhase },
+    actions: {
+      start,
+      pause,
+      resume,
+      reset,
+      nextExercise,
+      nextBlock,
+      prevBlock,
+      skipForward,
+      prevExercise,
+      skipPhase,
+      restartPhase,
+    },
   };
 }
