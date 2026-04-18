@@ -10,6 +10,7 @@ import type {
 const INITIAL_STATE: TimerState = {
   phase: "idle",
   timeLeft: 0,
+  phaseStartTime: 0,
   currentRound: 1,
   totalRounds: 1,
   isRunning: false,
@@ -53,6 +54,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
         ...state,
         phase: "countdown",
         timeLeft: action.countdownTime,
+        phaseStartTime: action.countdownTime,
         totalRounds: action.totalRounds,
         currentRound: 1,
         currentBlockIndex: 0,
@@ -83,7 +85,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
 
       switch (state.phase) {
         case "countdown":
-          return { ...state, phase: "work", timeLeft: cfg.workTime };
+          return { ...state, phase: "work", timeLeft: cfg.workTime, phaseStartTime: cfg.workTime };
 
         case "work": {
           const isLastRound = state.currentRound >= state.totalRounds;
@@ -98,6 +100,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
                   ...state,
                   phase: "blockRest",
                   timeLeft: cfg.restTime,
+                  phaseStartTime: cfg.restTime,
                   isRunning: true,
                 };
               }
@@ -118,6 +121,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
                   ...state,
                   phase: "intensityRest",
                   timeLeft: cfg.restTime,
+                  phaseStartTime: cfg.restTime,
                   isRunning: true,
                 };
               }
@@ -135,7 +139,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
               isRunning: false,
             };
           }
-          return { ...state, phase: "rest", timeLeft: cfg.restTime };
+          return { ...state, phase: "rest", timeLeft: cfg.restTime, phaseStartTime: cfg.restTime };
         }
 
         case "rest":
@@ -143,6 +147,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
             ...state,
             phase: "work",
             timeLeft: cfg.workTime,
+            phaseStartTime: cfg.workTime,
             currentRound: state.currentRound + 1,
           };
 
@@ -157,6 +162,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
             totalRounds: nextBlock?.rounds ?? state.totalRounds,
             phase: "countdown",
             timeLeft: cfg.countdownTime,
+            phaseStartTime: cfg.countdownTime,
             isRunning: true,
           };
         }
@@ -170,6 +176,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
             totalRounds: action.nextExerciseRounds ?? state.totalRounds,
             phase: "countdown",
             timeLeft: cfg.countdownTime,
+            phaseStartTime: cfg.countdownTime,
             isRunning: true,
           };
         }
@@ -197,6 +204,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
         totalRounds: action.exerciseRounds[nextIdx] ?? state.totalRounds,
         phase: "countdown",
         timeLeft: action.countdownTime,
+        phaseStartTime: action.countdownTime,
         isRunning: true,
       };
     }
@@ -210,6 +218,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
         totalRounds: action.exerciseRounds[prevIdx] ?? state.totalRounds,
         phase: "countdown",
         timeLeft: action.countdownTime,
+        phaseStartTime: action.countdownTime,
         isRunning: true,
       };
     }
@@ -225,6 +234,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
         totalRounds: nextBlock.rounds,
         phase: "countdown",
         timeLeft: action.countdownTime,
+        phaseStartTime: action.countdownTime,
         isRunning: true,
       };
     }
@@ -239,6 +249,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
         totalRounds: prevBlock.rounds,
         phase: "countdown",
         timeLeft: action.countdownTime,
+        phaseStartTime: action.countdownTime,
         isRunning: true,
       };
     }
@@ -250,6 +261,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
           ...state,
           phase: "countdown",
           timeLeft: action.countdownTime,
+          phaseStartTime: action.countdownTime,
           currentRound: state.currentRound + 1,
           isRunning: true,
         };
@@ -266,6 +278,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
           totalRounds: action.exerciseRounds[nextIdx] ?? state.totalRounds,
           phase: "countdown",
           timeLeft: action.countdownTime,
+          phaseStartTime: action.countdownTime,
           isRunning: true,
         };
       }
@@ -274,6 +287,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
         ...state,
         phase: "finished",
         timeLeft: 0,
+        phaseStartTime: 0,
         isRunning: false,
       };
     }
@@ -286,7 +300,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
       const { exerciseCount } = action;
 
       if (state.phase === "countdown") {
-        return { ...state, phase: "work", timeLeft: cfg.workTime };
+        return { ...state, phase: "work", timeLeft: cfg.workTime, phaseStartTime: cfg.workTime };
       }
       if (state.phase === "work") {
         const isLastRound = state.currentRound >= state.totalRounds;
@@ -299,6 +313,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
                 ...state,
                 phase: "blockRest",
                 timeLeft: cfg.restTime,
+                phaseStartTime: cfg.restTime,
                 isRunning: true,
               };
             }
@@ -306,6 +321,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
               ...state,
               phase: "finished",
               timeLeft: 0,
+              phaseStartTime: 0,
               isRunning: false,
             };
           }
@@ -317,6 +333,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
                 ...state,
                 phase: "intensityRest",
                 timeLeft: cfg.restTime,
+                phaseStartTime: cfg.restTime,
                 isRunning: true,
               };
             }
@@ -324,18 +341,20 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
               ...state,
               phase: "exerciseComplete",
               timeLeft: 0,
+              phaseStartTime: 0,
               isRunning: false,
             };
           }
-          return { ...state, phase: "finished", timeLeft: 0, isRunning: false };
+          return { ...state, phase: "finished", timeLeft: 0, phaseStartTime: 0, isRunning: false };
         }
-        return { ...state, phase: "rest", timeLeft: cfg.restTime };
+        return { ...state, phase: "rest", timeLeft: cfg.restTime, phaseStartTime: cfg.restTime };
       }
       if (state.phase === "rest") {
         return {
           ...state,
           phase: "work",
           timeLeft: cfg.workTime,
+          phaseStartTime: cfg.workTime,
           currentRound: state.currentRound + 1,
         };
       }
@@ -349,6 +368,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
           totalRounds: nextBlock?.rounds ?? state.totalRounds,
           phase: "countdown",
           timeLeft: cfg.countdownTime,
+          phaseStartTime: cfg.countdownTime,
           isRunning: true,
         };
       }
@@ -361,6 +381,7 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
           totalRounds: action.nextExerciseRounds ?? state.totalRounds,
           phase: "countdown",
           timeLeft: cfg.countdownTime,
+          phaseStartTime: cfg.countdownTime,
           isRunning: true,
         };
       }
@@ -368,21 +389,8 @@ function timerReducer(state: TimerState, action: TimerAction): TimerState {
     }
 
     case "RESTART_PHASE": {
-      const { config } = action;
-      if (state.phase === "countdown") {
-        return { ...state, timeLeft: config.countdownTime, isRunning: true };
-      }
-      if (state.phase === "work") {
-        return { ...state, timeLeft: config.workTime, isRunning: true };
-      }
-      if (
-        state.phase === "rest" ||
-        state.phase === "intensityRest" ||
-        state.phase === "blockRest"
-      ) {
-        return { ...state, timeLeft: config.restTime, isRunning: true };
-      }
-      return state;
+      // Use phaseStartTime to restart to the original duration
+      return { ...state, timeLeft: state.phaseStartTime, isRunning: true };
     }
 
     default:
@@ -683,29 +691,10 @@ export function useTabataTimer(
     state.currentBlockIndex,
   ]);
 
-  // Compute totalPhaseTime based on current block or global config
-  const totalPhaseTime = (() => {
-    const cfg = isStandaloneBlockMode
-      ? getBlockConfig(state.currentBlockIndex)
-      : {
-          workTime: config.workTime,
-          restTime: config.restTime,
-          countdownTime: config.countdownTime,
-        };
-
-    switch (state.phase) {
-      case "countdown":
-        return cfg.countdownTime;
-      case "work":
-        return cfg.workTime;
-      case "rest":
-      case "intensityRest":
-      case "blockRest":
-        return cfg.restTime;
-      default:
-        return 1;
-    }
-  })();
+  // totalPhaseTime tracks the initial duration when each phase started.
+  // This is critical for accurate SVG progress circle calculations,
+  // especially when the initial countdown (10s) differs from config.countdownTime (5s).
+  const totalPhaseTime = state.phaseStartTime || 1;
 
   return {
     ...state,

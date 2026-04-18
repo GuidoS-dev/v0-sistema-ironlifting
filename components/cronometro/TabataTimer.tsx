@@ -1177,8 +1177,7 @@ export function TabataTimer({
               />
 
               {/* Controls below timer — single compact row */}
-              {(phase !== "countdown" || !isRunning) && (
-                <div
+              <div
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -1273,7 +1272,6 @@ export function TabataTimer({
                     icon={<SkipForward size={18} />}
                   />
                 </div>
-              )}
             </div>
           )}
 

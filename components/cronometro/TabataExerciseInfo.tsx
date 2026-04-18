@@ -486,6 +486,37 @@ export function TabataExerciseInfo({
             {exercise.notes}
           </div>
         )}
+
+        {/* ── Intensity mini-cards (prev done / next upcoming) ── */}
+        {isGrouped && (prevGroupExercise || nextGroupExercise) && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              padding: "6px 14px 8px",
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            {prevGroupExercise && !hidePrevIntensityCard && (
+              <IntensityMiniCard exercise={prevGroupExercise} variant="done" />
+            )}
+            {nextGroupExercise && (
+              <IntensityMiniCard exercise={nextGroupExercise} variant="upcoming" />
+            )}
+            {exercise.intensityIndex != null &&
+              exercise.totalIntensities != null &&
+              exercise.totalIntensities > 1 && (
+                <div style={{ display: "flex", justifyContent: "center", paddingTop: 4 }}>
+                  <IntensitySteps
+                    currentIndex={exercise.intensityIndex}
+                    total={exercise.totalIntensities}
+                    isDuringRest={isIntensityRest}
+                  />
+                </div>
+              )}
+          </div>
+        )}
       </div>
 
       {/* ── CARGÁ LA BARRA banner (intensityRest phase) ── */}

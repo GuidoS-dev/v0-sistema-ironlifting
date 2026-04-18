@@ -43,6 +43,8 @@ export type TimerPhase =
 export interface TimerState {
   phase: TimerPhase;
   timeLeft: number;
+  /** The initial timeLeft when the current phase started (for progress calculation) */
+  phaseStartTime: number;
   currentRound: number;
   totalRounds: number;
   isRunning: boolean;
