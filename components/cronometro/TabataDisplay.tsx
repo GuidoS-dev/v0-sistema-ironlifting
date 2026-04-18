@@ -12,6 +12,10 @@ export interface TabataDisplayProps {
   currentBlockIndex?: number;
   totalBlocks?: number;
   blockName?: string;
+  /** Tap-to-pause/resume handler */
+  onClick?: () => void;
+  /** Whether the timer is currently paused */
+  isPaused?: boolean;
 }
 
 function formatTime(seconds: number): string {
@@ -29,6 +33,8 @@ export function TabataDisplay({
   currentBlockIndex,
   totalBlocks,
   blockName,
+  onClick,
+  isPaused,
 }: TabataDisplayProps) {
   const colors = PHASE_COLORS[phase];
   const label = PHASE_LABELS[phase];
@@ -112,12 +118,27 @@ export function TabataDisplay({
         {label}
       </div>
 
-      {/* Circular progress */}
+      {/* Circular progress — tappable for pause/resume */}
       <div
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onClick={onClick}
+        onKeyDown={
+          onClick
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onClick();
+                }
+              }
+            : undefined
+        }
+        aria-label={onClick ? (isPaused ? "Reanudar" : "Pausar") : undefined}
         style={{
           position: "relative",
           width: radius * 2,
           height: radius * 2,
+          cursor: onClick ? "pointer" : "default",
         }}
       >
         <svg
@@ -192,6 +213,32 @@ export function TabataDisplay({
             )}
           </div>
         </div>
+
+        {/* Pause overlay */}
+        {isPaused && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(10, 12, 18, .65)",
+              borderRadius: "50%",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 18,
+                letterSpacing: ".12em",
+                color: "var(--gold-dark)",
+              }}
+            >
+              PAUSA
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Round info */}

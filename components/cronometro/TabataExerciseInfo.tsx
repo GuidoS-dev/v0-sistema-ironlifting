@@ -21,6 +21,8 @@ export interface TabataExerciseInfoProps {
   totalGroups?: number;
   /** Current timer phase */
   phase?: TimerPhase;
+  /** Next exercise from a different group (for stacked depth preview) */
+  nextExercise?: TabataExercise | null;
 }
 
 /* ── Mini card for prev/next intensity in the wheel ── */
@@ -108,7 +110,9 @@ function IntensitySteps({
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       {Array.from({ length: total }, (_, i) => {
         const isDone = isDuringRest ? i <= currentIndex : i < currentIndex;
-        const isCurrent = isDuringRest ? i === currentIndex + 1 : i === currentIndex;
+        const isCurrent = isDuringRest
+          ? i === currentIndex + 1
+          : i === currentIndex;
         return (
           <div
             key={i}
@@ -130,6 +134,86 @@ function IntensitySteps({
   );
 }
 
+/* ── Compact stat strip for stacked next card ── */
+function StatStrip({ exercise }: { exercise: TabataExercise }) {
+  const stats = [
+    { label: "SERIES", value: String(exercise.series), unit: null },
+    { label: "REPS", value: exercise.reps || "—", unit: null },
+    {
+      label: "CARGA",
+      value: exercise.kg != null ? String(exercise.kg) : "—",
+      unit: exercise.kg != null ? " kg" : null,
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        background: "var(--surface-inset)",
+      }}
+    >
+      {stats.map((stat, i) => (
+        <React.Fragment key={stat.label}>
+          {i > 0 && (
+            <div
+              style={{
+                width: 1,
+                alignSelf: "stretch",
+                margin: "8px 0",
+                background: "var(--border)",
+              }}
+            />
+          )}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "8px 0",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 8,
+                letterSpacing: ".1em",
+                color: "var(--muted-foreground)",
+                marginBottom: 2,
+              }}
+            >
+              {stat.label}
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 15,
+                fontWeight: 700,
+                color: "var(--foreground)",
+              }}
+            >
+              {stat.value}
+              {stat.unit && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: "var(--gold-dark)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {stat.unit}
+                </span>
+              )}
+            </div>
+          </div>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
 export function TabataExerciseInfo({
   exercise,
   exerciseIndex,
@@ -141,12 +225,13 @@ export function TabataExerciseInfo({
   groupIndex,
   totalGroups,
   phase,
+  nextExercise,
 }: TabataExerciseInfoProps) {
   const catColor = CAT_COLORS[exercise.category] || "var(--muted-foreground)";
-  const isGrouped = exercise.totalIntensities != null && exercise.totalIntensities > 1;
+  const isGrouped =
+    exercise.totalIntensities != null && exercise.totalIntensities > 1;
   const isIntensityRest = phase === "intensityRest";
 
-  // Counter text: use grouped count if available
   const counterLabel =
     groupIndex != null && totalGroups != null
       ? `Ejercicio ${groupIndex + 1} de ${totalGroups}`
@@ -168,579 +253,438 @@ export function TabataExerciseInfo({
         {counterLabel}
       </div>
 
-      {/* ── Wheel layout for grouped intensities ── */}
-      {isGrouped ? (
+      {/* ── Intensity steps (grouped exercises only) ── */}
+      {isGrouped &&
+        exercise.totalIntensities != null &&
+        exercise.intensityIndex != null && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 8,
+            }}
+          >
+            <IntensitySteps
+              currentIndex={exercise.intensityIndex}
+              total={exercise.totalIntensities}
+              isDuringRest={isIntensityRest}
+            />
+          </div>
+        )}
+
+      {/* ── Previous intensity mini card ── */}
+      {isGrouped && prevGroupExercise && (
+        <div style={{ marginBottom: 6 }}>
+          <IntensityMiniCard exercise={prevGroupExercise} variant="done" />
+        </div>
+      )}
+
+      {/* ══ Main HUD Panel ══ */}
+      <div
+        style={{
+          border: isIntensityRest
+            ? "1.5px solid var(--gold-dark)"
+            : "1px solid color-mix(in srgb, var(--gold-dark) 25%, var(--border))",
+          borderRadius: 16,
+          background: "var(--card)",
+          overflow: "hidden",
+          position: "relative",
+          boxShadow: "0 0 24px rgba(232,197,71,.15)",
+          zIndex: 3,
+        }}
+      >
+        {/* Top highlight line */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 1,
+            background:
+              "linear-gradient(90deg, transparent, var(--gold-dark), transparent)",
+          }}
+        />
+
+        {/* Header: badge + name + intensity */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            alignItems: "stretch",
+            alignItems: "center",
+            gap: 10,
+            padding: "14px 16px 10px",
           }}
         >
-          {/* Previous intensity mini card */}
-          {prevGroupExercise && (
-            <IntensityMiniCard exercise={prevGroupExercise} variant="done" />
-          )}
-
-          {/* Main card */}
           <div
             style={{
-              background: "var(--card)",
-              border: isIntensityRest
-                ? "1.5px solid var(--gold-dark)"
-                : "1px solid var(--border)",
-              borderRadius: 10,
-              overflow: "hidden",
-              boxShadow: isIntensityRest
-                ? "0 0 16px rgba(232,197,71,.15)"
-                : "0 3px 12px rgba(0,0,0,.28)",
-              transition: "border .3s, box-shadow .3s",
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 800,
+              color: "var(--card)",
+              background: catColor,
+              flexShrink: 0,
             }}
           >
-            {/* Header: base name + intensity label */}
+            {exerciseIndex + 1}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                borderBottom: "1px solid var(--border)",
-                background: "var(--card)",
+                fontSize: 16,
+                fontWeight: 700,
+                color: "var(--foreground)",
+                fontFamily: "var(--font-sans)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
               }}
             >
+              {exercise.name}
+            </div>
+            {isGrouped && exercise.intensityLabel && (
               <div
                 style={{
-                  width: 48,
-                  minWidth: 48,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  alignSelf: "stretch",
+                  fontFamily: "var(--font-display)",
+                  fontSize: 13,
+                  color: "var(--gold)",
+                  letterSpacing: ".02em",
+                  marginTop: 2,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 800,
-                    padding: "2px 5px",
-                    borderRadius: 3,
-                    background: catColor,
-                    color: "var(--card)",
-                    opacity: 0.9,
-                  }}
-                >
-                  {(groupIndex ?? exerciseIndex) + 1}
-                </span>
+                {exercise.intensityLabel}
               </div>
-              <div style={{ flex: 1, padding: "10px 12px 10px 8px" }}>
+            )}
+          </div>
+        </div>
+
+        {/* ── HUD Stat Pods: SERIES / REPS / CARGA ── */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 8,
+            padding: "8px 16px 14px",
+          }}
+        >
+          {[
+            { label: "SERIES", value: String(exercise.series), active: true },
+            { label: "REPS", value: exercise.reps || "—", active: false },
+            {
+              label: "CARGA",
+              value: exercise.kg != null ? String(exercise.kg) : "—",
+              unit: exercise.kg != null ? " kg" : null,
+              active: false,
+            },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              style={{
+                background: "var(--surface-inset)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "10px 4px",
+                position: "relative",
+              }}
+            >
+              {stat.active && (
                 <div
                   style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "var(--foreground)",
-                    letterSpacing: ".01em",
-                    lineHeight: 1.2,
+                    position: "absolute",
+                    bottom: 0,
+                    left: "20%",
+                    right: "20%",
+                    height: 2,
+                    borderRadius: 1,
+                    background: "var(--gold-dark)",
                   }}
-                >
-                  {exercise.baseName || exercise.name}
-                </div>
-                {/* Intensity label + step dots */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginTop: 6,
-                  }}
-                >
-                  {exercise.intensityLabel && (
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: isIntensityRest ? "var(--gold)" : "var(--gold-dark)",
-                        fontFamily: "var(--font-display)",
-                        letterSpacing: ".02em",
-                      }}
-                    >
-                      {exercise.intensityLabel}
-                    </span>
-                  )}
-                  {exercise.intensityIndex != null && exercise.totalIntensities != null && (
-                    <IntensitySteps
-                      currentIndex={exercise.intensityIndex}
-                      total={exercise.totalIntensities}
-                      isDuringRest={isIntensityRest}
-                    />
-                  )}
-                </div>
+                />
+              )}
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 9,
+                  letterSpacing: ".1em",
+                  color: "var(--muted-foreground)",
+                  marginBottom: 4,
+                }}
+              >
+                {stat.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: "var(--foreground)",
+                  lineHeight: 1,
+                }}
+              >
+                {stat.value}
+                {"unit" in stat && stat.unit && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--gold-dark)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {stat.unit}
+                  </span>
+                )}
               </div>
             </div>
+          ))}
+        </div>
 
-            {/* "CARGÁ LA BARRA" banner during intensity rest */}
-            {isIntensityRest && nextGroupExercise && (
+        {/* ── Series progress bar ── */}
+        {currentRound != null && totalRounds != null && totalRounds > 0 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "10px 16px",
+              borderTop: "1px solid var(--border)",
+              background: "var(--surface-inset)",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 11,
+                letterSpacing: ".06em",
+                color: "var(--muted-foreground)",
+              }}
+            >
+              SERIE
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 13,
+                fontWeight: 700,
+                color: "var(--foreground)",
+              }}
+            >
+              {currentRound}/{totalRounds}
+            </span>
+            <div style={{ display: "flex", gap: 5, marginLeft: "auto" }}>
+              {Array.from({ length: totalRounds }, (_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background:
+                      i < (currentRound ?? 0) - 1
+                        ? "var(--green)"
+                        : i === (currentRound ?? 0) - 1
+                          ? "var(--gold)"
+                          : "rgba(232,197,71,.12)",
+                    boxShadow:
+                      i === (currentRound ?? 0) - 1
+                        ? "0 0 8px rgba(232,197,71,.15)"
+                        : "none",
+                    transition: "all .3s",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Notes ── */}
+        {exercise.notes && (
+          <div
+            style={{
+              padding: "6px 16px 8px",
+              fontSize: 10,
+              color: "var(--muted-foreground)",
+              fontStyle: "italic",
+              background: "var(--surface-inset)",
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            {exercise.notes}
+          </div>
+        )}
+      </div>
+
+      {/* ── CARGÁ LA BARRA banner (intensityRest phase) ── */}
+      {isIntensityRest && nextGroupExercise && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: "10px 16px",
+            background:
+              "color-mix(in srgb, var(--gold-dark) 10%, var(--card))",
+            border: "1px solid var(--gold-dark)",
+            borderRadius: 12,
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 14,
+              color: "var(--gold)",
+              letterSpacing: ".08em",
+              marginBottom: 4,
+            }}
+          >
+            CARGÁ LA BARRA
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--foreground)",
+            }}
+          >
+            {nextGroupExercise.series}×{nextGroupExercise.reps || "—"}
+            {nextGroupExercise.kg != null && (
+              <span style={{ marginLeft: 8, color: "var(--gold-dark)" }}>
+                {nextGroupExercise.kg}
+                <span style={{ fontSize: 11 }}> kg</span>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Next intensity mini card (grouped, not during intensityRest) ── */}
+      {isGrouped && nextGroupExercise && !isIntensityRest && (
+        <div style={{ marginTop: 6 }}>
+          <IntensityMiniCard exercise={nextGroupExercise} variant="upcoming" />
+        </div>
+      )}
+
+      {/* ── Stacked next exercise card (depth effect) ── */}
+      {nextExercise &&
+        !isIntensityRest &&
+        (() => {
+          const nc =
+            CAT_COLORS[nextExercise.category] || "var(--muted-foreground)";
+          return (
+            <>
+              {/* Divider */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                  padding: "10px 14px",
-                  background: "color-mix(in srgb, var(--gold-dark) 12%, var(--background))",
-                  borderBottom: "1px solid var(--border)",
+                  padding: "12px 0 6px",
                 }}
               >
-                <ArrowDown size={14} color="var(--gold)" />
+                <div
+                  style={{
+                    flex: 1,
+                    maxWidth: 40,
+                    height: 1,
+                    background:
+                      "color-mix(in srgb, var(--gold-dark) 25%, transparent)",
+                  }}
+                />
                 <span
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: 12,
-                    letterSpacing: ".06em",
-                    color: "var(--gold)",
-                    fontWeight: 700,
+                    fontSize: 10,
+                    letterSpacing: ".1em",
+                    color: "var(--gold-dark)",
                   }}
                 >
-                  CARGÁ LA BARRA
+                  SIGUIENTE
                 </span>
-                <span
+                <div
                   style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 16,
-                    fontWeight: 800,
-                    color: "var(--foreground)",
-                    letterSpacing: "-.02em",
+                    flex: 1,
+                    maxWidth: 40,
+                    height: 1,
+                    background:
+                      "color-mix(in srgb, var(--gold-dark) 25%, transparent)",
                   }}
-                >
-                  {nextGroupExercise.kg != null ? `${nextGroupExercise.kg} kg` : "—"}
-                </span>
+                />
               </div>
-            )}
 
-            {/* Series progress indicator */}
-            {currentRound != null && totalRounds != null && totalRounds > 0 && !isIntensityRest && (
+              {/* Stacked card at 96% scale */}
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "8px 14px",
-                  background: "var(--background)",
-                  borderBottom: "1px solid var(--border)",
+                  transform: "scale(.96)",
+                  transformOrigin: "top center",
+                  opacity: 0.75,
+                  position: "relative",
+                  zIndex: 2,
                 }}
               >
-                <span
+                <div
                   style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 12,
-                    color: "var(--muted-foreground)",
-                    letterSpacing: ".04em",
+                    border: "1px solid var(--border)",
+                    borderRadius: 14,
+                    background: "var(--card)",
+                    overflow: "hidden",
                   }}
                 >
-                  SERIE
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 14,
-                    color: "var(--foreground)",
-                    letterSpacing: ".04em",
-                  }}
-                >
-                  {currentRound}
-                  <span style={{ color: "var(--muted-foreground)" }}> / </span>
-                  {totalRounds}
-                </span>
-                <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
-                  {Array.from({ length: totalRounds }, (_, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: "50%",
-                        background:
-                          i < currentRound - 1
-                            ? "var(--green)"
-                            : i === currentRound - 1
-                              ? "var(--gold-dark)"
-                              : "var(--border)",
-                        transition: "background .3s",
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Data row: series × reps | kg */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: 0,
-                borderBottom: exercise.notes ? "1px solid var(--secondary)" : "none",
-                minHeight: 42,
-                background: "var(--surface-inset)",
-              }}
-            >
-              <div
-                style={{
-                  width: 48,
-                  minWidth: 48,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  alignSelf: "stretch",
-                  background: "var(--card)",
-                  borderRight: "1px solid var(--border)",
-                  color: "var(--gold-dark)",
-                  fontSize: 11,
-                  fontWeight: 700,
-                }}
-              >
-                {exercise.series}×
-              </div>
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0,
-                  padding: "10px 14px",
-                  fontFamily: "var(--font-sans)",
-                }}
-              >
-                {exercise.reps && (
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <span
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 800,
-                        color: "var(--foreground)",
-                        background: "var(--badge-bg)",
-                        padding: "5px 0 5px 10px",
-                        borderRadius: "6px 0 0 6px",
-                        letterSpacing: "-.3px",
-                      }}
-                    >
-                      {exercise.series}
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: "var(--gold-dark)",
-                          margin: "0 2px",
-                        }}
-                      >
-                        ×
-                      </span>
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 800,
-                        color: "var(--foreground)",
-                        background: "var(--badge-bg)",
-                        padding: "5px 10px 5px 0",
-                        borderRadius: "0 6px 6px 0",
-                        letterSpacing: "-.3px",
-                      }}
-                    >
-                      {exercise.reps}
-                    </span>
-                  </div>
-                )}
-                {exercise.kg != null && (
-                  <span
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: "var(--foreground)",
-                      background: "var(--badge-bg)",
-                      padding: "5px 10px",
-                      borderRadius: 6,
-                      whiteSpace: "nowrap",
-                      marginLeft: 6,
-                    }}
-                  >
-                    {exercise.kg}
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: "var(--gold-dark)",
-                        marginLeft: 2,
-                      }}
-                    >
-                      {" "}
-                      kg
-                    </span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Notes */}
-            {exercise.notes && (
-              <div
-                style={{
-                  padding: "6px 14px 8px 62px",
-                  fontSize: 10,
-                  color: "var(--muted-foreground)",
-                  fontStyle: "italic",
-                  background: "var(--surface-inset)",
-                }}
-              >
-                {exercise.notes}
-              </div>
-            )}
-          </div>
-
-          {/* Next intensity mini card */}
-          {nextGroupExercise && !isIntensityRest && (
-            <IntensityMiniCard exercise={nextGroupExercise} variant="upcoming" />
-          )}
-        </div>
-      ) : (
-        /* ── Single exercise card (unchanged original layout) ── */
-        <div
-          style={{
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            overflow: "hidden",
-            boxShadow: "0 3px 12px rgba(0,0,0,.28)",
-          }}
-        >
-          {/* Header: badge + name */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              borderBottom: "1px solid var(--border)",
-              background: "var(--card)",
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                minWidth: 48,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                alignSelf: "stretch",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 800,
-                  padding: "2px 5px",
-                  borderRadius: 3,
-                  background: catColor,
-                  color: "var(--card)",
-                  opacity: 0.9,
-                }}
-              >
-                {exerciseIndex + 1}
-              </span>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                padding: "12px 12px 12px 8px",
-                fontFamily: "var(--font-sans)",
-                fontSize: 14,
-                fontWeight: 700,
-                color: "var(--foreground)",
-                letterSpacing: ".01em",
-                lineHeight: 1.2,
-              }}
-            >
-              {exercise.name}
-            </div>
-          </div>
-
-          {/* Series progress indicator */}
-          {currentRound != null && totalRounds != null && totalRounds > 0 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 14px",
-                background: "var(--background)",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 12,
-                  color: "var(--muted-foreground)",
-                  letterSpacing: ".04em",
-                }}
-              >
-                SERIE
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 14,
-                  color: "var(--foreground)",
-                  letterSpacing: ".04em",
-                }}
-              >
-                {currentRound}
-                <span style={{ color: "var(--muted-foreground)" }}> / </span>
-                {totalRounds}
-              </span>
-              <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
-                {Array.from({ length: totalRounds }, (_, i) => (
+                  {/* Compact header */}
                   <div
-                    key={i}
                     style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: "50%",
-                      background:
-                        i < (currentRound ?? 0) - 1
-                          ? "var(--green)"
-                          : i === (currentRound ?? 0) - 1
-                            ? "var(--gold-dark)"
-                            : "var(--border)",
-                      transition: "background .3s",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Data row */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: 0,
-              borderBottom: exercise.notes ? "1px solid var(--secondary)" : "none",
-              minHeight: 42,
-              background: "var(--surface-inset)",
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                minWidth: 48,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                alignSelf: "stretch",
-                background: "var(--card)",
-                borderRight: "1px solid var(--border)",
-                color: "var(--gold-dark)",
-                fontSize: 11,
-                fontWeight: 700,
-              }}
-            >
-              {exercise.series}×
-            </div>
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                gap: 0,
-                padding: "10px 14px",
-                fontFamily: "var(--font-sans)",
-              }}
-            >
-              {exercise.reps && (
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <span
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: "var(--foreground)",
-                      background: "var(--badge-bg)",
-                      padding: "5px 0 5px 10px",
-                      borderRadius: "6px 0 0 6px",
-                      letterSpacing: "-.3px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "10px 14px",
+                      borderBottom: "1px solid var(--border)",
                     }}
                   >
-                    {exercise.series}
-                    <span
+                    <div
                       style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 6,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         fontSize: 11,
-                        fontWeight: 600,
-                        color: "var(--gold-dark)",
-                        margin: "0 2px",
+                        fontWeight: 800,
+                        color: "var(--card)",
+                        background: nc,
+                        flexShrink: 0,
                       }}
                     >
-                      ×
-                    </span>
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: "var(--foreground)",
-                      background: "var(--badge-bg)",
-                      padding: "5px 10px 5px 0",
-                      borderRadius: "0 6px 6px 0",
-                      letterSpacing: "-.3px",
-                    }}
-                  >
-                    {exercise.reps}
-                  </span>
-                </div>
-              )}
-              {exercise.kg != null && (
-                <span
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 800,
-                    color: "var(--foreground)",
-                    background: "var(--badge-bg)",
-                    padding: "5px 10px",
-                    borderRadius: 6,
-                    whiteSpace: "nowrap",
-                    marginLeft: 6,
-                  }}
-                >
-                  {exercise.kg}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: "var(--gold-dark)",
-                      marginLeft: 2,
-                    }}
-                  >
-                    {" "}
-                    kg
-                  </span>
-                </span>
-              )}
-            </div>
-          </div>
+                      {exerciseIndex + 2}
+                    </div>
+                    <div
+                      style={{
+                        flex: 1,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: "var(--foreground)",
+                        fontFamily: "var(--font-sans)",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {nextExercise.name}
+                    </div>
+                  </div>
 
-          {/* Notes */}
-          {exercise.notes && (
-            <div
-              style={{
-                padding: "6px 14px 8px 62px",
-                fontSize: 10,
-                color: "var(--muted-foreground)",
-                fontStyle: "italic",
-                background: "var(--surface-inset)",
-              }}
-            >
-              {exercise.notes}
-            </div>
-          )}
-        </div>
-      )}
+                  {/* Compact stat strip */}
+                  <StatStrip exercise={nextExercise} />
+                </div>
+              </div>
+            </>
+          );
+        })()}
     </div>
   );
 }

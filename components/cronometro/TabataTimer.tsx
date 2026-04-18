@@ -11,6 +11,7 @@ import {
   HelpCircle,
   List,
   RotateCcw,
+  SkipBack,
   SkipForward,
   Timer,
   Volume2,
@@ -257,6 +258,18 @@ export function TabataTimer({
     hasActiveExercises,
   ]);
 
+  // ── Next exercise from a different group (for stacked depth preview) ──
+  const nextDifferentExercise = useMemo(() => {
+    if (!hasActiveExercises || !currentExercise) return null;
+    const currentBase = currentExercise.baseId || currentExercise.id;
+    for (let i = currentExerciseIndex + 1; i < activeExercises.length; i++) {
+      const ex = activeExercises[i];
+      const exBase = ex.baseId || ex.id;
+      if (exBase !== currentBase) return { exercise: ex, flatIndex: i };
+    }
+    return null;
+  }, [activeExercises, currentExercise, currentExerciseIndex, hasActiveExercises]);
+
   // ── Grouped exercises for idle list ──
   const exerciseGroups = useMemo(() => {
     type Group = {
@@ -481,117 +494,9 @@ export function TabataTimer({
             groupIndex={groupInfo?.groupIndex}
             totalGroups={groupInfo?.totalGroups}
             phase={phase}
+            nextExercise={nextDifferentExercise?.exercise ?? null}
           />
         )}
-
-        {/* ── Next exercise preview (visible during exerciseComplete) ── */}
-        {phase === "exerciseComplete" &&
-          currentExerciseIndex < activeExercises.length - 1 &&
-          (() => {
-            const next = activeExercises[currentExerciseIndex + 1];
-            const nc = CAT_COLORS[next.category] || "var(--muted-foreground)";
-            return (
-              <div
-                style={{
-                  width: "100%",
-                  maxWidth: 340,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 0,
-                  marginTop: -8,
-                }}
-              >
-                {/* Arrow + label */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    marginBottom: 6,
-                  }}
-                >
-                  <ArrowDown size={14} style={{ color: "var(--gold-dark)" }} />
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: ".06em",
-                      textTransform: "uppercase",
-                      color: "var(--gold-dark)",
-                      fontFamily: "var(--font-display)",
-                    }}
-                  >
-                    SIGUIENTE
-                  </span>
-                  <ArrowDown size={14} style={{ color: "var(--gold-dark)" }} />
-                </div>
-                {/* Preview card */}
-                <div
-                  style={{
-                    background: "var(--card)",
-                    border: "1px solid var(--gold-dark)",
-                    borderRadius: 12,
-                    padding: "12px 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    boxShadow:
-                      "0 0 12px color-mix(in srgb, var(--gold-dark) 20%, transparent)",
-                  }}
-                >
-                  {/* Badge */}
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      padding: "3px 7px",
-                      borderRadius: 5,
-                      background: nc,
-                      color: "var(--card)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {currentExerciseIndex + 2}
-                  </span>
-                  {/* Name */}
-                  <span
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: "var(--foreground)",
-                      fontFamily: "var(--font-sans)",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      flex: 1,
-                    }}
-                  >
-                    {next.name}
-                  </span>
-                  {/* Kg */}
-                  {next.kg != null && (
-                    <span
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 800,
-                        color: "var(--gold)",
-                        fontFamily: "var(--font-sans)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {next.kg}
-                      <span
-                        style={{ fontSize: 11, fontWeight: 600, marginLeft: 2 }}
-                      >
-                        kg
-                      </span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
 
         {/* ── Exercise list (turno mode, idle — primary content) ── */}
         {phase === "idle" && hasExercises && (
@@ -1051,44 +956,174 @@ export function TabataTimer({
             width: "100%",
           }}
         >
+          {/* ── Active timer: [Prev] [Timer ring] [Next] ── */}
           {isTimerActive && (
-            <TabataDisplay
-              phase={phase}
-              timeLeft={timeLeft}
-              totalPhaseTime={totalPhaseTime}
-              currentRound={currentRound}
-              totalRounds={totalRounds}
-              currentBlockIndex={isBlockMode ? currentBlockIndex : undefined}
-              totalBlocks={isBlockMode ? blockCount : undefined}
-              blockName={
-                isBlockMode ? blocks[currentBlockIndex]?.name : undefined
-              }
-            />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                width: "100%",
+              }}
+            >
+              {/* Prev button */}
+              <button
+                className="timer-btn"
+                onClick={
+                  isBlockMode ? actions.prevBlock : actions.prevExercise
+                }
+                disabled={
+                  isBlockMode
+                    ? currentBlockIndex <= 0
+                    : currentExerciseIndex <= 0
+                }
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "var(--secondary)",
+                  color: "var(--foreground)",
+                  opacity:
+                    (isBlockMode
+                      ? currentBlockIndex <= 0
+                      : currentExerciseIndex <= 0)
+                      ? 0.3
+                      : 1,
+                  transition: "opacity .2s",
+                  flexShrink: 0,
+                }}
+                aria-label="Ejercicio anterior"
+              >
+                <SkipBack size={18} />
+              </button>
+
+              {/* Timer ring — tappable for play/pause */}
+              <TabataDisplay
+                phase={phase}
+                timeLeft={timeLeft}
+                totalPhaseTime={totalPhaseTime}
+                currentRound={currentRound}
+                totalRounds={totalRounds}
+                currentBlockIndex={
+                  isBlockMode ? currentBlockIndex : undefined
+                }
+                totalBlocks={isBlockMode ? blockCount : undefined}
+                blockName={
+                  isBlockMode ? blocks[currentBlockIndex]?.name : undefined
+                }
+                onClick={
+                  phase === "exerciseComplete" || phase === "finished"
+                    ? undefined
+                    : isRunning
+                      ? actions.pause
+                      : actions.resume
+                }
+                isPaused={!isRunning && phase !== "exerciseComplete" && phase !== "finished" && phase !== "countdown"}
+              />
+
+              {/* Next button */}
+              <button
+                className="timer-btn"
+                onClick={
+                  phase === "exerciseComplete"
+                    ? actions.start
+                    : actions.skipForward
+                }
+                disabled={
+                  isBlockMode
+                    ? !(
+                        currentRound < totalRounds ||
+                        currentBlockIndex < blockCount - 1
+                      )
+                    : !(
+                        currentRound < totalRounds ||
+                        currentExerciseIndex < activeExercises.length - 1
+                      )
+                }
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  border:
+                    phase === "exerciseComplete"
+                      ? "1.5px solid var(--gold-dark)"
+                      : "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background:
+                    phase === "exerciseComplete"
+                      ? "color-mix(in srgb, var(--gold-dark) 15%, var(--secondary))"
+                      : "var(--secondary)",
+                  color:
+                    phase === "exerciseComplete"
+                      ? "var(--gold)"
+                      : "var(--foreground)",
+                  opacity:
+                    (isBlockMode
+                      ? !(
+                          currentRound < totalRounds ||
+                          currentBlockIndex < blockCount - 1
+                        )
+                      : !(
+                          currentRound < totalRounds ||
+                          currentExerciseIndex < activeExercises.length - 1
+                        ))
+                      ? 0.3
+                      : 1,
+                  transition: "all .2s",
+                  flexShrink: 0,
+                  boxShadow:
+                    phase === "exerciseComplete"
+                      ? "0 0 12px rgba(232,197,71,.2)"
+                      : "none",
+                }}
+                aria-label={
+                  phase === "exerciseComplete"
+                    ? "Iniciar siguiente ejercicio"
+                    : "Siguiente serie"
+                }
+              >
+                <SkipForward size={18} />
+              </button>
+            </div>
           )}
 
-          <TabataControls
-            phase={phase}
-            isRunning={isRunning}
-            hasExercises={hasActiveExercises || isBlockMode}
-            canPrev={
-              isBlockMode ? currentBlockIndex > 0 : currentExerciseIndex > 0
-            }
-            canNext={
-              isBlockMode
-                ? currentRound < totalRounds ||
-                  currentBlockIndex < blockCount - 1
-                : currentRound < totalRounds ||
-                  currentExerciseIndex < activeExercises.length - 1
-            }
-            onStart={actions.start}
-            onPause={actions.pause}
-            onResume={actions.resume}
-            onReset={actions.reset}
-            onNext={actions.skipForward}
-            onPrev={isBlockMode ? actions.prevBlock : actions.prevExercise}
-            onSkipPhase={actions.skipPhase}
-            onRestartPhase={actions.restartPhase}
-          />
+          {/* ── Idle/finished controls ── */}
+          {!isTimerActive && (
+            <TabataControls
+              phase={phase}
+              isRunning={isRunning}
+              hasExercises={hasActiveExercises || isBlockMode}
+              canPrev={
+                isBlockMode
+                  ? currentBlockIndex > 0
+                  : currentExerciseIndex > 0
+              }
+              canNext={
+                isBlockMode
+                  ? currentRound < totalRounds ||
+                    currentBlockIndex < blockCount - 1
+                  : currentRound < totalRounds ||
+                    currentExerciseIndex < activeExercises.length - 1
+              }
+              onStart={actions.start}
+              onPause={actions.pause}
+              onResume={actions.resume}
+              onReset={actions.reset}
+              onNext={actions.skipForward}
+              onPrev={isBlockMode ? actions.prevBlock : actions.prevExercise}
+              onSkipPhase={actions.skipPhase}
+              onRestartPhase={actions.restartPhase}
+            />
+          )}
         </div>
 
         {/* ── Disabled exercises list + restore (below controls, idle only) ── */}
@@ -1226,7 +1261,7 @@ export function TabataTimer({
         </div>
       )}
 
-      {/* ── Exercise list modal (during active timer) ── */}
+      {/* ── Ticker board exercise list modal ── */}
       {showListModal && hasActiveExercises && (
         <div
           style={{
@@ -1329,214 +1364,209 @@ export function TabataTimer({
               </div>
             </div>
 
-            {/* Exercise list — grouped by baseId */}
+            {/* ── Ticker board table ── */}
             <div
               style={{
                 flex: 1,
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
-                padding: "8px 12px 20px",
               }}
             >
-              {(() => {
-                // Build groups from activeExercises
-                type ModalGroup = {
-                  baseId: string;
-                  baseName: string;
-                  items: { ex: TabataExercise; flatIndex: number }[];
-                };
-                const groups: ModalGroup[] = [];
-                const gMap = new Map<string, ModalGroup>();
-                activeExercises.forEach((ex, i) => {
-                  const key = ex.baseId || ex.id;
-                  let g = gMap.get(key);
-                  if (!g) {
-                    g = {
-                      baseId: key,
-                      baseName: ex.baseName || ex.name,
-                      items: [],
-                    };
-                    gMap.set(key, g);
-                    groups.push(g);
-                  }
-                  g.items.push({ ex, flatIndex: i });
-                });
+              {/* Column headers */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "36px 1fr 54px 54px 58px",
+                  padding: "8px 12px 4px",
+                  borderBottom: "1px solid var(--border)",
+                  position: "sticky",
+                  top: 0,
+                  background: "var(--card)",
+                  zIndex: 2,
+                }}
+              >
+                {["#", "EJERCICIO", "SERIES", "REPS", "KG"].map((h) => (
+                  <div
+                    key={h}
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 8,
+                      letterSpacing: ".1em",
+                      color: "var(--muted-foreground)",
+                      textAlign: h === "#" || h === "EJERCICIO" ? "left" : "center",
+                      padding: "0 4px",
+                    }}
+                  >
+                    {h}
+                  </div>
+                ))}
+              </div>
 
-                return groups.map((group, gIdx) => {
-                  const isMulti = group.items.length > 1;
+              {/* Rows */}
+              <div style={{ padding: "4px 12px 20px" }}>
+                {activeExercises.map((ex, flatIdx) => {
+                  const isDone =
+                    phase === "finished" ||
+                    flatIdx < currentExerciseIndex ||
+                    (flatIdx === currentExerciseIndex &&
+                      phase === "exerciseComplete");
+                  const isCurrent =
+                    flatIdx === currentExerciseIndex &&
+                    phase !== "finished" &&
+                    phase !== "exerciseComplete";
+                  const isFuture = !isDone && !isCurrent;
+                  const gc =
+                    CAT_COLORS[ex.category] || "var(--muted-foreground)";
+
                   return (
                     <div
-                      key={group.baseId}
+                      key={ex.id}
                       style={{
-                        marginBottom: 8,
-                        ...(isMulti
-                          ? {
-                              border:
-                                "1px solid color-mix(in srgb, var(--gold-dark) 30%, var(--border))",
-                              borderRadius: 10,
-                              overflow: "hidden",
-                            }
-                          : {}),
+                        display: "grid",
+                        gridTemplateColumns: "36px 1fr 54px 54px 58px",
+                        alignItems: "center",
+                        padding: "7px 4px",
+                        borderRadius: isCurrent ? 8 : 0,
+                        borderLeft: isCurrent
+                          ? "2.5px solid var(--gold)"
+                          : "2.5px solid transparent",
+                        background: isCurrent
+                          ? "color-mix(in srgb, var(--gold) 6%, var(--card))"
+                          : "transparent",
+                        opacity: isDone ? 0.35 : isFuture ? 0.6 : 1,
+                        transition: "all .3s",
+                        borderBottom: "1px solid var(--border)",
                       }}
                     >
-                      {/* Group header for multi-intensity */}
-                      {isMulti && (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            padding: "5px 10px",
-                            background:
-                              "color-mix(in srgb, var(--gold-dark) 8%, var(--card))",
-                            borderBottom: "1px solid var(--border)",
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: "var(--gold-dark)",
-                            letterSpacing: ".04em",
-                            textTransform: "uppercase",
-                            fontFamily: "var(--font-display)",
-                          }}
-                        >
-                          <Hash size={10} />
-                          {group.baseName}
+                      {/* # */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {isDone ? (
+                          <Check
+                            size={12}
+                            color="var(--green)"
+                            strokeWidth={3}
+                          />
+                        ) : (
                           <span
                             style={{
-                              marginLeft: "auto",
-                              fontSize: 9,
-                              opacity: 0.7,
-                            }}
-                          >
-                            {group.items.length} int.
-                          </span>
-                        </div>
-                      )}
-                      {group.items.map(({ ex, flatIndex }, subIdx) => {
-                        const isDone =
-                          phase === "finished" ||
-                          flatIndex < currentExerciseIndex ||
-                          (flatIndex === currentExerciseIndex &&
-                            phase === "exerciseComplete");
-                        const isCurrent =
-                          flatIndex === currentExerciseIndex &&
-                          phase !== "finished" &&
-                          phase !== "exerciseComplete";
-                        const gc =
-                          CAT_COLORS[ex.category] || "var(--muted-foreground)";
-
-                        return (
-                          <div
-                            key={ex.id}
-                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 5,
                               display: "flex",
                               alignItems: "center",
-                              gap: 10,
-                              padding: "8px 10px",
-                              background: isCurrent
-                                ? "color-mix(in srgb, var(--gold) 6%, var(--card))"
-                                : "transparent",
-                              borderBottom:
-                                isMulti && subIdx < group.items.length - 1
-                                  ? "1px solid var(--border)"
-                                  : !isMulti && gIdx < groups.length - 1
-                                    ? "1px solid var(--border)"
-                                    : "none",
+                              justifyContent: "center",
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: "var(--card)",
+                              background: gc,
                             }}
                           >
-                            {/* Status dot */}
-                            <div
-                              style={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: "50%",
-                                flexShrink: 0,
-                                background: isDone
-                                  ? "var(--green)"
-                                  : isCurrent
-                                    ? "var(--gold)"
-                                    : "var(--border)",
-                                boxShadow: isCurrent
-                                  ? "0 0 6px color-mix(in srgb, var(--gold) 50%, transparent)"
-                                  : "none",
-                                transition: "background .3s",
-                              }}
-                            />
+                            {flatIdx + 1}
+                          </span>
+                        )}
+                      </div>
 
-                            {/* Exercise info */}
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  color: isDone
-                                    ? "var(--green)"
-                                    : isCurrent
-                                      ? "var(--foreground)"
-                                      : "var(--muted-foreground)",
-                                  fontFamily: "var(--font-sans)",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  textDecoration: isDone
-                                    ? "line-through"
-                                    : "none",
-                                  transition: "color .3s",
-                                }}
-                              >
-                                {isMulti
-                                  ? ex.intensityLabel || ex.name
-                                  : ex.name}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  color: isDone
-                                    ? "color-mix(in srgb, var(--green) 60%, transparent)"
-                                    : "var(--muted-foreground)",
-                                  marginTop: 2,
-                                }}
-                              >
-                                {ex.series}×{ex.reps || "—"}
-                                {ex.kg != null ? ` · ${ex.kg}kg` : ""}
-                              </div>
-                            </div>
-
-                            {/* Category dot */}
-                            <div
-                              style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: "50%",
-                                background: gc,
-                                opacity: isDone ? 0.4 : 0.7,
-                                flexShrink: 0,
-                              }}
-                            />
-
-                            {/* Current indicator */}
-                            {isCurrent && (
-                              <div
-                                style={{
-                                  fontSize: 9,
-                                  fontWeight: 800,
-                                  color: "var(--gold)",
-                                  letterSpacing: ".05em",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <span aria-hidden="true">▶</span>
-                                <span className="sr-only">
-                                  Ejercicio actual
-                                </span>
-                              </div>
-                            )}
+                      {/* EJERCICIO */}
+                      <div
+                        style={{
+                          padding: "0 4px",
+                          minWidth: 0,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: isDone
+                              ? "var(--muted-foreground)"
+                              : isCurrent
+                                ? "var(--foreground)"
+                                : "var(--muted-foreground)",
+                            fontFamily: "var(--font-sans)",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            textDecoration: isDone
+                              ? "line-through"
+                              : "none",
+                          }}
+                        >
+                          {ex.name}
+                        </div>
+                        {ex.intensityLabel && (
+                          <div
+                            style={{
+                              fontSize: 9,
+                              color: isCurrent
+                                ? "var(--gold-dark)"
+                                : "var(--muted-foreground)",
+                              marginTop: 1,
+                            }}
+                          >
+                            {ex.intensityLabel}
                           </div>
-                        );
-                      })}
+                        )}
+                      </div>
+
+                      {/* SERIES */}
+                      <div
+                        style={{
+                          textAlign: "center",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: isCurrent
+                            ? "var(--foreground)"
+                            : "var(--muted-foreground)",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {ex.series}
+                      </div>
+
+                      {/* REPS */}
+                      <div
+                        style={{
+                          textAlign: "center",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: isCurrent
+                            ? "var(--foreground)"
+                            : "var(--muted-foreground)",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {ex.reps || "—"}
+                      </div>
+
+                      {/* KG */}
+                      <div
+                        style={{
+                          textAlign: "center",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: isCurrent
+                            ? "var(--gold)"
+                            : isDone
+                              ? "var(--muted-foreground)"
+                              : "var(--gold-dark)",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {ex.kg != null ? ex.kg : "—"}
+                      </div>
                     </div>
                   );
-                });
-              })()}
+                })}
+              </div>
             </div>
           </div>
         </div>
