@@ -389,6 +389,25 @@ export function TabataExerciseInfo({
               {displayExercise.intensityLabel}
             </div>
           )}
+          {displayExercise.normativoId && (
+            <div
+              style={{
+                flexShrink: 0,
+                padding: "3px 8px",
+                borderRadius: 6,
+                background: "var(--background)",
+                border: "1px solid color-mix(in srgb, var(--gold-dark) 40%, var(--border))",
+                fontFamily: "var(--font-mono)",
+                fontSize: 12,
+                fontWeight: 800,
+                color: "var(--gold)",
+                letterSpacing: ".02em",
+                lineHeight: 1.2,
+              }}
+            >
+              #{displayExercise.normativoId}
+            </div>
+          )}
         </div>
 
         {/* ── HUD Stat Pods: SERIES / REPS / CARGA ── */}

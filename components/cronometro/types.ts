@@ -25,6 +25,7 @@ export interface TabataExercise {
   notes?: string;
   baseId?: string;
   baseName?: string;
+  normativoId?: string;
   intensityLabel?: string;
   intensityIndex?: number;
   totalIntensities?: number;

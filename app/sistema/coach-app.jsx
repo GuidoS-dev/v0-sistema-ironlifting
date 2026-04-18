@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.7.9";
+const APP_VERSION = "1.7.10";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23233,6 +23233,7 @@ function PagePDF({
             reps: null,
             series: 3,
             notes: "",
+            normativoId: comp.ejercicio_id ? String(comp.ejercicio_id) : undefined,
           });
           return;
         }
@@ -23247,6 +23248,7 @@ function PagePDF({
             reps: col.r ? String(col.r) : null,
             series: col.s || 3,
             notes: col.note || "",
+            normativoId: comp.ejercicio_id ? String(comp.ejercicio_id) : undefined,
             ...(hasMulti
               ? {
                   baseId: compId,
@@ -23284,6 +23286,7 @@ function PagePDF({
               reps: null,
               series: 3,
               notes: "",
+              normativoId: row?.id || undefined,
             });
             return;
           }
@@ -23298,6 +23301,7 @@ function PagePDF({
               reps: col.r ? String(col.r) : null,
               series: col.s || 3,
               notes: col.note || "",
+              normativoId: row.id || undefined,
               ...(hasMulti
                 ? {
                     baseId: ptId,
@@ -23327,6 +23331,7 @@ function PagePDF({
               reps: col.r ? String(col.r) : null,
               series: col.s || 3,
               notes: col.note || "",
+              normativoId: ej.ejercicio_id ? String(ej.ejercicio_id) : undefined,
               ...(hasMulti
                 ? {
                     baseId: ej.id,
@@ -23355,6 +23360,7 @@ function PagePDF({
               reps: col.r ? String(col.r) : null,
               series: col.s || 3,
               notes: col.note || "",
+              normativoId: ej.ejercicio_id ? String(ej.ejercicio_id) : undefined,
               ...(hasMulti
                 ? {
                     baseId: ej.id,
