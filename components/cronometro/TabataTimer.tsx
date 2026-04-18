@@ -1204,29 +1204,36 @@ export function TabataTimer({
                   />
 
                   {/* ⏸ Pause / ▶ Resume — direct tap, no double-tap */}
-                  {phase !== "exerciseComplete" && (
-                    <button
-                      type="button"
-                      onClick={isRunning ? actions.pause : actions.resume}
-                      aria-label={isRunning ? "Pausar" : "Reanudar"}
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: "50%",
-                        border: "none",
-                        background: "var(--secondary)",
-                        color: "var(--foreground)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        flexShrink: 0,
-                        transition: "background .15s ease-out",
-                      }}
-                    >
-                      {isRunning ? <Pause size={18} /> : <Play size={18} />}
-                    </button>
-                  )}
+                  {phase !== "exerciseComplete" && (() => {
+                    // Illuminate Play only when paused during countdown (initial start)
+                    const accentPlay = !isRunning && phase === "countdown";
+                    return (
+                      <button
+                        type="button"
+                        onClick={isRunning ? actions.pause : actions.resume}
+                        aria-label={isRunning ? "Pausar" : "Reanudar"}
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: "50%",
+                          border: accentPlay ? "1.5px solid var(--gold-dark)" : "none",
+                          background: accentPlay
+                            ? "color-mix(in srgb, var(--gold-dark) 22%, var(--secondary))"
+                            : "var(--secondary)",
+                          color: accentPlay ? "var(--gold)" : "var(--foreground)",
+                          boxShadow: accentPlay ? "0 0 14px rgba(232,197,71,.18)" : "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          flexShrink: 0,
+                          transition: "background .15s ease-out, color .15s ease-out, box-shadow .15s ease-out",
+                        }}
+                      >
+                        {isRunning ? <Pause size={18} /> : <Play size={18} />}
+                      </button>
+                    );
+                  })()}
 
                   {/* ✓ Listo — double tap, completes current phase */}
                   <DoubleTapButton
@@ -1237,10 +1244,10 @@ export function TabataTimer({
                     }
                     onConfirm={
                       phase === "exerciseComplete"
-                        ? actions.start
+                        ? actions.nextExercise
                         : actions.skipPhase
                     }
-                    variant="circle-accent"
+                    variant="circle"
                     icon={<Check size={18} />}
                   />
 
