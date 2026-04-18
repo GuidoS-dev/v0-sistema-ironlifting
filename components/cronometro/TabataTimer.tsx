@@ -407,6 +407,24 @@ export function TabataTimer({
     return null;
   }, [activeExercises, currentExercise, currentExerciseIndex, hasActiveExercises]);
 
+  // ── Whether the immediate next step (skipForward) lands on a different exercise ──
+  // True only when on last series AND the very next entry in activeExercises has a different baseId.
+  const nextStepIsDifferentExercise = useMemo(() => {
+    if (!currentExercise) return false;
+    if (currentRound < totalRounds) return false;
+    const next = activeExercises[currentExerciseIndex + 1];
+    if (!next) return false;
+    const currentBase = currentExercise.baseId || currentExercise.id;
+    const nextBase = next.baseId || next.id;
+    return currentBase !== nextBase;
+  }, [
+    activeExercises,
+    currentExercise,
+    currentExerciseIndex,
+    currentRound,
+    totalRounds,
+  ]);
+
   // ── Grouped exercises for idle list ──
   const exerciseGroups = useMemo(() => {
     type Group = {
@@ -632,6 +650,7 @@ export function TabataTimer({
             totalGroups={groupInfo?.totalGroups}
             phase={phase}
             nextExercise={nextDifferentExercise?.exercise ?? null}
+            hidePrevIntensityCard={nextStepIsDifferentExercise}
           />
         )}
 
@@ -1168,35 +1187,38 @@ export function TabataTimer({
                     />
                   )}
 
-                  {/* Next / Listo */}
-                  {phase === "exerciseComplete" ? (
-                    <DoubleTapButton
-                      ariaLabel="Listo, iniciar siguiente ejercicio"
-                      onConfirm={actions.start}
-                      variant="pill-accent"
-                      label="LISTO"
-                      icon={<Check size={18} />}
-                    />
-                  ) : (
-                    <DoubleTapButton
-                      ariaLabel="Siguiente serie"
-                      onConfirm={actions.skipForward}
-                      disabled={
-                        isBlockMode
-                          ? !(
-                              currentRound < totalRounds ||
-                              currentBlockIndex < blockCount - 1
-                            )
-                          : !(
-                              currentRound < totalRounds ||
-                              currentExerciseIndex <
-                                activeExercises.length - 1
-                            )
-                      }
-                      variant="circle"
-                      icon={<SkipForward size={20} />}
-                    />
-                  )}
+                  {/* LISTO — always visible during active phases. Jumps to next exercise. */}
+                  <DoubleTapButton
+                    ariaLabel={
+                      phase === "exerciseComplete"
+                        ? "Listo, iniciar siguiente ejercicio"
+                        : "Marcar ejercicio como completado"
+                    }
+                    onConfirm={
+                      phase === "exerciseComplete"
+                        ? actions.start
+                        : actions.nextExercise
+                    }
+                    disabled={
+                      phase !== "exerciseComplete" &&
+                      !nextDifferentExercise &&
+                      currentExerciseIndex >= activeExercises.length - 1
+                    }
+                    variant="pill-accent"
+                    label="LISTO"
+                    icon={<Check size={18} />}
+                  />
+
+                  {/* Siguiente — only when on last series and next entry is a different exercise */}
+                  {nextStepIsDifferentExercise &&
+                    phase !== "exerciseComplete" && (
+                      <DoubleTapButton
+                        ariaLabel="Siguiente ejercicio"
+                        onConfirm={actions.skipForward}
+                        variant="circle"
+                        icon={<SkipForward size={20} />}
+                      />
+                    )}
                 </div>
               )}
             </div>

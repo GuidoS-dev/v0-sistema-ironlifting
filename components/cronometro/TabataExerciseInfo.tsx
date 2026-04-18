@@ -23,6 +23,12 @@ export interface TabataExerciseInfoProps {
   phase?: TimerPhase;
   /** Next exercise from a different group (for stacked depth preview) */
   nextExercise?: TabataExercise | null;
+  /**
+   * When true, hide the previous intensity mini card (the strikethrough
+   * "% done" label). Used when transitioning to a different exercise to
+   * reduce visual noise.
+   */
+  hidePrevIntensityCard?: boolean;
 }
 
 /* ── Mini card for prev/next intensity in the wheel ── */
@@ -226,6 +232,7 @@ export function TabataExerciseInfo({
   totalGroups,
   phase,
   nextExercise,
+  hidePrevIntensityCard = false,
 }: TabataExerciseInfoProps) {
   const catColor = CAT_COLORS[exercise.category] || "var(--muted-foreground)";
   const isGrouped =
@@ -273,7 +280,7 @@ export function TabataExerciseInfo({
         )}
 
       {/* ── Previous intensity mini card ── */}
-      {isGrouped && prevGroupExercise && (
+      {isGrouped && prevGroupExercise && !hidePrevIntensityCard && (
         <div style={{ marginBottom: 6 }}>
           <IntensityMiniCard exercise={prevGroupExercise} variant="done" />
         </div>
