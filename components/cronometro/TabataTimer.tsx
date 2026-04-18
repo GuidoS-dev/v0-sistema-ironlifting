@@ -10,6 +10,8 @@ import {
   Hash,
   HelpCircle,
   List,
+  Pause,
+  Play,
   RotateCcw,
   SkipBack,
   SkipForward,
@@ -17,7 +19,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   CAT_COLORS,
   DEFAULT_CONFIG,
@@ -67,6 +69,141 @@ function saveConfig(config: TabataConfig) {
   } catch {
     // storage full — silent fail
   }
+}
+
+// ── Double-tap safety hook ──
+// First tap arms the action; second tap within `windowMs` confirms it.
+// Prevents accidental presses during intense workouts.
+function useDoubleTap(onConfirm: () => void, windowMs = 1500) {
+  const [armed, setArmed] = useState(false);
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const trigger = useCallback(() => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (armed) {
+      setArmed(false);
+      onConfirm();
+    } else {
+      setArmed(true);
+      timerRef.current = window.setTimeout(() => {
+        setArmed(false);
+        timerRef.current = null;
+      }, windowMs);
+    }
+  }, [armed, onConfirm, windowMs]);
+
+  return { armed, trigger };
+}
+
+type DoubleTapButtonVariant = "circle" | "pill" | "pill-accent";
+
+interface DoubleTapButtonProps {
+  ariaLabel: string;
+  onConfirm: () => void;
+  disabled?: boolean;
+  variant: DoubleTapButtonVariant;
+  label?: string;
+  armedLabel?: string;
+  icon: ReactNode;
+}
+
+function DoubleTapButton({
+  ariaLabel,
+  onConfirm,
+  disabled,
+  variant,
+  label,
+  armedLabel = "TOCÁ DE NUEVO",
+  icon,
+}: DoubleTapButtonProps) {
+  const { armed, trigger } = useDoubleTap(onConfirm);
+
+  const baseStyle: CSSProperties = {
+    border: "none",
+    cursor: disabled ? "not-allowed" : "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    fontFamily: "var(--font-display, 'Bebas Neue', sans-serif)",
+    fontSize: 14,
+    letterSpacing: "0.08em",
+    transition:
+      "background .15s ease-out, color .15s ease-out, transform .15s ease-out, box-shadow .15s ease-out",
+    flexShrink: 0,
+    opacity: disabled ? 0.3 : 1,
+    transform: armed && !disabled ? "scale(1.05)" : "scale(1)",
+    outline: "none",
+  };
+
+  let variantStyle: CSSProperties;
+  if (variant === "circle") {
+    variantStyle = {
+      width: 56,
+      height: 56,
+      borderRadius: "50%",
+      background: armed ? "var(--gold)" : "var(--secondary)",
+      color: armed ? "#0a0c12" : "var(--foreground)",
+      boxShadow: armed
+        ? "0 0 0 3px rgba(232,197,71,.25), 0 0 18px rgba(232,197,71,.35)"
+        : "none",
+    };
+  } else if (variant === "pill") {
+    variantStyle = {
+      height: 56,
+      padding: "0 22px",
+      borderRadius: 999,
+      background: armed ? "var(--gold)" : "var(--secondary)",
+      color: armed ? "#0a0c12" : "var(--foreground)",
+      boxShadow: armed
+        ? "0 0 0 3px rgba(232,197,71,.25), 0 0 18px rgba(232,197,71,.35)"
+        : "none",
+      minWidth: 140,
+    };
+  } else {
+    variantStyle = {
+      height: 56,
+      padding: "0 26px",
+      borderRadius: 999,
+      background: armed
+        ? "var(--gold)"
+        : "color-mix(in srgb, var(--gold-dark) 22%, var(--secondary))",
+      color: armed ? "#0a0c12" : "var(--gold)",
+      boxShadow: armed
+        ? "0 0 0 3px rgba(232,197,71,.3), 0 0 22px rgba(232,197,71,.5)"
+        : "0 0 14px rgba(232,197,71,.18)",
+      minWidth: 152,
+      border: armed ? "none" : "1.5px solid var(--gold-dark)",
+    };
+  }
+
+  const visibleLabel = label ? (armed ? armedLabel : label) : null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (!disabled) trigger();
+      }}
+      disabled={disabled}
+      aria-label={armed ? `Confirmá: ${ariaLabel}` : ariaLabel}
+      aria-pressed={armed}
+      data-armed={armed || undefined}
+      style={{ ...baseStyle, ...variantStyle }}
+    >
+      {icon}
+      {visibleLabel && <span>{visibleLabel}</span>}
+    </button>
+  );
 }
 
 export function TabataTimer({
@@ -961,49 +1098,14 @@ export function TabataTimer({
             <div
               style={{
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 12,
+                gap: 20,
                 width: "100%",
               }}
             >
-              {/* Prev button */}
-              <button
-                className="timer-btn"
-                onClick={
-                  isBlockMode ? actions.prevBlock : actions.prevExercise
-                }
-                disabled={
-                  isBlockMode
-                    ? currentBlockIndex <= 0
-                    : currentExerciseIndex <= 0
-                }
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "50%",
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "var(--secondary)",
-                  color: "var(--foreground)",
-                  opacity:
-                    (isBlockMode
-                      ? currentBlockIndex <= 0
-                      : currentExerciseIndex <= 0)
-                      ? 0.3
-                      : 1,
-                  transition: "opacity .2s",
-                  flexShrink: 0,
-                }}
-                aria-label="Ejercicio anterior"
-              >
-                <SkipBack size={18} />
-              </button>
-
-              {/* Timer ring — tappable for play/pause */}
+              {/* Timer ring (visual only — pause/play handled by buttons below) */}
               <TabataDisplay
                 phase={phase}
                 timeLeft={timeLeft}
@@ -1017,82 +1119,86 @@ export function TabataTimer({
                 blockName={
                   isBlockMode ? blocks[currentBlockIndex]?.name : undefined
                 }
-                onClick={
-                  phase === "exerciseComplete" || phase === "finished"
-                    ? undefined
-                    : isRunning
-                      ? actions.pause
-                      : actions.resume
+                isPaused={
+                  !isRunning &&
+                  phase !== "exerciseComplete" &&
+                  phase !== "finished" &&
+                  phase !== "countdown"
                 }
-                isPaused={!isRunning && phase !== "exerciseComplete" && phase !== "finished" && phase !== "countdown"}
               />
 
-              {/* Next button */}
-              <button
-                className="timer-btn"
-                onClick={
-                  phase === "exerciseComplete"
-                    ? actions.start
-                    : actions.skipForward
-                }
-                disabled={
-                  isBlockMode
-                    ? !(
-                        currentRound < totalRounds ||
-                        currentBlockIndex < blockCount - 1
-                      )
-                    : !(
-                        currentRound < totalRounds ||
-                        currentExerciseIndex < activeExercises.length - 1
-                      )
-                }
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "50%",
-                  border:
-                    phase === "exerciseComplete"
-                      ? "1.5px solid var(--gold-dark)"
-                      : "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background:
-                    phase === "exerciseComplete"
-                      ? "color-mix(in srgb, var(--gold-dark) 15%, var(--secondary))"
-                      : "var(--secondary)",
-                  color:
-                    phase === "exerciseComplete"
-                      ? "var(--gold)"
-                      : "var(--foreground)",
-                  opacity:
-                    (isBlockMode
-                      ? !(
-                          currentRound < totalRounds ||
-                          currentBlockIndex < blockCount - 1
-                        )
-                      : !(
-                          currentRound < totalRounds ||
-                          currentExerciseIndex < activeExercises.length - 1
-                        ))
-                      ? 0.3
-                      : 1,
-                  transition: "all .2s",
-                  flexShrink: 0,
-                  boxShadow:
-                    phase === "exerciseComplete"
-                      ? "0 0 12px rgba(232,197,71,.2)"
-                      : "none",
-                }}
-                aria-label={
-                  phase === "exerciseComplete"
-                    ? "Iniciar siguiente ejercicio"
-                    : "Siguiente serie"
-                }
-              >
-                <SkipForward size={18} />
-              </button>
+              {/* Controls below timer — all require double tap */}
+              {phase !== "countdown" && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
+                    width: "100%",
+                    paddingInline: 16,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {/* Prev */}
+                  <DoubleTapButton
+                    ariaLabel="Ejercicio anterior"
+                    onConfirm={
+                      isBlockMode ? actions.prevBlock : actions.prevExercise
+                    }
+                    disabled={
+                      isBlockMode
+                        ? currentBlockIndex <= 0
+                        : currentExerciseIndex <= 0
+                    }
+                    variant="circle"
+                    icon={<SkipBack size={20} />}
+                  />
+
+                  {/* Pause / Resume — only when timer is in an active phase */}
+                  {phase !== "exerciseComplete" && (
+                    <DoubleTapButton
+                      ariaLabel={isRunning ? "Pausar" : "Reanudar"}
+                      onConfirm={isRunning ? actions.pause : actions.resume}
+                      variant="pill"
+                      label={isRunning ? "PAUSA" : "REANUDAR"}
+                      icon={
+                        isRunning ? <Pause size={18} /> : <Play size={18} />
+                      }
+                    />
+                  )}
+
+                  {/* Next / Listo */}
+                  {phase === "exerciseComplete" ? (
+                    <DoubleTapButton
+                      ariaLabel="Listo, iniciar siguiente ejercicio"
+                      onConfirm={actions.start}
+                      variant="pill-accent"
+                      label="LISTO"
+                      icon={<Check size={18} />}
+                    />
+                  ) : (
+                    <DoubleTapButton
+                      ariaLabel="Siguiente serie"
+                      onConfirm={actions.skipForward}
+                      disabled={
+                        isBlockMode
+                          ? !(
+                              currentRound < totalRounds ||
+                              currentBlockIndex < blockCount - 1
+                            )
+                          : !(
+                              currentRound < totalRounds ||
+                              currentExerciseIndex <
+                                activeExercises.length - 1
+                            )
+                      }
+                      variant="circle"
+                      icon={<SkipForward size={20} />}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           )}
 
