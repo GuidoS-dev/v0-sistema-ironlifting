@@ -260,32 +260,6 @@ export function TabataExerciseInfo({
         {counterLabel}
       </div>
 
-      {/* ── Intensity steps (grouped exercises only) ── */}
-      {isGrouped &&
-        exercise.totalIntensities != null &&
-        exercise.intensityIndex != null && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: 8,
-            }}
-          >
-            <IntensitySteps
-              currentIndex={exercise.intensityIndex}
-              total={exercise.totalIntensities}
-              isDuringRest={isIntensityRest}
-            />
-          </div>
-        )}
-
-      {/* ── Previous intensity mini card ── */}
-      {isGrouped && prevGroupExercise && !hidePrevIntensityCard && (
-        <div style={{ marginBottom: 6 }}>
-          <IntensityMiniCard exercise={prevGroupExercise} variant="done" />
-        </div>
-      )}
-
       {/* ══ Main HUD Panel ══ */}
       <div
         style={{
@@ -332,40 +306,28 @@ export function TabataExerciseInfo({
               justifyContent: "center",
               fontSize: 12,
               fontWeight: 800,
-              color: "var(--card)",
-              background: catColor,
+              color: "var(--gold)",
+              background: "var(--background)",
+              border: "1px solid var(--border)",
               flexShrink: 0,
             }}
           >
             {exerciseIndex + 1}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: "var(--foreground)",
-                fontFamily: "var(--font-sans)",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {exercise.name}
-            </div>
-            {isGrouped && exercise.intensityLabel && (
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 13,
-                  color: "var(--gold)",
-                  letterSpacing: ".02em",
-                  marginTop: 2,
-                }}
-              >
-                {exercise.intensityLabel}
-              </div>
-            )}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--foreground)",
+              fontFamily: "var(--font-sans)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {exercise.name}
           </div>
         </div>
 
@@ -569,13 +531,6 @@ export function TabataExerciseInfo({
         </div>
       )}
 
-      {/* ── Next intensity mini card (grouped, not during intensityRest) ── */}
-      {isGrouped && nextGroupExercise && !isIntensityRest && (
-        <div style={{ marginTop: 6 }}>
-          <IntensityMiniCard exercise={nextGroupExercise} variant="upcoming" />
-        </div>
-      )}
-
       {/* ── Stacked next exercise card (depth effect) ── */}
       {nextExercise &&
         !isIntensityRest &&
@@ -662,8 +617,9 @@ export function TabataExerciseInfo({
                         justifyContent: "center",
                         fontSize: 11,
                         fontWeight: 800,
-                        color: "var(--card)",
-                        background: nc,
+                        color: "var(--gold)",
+                        background: "var(--background)",
+                        border: "1px solid var(--border)",
                         flexShrink: 0,
                       }}
                     >

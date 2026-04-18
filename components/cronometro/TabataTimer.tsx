@@ -841,9 +841,9 @@ export function TabataTimer({
                                 fontWeight: 800,
                                 padding: "2px 4px",
                                 borderRadius: 3,
-                                background: gc,
-                                color: "var(--card)",
-                                opacity: 0.85,
+                                background: "var(--background)",
+                                color: "var(--gold)",
+                                border: "1px solid var(--border)",
                               }}
                             >
                               {isMulti ? `${gIdx + 1}.${subIdx + 1}` : gIdx + 1}
@@ -1172,13 +1172,12 @@ export function TabataTimer({
                 isPaused={
                   !isRunning &&
                   phase !== "exerciseComplete" &&
-                  phase !== "finished" &&
-                  phase !== "countdown"
+                  phase !== "finished"
                 }
               />
 
               {/* Controls below timer — single compact row */}
-              {phase !== "countdown" && (
+              {(phase !== "countdown" || !isRunning) && (
                 <div
                   style={{
                     display: "flex",

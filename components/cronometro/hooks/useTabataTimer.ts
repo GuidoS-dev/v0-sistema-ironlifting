@@ -497,24 +497,33 @@ export function useTabataTimer(
   ]);
 
   const start = useCallback(() => {
+    const isFirstStart = state.phase === "idle";
+    const countdown = isFirstStart ? 10 : config.countdownTime;
+
     if (isStandaloneBlockMode) {
       const firstBlock = blocks[0];
       dispatch({
         type: "START",
-        countdownTime: config.countdownTime,
+        countdownTime: countdown,
         totalRounds: firstBlock.rounds,
       });
     } else {
       dispatch({
         type: "START",
-        countdownTime: config.countdownTime,
+        countdownTime: countdown,
         totalRounds: getRoundsForExercise(state.currentExerciseIndex),
       });
+    }
+
+    // First start: pause immediately so the athlete can set the phone down
+    if (isFirstStart) {
+      dispatch({ type: "PAUSE" });
     }
   }, [
     config.countdownTime,
     getRoundsForExercise,
     state.currentExerciseIndex,
+    state.phase,
     isStandaloneBlockMode,
     blocks,
   ]);
