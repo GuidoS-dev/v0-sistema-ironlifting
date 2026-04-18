@@ -1,47 +1,47 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
 import {
-  Download,
-  Send,
-  FileText,
-  MessageCircle,
-  ChevronLeft,
-  ChevronDown,
-  Minus,
-  Plus,
-  Pencil,
-  Trash2,
-  Library,
-  Copy,
-  Files,
-  Clipboard,
-  User,
   Briefcase,
-  X,
-  Undo2,
-  Redo2,
-  Droplets,
-  Sprout,
-  Zap,
+  ChevronDown,
+  ChevronLeft,
+  Clipboard,
   CloudMoon,
-  LogOut,
-  Shield,
-  Search,
-  Timer,
+  Copy,
+  Download,
+  Droplets,
   Eye,
   EyeOff,
+  Files,
+  FileText,
+  Library,
+  LogOut,
+  MessageCircle,
+  Minus,
+  Pencil,
+  Plus,
+  Redo2,
+  Search,
+  Send,
+  Shield,
+  Sprout,
+  Timer,
+  Trash2,
+  Undo2,
+  User,
+  X,
+  Zap,
 } from "lucide-react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { TabataTimer } from "../../components/cronometro";
 
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.6.0";
+const APP_VERSION = "1.6.1";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -207,13 +207,18 @@ async function _readResponseSafe(r) {
 
 // Map common Supabase GoTrue messages → user-friendly Spanish
 const _authMessageMap = {
-  "invalid login credentials": "Email o contraseña incorrectos. Revisá los datos e intentá de nuevo.",
-  "email not confirmed": "Tu cuenta aún no fue confirmada. Revisá tu casilla de email (incluyendo spam).",
+  "invalid login credentials":
+    "Email o contraseña incorrectos. Revisá los datos e intentá de nuevo.",
+  "email not confirmed":
+    "Tu cuenta aún no fue confirmada. Revisá tu casilla de email (incluyendo spam).",
   "user not found": "No existe una cuenta con ese email.",
-  "user already registered": "Ya existe una cuenta con ese email. Intentá iniciar sesión.",
+  "user already registered":
+    "Ya existe una cuenta con ese email. Intentá iniciar sesión.",
   "signup is disabled": "El registro de nuevos usuarios está deshabilitado.",
-  "email rate limit exceeded": "Demasiados intentos. Esperá unos minutos antes de volver a intentar.",
-  "over_email_send_rate_limit": "Demasiados emails enviados. Esperá unos minutos.",
+  "email rate limit exceeded":
+    "Demasiados intentos. Esperá unos minutos antes de volver a intentar.",
+  over_email_send_rate_limit:
+    "Demasiados emails enviados. Esperá unos minutos.",
 };
 
 function _authErrorMessage(status, data, raw, fallback) {
@@ -224,7 +229,12 @@ function _authErrorMessage(status, data, raw, fallback) {
     return "Supabase no responde (504). Intentá de nuevo en 1-2 minutos.";
   }
   // Try to match a known Supabase message to a friendly Spanish translation
-  const supaMsg = (data?.error_description || data?.msg || data?.message || "").toLowerCase();
+  const supaMsg = (
+    data?.error_description ||
+    data?.msg ||
+    data?.message ||
+    ""
+  ).toLowerCase();
   const errorCode = (data?.error_code || data?.code || "").toLowerCase();
   const friendly = _authMessageMap[supaMsg] || _authMessageMap[errorCode];
   if (friendly) return friendly;
@@ -506,14 +516,11 @@ const sb = {
     const pkceType = searchParams.get("type"); // "signup", "recovery", "magiclink"
     if (tokenHash && pkceType) {
       try {
-        const r = await _fetchWithTimeout(
-          `${SUPA_URL}/auth/v1/verify`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
-            body: JSON.stringify({ token_hash: tokenHash, type: pkceType }),
-          },
-        );
+        const r = await _fetchWithTimeout(`${SUPA_URL}/auth/v1/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPA_ANON },
+          body: JSON.stringify({ token_hash: tokenHash, type: pkceType }),
+        });
         const { data } = await _readResponseSafe(r);
         // Clean URL
         window.history.replaceState(null, "", window.location.pathname);
@@ -2358,7 +2365,7 @@ const css = `
   @media(max-width:480px){:root{--nav-h:48px}}
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100dvh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
   body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:9999}
-  
+
   /* ── Scrollbars ── */
   *{scrollbar-width:thin;scrollbar-color:rgba(232,197,71,.25) transparent}
   *::-webkit-scrollbar{width:6px;height:6px}
@@ -2367,9 +2374,9 @@ const css = `
   *::-webkit-scrollbar-thumb:hover{background:rgba(232,197,71,.5)}
   *::-webkit-scrollbar-corner{background:transparent}
   h1,h2,h3{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em}
-  
+
   .app{display:flex;flex-direction:column;min-height:100dvh;height:100dvh;overflow:hidden}
-  
+
   /* NAV */
   .nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:64px;position:sticky;top:0;z-index:100;overflow-x:hidden}
   .nav-logo{display:flex;align-items:center;margin-right:24px;flex-shrink:0}
@@ -2526,7 +2533,7 @@ const css = `
   .text-gold{color:var(--gold)} .text-muted{color:var(--muted)} .text-sm{font-size:12px}
   .w100{width:100%} .text-center{text-align:center}
   .scroll-x{overflow-x:auto}
-  
+
   input[type=number].no-spin::-webkit-outer-spin-button,
   input[type=number].no-spin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   input[type=number].no-spin{-moz-appearance:textfield;appearance:textfield}
@@ -14728,8 +14735,28 @@ const TABLA_DEFAULT = {
   tabla4: [
     { irm: 65, 50: 19, 60: 27, 70: 38, 75: 11, 80: 5, 85: 0, 90: 0, 95: 0 },
     { irm: 66, 50: 18, 60: 24, 70: 35, 75: 15, 80: 8, 85: 0, 90: 0, 95: 0 },
-    { irm: 67, 50: 16, 60: 21, 70: 34, 75: 16.5, 80: 12.5, 85: 0, 90: 0, 95: 0 },
-    { irm: 68, 50: 15, 60: 19, 70: 31, 75: 17.5, 80: 17.5, 85: 0, 90: 0, 95: 0 },
+    {
+      irm: 67,
+      50: 16,
+      60: 21,
+      70: 34,
+      75: 16.5,
+      80: 12.5,
+      85: 0,
+      90: 0,
+      95: 0,
+    },
+    {
+      irm: 68,
+      50: 15,
+      60: 19,
+      70: 31,
+      75: 17.5,
+      80: 17.5,
+      85: 0,
+      90: 0,
+      95: 0,
+    },
     { irm: 69, 50: 14, 60: 16, 70: 27, 75: 25, 80: 18, 85: 0, 90: 0, 95: 0 },
     { irm: 70, 50: 0, 60: 24, 70: 37, 75: 24.4, 80: 10.6, 85: 4, 90: 0, 95: 0 },
     { irm: 71, 50: 0, 60: 20, 70: 36, 75: 26, 80: 12, 85: 6, 90: 0, 95: 0 },
@@ -14737,7 +14764,17 @@ const TABLA_DEFAULT = {
     { irm: 73, 50: 0, 60: 16, 70: 27, 75: 28, 80: 19, 85: 7, 90: 3, 95: 0 },
     { irm: 74, 50: 0, 60: 12, 70: 26, 75: 27, 80: 23, 85: 8, 90: 4, 95: 0 },
     { irm: 75, 50: 0, 60: 13, 70: 19, 75: 24, 80: 26, 85: 13, 90: 5, 95: 0 },
-    { irm: 76, 50: 0, 60: 11, 70: 20, 75: 22.2, 80: 20.8, 85: 20, 90: 6, 95: 0 },
+    {
+      irm: 76,
+      50: 0,
+      60: 11,
+      70: 20,
+      75: 22.2,
+      80: 20.8,
+      85: 20,
+      90: 6,
+      95: 0,
+    },
     { irm: 77, 50: 0, 60: 8, 70: 17, 75: 22, 80: 25, 85: 21, 90: 7, 95: 0 },
     { irm: 78, 50: 0, 60: 8, 70: 19, 75: 18, 80: 23, 85: 22, 90: 8, 95: 2 },
     { irm: 79, 50: 0, 60: 0, 70: 19, 75: 21, 80: 26, 85: 24, 90: 10, 95: 0 },
@@ -14761,8 +14798,28 @@ const TABLA_DEFAULT = {
   tabla5: [
     { irm: 65, 50: 19, 60: 27, 70: 38, 75: 11, 80: 5, 85: 0, 90: 0, 95: 0 },
     { irm: 66, 50: 18, 60: 24, 70: 35, 75: 15, 80: 8, 85: 0, 90: 0, 95: 0 },
-    { irm: 67, 50: 16, 60: 21, 70: 34, 75: 16.5, 80: 12.5, 85: 0, 90: 0, 95: 0 },
-    { irm: 68, 50: 15, 60: 19, 70: 31, 75: 17.5, 80: 17.5, 85: 0, 90: 0, 95: 0 },
+    {
+      irm: 67,
+      50: 16,
+      60: 21,
+      70: 34,
+      75: 16.5,
+      80: 12.5,
+      85: 0,
+      90: 0,
+      95: 0,
+    },
+    {
+      irm: 68,
+      50: 15,
+      60: 19,
+      70: 31,
+      75: 17.5,
+      80: 17.5,
+      85: 0,
+      90: 0,
+      95: 0,
+    },
     { irm: 69, 50: 14, 60: 16, 70: 27, 75: 25, 80: 18, 85: 0, 90: 0, 95: 0 },
     { irm: 70, 50: 0, 60: 24, 70: 37, 75: 24.4, 80: 10.6, 85: 4, 90: 0, 95: 0 },
     { irm: 71, 50: 0, 60: 20, 70: 36, 75: 26, 80: 12, 85: 6, 90: 0, 95: 0 },
@@ -14770,7 +14827,17 @@ const TABLA_DEFAULT = {
     { irm: 73, 50: 0, 60: 16, 70: 27, 75: 28, 80: 19, 85: 7, 90: 3, 95: 0 },
     { irm: 74, 50: 0, 60: 12, 70: 26, 75: 27, 80: 23, 85: 8, 90: 4, 95: 0 },
     { irm: 75, 50: 0, 60: 13, 70: 19, 75: 24, 80: 26, 85: 13, 90: 5, 95: 0 },
-    { irm: 76, 50: 0, 60: 11, 70: 20, 75: 22.2, 80: 20.8, 85: 20, 90: 6, 95: 0 },
+    {
+      irm: 76,
+      50: 0,
+      60: 11,
+      70: 20,
+      75: 22.2,
+      80: 20.8,
+      85: 20,
+      90: 6,
+      95: 0,
+    },
     { irm: 77, 50: 0, 60: 8, 70: 17, 75: 22, 80: 25, 85: 21, 90: 7, 95: 0 },
     { irm: 78, 50: 0, 60: 8, 70: 19, 75: 18, 80: 23, 85: 22, 90: 8, 95: 2 },
     { irm: 79, 50: 0, 60: 0, 70: 19, 75: 21, 80: 26, 85: 24, 90: 10, 95: 0 },
@@ -15795,7 +15862,17 @@ function EjCelda({
                       ? 5
                       : null;
           const byKey =
-            e.key === "1" ? 1 : e.key === "2" ? 2 : e.key === "3" ? 3 : e.key === "4" ? 4 : e.key === "5" ? 5 : null;
+            e.key === "1"
+              ? 1
+              : e.key === "2"
+                ? 2
+                : e.key === "3"
+                  ? 3
+                  : e.key === "4"
+                    ? 4
+                    : e.key === "5"
+                      ? 5
+                      : null;
           const picked = byCode || byKey;
           if (!picked) return;
           e.preventDefault();
@@ -23164,9 +23241,7 @@ function PagePDF({
         row.cols.forEach((col, colIdx) => {
           result.push({
             id: compId + (hasMulti ? `-${col.pct || ""}` : ""),
-            name:
-              row.nombre +
-              (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
+            name: row.nombre + (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
             category: row.categoria,
             kg: col.kg || null,
             reps: col.r ? String(col.r) : null,
@@ -23203,7 +23278,7 @@ function PagePDF({
             // Fallback: at least push a basic entry
             result.push({
               id: ej.id || `pretemp-${result.length}`,
-              name: row ? row.nombre : (ej.nombre_custom || "Ejercicio"),
+              name: row ? row.nombre : ej.nombre_custom || "Ejercicio",
               category: row ? row.categoria : "Complementarios",
               kg: null,
               reps: null,
@@ -23217,9 +23292,7 @@ function PagePDF({
           row.cols.forEach((col, colIdx) => {
             result.push({
               id: ptId + (hasMulti ? `-${col.pct || ""}` : ""),
-              name:
-                row.nombre +
-                (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
+              name: row.nombre + (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
               category: row.categoria,
               kg: col.kg || null,
               reps: col.r ? String(col.r) : null,
@@ -23248,9 +23321,7 @@ function PagePDF({
           row.cols.forEach((col, colIdx) => {
             result.push({
               id: ej.id + (hasMulti ? `-${col.pct || ""}` : ""),
-              name:
-                row.nombre +
-                (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
+              name: row.nombre + (hasMulti && col.pct ? ` (${col.pct}%)` : ""),
               category: row.categoria,
               kg: col.kg || null,
               reps: col.r ? String(col.r) : null,
@@ -23278,8 +23349,7 @@ function PagePDF({
           row.cols.forEach((col, colIdx) => {
             result.push({
               id: ej.id + (hasMulti ? `-${col.intens}` : ""),
-              name:
-                row.nombre + (hasMulti ? ` (${col.intens}%)` : ""),
+              name: row.nombre + (hasMulti ? ` (${col.intens}%)` : ""),
               category: row.categoria,
               kg: col.kg || null,
               reps: col.r ? String(col.r) : null,
@@ -30405,16 +30475,24 @@ function PageNormativos({ coachId, isActive = false }) {
 // ─── PAGE CALCULADORA ────────────────────────────────────────────────────────
 function PageCalculadora({ coachId }) {
   const DEFAULT_DESCRIPTIONS = {
-    tabla1: "", tabla2: "", tabla3: "", tabla4: "", tabla5: "",
+    tabla1: "",
+    tabla2: "",
+    tabla3: "",
+    tabla4: "",
+    tabla5: "",
   };
 
   const normalizeTablas = (value) => {
-    if (!value || typeof value !== "object") return { ...TABLA_DEFAULT, _descriptions: { ...DEFAULT_DESCRIPTIONS } };
+    if (!value || typeof value !== "object")
+      return { ...TABLA_DEFAULT, _descriptions: { ...DEFAULT_DESCRIPTIONS } };
     const merged = { ...TABLA_DEFAULT };
     Object.keys(TABLA_DEFAULT).forEach((k) => {
       if (Array.isArray(value[k])) merged[k] = value[k];
     });
-    merged._descriptions = { ...DEFAULT_DESCRIPTIONS, ...(value._descriptions || {}) };
+    merged._descriptions = {
+      ...DEFAULT_DESCRIPTIONS,
+      ...(value._descriptions || {}),
+    };
     return merged;
   };
 
@@ -31103,7 +31181,10 @@ function PageCalculadora({ coachId }) {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {t.label}{tablas._descriptions?.[t.id] ? ` — ${tablas._descriptions[t.id]}` : ""}
+                  {t.label}
+                  {tablas._descriptions?.[t.id]
+                    ? ` — ${tablas._descriptions[t.id]}`
+                    : ""}
                 </button>
               ))
             : [
@@ -31143,7 +31224,10 @@ function PageCalculadora({ coachId }) {
             name="irm_description"
             value={tablas._descriptions?.[tabIRM] || ""}
             onChange={(e) => {
-              const newDescriptions = { ...tablas._descriptions, [tabIRM]: e.target.value };
+              const newDescriptions = {
+                ...tablas._descriptions,
+                [tabIRM]: e.target.value,
+              };
               saveTablas({ ...tablas, _descriptions: newDescriptions });
             }}
             placeholder="Descripción (ej: Principiantes, Avanzados...)"
@@ -32860,7 +32944,11 @@ function PanelReferencia({
 // AUTH — Login / Register screens
 // ═══════════════════════════════════════════════════════════════
 
-function LoginScreen({ onAuth, recoveryMode: initialRecovery = false, initialMsg = "" }) {
+function LoginScreen({
+  onAuth,
+  recoveryMode: initialRecovery = false,
+  initialMsg = "",
+}) {
   const [mode, setMode] = useState(initialRecovery ? "recovery" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33101,50 +33189,50 @@ function LoginScreen({ onAuth, recoveryMode: initialRecovery = false, initialMsg
         >
           {/* Tabs login/register — hide in recovery mode */}
           {mode !== "recovery" && (
-          <div
-            style={{
-              display: "flex",
-              gap: 0,
-              marginBottom: 24,
-              background: "var(--surface2)",
-              borderRadius: 10,
-              padding: 4,
-            }}
-          >
-            {[
-              ["login", "Ingresar"],
-              ["register", "Registrarse"],
-            ].map(([v, l]) => (
-              <button
-                key={v}
-                onClick={() => {
-                  setMode(v);
-                  setError("");
-                  setMsg("");
-                  setPassword("");
-                  setShowPassword(false);
-                  setRol("atleta");
-                  setCodigoCoach("");
-                }}
-                style={{
-                  flex: 1,
-                  padding: "8px 0",
-                  border: "none",
-                  cursor: "pointer",
-                  borderRadius: 8,
-                  fontFamily: "'DM Sans'",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  transition: "all .2s",
-                  background: mode === v ? "var(--surface)" : "transparent",
-                  color: mode === v ? "var(--text)" : "var(--muted)",
-                  boxShadow: mode === v ? "0 1px 4px rgba(0,0,0,.3)" : "none",
-                }}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 0,
+                marginBottom: 24,
+                background: "var(--surface2)",
+                borderRadius: 10,
+                padding: 4,
+              }}
+            >
+              {[
+                ["login", "Ingresar"],
+                ["register", "Registrarse"],
+              ].map(([v, l]) => (
+                <button
+                  key={v}
+                  onClick={() => {
+                    setMode(v);
+                    setError("");
+                    setMsg("");
+                    setPassword("");
+                    setShowPassword(false);
+                    setRol("atleta");
+                    setCodigoCoach("");
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "8px 0",
+                    border: "none",
+                    cursor: "pointer",
+                    borderRadius: 8,
+                    fontFamily: "'DM Sans'",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    transition: "all .2s",
+                    background: mode === v ? "var(--surface)" : "transparent",
+                    color: mode === v ? "var(--text)" : "var(--muted)",
+                    boxShadow: mode === v ? "0 1px 4px rgba(0,0,0,.3)" : "none",
+                  }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
           )}
 
           <form
@@ -33293,7 +33381,11 @@ function LoginScreen({ onAuth, recoveryMode: initialRecovery = false, initialMsg
                         lineHeight: 1,
                       }}
                       tabIndex={-1}
-                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      aria-label={
+                        showPassword
+                          ? "Ocultar contraseña"
+                          : "Mostrar contraseña"
+                      }
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -33352,7 +33444,11 @@ function LoginScreen({ onAuth, recoveryMode: initialRecovery = false, initialMsg
                         lineHeight: 1,
                       }}
                       tabIndex={-1}
-                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      aria-label={
+                        showPassword
+                          ? "Ocultar contraseña"
+                          : "Mostrar contraseña"
+                      }
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -33457,7 +33553,10 @@ function CoachApp({ session, profile, onLogout }) {
   // ── Clear dynamic tabs on new browser session (prevents accumulation) ──
   // sessionStorage survives refreshes but is cleared when the browser closes,
   // so tabs only reset on a truly new session.
-  if (typeof window !== "undefined" && !sessionStorage.getItem("ironlifting_session")) {
+  if (
+    typeof window !== "undefined" &&
+    !sessionStorage.getItem("ironlifting_session")
+  ) {
     sessionStorage.setItem("ironlifting_session", "1");
     localStorage.removeItem("liftplan_atletas_tabs");
     localStorage.removeItem("liftplan_plantillas_tabs");
@@ -35884,7 +35983,14 @@ function AtletaPanel({ session, profile, onLogout }) {
                       }}
                     >
                       {primaryMeso.irm_arranque}
-                      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, fontFamily: "'DM Sans'" }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: "var(--muted)",
+                          fontWeight: 500,
+                          fontFamily: "'DM Sans'",
+                        }}
+                      >
                         kg
                       </span>
                     </div>
@@ -35923,7 +36029,14 @@ function AtletaPanel({ session, profile, onLogout }) {
                       }}
                     >
                       {primaryMeso.irm_envion}
-                      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, fontFamily: "'DM Sans'" }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: "var(--muted)",
+                          fontWeight: 500,
+                          fontFamily: "'DM Sans'",
+                        }}
+                      >
                         kg
                       </span>
                     </div>
@@ -36377,7 +36490,15 @@ export default function App() {
           .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
         `}</style>
-        <LoginScreen onAuth={(s) => { setRecoveryMode(false); setConfirmMsg(""); setSession(s); }} recoveryMode={recoveryMode} initialMsg={confirmMsg} />
+        <LoginScreen
+          onAuth={(s) => {
+            setRecoveryMode(false);
+            setConfirmMsg("");
+            setSession(s);
+          }}
+          recoveryMode={recoveryMode}
+          initialMsg={confirmMsg}
+        />
       </>
     );
   }

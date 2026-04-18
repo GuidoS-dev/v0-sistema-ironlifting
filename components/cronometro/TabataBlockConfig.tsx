@@ -1,20 +1,26 @@
 "use client";
 
-import React, { useCallback } from "react";
 import {
-  Minus,
-  Plus,
-  Trash2,
-  Copy,
   ChevronDown,
   ChevronUp,
   Clock,
   Coffee,
+  Copy,
+  Minus,
+  Plus,
   Repeat,
+  Trash2,
 } from "lucide-react";
+import React, { useCallback } from "react";
+import {
+  createBlock,
+  MAX_ROUNDS,
+  MAX_TIME,
+  MIN_ROUNDS,
+  MIN_TIME,
+  TIME_STEP,
+} from "./constants";
 import type { TabataBlock } from "./types";
-import { MIN_TIME, MAX_TIME, MIN_ROUNDS, MAX_ROUNDS, TIME_STEP } from "./constants";
-import { createBlock } from "./constants";
 
 export interface TabataBlockConfigProps {
   blocks: TabataBlock[];
@@ -128,7 +134,8 @@ function BlockCard({
   const update = (partial: Partial<TabataBlock>) =>
     onChange({ ...block, ...partial });
 
-  const totalTime = block.rounds * (block.workTime + block.restTime) - block.restTime;
+  const totalTime =
+    block.rounds * (block.workTime + block.restTime) - block.restTime;
 
   return (
     <div
@@ -315,10 +322,14 @@ function BlockCard({
             value={block.workTime}
             display={formatTime(block.workTime)}
             onDecrement={() =>
-              update({ workTime: Math.max(MIN_TIME, block.workTime - TIME_STEP) })
+              update({
+                workTime: Math.max(MIN_TIME, block.workTime - TIME_STEP),
+              })
             }
             onIncrement={() =>
-              update({ workTime: Math.min(MAX_TIME, block.workTime + TIME_STEP) })
+              update({
+                workTime: Math.min(MAX_TIME, block.workTime + TIME_STEP),
+              })
             }
             disableMinus={block.workTime <= MIN_TIME}
             disablePlus={block.workTime >= MAX_TIME}
@@ -359,10 +370,14 @@ function BlockCard({
             value={block.restTime}
             display={formatTime(block.restTime)}
             onDecrement={() =>
-              update({ restTime: Math.max(MIN_TIME, block.restTime - TIME_STEP) })
+              update({
+                restTime: Math.max(MIN_TIME, block.restTime - TIME_STEP),
+              })
             }
             onIncrement={() =>
-              update({ restTime: Math.min(MAX_TIME, block.restTime + TIME_STEP) })
+              update({
+                restTime: Math.min(MAX_TIME, block.restTime + TIME_STEP),
+              })
             }
             disableMinus={block.restTime <= MIN_TIME}
             disablePlus={block.restTime >= MAX_TIME}
@@ -418,7 +433,10 @@ function BlockCard({
   );
 }
 
-export function TabataBlockConfig({ blocks, onChange }: TabataBlockConfigProps) {
+export function TabataBlockConfig({
+  blocks,
+  onChange,
+}: TabataBlockConfigProps) {
   const updateBlock = useCallback(
     (index: number, updated: TabataBlock) => {
       const next = [...blocks];
@@ -540,7 +558,10 @@ export function TabataBlockConfig({ blocks, onChange }: TabataBlockConfigProps) 
             padding: "4px 0",
           }}
         >
-          Tiempo total estimado: <strong style={{ color: "var(--gold-dark)" }}>{formatTime(totalTime)}</strong>
+          Tiempo total estimado:{" "}
+          <strong style={{ color: "var(--gold-dark)" }}>
+            {formatTime(totalTime)}
+          </strong>
         </div>
       )}
     </div>

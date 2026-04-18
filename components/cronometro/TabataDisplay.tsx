@@ -1,8 +1,7 @@
 "use client";
 
-import React from "react";
-import type { TimerPhase } from "./types";
 import { PHASE_COLORS, PHASE_LABELS } from "./constants";
+import type { TimerPhase } from "./types";
 
 export interface TabataDisplayProps {
   phase: TimerPhase;
@@ -41,7 +40,11 @@ export function TabataDisplay({
   const circumference = 2 * Math.PI * normalizedRadius;
 
   const isActive =
-    phase === "work" || phase === "rest" || phase === "countdown" || phase === "intensityRest" || phase === "blockRest";
+    phase === "work" ||
+    phase === "rest" ||
+    phase === "countdown" ||
+    phase === "intensityRest" ||
+    phase === "blockRest";
   const progress = isActive ? (totalPhaseTime - timeLeft) / totalPhaseTime : 0;
   const strokeDashoffset = circumference * (1 - progress);
 
@@ -204,7 +207,9 @@ export function TabataDisplay({
           {phase === "blockRest" ? (
             "Preparate para el siguiente bloque"
           ) : (
-            <>Serie {currentRound} de {totalRounds}</>
+            <>
+              Serie {currentRound} de {totalRounds}
+            </>
           )}
         </div>
       )}

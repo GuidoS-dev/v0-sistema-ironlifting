@@ -1,4 +1,4 @@
-import type { TabataConfig, TabataBlock, TimerPhase } from "./types";
+import type { TabataBlock, TabataConfig, TimerPhase } from "./types";
 
 let _blockIdCounter = 0;
 export function createBlock(

@@ -1,17 +1,38 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronLeft, Timer, Eye, EyeOff, List, X, HelpCircle, SkipForward, Hash, Volume2, Clock, Check, RotateCcw, ArrowDown } from "lucide-react";
-import type { TabataConfig, TabataExercise } from "./types";
-import { DEFAULT_CONFIG, STORAGE_KEY, TUTORIAL_SEEN_KEY, PHASE_COLORS, CAT_COLORS } from "./constants";
+import {
+  ArrowDown,
+  Check,
+  ChevronLeft,
+  Clock,
+  Eye,
+  EyeOff,
+  Hash,
+  HelpCircle,
+  List,
+  RotateCcw,
+  SkipForward,
+  Timer,
+  Volume2,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CAT_COLORS,
+  DEFAULT_CONFIG,
+  PHASE_COLORS,
+  STORAGE_KEY,
+  TUTORIAL_SEEN_KEY,
+} from "./constants";
+import { useTabataSound } from "./hooks/useTabataSound";
 import { useTabataTimer } from "./hooks/useTabataTimer";
 import { useWakeLock } from "./hooks/useWakeLock";
-import { useTabataSound } from "./hooks/useTabataSound";
-import TabataDisplay from "./TabataDisplay";
-import TabataControls from "./TabataControls";
-import TabataConfigPanel from "./TabataConfig";
 import { TabataBlockConfig } from "./TabataBlockConfig";
+import TabataConfigPanel from "./TabataConfig";
+import TabataControls from "./TabataControls";
+import TabataDisplay from "./TabataDisplay";
 import TabataExerciseInfo from "./TabataExerciseInfo";
+import type { TabataConfig, TabataExercise } from "./types";
 
 interface TurnoInfo {
   semana: number;
@@ -75,7 +96,9 @@ export function TabataTimer({
     if (dontShowAgain) {
       try {
         localStorage.setItem(TUTORIAL_SEEN_KEY, "1");
-      } catch { /* noop */ }
+      } catch {
+        /* noop */
+      }
     }
     setShowTutorial(false);
   }, [dontShowAgain]);
@@ -132,7 +155,12 @@ export function TabataTimer({
     if (prevPhaseRef.current !== phase) {
       prevPhaseRef.current = phase;
       if (phase === "work") sound.workStart();
-      if (phase === "rest" || phase === "intensityRest" || phase === "blockRest") sound.restStart();
+      if (
+        phase === "rest" ||
+        phase === "intensityRest" ||
+        phase === "blockRest"
+      )
+        sound.restStart();
       if (phase === "finished" || phase === "exerciseComplete")
         sound.finished();
     }
@@ -145,7 +173,10 @@ export function TabataTimer({
       else sound.countdownTick();
     }
     if (
-      (phase === "work" || phase === "rest" || phase === "intensityRest" || phase === "blockRest") &&
+      (phase === "work" ||
+        phase === "rest" ||
+        phase === "intensityRest" ||
+        phase === "blockRest") &&
       timeLeft <= 3 &&
       timeLeft > 0
     ) {
@@ -180,7 +211,9 @@ export function TabataTimer({
 
   // ── Current exercise ──
   const hasActiveExercises = activeExercises.length > 0;
-  const currentExercise = hasActiveExercises ? activeExercises[currentExerciseIndex] : null;
+  const currentExercise = hasActiveExercises
+    ? activeExercises[currentExerciseIndex]
+    : null;
 
   // ── Group info for multi-intensity exercises ──
   const groupInfo = useMemo(() => {
@@ -217,11 +250,20 @@ export function TabataTimer({
     }
 
     return { prevGroupExercise, nextGroupExercise, groupIndex, totalGroups };
-  }, [activeExercises, currentExercise, currentExerciseIndex, hasActiveExercises]);
+  }, [
+    activeExercises,
+    currentExercise,
+    currentExerciseIndex,
+    hasActiveExercises,
+  ]);
 
   // ── Grouped exercises for idle list ──
   const exerciseGroups = useMemo(() => {
-    type Group = { baseId: string; baseName: string; exercises: { ex: TabataExercise; originalIndex: number }[] };
+    type Group = {
+      baseId: string;
+      baseName: string;
+      exercises: { ex: TabataExercise; originalIndex: number }[];
+    };
     const groups: Group[] = [];
     const map = new Map<string, Group>();
     exercises.forEach((ex, i) => {
@@ -253,7 +295,8 @@ export function TabataTimer({
       for (let i = 0; i < currentBlockIndex; i++) {
         done += blocks[i].rounds;
       }
-      done += currentRound - 1 + (phase === "rest" || phase === "blockRest" ? 1 : 0);
+      done +=
+        currentRound - 1 + (phase === "rest" || phase === "blockRest" ? 1 : 0);
       return Math.min(done / totalRoundsAll, 1);
     }
 
@@ -267,7 +310,10 @@ export function TabataTimer({
     for (let i = 0; i < currentExerciseIndex; i++) {
       done += activeExercises[i].series;
     }
-    done += currentRound - 1 + (phase === "rest" || phase === "intensityRest" ? 1 : 0);
+    done +=
+      currentRound -
+      1 +
+      (phase === "rest" || phase === "intensityRest" ? 1 : 0);
     if (phase === "exerciseComplete") done += 1;
     return Math.min(done / totalSeries, 1);
   })();
@@ -362,7 +408,14 @@ export function TabataTimer({
         )}
 
         {/* Right-side buttons */}
-        <div style={{ width: 70, display: "flex", justifyContent: "flex-end", gap: 4 }}>
+        <div
+          style={{
+            width: 70,
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 4,
+          }}
+        >
           {isTimerActive && hasActiveExercises && (
             <button
               className="timer-btn"
@@ -433,7 +486,8 @@ export function TabataTimer({
 
         {/* ── Next exercise preview (visible during exerciseComplete) ── */}
         {phase === "exerciseComplete" &&
-          currentExerciseIndex < activeExercises.length - 1 && (() => {
+          currentExerciseIndex < activeExercises.length - 1 &&
+          (() => {
             const next = activeExercises[currentExerciseIndex + 1];
             const nc = CAT_COLORS[next.category] || "var(--muted-foreground)";
             return (
@@ -482,7 +536,8 @@ export function TabataTimer({
                     display: "flex",
                     alignItems: "center",
                     gap: 10,
-                    boxShadow: "0 0 12px color-mix(in srgb, var(--gold-dark) 20%, transparent)",
+                    boxShadow:
+                      "0 0 12px color-mix(in srgb, var(--gold-dark) 20%, transparent)",
                   }}
                 >
                   {/* Badge */}
@@ -526,7 +581,11 @@ export function TabataTimer({
                       }}
                     >
                       {next.kg}
-                      <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 2 }}>kg</span>
+                      <span
+                        style={{ fontSize: 11, fontWeight: 600, marginLeft: 2 }}
+                      >
+                        kg
+                      </span>
                     </span>
                   )}
                 </div>
@@ -587,7 +646,8 @@ export function TabataTimer({
                     marginBottom: 8,
                     ...(isMulti
                       ? {
-                          border: "1px solid color-mix(in srgb, var(--gold-dark) 30%, var(--border))",
+                          border:
+                            "1px solid color-mix(in srgb, var(--gold-dark) 30%, var(--border))",
                           borderRadius: 12,
                           overflow: "hidden",
                         }
@@ -602,7 +662,8 @@ export function TabataTimer({
                         alignItems: "center",
                         gap: 6,
                         padding: "6px 10px",
-                        background: "color-mix(in srgb, var(--gold-dark) 8%, var(--card))",
+                        background:
+                          "color-mix(in srgb, var(--gold-dark) 8%, var(--card))",
                         borderBottom: "1px solid var(--border)",
                         fontSize: 10,
                         fontWeight: 700,
@@ -614,13 +675,20 @@ export function TabataTimer({
                     >
                       <Hash size={10} />
                       {group.baseName}
-                      <span style={{ marginLeft: "auto", fontSize: 9, opacity: 0.7 }}>
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: 9,
+                          opacity: 0.7,
+                        }}
+                      >
                         {group.exercises.length} intensidades
                       </span>
                     </div>
                   )}
                   {group.exercises.map(({ ex, originalIndex }, subIdx) => {
-                    const gc = CAT_COLORS[ex.category] || "var(--muted-foreground)";
+                    const gc =
+                      CAT_COLORS[ex.category] || "var(--muted-foreground)";
                     const isDisabled = disabledIds.has(ex.id);
                     return (
                       <div
@@ -635,12 +703,20 @@ export function TabataTimer({
                           }
                         }}
                         style={{
-                          background: isDisabled ? "var(--background)" : "var(--card)",
+                          background: isDisabled
+                            ? "var(--background)"
+                            : "var(--card)",
                           border: isMulti ? "none" : `1px solid var(--border)`,
                           borderRadius: isMulti ? 0 : 10,
-                          borderBottom: isMulti && subIdx < group.exercises.length - 1 ? "1px solid var(--border)" : "none",
+                          borderBottom:
+                            isMulti && subIdx < group.exercises.length - 1
+                              ? "1px solid var(--border)"
+                              : "none",
                           overflow: "hidden",
-                          boxShadow: isDisabled || isMulti ? "none" : "0 2px 8px rgba(0,0,0,.2)",
+                          boxShadow:
+                            isDisabled || isMulti
+                              ? "none"
+                              : "0 2px 8px rgba(0,0,0,.2)",
                           display: "flex",
                           flexFlow: "row wrap",
                           opacity: isDisabled ? 0.4 : 1,
@@ -659,7 +735,9 @@ export function TabataTimer({
                             justifyContent: "center",
                             alignSelf: "stretch",
                             borderBottom: `1px solid var(--border)`,
-                            background: isDisabled ? "var(--background)" : "var(--card)",
+                            background: isDisabled
+                              ? "var(--background)"
+                              : "var(--card)",
                           }}
                         >
                           {isDisabled ? (
@@ -687,7 +765,9 @@ export function TabataTimer({
                             minWidth: 0,
                             padding: "8px 10px 8px 6px",
                             borderBottom: `1px solid var(--border)`,
-                            background: isDisabled ? "var(--background)" : "var(--card)",
+                            background: isDisabled
+                              ? "var(--background)"
+                              : "var(--card)",
                             display: "flex",
                             alignItems: "center",
                           }}
@@ -697,15 +777,19 @@ export function TabataTimer({
                               fontFamily: "var(--font-sans)",
                               fontSize: 12,
                               fontWeight: 700,
-                              color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
+                              color: isDisabled
+                                ? "var(--muted-foreground)"
+                                : "var(--foreground)",
                               letterSpacing: ".01em",
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
-                              textDecoration: isDisabled ? "line-through" : "none",
+                              textDecoration: isDisabled
+                                ? "line-through"
+                                : "none",
                             }}
                           >
-                            {isMulti ? (ex.intensityLabel || ex.name) : ex.name}
+                            {isMulti ? ex.intensityLabel || ex.name : ex.name}
                           </span>
                         </div>
                         {/* Data row */}
@@ -715,7 +799,9 @@ export function TabataTimer({
                             display: "flex",
                             alignItems: "center",
                             minHeight: 34,
-                            background: isDisabled ? "var(--background)" : "var(--surface-inset)",
+                            background: isDisabled
+                              ? "var(--background)"
+                              : "var(--surface-inset)",
                           }}
                         >
                           <div
@@ -726,9 +812,13 @@ export function TabataTimer({
                               alignItems: "center",
                               justifyContent: "center",
                               alignSelf: "stretch",
-                              background: isDisabled ? "var(--background)" : "var(--card)",
+                              background: isDisabled
+                                ? "var(--background)"
+                                : "var(--card)",
                               borderRight: `1px solid var(--border)`,
-                              color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
+                              color: isDisabled
+                                ? "var(--muted-foreground)"
+                                : "var(--gold-dark)",
                               fontSize: 10,
                               fontWeight: 700,
                             }}
@@ -747,14 +837,21 @@ export function TabataTimer({
                           >
                             {ex.reps && (
                               <div
-                                style={{ display: "flex", alignItems: "center" }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                }}
                               >
                                 <span
                                   style={{
                                     fontSize: 13,
                                     fontWeight: 800,
-                                    color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
-                                    background: isDisabled ? "var(--background)" : "var(--badge-bg)",
+                                    color: isDisabled
+                                      ? "var(--muted-foreground)"
+                                      : "var(--foreground)",
+                                    background: isDisabled
+                                      ? "var(--background)"
+                                      : "var(--badge-bg)",
                                     padding: "3px 0 3px 8px",
                                     borderRadius: "5px 0 0 5px",
                                   }}
@@ -764,7 +861,9 @@ export function TabataTimer({
                                     style={{
                                       fontSize: 10,
                                       fontWeight: 600,
-                                      color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
+                                      color: isDisabled
+                                        ? "var(--muted-foreground)"
+                                        : "var(--gold-dark)",
                                       margin: "0 2px",
                                     }}
                                   >
@@ -775,8 +874,12 @@ export function TabataTimer({
                                   style={{
                                     fontSize: 13,
                                     fontWeight: 800,
-                                    color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
-                                    background: isDisabled ? "var(--background)" : "var(--badge-bg)",
+                                    color: isDisabled
+                                      ? "var(--muted-foreground)"
+                                      : "var(--foreground)",
+                                    background: isDisabled
+                                      ? "var(--background)"
+                                      : "var(--badge-bg)",
                                     padding: "3px 8px 3px 0",
                                     borderRadius: "0 5px 5px 0",
                                   }}
@@ -790,8 +893,12 @@ export function TabataTimer({
                                 style={{
                                   fontSize: 13,
                                   fontWeight: 800,
-                                  color: isDisabled ? "var(--muted-foreground)" : "var(--foreground)",
-                                  background: isDisabled ? "var(--background)" : "var(--badge-bg)",
+                                  color: isDisabled
+                                    ? "var(--muted-foreground)"
+                                    : "var(--foreground)",
+                                  background: isDisabled
+                                    ? "var(--background)"
+                                    : "var(--badge-bg)",
                                   padding: "3px 8px",
                                   borderRadius: 5,
                                   whiteSpace: "nowrap",
@@ -803,7 +910,9 @@ export function TabataTimer({
                                   style={{
                                     fontSize: 10,
                                     fontWeight: 600,
-                                    color: isDisabled ? "var(--muted-foreground)" : "var(--gold-dark)",
+                                    color: isDisabled
+                                      ? "var(--muted-foreground)"
+                                      : "var(--gold-dark)",
                                     marginLeft: 2,
                                   }}
                                 >
@@ -825,7 +934,17 @@ export function TabataTimer({
 
         {/* ── Config panel (idle state) ── */}
         {phase === "idle" && (
-          <div style={{ padding: "16px 16px 0", flexShrink: 0, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+          <div
+            style={{
+              padding: "16px 16px 0",
+              flexShrink: 0,
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 0,
+            }}
+          >
             {isBlockMode ? (
               /* Block mode: show block editor */
               <>
@@ -848,12 +967,13 @@ export function TabataTimer({
                     handleConfigChange({ ...config, blocks: newBlocks })
                   }
                 />
-                {/* Countdown + sound config below blocks */}
+                {/* Sound config below blocks (work/rest/rounds live in blocks) */}
                 <div style={{ marginTop: 12, width: "100%" }}>
                   <TabataConfigPanel
                     config={config}
                     onChange={handleConfigChange}
                     showRounds={false}
+                    showWorkRest={false}
                   />
                 </div>
               </>
@@ -894,12 +1014,16 @@ export function TabataTimer({
               alignItems: "center",
               gap: 8,
               background: "color-mix(in srgb, var(--orange) 10%, var(--card))",
-              border: "1px solid color-mix(in srgb, var(--orange) 30%, var(--border))",
+              border:
+                "1px solid color-mix(in srgb, var(--orange) 30%, var(--border))",
               borderRadius: 8,
               flexShrink: 0,
             }}
           >
-            <EyeOff size={14} style={{ color: "var(--orange)", flexShrink: 0 }} />
+            <EyeOff
+              size={14}
+              style={{ color: "var(--orange)", flexShrink: 0 }}
+            />
             <span
               style={{
                 fontSize: 12,
@@ -908,13 +1032,25 @@ export function TabataTimer({
                 fontFamily: "var(--font-sans)",
               }}
             >
-              {disabledExercises.length} ejercicio{disabledExercises.length > 1 ? "s" : ""} oculto{disabledExercises.length > 1 ? "s" : ""}
+              {disabledExercises.length} ejercicio
+              {disabledExercises.length > 1 ? "s" : ""} oculto
+              {disabledExercises.length > 1 ? "s" : ""}
             </span>
           </div>
         )}
 
         {/* ── Controls ── */}
-        <div style={{ padding: phase === "idle" ? "8px 16px 0" : "0", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 24, width: "100%" }}>
+        <div
+          style={{
+            padding: phase === "idle" ? "8px 16px 0" : "0",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 24,
+            width: "100%",
+          }}
+        >
           {isTimerActive && (
             <TabataDisplay
               phase={phase}
@@ -924,7 +1060,9 @@ export function TabataTimer({
               totalRounds={totalRounds}
               currentBlockIndex={isBlockMode ? currentBlockIndex : undefined}
               totalBlocks={isBlockMode ? blockCount : undefined}
-              blockName={isBlockMode ? blocks[currentBlockIndex]?.name : undefined}
+              blockName={
+                isBlockMode ? blocks[currentBlockIndex]?.name : undefined
+              }
             />
           )}
 
@@ -932,11 +1070,15 @@ export function TabataTimer({
             phase={phase}
             isRunning={isRunning}
             hasExercises={hasActiveExercises || isBlockMode}
-            canPrev={isBlockMode ? currentBlockIndex > 0 : currentExerciseIndex > 0}
+            canPrev={
+              isBlockMode ? currentBlockIndex > 0 : currentExerciseIndex > 0
+            }
             canNext={
               isBlockMode
-                ? currentRound < totalRounds || currentBlockIndex < blockCount - 1
-                : currentRound < totalRounds || currentExerciseIndex < activeExercises.length - 1
+                ? currentRound < totalRounds ||
+                  currentBlockIndex < blockCount - 1
+                : currentRound < totalRounds ||
+                  currentExerciseIndex < activeExercises.length - 1
             }
             onStart={actions.start}
             onPause={actions.pause}
@@ -999,10 +1141,17 @@ export function TabataTimer({
                     opacity: 0.6,
                     transition: "opacity .15s",
                   }}
-                  onPointerEnter={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "0.85"; }}
-                  onPointerLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "0.6"; }}
+                  onPointerEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.opacity = "0.85";
+                  }}
+                  onPointerLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.opacity = "0.6";
+                  }}
                 >
-                  <EyeOff size={12} style={{ color: "var(--muted-foreground)", flexShrink: 0 }} />
+                  <EyeOff
+                    size={12}
+                    style={{ color: "var(--muted-foreground)", flexShrink: 0 }}
+                  />
                   <span
                     style={{
                       fontSize: 12,
@@ -1028,7 +1177,8 @@ export function TabataTimer({
                 marginTop: 4,
                 padding: "6px 16px",
                 background: "none",
-                border: "1px solid color-mix(in srgb, var(--orange) 40%, var(--border))",
+                border:
+                  "1px solid color-mix(in srgb, var(--orange) 40%, var(--border))",
                 borderRadius: 8,
                 color: "var(--orange)",
                 fontSize: 11,
@@ -1040,18 +1190,18 @@ export function TabataTimer({
                 alignSelf: "center",
               }}
               onPointerEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--orange) 10%, var(--card))";
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "color-mix(in srgb, var(--orange) 10%, var(--card))";
               }}
               onPointerLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "none";
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "none";
               }}
             >
               Restaurar todos
             </button>
           </div>
         )}
-
-
       </div>
 
       {/* ── Progress bar ── */}
@@ -1190,14 +1340,22 @@ export function TabataTimer({
             >
               {(() => {
                 // Build groups from activeExercises
-                type ModalGroup = { baseId: string; baseName: string; items: { ex: TabataExercise; flatIndex: number }[] };
+                type ModalGroup = {
+                  baseId: string;
+                  baseName: string;
+                  items: { ex: TabataExercise; flatIndex: number }[];
+                };
                 const groups: ModalGroup[] = [];
                 const gMap = new Map<string, ModalGroup>();
                 activeExercises.forEach((ex, i) => {
                   const key = ex.baseId || ex.id;
                   let g = gMap.get(key);
                   if (!g) {
-                    g = { baseId: key, baseName: ex.baseName || ex.name, items: [] };
+                    g = {
+                      baseId: key,
+                      baseName: ex.baseName || ex.name,
+                      items: [],
+                    };
                     gMap.set(key, g);
                     groups.push(g);
                   }
@@ -1213,7 +1371,8 @@ export function TabataTimer({
                         marginBottom: 8,
                         ...(isMulti
                           ? {
-                              border: "1px solid color-mix(in srgb, var(--gold-dark) 30%, var(--border))",
+                              border:
+                                "1px solid color-mix(in srgb, var(--gold-dark) 30%, var(--border))",
                               borderRadius: 10,
                               overflow: "hidden",
                             }
@@ -1228,7 +1387,8 @@ export function TabataTimer({
                             alignItems: "center",
                             gap: 6,
                             padding: "5px 10px",
-                            background: "color-mix(in srgb, var(--gold-dark) 8%, var(--card))",
+                            background:
+                              "color-mix(in srgb, var(--gold-dark) 8%, var(--card))",
                             borderBottom: "1px solid var(--border)",
                             fontSize: 10,
                             fontWeight: 700,
@@ -1240,7 +1400,13 @@ export function TabataTimer({
                         >
                           <Hash size={10} />
                           {group.baseName}
-                          <span style={{ marginLeft: "auto", fontSize: 9, opacity: 0.7 }}>
+                          <span
+                            style={{
+                              marginLeft: "auto",
+                              fontSize: 9,
+                              opacity: 0.7,
+                            }}
+                          >
                             {group.items.length} int.
                           </span>
                         </div>
@@ -1249,12 +1415,14 @@ export function TabataTimer({
                         const isDone =
                           phase === "finished" ||
                           flatIndex < currentExerciseIndex ||
-                          (flatIndex === currentExerciseIndex && phase === "exerciseComplete");
+                          (flatIndex === currentExerciseIndex &&
+                            phase === "exerciseComplete");
                         const isCurrent =
                           flatIndex === currentExerciseIndex &&
                           phase !== "finished" &&
                           phase !== "exerciseComplete";
-                        const gc = CAT_COLORS[ex.category] || "var(--muted-foreground)";
+                        const gc =
+                          CAT_COLORS[ex.category] || "var(--muted-foreground)";
 
                         return (
                           <div
@@ -1309,16 +1477,22 @@ export function TabataTimer({
                                   whiteSpace: "nowrap",
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
-                                  textDecoration: isDone ? "line-through" : "none",
+                                  textDecoration: isDone
+                                    ? "line-through"
+                                    : "none",
                                   transition: "color .3s",
                                 }}
                               >
-                                {isMulti ? (ex.intensityLabel || ex.name) : ex.name}
+                                {isMulti
+                                  ? ex.intensityLabel || ex.name
+                                  : ex.name}
                               </div>
                               <div
                                 style={{
                                   fontSize: 10,
-                                  color: isDone ? "color-mix(in srgb, var(--green) 60%, transparent)" : "var(--muted-foreground)",
+                                  color: isDone
+                                    ? "color-mix(in srgb, var(--green) 60%, transparent)"
+                                    : "var(--muted-foreground)",
                                   marginTop: 2,
                                 }}
                               >
@@ -1351,7 +1525,9 @@ export function TabataTimer({
                                 }}
                               >
                                 <span aria-hidden="true">▶</span>
-                                <span className="sr-only">Ejercicio actual</span>
+                                <span className="sr-only">
+                                  Ejercicio actual
+                                </span>
                               </div>
                             )}
                           </div>
@@ -1417,7 +1593,8 @@ export function TabataTimer({
                   lineHeight: 1.5,
                 }}
               >
-                Se perderá todo el progreso actual del cronómetro. ¿Estás seguro?
+                Se perderá todo el progreso actual del cronómetro. ¿Estás
+                seguro?
               </div>
             </div>
             <div
@@ -1569,12 +1746,12 @@ export function TabataTimer({
                 {
                   icon: <Hash size={18} color="var(--gold-dark)" />,
                   title: "Indicador de Serie",
-                  desc: "En la tarjeta del ejercicio verás \"SERIE 2 / 4\" con puntos de progreso: verde = completada, dorado = actual.",
+                  desc: 'En la tarjeta del ejercicio verás "SERIE 2 / 4" con puntos de progreso: verde = completada, dorado = actual.',
                 },
                 {
                   icon: <List size={18} color="var(--gold-dark)" />,
                   title: "Ver Listado",
-                  desc: "Durante el entrenamiento, el botón \"VER LISTADO\" muestra el progreso general con todos los ejercicios.",
+                  desc: 'Durante el entrenamiento, el botón "VER LISTADO" muestra el progreso general con todos los ejercicios.',
                 },
                 {
                   icon: <Volume2 size={18} color="var(--gold-dark)" />,
@@ -1590,9 +1767,7 @@ export function TabataTimer({
                     alignItems: "flex-start",
                   }}
                 >
-                  <div style={{ flexShrink: 0, marginTop: 1 }}>
-                    {item.icon}
-                  </div>
+                  <div style={{ flexShrink: 0, marginTop: 1 }}>{item.icon}</div>
                   <div>
                     <div
                       style={{

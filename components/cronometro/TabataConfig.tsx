@@ -15,6 +15,7 @@ export interface TabataConfigPanelProps {
   config: TabataConfig;
   onChange: (config: TabataConfig) => void;
   showRounds?: boolean;
+  showWorkRest?: boolean;
 }
 
 function formatTime(seconds: number): string {
@@ -117,39 +118,44 @@ export function TabataConfigPanel({
   config,
   onChange,
   showRounds = true,
+  showWorkRest = true,
 }: TabataConfigPanelProps) {
   const update = (partial: Partial<TabataConfig>) =>
     onChange({ ...config, ...partial });
 
   return (
     <div style={{ padding: "0 20px" }}>
-      <ConfigRow
-        label="Tiempo de trabajo"
-        value={config.workTime}
-        display={formatTime(config.workTime)}
-        onDecrement={() =>
-          update({ workTime: Math.max(MIN_TIME, config.workTime - TIME_STEP) })
-        }
-        onIncrement={() =>
-          update({ workTime: Math.min(MAX_TIME, config.workTime + TIME_STEP) })
-        }
-        disableMinus={config.workTime <= MIN_TIME}
-        disablePlus={config.workTime >= MAX_TIME}
-      />
+      {showWorkRest && (
+        <ConfigRow
+          label="Tiempo de trabajo"
+          value={config.workTime}
+          display={formatTime(config.workTime)}
+          onDecrement={() =>
+            update({ workTime: Math.max(MIN_TIME, config.workTime - TIME_STEP) })
+          }
+          onIncrement={() =>
+            update({ workTime: Math.min(MAX_TIME, config.workTime + TIME_STEP) })
+          }
+          disableMinus={config.workTime <= MIN_TIME}
+          disablePlus={config.workTime >= MAX_TIME}
+        />
+      )}
 
-      <ConfigRow
-        label="Tiempo de descanso"
-        value={config.restTime}
-        display={formatTime(config.restTime)}
-        onDecrement={() =>
-          update({ restTime: Math.max(MIN_TIME, config.restTime - TIME_STEP) })
-        }
-        onIncrement={() =>
-          update({ restTime: Math.min(MAX_TIME, config.restTime + TIME_STEP) })
-        }
-        disableMinus={config.restTime <= MIN_TIME}
-        disablePlus={config.restTime >= MAX_TIME}
-      />
+      {showWorkRest && (
+        <ConfigRow
+          label="Tiempo de descanso"
+          value={config.restTime}
+          display={formatTime(config.restTime)}
+          onDecrement={() =>
+            update({ restTime: Math.max(MIN_TIME, config.restTime - TIME_STEP) })
+          }
+          onIncrement={() =>
+            update({ restTime: Math.min(MAX_TIME, config.restTime + TIME_STEP) })
+          }
+          disableMinus={config.restTime <= MIN_TIME}
+          disablePlus={config.restTime >= MAX_TIME}
+        />
+      )}
 
       {showRounds && (
         <ConfigRow
