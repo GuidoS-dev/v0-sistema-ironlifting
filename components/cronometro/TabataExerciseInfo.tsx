@@ -239,6 +239,10 @@ export function TabataExerciseInfo({
     exercise.totalIntensities != null && exercise.totalIntensities > 1;
   const isIntensityRest = phase === "intensityRest";
 
+  // During intensityRest, show the NEXT exercise in the main card
+  const isShowingNext = isIntensityRest && nextGroupExercise != null;
+  const displayExercise = isShowingNext ? nextGroupExercise! : exercise;
+
   const counterLabel =
     groupIndex != null && totalGroups != null
       ? `Ejercicio ${groupIndex + 1} de ${totalGroups}`
@@ -246,22 +250,23 @@ export function TabataExerciseInfo({
 
   return (
     <div style={{ width: "100%", padding: "0 12px" }}>
-      {/* Exercise counter */}
+      {/* Exercise counter / Next intensity label */}
       <div
         style={{
           fontSize: 10,
-          color: "var(--muted-foreground)",
+          color: isShowingNext ? "var(--gold-dark)" : "var(--muted-foreground)",
           textTransform: "uppercase",
           letterSpacing: ".06em",
           textAlign: "center",
           marginBottom: 4,
+          fontWeight: isShowingNext ? 700 : 400,
         }}
       >
-        {counterLabel}
+        {isShowingNext ? "SIGUIENTE INTENSIDAD" : counterLabel}
       </div>
 
       {/* ── Done intensity mini-card (above main card) ── */}
-      {isGrouped && prevGroupExercise && !hidePrevIntensityCard && (
+      {isGrouped && prevGroupExercise && !hidePrevIntensityCard && !isShowingNext && (
         <div style={{ marginBottom: 6 }}>
           <IntensityMiniCard exercise={prevGroupExercise} variant="done" />
         </div>
@@ -294,7 +299,36 @@ export function TabataExerciseInfo({
           }}
         />
 
-        {/* Header: badge + name + intensity */}
+        {/* Cargá la barra banner (inside card, when showing next intensity) */}
+        {isShowingNext && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              padding: "6px 14px",
+              background:
+                "color-mix(in srgb, var(--gold-dark) 12%, var(--card))",
+              borderBottom:
+                "1px solid color-mix(in srgb, var(--gold-dark) 30%, var(--border))",
+            }}
+          >
+            <ArrowDown size={13} color="var(--gold)" strokeWidth={2.5} />
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 12,
+                letterSpacing: ".08em",
+                color: "var(--gold)",
+              }}
+            >
+              CARGÁ LA BARRA
+            </span>
+          </div>
+        )}
+
+        {/* Header: badge + name */}
         <div
           style={{
             display: "flex",
@@ -334,7 +368,7 @@ export function TabataExerciseInfo({
               textOverflow: "ellipsis",
             }}
           >
-            {exercise.name}
+            {displayExercise.name}
           </div>
         </div>
 
@@ -348,13 +382,13 @@ export function TabataExerciseInfo({
           }}
         >
           {[
-            { label: "SERIES", value: String(exercise.series), active: true },
-            { label: "REPS", value: exercise.reps || "—", active: false },
+            { label: "SERIES", value: String(displayExercise.series), active: !isShowingNext },
+            { label: "REPS", value: displayExercise.reps || "—", active: false },
             {
               label: "CARGA",
-              value: exercise.kg != null ? String(exercise.kg) : "—",
-              unit: exercise.kg != null ? " kg" : null,
-              active: false,
+              value: displayExercise.kg != null ? String(displayExercise.kg) : "—",
+              unit: displayExercise.kg != null ? " kg" : null,
+              active: isShowingNext,
             },
           ].map((stat) => (
             <div
@@ -420,8 +454,8 @@ export function TabataExerciseInfo({
           ))}
         </div>
 
-        {/* ── Series progress bar ── */}
-        {currentRound != null && totalRounds != null && totalRounds > 0 && (
+        {/* ── Series progress bar (hidden during intensity rest — next exercise hasn't started) ── */}
+        {!isShowingNext && currentRound != null && totalRounds != null && totalRounds > 0 && (
           <div
             style={{
               display: "flex",
@@ -479,7 +513,7 @@ export function TabataExerciseInfo({
         )}
 
         {/* ── Notes ── */}
-        {exercise.notes && (
+        {displayExercise.notes && (
           <div
             style={{
               padding: "4px 14px 6px",
@@ -490,14 +524,14 @@ export function TabataExerciseInfo({
               borderTop: "1px solid var(--border)",
             }}
           >
-            {exercise.notes}
+            {displayExercise.notes}
           </div>
         )}
 
       </div>
 
-      {/* ── Upcoming intensity mini-card (below main card) ── */}
-      {isGrouped && nextGroupExercise && (
+      {/* ── Upcoming intensity mini-card (below main card, hidden when main card already shows next) ── */}
+      {isGrouped && nextGroupExercise && !isShowingNext && (
         <div style={{ marginTop: 6 }}>
           <IntensityMiniCard exercise={nextGroupExercise} variant="upcoming" />
         </div>
@@ -517,48 +551,7 @@ export function TabataExerciseInfo({
           </div>
         )}
 
-      {/* ── CARGÁ LA BARRA banner (intensityRest phase) ── */}
-      {isIntensityRest && nextGroupExercise && (
-        <div
-          style={{
-            marginTop: 6,
-            padding: "8px 14px",
-            background:
-              "color-mix(in srgb, var(--gold-dark) 10%, var(--card))",
-            border: "1px solid var(--gold-dark)",
-            borderRadius: 12,
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 14,
-              color: "var(--gold)",
-              letterSpacing: ".08em",
-              marginBottom: 4,
-            }}
-          >
-            CARGÁ LA BARRA
-          </div>
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 16,
-              fontWeight: 700,
-              color: "var(--foreground)",
-            }}
-          >
-            {nextGroupExercise.series}×{nextGroupExercise.reps || "—"}
-            {nextGroupExercise.kg != null && (
-              <span style={{ marginLeft: 8, color: "var(--gold-dark)" }}>
-                {nextGroupExercise.kg}
-                <span style={{ fontSize: 11 }}> kg</span>
-              </span>
-            )}
-          </div>
-        </div>
-      )}
+      {/* CARGÁ LA BARRA banner removed — integrated into main card during intensityRest */}
 
       {/* ── Stacked next exercise card (depth effect) ── */}
       {nextExercise &&

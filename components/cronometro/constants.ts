@@ -44,7 +44,7 @@ export const PHASE_LABELS: Record<TimerPhase, string> = {
   work: "TRABAJO",
   rest: "DESCANSO",
   blockRest: "SIGUIENTE BLOQUE",
-  intensityRest: "CARGÁ LA BARRA",
+  intensityRest: "PREPARAR",
   exerciseComplete: "EJERCICIO COMPLETO",
   finished: "TERMINADO",
 };
