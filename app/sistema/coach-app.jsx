@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.7.11";
+const APP_VERSION = "1.7.12";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -15565,11 +15565,36 @@ const mkEj = () => ({
   reps_asignadas: 0,
 });
 
-function IntensityPickerModal({ value, onSelect, onClose }) {
+const PREVIEW_REPS = 14;
+
+function IntensityPickerModal({ value, onSelect, onClose, tabla = 1 }) {
   const listRef = useRef(null);
   const typedBufferResetRef = useRef(null);
   const [typedBuffer, setTypedBuffer] = useState("");
   const [activeValue, setActiveValue] = useState(value);
+
+  // Load the coach's custom tables (or defaults)
+  const tablas = useMemo(
+    () => JSON.parse(localStorage.getItem("liftplan_tablas") || "null") || TABLA_DEFAULT,
+    [],
+  );
+  const tablaKey = `tabla${Math.min(5, Math.max(1, Number(tabla) || 1))}`;
+  const tablaData = tablas[tablaKey] || [];
+
+  // Pre-compute the reps preview grid for every IRM row
+  const previewGrid = useMemo(() => {
+    const grid = {};
+    for (const irm of IRM_VALUES) {
+      const row = tablaData.find((r) => r.irm === irm);
+      const cells = INTENSIDADES.map((col) => {
+        const pct = row ? row[String(col)] || 0 : 0;
+        return Math.round((pct * PREVIEW_REPS) / 100);
+      });
+      const total = cells.reduce((s, v) => s + v, 0);
+      grid[irm] = { cells, total };
+    }
+    return grid;
+  }, [tablaData]);
 
   const scrollToIntensity = useCallback((target) => {
     const el = listRef.current?.querySelector(`[data-intensity="${target}"]`);
@@ -15681,8 +15706,10 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
     [activeValue, commitSelection, resetTypedBufferSoon, scrollToIntensity],
   );
 
+  const tblLabel = `T${Math.min(5, Math.max(1, Number(tabla) || 1))}`;
+
   return (
-    <Modal title="Seleccionar intensidad" onClose={onClose} maxWidth="760px">
+    <Modal title="Seleccionar intensidad" onClose={onClose} maxWidth="880px">
       <div
         style={{
           fontSize: 12,
@@ -15690,7 +15717,9 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
           marginBottom: 8,
         }}
       >
-        Elegi el porcentaje de intensidad para este ejercicio.
+        Elegí el porcentaje. Ejemplo con {PREVIEW_REPS} reps usando{" "}
+        <span style={{ color: "var(--blue)", fontWeight: 700 }}>{tblLabel}</span>.
+        Los ceros se muestran opacos.
       </div>
       <div
         ref={listRef}
@@ -15699,14 +15728,50 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
         style={{
           maxHeight: "min(72vh, 760px)",
           overflowY: "auto",
+          overflowX: "auto",
           border: "1px solid var(--border)",
           borderRadius: 8,
           background: "var(--surface2)",
-          padding: 4,
+          padding: 0,
         }}
       >
+        {/* Sticky header row */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "56px repeat(8, 1fr) 40px",
+            position: "sticky",
+            top: 0,
+            zIndex: 2,
+            background: "var(--surface2)",
+            borderBottom: "1px solid var(--border)",
+            padding: "6px 4px 4px",
+            minWidth: 420,
+          }}
+        >
+          <span style={{ fontSize: 10, color: "var(--muted)", textAlign: "center", fontWeight: 700 }}>IRM</span>
+          {INTENSIDADES.map((col) => (
+            <span
+              key={col}
+              style={{
+                fontSize: 10,
+                color: "var(--muted)",
+                textAlign: "center",
+                fontWeight: 700,
+                fontFamily: "'Bebas Neue'",
+                letterSpacing: ".02em",
+              }}
+            >
+              {col}
+            </span>
+          ))}
+          <span style={{ fontSize: 10, color: "var(--muted)", textAlign: "center", fontWeight: 700 }}>Σ</span>
+        </div>
+
+        {/* IRM rows */}
         {IRM_VALUES.map((v) => {
           const active = v === activeValue;
+          const preview = previewGrid[v];
           return (
             <button
               key={v}
@@ -15718,20 +15783,67 @@ function IntensityPickerModal({ value, onSelect, onClose }) {
               }}
               style={{
                 width: "100%",
-                textAlign: "center",
+                display: "grid",
+                gridTemplateColumns: "56px repeat(8, 1fr) 40px",
+                alignItems: "center",
                 border: "none",
-                borderRadius: 6,
-                marginBottom: 2,
-                background: active ? "rgba(71,180,232,.2)" : "transparent",
-                color: active ? "var(--blue)" : "var(--text)",
-                fontFamily: "'Bebas Neue'",
-                fontSize: 20,
-                lineHeight: 1,
-                padding: "6px 8px",
+                borderRadius: 4,
+                marginBottom: 1,
+                background: active ? "rgba(71,180,232,.18)" : "transparent",
                 cursor: "pointer",
+                padding: "5px 4px",
+                minWidth: 420,
               }}
             >
-              {v}%
+              {/* IRM label */}
+              <span
+                style={{
+                  fontFamily: "'Bebas Neue'",
+                  fontSize: 18,
+                  lineHeight: 1,
+                  color: active ? "var(--blue)" : "var(--text)",
+                  textAlign: "center",
+                }}
+              >
+                {v}%
+              </span>
+              {/* 8 intensity columns */}
+              {preview.cells.map((reps, i) => (
+                <span
+                  key={i}
+                  style={{
+                    fontFamily: "'Bebas Neue'",
+                    fontSize: 15,
+                    lineHeight: 1,
+                    textAlign: "center",
+                    color: reps === 0
+                      ? "var(--muted)"
+                      : active
+                        ? "var(--blue)"
+                        : "var(--text)",
+                    opacity: reps === 0 ? 0.3 : 1,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {reps === 0 ? "\u00B7" : reps}
+                </span>
+              ))}
+              {/* Total column */}
+              <span
+                style={{
+                  fontFamily: "'Bebas Neue'",
+                  fontSize: 13,
+                  lineHeight: 1,
+                  textAlign: "center",
+                  color: preview.total === PREVIEW_REPS
+                    ? "var(--muted)"
+                    : "var(--yellow, #e2b340)",
+                  opacity: preview.total === PREVIEW_REPS ? 0.5 : 1,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {preview.total}
+              </span>
             </button>
           );
         })}
@@ -15942,6 +16054,7 @@ function EjCelda({
       {showIntModal && (
         <IntensityPickerModal
           value={Number(ej.intensidad) || IRM_VALUES[0]}
+          tabla={ej.tabla}
           onSelect={(next) => onChange({ ...ej, intensidad: Number(next) })}
           onClose={() => {
             restoreIntensityFocusRef.current = true;
