@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.7.10";
+const APP_VERSION = "1.7.11";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -316,12 +316,16 @@ async function _refreshToken(refresh_token) {
       // Don't retry for 30s after a failed refresh
       _refreshCooldownUntil = Date.now() + 30000;
       _session = null;
+      clearSession();
+      _emitAuth("SIGNED_OUT", null);
       return null;
     }
     const { data } = await _readResponseSafe(r);
     if (!data?.access_token) {
       _refreshCooldownUntil = Date.now() + 30000;
       _session = null;
+      clearSession();
+      _emitAuth("SIGNED_OUT", null);
       return null;
     }
     const s = {
@@ -337,6 +341,8 @@ async function _refreshToken(refresh_token) {
   } catch {
     _refreshCooldownUntil = Date.now() + 30000;
     _session = null;
+    clearSession();
+    _emitAuth("SIGNED_OUT", null);
     return null;
   }
 }
