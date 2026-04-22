@@ -18,7 +18,7 @@ export function Coach() {
             <div className="relative">
               <div className="aspect-4/5 overflow-hidden rounded-lg bg-muted">
                 <img
-                  src="/hugo-palacios.jpg"
+                  src="/hugo-palacios.jpg?v=20260422-1"
                   alt="Hugo Palacios - Entrenador"
                   className="h-full w-full object-cover object-top"
                 />
