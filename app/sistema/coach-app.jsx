@@ -24157,6 +24157,8 @@ function PagePDF({
         flex: 1;
         padding: 10px 14px;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        flex-wrap: wrap;
+        overflow: visible;
       }
       /* Mini-card for series × reps */
       .pdf-table .cell-series {
@@ -24224,11 +24226,14 @@ function PagePDF({
         overflow: visible;
         text-overflow: unset;
         color: #8a95a8;
-        margin-left: auto;
-        text-align: right;
         font-style: italic;
+        flex-basis: 100%;
         flex-shrink: 1;
-        padding-left: 10px;
+        margin-left: 0;
+        margin-top: 4px;
+        padding-left: 0;
+        text-align: left;
+        line-height: 1.3;
       }
 
       /* Empty cells: hide (except pretemporada rows) */
