@@ -23153,15 +23153,30 @@ function PagePDF({
   const buildComplementarioRow = (comp, semIdx, tIdx) => {
     const ejData = normativos.find((e) => e.id === Number(comp.ejercicio_id));
 
+    const calcKgCompPdf = (pct) => {
+      if (!ejData || !ejData.pct_base || pct == null) return null;
+      if (pct === 0) return 0;
+      const irmVal =
+        ejData.base === "arranque" ? Number(irm_arr) : Number(irm_env);
+      if (!irmVal) return null;
+      return (
+        Math.round(((((irmVal * ejData.pct_base) / 100) * pct) / 100) * 2) / 2
+      );
+    };
+
     // Los complementarios usan bloques en lugar de intensidades
     const cols = (comp.bloques || [])
-      .map((bloque) => ({
-        pct: bloque.pct,
-        s: bloque.series,
-        r: bloque.reps,
-        kg: bloque.kg,
-        note: bloque.nota || "",
-      }))
+      .map((bloque) => {
+        const pct = bloque.pct;
+        const kgCalc = pct != null ? calcKgCompPdf(pct) : null;
+        return {
+          pct,
+          s: bloque.series,
+          r: bloque.reps,
+          kg: kgCalc != null ? kgCalc : bloque.kg,
+          note: bloque.nota || "",
+        };
+      })
       .filter(hasComplementarioBlockContent);
 
     // Si no hay ejData, permitir si hay nombre_custom o aclaracion
