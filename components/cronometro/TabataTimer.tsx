@@ -1015,6 +1015,27 @@ export function TabataTimer({
                             )}
                           </div>
                         </div>
+                        {ex.notes && (
+                          <div
+                            style={{
+                              width: "100%",
+                              padding: "4px 10px 6px 46px",
+                              fontSize: 10,
+                              fontStyle: "italic",
+                              color: isDisabled
+                                ? "var(--muted-foreground)"
+                                : "var(--muted-foreground)",
+                              background: isDisabled
+                                ? "var(--background)"
+                                : "var(--surface-inset)",
+                              borderTop: "1px solid var(--border)",
+                              lineHeight: 1.3,
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {ex.notes}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1689,6 +1710,21 @@ export function TabataTimer({
                             }}
                           >
                             {ex.intensityLabel}
+                          </div>
+                        )}
+                        {ex.notes && (
+                          <div
+                            style={{
+                              fontSize: 9,
+                              fontStyle: "italic",
+                              color: "var(--muted-foreground)",
+                              marginTop: 2,
+                              whiteSpace: "normal",
+                              lineHeight: 1.25,
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {ex.notes}
                           </div>
                         )}
                       </div>
