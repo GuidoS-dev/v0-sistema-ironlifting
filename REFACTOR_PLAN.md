@@ -29,7 +29,8 @@
 - ✅ **Fase 3.5** — `overrides.js` extraído con 16 tests (orden invertido con 3.4 porque mappers depende de overrides).
 - ✅ **Fase 3.4** — `mappers.js` extraído con 13 tests.
 - ✅ **Fase 3.8** — `calc.js` extraído con 27 tests (saltado 3.6/3.7 porque dependen del cliente Supabase aún en monolito).
-- ⏭️ **Próximo:** Fase 3.9 — ciclo menstrual (date helpers, pure).
+- ✅ **Fase 3.9** — `ciclo-menstrual.js` extraído con 25 tests.
+- ⏭️ **Próximo:** Fase 3.10 — navegación (keyboard nav helpers).
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -129,7 +130,7 @@ app/sistema/
 - [ ] **3.6** Coach settings DB (`loadCoachSetting`, `loadCoachSettingRow`, `saveCoachSetting`, `resolveSharedCoachId`, `COACH_SETTING_KEYS`) → `app/sistema/lib/coach-settings.js`. *(`LIFTPLAN_LOCAL_SYNC_EVENT` ya extraído en 3.2.)*
 - [ ] **3.7** Backup & sync (`BACKUP_INTERVAL_MS`, `BACKUP_PROMPTED_KEY`, `getLastDbSync`, `collectLocalData`, `collectBackupData`, `downloadBackup`) → `app/sistema/lib/backup.js`. *(`emitLocalSyncEvent` ya extraído en 3.2.)*
 - [x] **3.8** Helpers de cálculo (`calcKg`, `calcVolumenSemana`, `calcRepsPorGrupo`, `remapSemanaIdx`, `remapSemPctKeyForSwap`, `remapTurnoPctKeyForSwap`, `remapOverrideObjectKeys`, `remapOverrideSetKeys`, `getEjercicioById`, `getSembradoStats`, `calcSeriesRepsKg`, `calcKgEj`, `GRUPO_RANGES`, `GRUPOS_KEYS`, `getGrupo`, `calcSembradoSemana`, `calcRepsEjercicio`) → `app/sistema/lib/calc.js` + tests.
-- [ ] **3.9** Ciclo menstrual (`parseAppDate`, `getAgeFromBirthDate`, `getFasePorDia`, `getFasesVentanaCiclo`, `getFaseDominante`, `getFaseCiclo`, `getDetalleFaseCiclo`, `getFechaSemana`, `getFechaSemanaEfectiva`, `formatFechaSemana`, `formatDateDisplay`) → `app/sistema/lib/ciclo-menstrual.js` + tests.
+- [x] **3.9** Ciclo menstrual (`parseAppDate`, `getAgeFromBirthDate`, `getFasePorDia`, `getFasesVentanaCiclo`, `getFaseDominante`, `getFaseCiclo`, `getDetalleFaseCiclo`, `getFechaSemana`, `getFechaSemanaEfectiva`, `formatFechaSemana`, `formatDateDisplay`) → `app/sistema/lib/ciclo-menstrual.js` + tests.
 - [ ] **3.10** Navegación (`PLANILLA_NAV_SELECTOR`, `buildPlanillaFocusGrid`, `focusPlanillaField`, `handlePlanillaArrowNavigation`, `SEMBRADO_NAV_SELECTOR`, `SEMBRADO_ROLE_ORDER`, `getSembradoTabSequence`, `handleSembradoTabNavigation`) → `app/sistema/lib/navegacion.js` + tests.
 
 ### Fase 4 — Cliente Supabase + auth
