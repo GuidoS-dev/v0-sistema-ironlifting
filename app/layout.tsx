@@ -54,6 +54,7 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
+    "facebook-domain-verification": "k6ag9m0bhkdyfgn9gywpsz3himtv1r",
   },
 };
 
