@@ -25,7 +25,8 @@
 - ✅ **Fase 2.5** — Logos SVG → `app/sistema/components/common/Logos.jsx`.
 - ✅ **Fase 3.1** — `sanitize.js` extraído con 19 tests Vitest.
 - ✅ **Fase 3.2** — `storage.js` extraído con 16 tests (incluye `LIFTPLAN_LOCAL_SYNC_EVENT` + `emitLocalSyncEvent` movidos antes de tiempo desde 3.6/3.7 por dependencia con `writeLocalJson`).
-- ⏭️ **Próximo:** Fase 3.3 — `auth-storage.js` (session/profile + auth events) + tests.
+- ✅ **Fase 3.3** — `auth-storage.js` extraído con 22 tests. `let _session = loadSession()` queda en coach-app.jsx (mutable, lo migra Fase 4).
+- ⏭️ **Próximo:** Fase 3.4 — mappers APP↔DB + tests.
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -119,7 +120,7 @@ app/sistema/
 ### Fase 3 — Helpers puros sin React (con tests Vitest)
 - [x] **3.1** Sanitización (`toTitleCase`, `sanitizeStringInput`, `sanitizeInput`, `sanitizeRequestBody`) → `app/sistema/lib/sanitize.js` + tests.
 - [x] **3.2** localStorage safe (`_freeLocalStorageSpace`, `safeSetItem`, `readLocalJson`, `writeLocalJson`, `asPlainObject`, `asArray`, `emitLocalSyncEvent`, `LIFTPLAN_LOCAL_SYNC_EVENT`) → `app/sistema/lib/storage.js` + tests.
-- [ ] **3.3** Auth helpers (`SESSION_KEY`, `PROFILE_KEY_PREFIX`, save/load/clear session+profile, `_authListeners`, `onAuthChange`, `_emitAuth`, `_authMessageMap`, `_authErrorMessage`, `_runtimeErrorMessage`) → `app/sistema/lib/auth-storage.js` + tests.
+- [x] **3.3** Auth helpers (`SESSION_KEY`, `PROFILE_KEY_PREFIX`, save/load/clear session+profile, `_authListeners`, `onAuthChange`, `_emitAuth`, `_authMessageMap`, `_authErrorMessage`, `_runtimeErrorMessage`) → `app/sistema/lib/auth-storage.js` + tests.
 - [ ] **3.4** Mapeos APP↔DB (`atletaToDb`, `atletaFromDb`, `mesoToDb`, `mesoFromDb`, `plantillaToDb`, `plantillaFromDb`) → `app/sistema/lib/mappers.js` + tests.
 - [ ] **3.5** Override management (`collectAtletaNormOverrides`, `restoreAtletaNormOverrides`, `buildMesoOverridesPayload`, `collectMesoOverrides`, `restoreMesoOverrides`, `collectAtletaPctOverrides`, `restoreAtletaPctOverrides`) → `app/sistema/lib/overrides.js` + tests.
 - [ ] **3.6** Coach settings DB (`loadCoachSetting`, `loadCoachSettingRow`, `saveCoachSetting`, `resolveSharedCoachId`, `COACH_SETTING_KEYS`) → `app/sistema/lib/coach-settings.js`. *(`LIFTPLAN_LOCAL_SYNC_EVENT` ya extraído en 3.2.)*
