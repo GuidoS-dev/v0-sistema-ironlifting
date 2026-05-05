@@ -23,7 +23,8 @@
 - ✅ **Fase 2.3** — `INTENSIDADES`, `IRM_VALUES`, `INTENS_COLS`, `DEFAULT_EJS`, `TABLA_DEFAULT` → `app/sistema/data/tablas-default.js`.
 - ✅ **Fase 2.4** — `FASES_CICLO` → `app/sistema/data/ciclo.js`; `PERIODOS`/`OBJETIVOS`/`NIVELES`/`ESCUELA_NIVELES` → `app/sistema/data/plantillas-meta.js`.
 - ✅ **Fase 2.5** — Logos SVG → `app/sistema/components/common/Logos.jsx`.
-- ⏭️ **Próximo:** Fase 3.1 — `sanitize.js` (helpers puros + tests Vitest).
+- ✅ **Fase 3.1** — `sanitize.js` extraído con 19 tests Vitest.
+- ⏭️ **Próximo:** Fase 3.2 — `storage.js` (`safeSetItem`, `readLocalJson`, `writeLocalJson`, `_freeLocalStorageSpace`, `asPlainObject`, `asArray`) + tests.
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -115,7 +116,7 @@ app/sistema/
 - [x] **2.5** Logos SVG (`LogoHorizontal`, `LogoIL`, `LogoILSolo`) → `app/sistema/components/common/Logos.jsx`.
 
 ### Fase 3 — Helpers puros sin React (con tests Vitest)
-- [ ] **3.1** Sanitización (`toTitleCase`, `sanitizeStringInput`, `sanitizeInput`, `sanitizeRequestBody`) → `app/sistema/lib/sanitize.js` + tests.
+- [x] **3.1** Sanitización (`toTitleCase`, `sanitizeStringInput`, `sanitizeInput`, `sanitizeRequestBody`) → `app/sistema/lib/sanitize.js` + tests.
 - [ ] **3.2** localStorage safe (`_freeLocalStorageSpace`, `safeSetItem`, `readLocalJson`, `writeLocalJson`, `asPlainObject`, `asArray`) → `app/sistema/lib/storage.js` + tests.
 - [ ] **3.3** Auth helpers (`SESSION_KEY`, `PROFILE_KEY_PREFIX`, save/load/clear session+profile, `_authListeners`, `onAuthChange`, `_emitAuth`, `_authMessageMap`, `_authErrorMessage`, `_runtimeErrorMessage`) → `app/sistema/lib/auth-storage.js` + tests.
 - [ ] **3.4** Mapeos APP↔DB (`atletaToDb`, `atletaFromDb`, `mesoToDb`, `mesoFromDb`, `plantillaToDb`, `plantillaFromDb`) → `app/sistema/lib/mappers.js` + tests.
