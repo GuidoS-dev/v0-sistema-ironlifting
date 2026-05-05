@@ -3,10 +3,8 @@ import {
   ChevronDown,
   ChevronLeft,
   Clipboard,
-  CloudMoon,
   Copy,
   Download,
-  Droplets,
   Eye,
   EyeOff,
   Files,
@@ -21,13 +19,11 @@ import {
   Search,
   Send,
   Shield,
-  Sprout,
   Timer,
   Trash2,
   Undo2,
   User,
   X,
-  Zap,
 } from "lucide-react";
 import React, {
   useCallback,
@@ -63,6 +59,13 @@ import {
   TABLA_DEFAULT,
   DEFAULT_EJS,
 } from "./data/tablas-default";
+import { FASES_CICLO } from "./data/ciclo";
+import {
+  PERIODOS,
+  OBJETIVOS,
+  NIVELES,
+  ESCUELA_NIVELES,
+} from "./data/plantillas-meta";
 import "./styles/coach-app.css";
 
 // ═══════════════════════════════════════════════════════════════
@@ -1845,34 +1848,6 @@ function ExercisePickerOverlay({
     </div>
   );
 }
-
-// ── Ciclo menstrual — fases y cálculo ────────────────────────────────────────
-const FASES_CICLO = {
-  menstruacion: {
-    label: "Menstruación",
-    color: "#e53935",
-    bg: "rgba(229,57,53,.15)",
-    Icon: Droplets,
-  },
-  folicular: {
-    label: "Folicular",
-    color: "#43a047",
-    bg: "rgba(67,160,71,.15)",
-    Icon: Sprout,
-  },
-  ovulacion: {
-    label: "Ovulación",
-    color: "#fb8c00",
-    bg: "rgba(251,140,0,.15)",
-    Icon: Zap,
-  },
-  lutea: {
-    label: "Lútea",
-    color: "#8e24aa",
-    bg: "rgba(142,36,170,.15)",
-    Icon: CloudMoon,
-  },
-};
 
 // Dado el último ciclo y la fecha de inicio de semana, devuelve la fase
 function parseAppDate(value) {
@@ -23912,9 +23887,6 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
 // SISTEMA DE PLANTILLAS — helpers, PagePlantillas, hooks
 // ═══════════════════════════════════════════════════════════════
 
-const PERIODOS = ["pretemporada", "competitivo", "transicion", "general"];
-const OBJETIVOS = ["fuerza", "tecnica", "volumen", "pico", "mixto"];
-const NIVELES = ["principiante", "intermedio", "elite"];
 const PERIODO_LABEL = {
   pretemporada: "Pretemporada",
   competitivo: "Competitivo",
@@ -23935,7 +23907,6 @@ const NIVEL_LABEL = {
 };
 
 // Escuela Inicial
-const ESCUELA_NIVELES = ["1", "2", "3", "4", "5"];
 const ESCUELA_NIVEL_LABEL = {
   1: "Nivel 1",
   2: "Nivel 2",
