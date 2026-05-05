@@ -11,3 +11,9 @@ node_modules
 
 # Mockups / temporary HTML prototypes
 mockups-*.html
+
+# Test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+coverage/
