@@ -38,6 +38,24 @@ import React, {
 } from "react";
 import { TabataTimer } from "../../components/cronometro";
 import { EJERCICIOS } from "./data/ejercicios";
+import {
+  DIAS,
+  MOMENTOS,
+  CATEGORIAS,
+  CAT_COLOR,
+  mkId,
+  mkTurnos,
+  mkSemanas,
+  mkBloqueBasica,
+  mkEjBasica,
+  EMPTY_NAME_SENTINEL,
+  resolveExerciseName,
+  mkTurnosBasica,
+  mkSemanasBasica,
+  mkEjPretemp,
+  mkTurnosPretemp,
+  mkSemanasPretemp,
+} from "./data/constantes";
 import "./styles/coach-app.css";
 
 // ═══════════════════════════════════════════════════════════════
@@ -1230,118 +1248,6 @@ function plantillaFromDb(r) {
     _updated_at: r.updated_at || null,
   };
 }
-
-// ─── DATA ─────────────────────��──────────────────────────────────────────────
-
-const DIAS = [
-  "Lunes",
-  "Martes",
-  "Miércoles",
-  "Jueves",
-  "Viernes",
-  "Sábado",
-  "Domingo",
-];
-const MOMENTOS = ["Mañana", "Tarde", "Noche"];
-const CATEGORIAS = [
-  "Arranque",
-  "Envion",
-  "Tirones",
-  "Piernas",
-  "Complementarios",
-];
-const CAT_COLOR = {
-  Arranque: "#e8c547",
-  Envion: "#47b4e8",
-  Tirones: "#e87447",
-  Piernas: "#47e8a0",
-  Complementarios: "#9b87e8",
-};
-
-const mkId = () => Math.random().toString(36).slice(2, 9);
-const mkTurnos = () =>
-  Array.from({ length: 9 }, (_, i) => ({
-    id: mkId(),
-    numero: i + 1,
-    dia: "",
-    momento: "",
-    ejercicios: Array.from({ length: 3 }, () => ({
-      id: mkId(),
-      ejercicio_id: null,
-      intensidad: 75,
-      tabla: 1,
-      reps_asignadas: 0,
-    })),
-    complementarios_before: Array.from({ length: 0 }),
-    complementarios_after: Array.from({ length: 0 }),
-  }));
-const mkSemanas = () =>
-  Array.from({ length: 4 }, (_, i) => ({
-    id: mkId(),
-    numero: i + 1,
-    pct_volumen: 25,
-    reps_calculadas: 0,
-    reps_ajustadas: 0,
-    fecha_override: "",
-    pct_grupos: { Arranque: 25, Envion: 35, Tirones: 20, Piernas: 20 },
-    turnos: mkTurnos(),
-  }));
-
-// ── Escuela Básica helpers ──────────────────────────────────────────────────
-const mkBloqueBasica = () => ({
-  pct: null,
-  series: null,
-  reps: null,
-  kg: null,
-  nota: "",
-});
-const mkEjBasica = (n = 3) => ({
-  id: mkId(),
-  ejercicio_id: null,
-  nombre_custom: "",
-  bloques: Array.from({ length: n }, mkBloqueBasica),
-});
-const EMPTY_NAME_SENTINEL = "\u200B";
-const resolveExerciseName = (customName, fallback = "") =>
-  customName === EMPTY_NAME_SENTINEL ? "" : customName || fallback;
-const mkTurnosBasica = (n = 3) =>
-  Array.from({ length: 3 }, (_, i) => ({
-    id: mkId(),
-    numero: i + 1,
-    dia: "",
-    momento: "",
-    ejercicios: Array.from({ length: 6 }, () => mkEjBasica(n)),
-  }));
-const mkSemanasBasica = (numSem = 4, numBloques = 3) =>
-  Array.from({ length: numSem }, (_, i) => ({
-    id: mkId(),
-    numero: i + 1,
-    fecha_override: "",
-    turnos: mkTurnosBasica(numBloques),
-  }));
-
-// ── Pretemporada helpers ────────────────────────────────────────────────────
-const mkEjPretemp = (n = 3) => ({
-  id: mkId(),
-  ejercicio_ids: [{ eid: null, link: "-" }],
-  nombre_custom: "",
-  bloques: Array.from({ length: n }, mkBloqueBasica),
-});
-const mkTurnosPretemp = (n = 3) =>
-  Array.from({ length: 3 }, (_, i) => ({
-    id: mkId(),
-    numero: i + 1,
-    dia: "",
-    momento: "",
-    ejercicios: Array.from({ length: 6 }, () => mkEjPretemp(n)),
-  }));
-const mkSemanasPretemp = (numSem = 4, numBloques = 3) =>
-  Array.from({ length: numSem }, (_, i) => ({
-    id: mkId(),
-    numero: i + 1,
-    fecha_override: "",
-    turnos: mkTurnosPretemp(numBloques),
-  }));
 
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────

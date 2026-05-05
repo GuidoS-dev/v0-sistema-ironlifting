@@ -19,7 +19,8 @@
 - ✅ **Fase 0** — Setup completo (Vitest + Playwright + tracking files).
 - ✅ **Fase 1.1** — CSS global extraído a `app/sistema/styles/coach-app.css`.
 - ✅ **Fase 2.1** — `EJERCICIOS[]` extraído a `app/sistema/data/ejercicios.js`.
-- ⏭️ **Próximo:** Fase 2.2 — `DIAS`, `MOMENTOS`, `CATEGORIAS`, `CAT_COLOR`, factories → `app/sistema/data/constantes.js`.
+- ✅ **Fase 2.2** — `DIAS`, `MOMENTOS`, `CATEGORIAS`, `CAT_COLOR` y factories → `app/sistema/data/constantes.js`.
+- ⏭️ **Próximo:** Fase 2.3 — `INTENSIDADES`, `IRM_VALUES`, `INTENS_COLS`, `DEFAULT_EJS`, `TABLA_DEFAULT` → `app/sistema/data/tablas-default.js`.
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -105,7 +106,7 @@ app/sistema/
 
 ### Fase 2 — Constantes y datos puros
 - [x] **2.1** `EJERCICIOS[]` (≈144 ejercicios) → `app/sistema/data/ejercicios.js`.
-- [ ] **2.2** `DIAS`, `MOMENTOS`, `CATEGORIAS`, `CAT_COLOR`, factories (`mkId`, `mkTurnos`, `mkSemanas`, `mkBloqueBasica`, `mkEjBasica`, `EMPTY_NAME_SENTINEL`, `resolveExerciseName`, `mkTurnosBasica`, `mkSemanasBasica`, `mkEjPretemp`, `mkTurnosPretemp`, `mkSemanasPretemp`) → `app/sistema/data/constantes.js`.
+- [x] **2.2** `DIAS`, `MOMENTOS`, `CATEGORIAS`, `CAT_COLOR`, factories (`mkId`, `mkTurnos`, `mkSemanas`, `mkBloqueBasica`, `mkEjBasica`, `EMPTY_NAME_SENTINEL`, `resolveExerciseName`, `mkTurnosBasica`, `mkSemanasBasica`, `mkEjPretemp`, `mkTurnosPretemp`, `mkSemanasPretemp`) → `app/sistema/data/constantes.js`.
 - [ ] **2.3** `INTENSIDADES`, `IRM_VALUES`, `INTENS_COLS`, `DEFAULT_EJS`, `TABLA_DEFAULT` → `app/sistema/data/tablas-default.js`.
 - [ ] **2.4** `FASES_CICLO` → `app/sistema/data/ciclo.js`. `PERIODOS`, `OBJETIVOS`, `NIVELES`, `ESCUELA_NIVELES` → `app/sistema/data/plantillas-meta.js`.
 - [ ] **2.5** Logos SVG (`LogoHorizontal`, `LogoIL`, `LogoILSolo`) → `app/sistema/components/common/Logos.jsx`.
