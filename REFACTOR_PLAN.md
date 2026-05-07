@@ -39,7 +39,11 @@
 - ✅ **Fase 5.2** — `usePlantillas` hook extraído (sin tests detallados — requiere mock de sb).
 - ✅ **Fase 6** — Todos los 11 componentes hoja extraídos (Modal, ExercisePicker, EjBuscador*, EjCelda, CeldaSembrado, *Row, AtletaCardItem, PlantillaCard, LayoutHelpers).
 - ✅ **Fase 7** — 14 componentes medianos extraídos (TurnoCard, IntensityPickerModal, SembradoMensual, SemanaView, ResumenGrupos, DistribucionTurnos, AtletaForm, MesocicloForm, EditMesoModal, EditVolModal, GuardarPlantillaModal, CrearPlantillaModal, DuplicarPlantillaModal, PlantillaPicker).
-- ⏭️ **Próximo:** Fase 8 — Páginas (PageNormativos, PageNormativosAtleta, PageCalculadora, PagePlantillas, PagePlantilla, PageResumen, PagePDF, PageAtletas).
+- ✅ **Fase 8** — 8 páginas extraídas (PageNormativos, PageNormativosAtleta, PageCalculadora, PagePlantillas, PagePlantilla, PageResumen, PagePDF, PageAtletas).
+- ✅ **Fase 9** — Las bestias (PlanillaTurno ~3950 líneas, PlanillaBasica, PlanillaPretemporada, PageAtleta, AtletaPanel) extraídas.
+- ✅ **Fase 10.3-10.5** — LoginScreen, PanelReferencia, CoachApp extraídos. 10.1/10.2 (Contexts) diferidos a Fase 2 del refactor.
+- 🎉 **`coach-app.jsx` reducido a 296 líneas** (orquestador con `App` default export).
+- ⏭️ **Próximo:** Fase 11 (cleanup, sin merge a main).
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -178,31 +182,31 @@ app/sistema/
 - [x] **7.12** `PlantillaPicker` → `components/plantillas/PlantillaPicker.jsx`.
 
 ### Fase 8 — Páginas
-- [ ] **8.1** `PageNormativos` → `components/normativos/PageNormativos.jsx`.
-- [ ] **8.2** `PageNormativosAtleta` → `components/normativos/PageNormativosAtleta.jsx`.
-- [ ] **8.3** `PageCalculadora` → `components/calculadora/PageCalculadora.jsx`.
-- [ ] **8.4** `PagePlantillas` → `components/plantillas/PagePlantillas.jsx`.
-- [ ] **8.5** `PagePlantilla` → `components/plantillas/PagePlantilla.jsx`.
-- [ ] **8.6** `PageResumen` → `components/resumen/PageResumen.jsx`.
-- [ ] **8.7** `PagePDF` → `components/pdf/PagePDF.jsx`.
-- [ ] **8.8** `PageAtletas` → `components/atletas/PageAtletas.jsx`.
+- [x] **8.1** `PageNormativos` → `components/normativos/PageNormativos.jsx`.
+- [x] **8.2** `PageNormativosAtleta` → `components/normativos/PageNormativosAtleta.jsx`.
+- [x] **8.3** `PageCalculadora` → `components/calculadora/PageCalculadora.jsx`.
+- [x] **8.4** `PagePlantillas` → `components/plantillas/PagePlantillas.jsx`.
+- [x] **8.5** `PagePlantilla` → `components/plantillas/PagePlantilla.jsx`.
+- [x] **8.6** `PageResumen` → `components/resumen/PageResumen.jsx`.
+- [x] **8.7** `PagePDF` → `components/pdf/PagePDF.jsx`.
+- [x] **8.8** `PageAtletas` → `components/atletas/PageAtletas.jsx`.
 
 ### Fase 9 — Las bestias
-- [ ] **9.1** `PlanillaTurno` (~4000 líneas):
+- [x] **9.1** `PlanillaTurno` (~4000 líneas):
   - [ ] 9.1.a Identificar y extraer sub-helpers internos.
   - [ ] 9.1.b Extraer secciones internas como sub-componentes hijos.
   - [ ] 9.1.c Extraer componente principal a `components/planilla/PlanillaTurno.jsx`.
-- [ ] **9.2** `PlanillaBasica` → `components/planilla/PlanillaBasica.jsx`.
-- [ ] **9.3** `PlanillaPretemporada` → `components/planilla/PlanillaPretemporada.jsx`.
-- [ ] **9.4** `PageAtleta` → `components/atletas/PageAtleta.jsx`.
-- [ ] **9.5** `AtletaPanel` → `components/atletas/AtletaPanel.jsx`.
+- [x] **9.2** `PlanillaBasica` → `components/planilla/PlanillaBasica.jsx`.
+- [x] **9.3** `PlanillaPretemporada` → `components/planilla/PlanillaPretemporada.jsx`.
+- [x] **9.4** `PageAtleta` → `components/atletas/PageAtleta.jsx`.
+- [x] **9.5** `AtletaPanel` → `components/atletas/AtletaPanel.jsx`.
 
 ### Fase 10 — Orquestadores + Contexts
-- [ ] **10.1** Diseñar `CoachContext` (atletas, mesos, plantillas, normativos, save handlers, debounce timers).
-- [ ] **10.2** Diseñar `AtletaContext` (datos del atleta activo + handlers).
-- [ ] **10.3** `LoginScreen` → `components/coach/LoginScreen.jsx`.
-- [ ] **10.4** `PanelReferencia` → `components/coach/PanelReferencia.jsx`.
-- [ ] **10.5** `CoachApp` → `components/coach/CoachApp.jsx`.
+- [ ] **10.1** Diseñar `CoachContext` *(diferido a Fase 2 — es diseño nuevo, no extracción).*
+- [ ] **10.2** Diseñar `AtletaContext` *(diferido a Fase 2 — es diseño nuevo, no extracción).*
+- [x] **10.- [ ] **10.3** `LoginScreen` → `components/coach/LoginScreen.jsx`.
+- [x] **10.- [ ] **10.4** `PanelReferencia` → `components/coach/PanelReferencia.jsx`.
+- [x] **10.- [ ] **10.5** `CoachApp` → `components/coach/CoachApp.jsx`.
 
 ### Fase 11 — Limpieza final
 - [ ] **11.1** `coach-app.jsx` queda como entry point delgado (solo imports + `<CoachApp />`).
