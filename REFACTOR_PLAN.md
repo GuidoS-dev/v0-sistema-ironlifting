@@ -36,7 +36,8 @@
 - ✅ **Fase 3.6** — `coach-settings.js` extraído con 5 smoke tests.
 - ✅ **Fase 3.7** — `backup.js` extraído con 8 tests.
 - ✅ **Fase 5.1** — `useHistory` hook extraído con 8 tests.
-- ⏭️ **Próximo:** Fase 5.2 — `usePlantillas` hook.
+- ✅ **Fase 5.2** — `usePlantillas` hook extraído (sin tests detallados — requiere mock de sb).
+- ⏭️ **Próximo:** Fase 6 — componentes hoja (Modal, ExercisePicker, EjBuscador, etc.).
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -145,7 +146,7 @@ app/sistema/
 
 ### Fase 5 — Hooks
 - [x] **5.1** `useHistory` → `app/sistema/hooks/useHistory.js` + tests.
-- [ ] **5.2** `usePlantillas` → `app/sistema/hooks/usePlantillas.js`.
+- [x] **5.2** `usePlantillas` → `app/sistema/hooks/usePlantillas.js`.
 
 ### Fase 6 — Componentes hoja
 - [ ] **6.1** `Modal` → `app/sistema/components/common/Modal.jsx` + smoke test.
