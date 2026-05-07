@@ -35,7 +35,8 @@
 - ✅ **Fase 4.3** — `sync.js` (`_visResume`, `_bc`, `markDbSync`, `broadcastDbWrite`) extraído con 4 tests.
 - ✅ **Fase 3.6** — `coach-settings.js` extraído con 5 smoke tests.
 - ✅ **Fase 3.7** — `backup.js` extraído con 8 tests.
-- ⏭️ **Fase 3 + 4 completas.** Próximo: Fase 5 — Hooks (`useHistory`, `usePlantillas`).
+- ✅ **Fase 5.1** — `useHistory` hook extraído con 8 tests.
+- ⏭️ **Próximo:** Fase 5.2 — `usePlantillas` hook.
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -143,7 +144,7 @@ app/sistema/
 - [x] **4.3** `_visResume` (visibility-resume throttle), `BroadcastChannel _bc`, `markDbSync`, `broadcastDbWrite` → `app/sistema/lib/sync.js`.
 
 ### Fase 5 — Hooks
-- [ ] **5.1** `useHistory` → `app/sistema/hooks/useHistory.js` + tests.
+- [x] **5.1** `useHistory` → `app/sistema/hooks/useHistory.js` + tests.
 - [ ] **5.2** `usePlantillas` → `app/sistema/hooks/usePlantillas.js`.
 
 ### Fase 6 — Componentes hoja
