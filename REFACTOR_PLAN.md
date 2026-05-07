@@ -151,7 +151,7 @@ app/sistema/
 ### Fase 6 — Componentes hoja
 - [x] **6.1** `Modal` → `app/sistema/components/common/Modal.jsx`.
 - [x] **6.2** `ExercisePickerOverlay` → `components/common/ExercisePickerOverlay.jsx`.
-- [ ] **6.3** `EjBuscador` → `components/common/EjBuscador.jsx`.
+- [x] **6.3** `EjBuscador` → `components/common/EjBuscador.jsx`.
 - [ ] **6.4** `EjBuscadorCompacto` → `components/common/EjBuscadorCompacto.jsx`.
 - [ ] **6.5** `EjCelda` → `components/sembrado/EjCelda.jsx`.
 - [ ] **6.6** `CeldaSembrado` → `components/sembrado/CeldaSembrado.jsx`.
