@@ -37,7 +37,8 @@
 - ✅ **Fase 3.7** — `backup.js` extraído con 8 tests.
 - ✅ **Fase 5.1** — `useHistory` hook extraído con 8 tests.
 - ✅ **Fase 5.2** — `usePlantillas` hook extraído (sin tests detallados — requiere mock de sb).
-- ⏭️ **Próximo:** Fase 6 — componentes hoja (Modal, ExercisePicker, EjBuscador, etc.).
+- ✅ **Fase 6** — Todos los 11 componentes hoja extraídos (Modal, ExercisePicker, EjBuscador*, EjCelda, CeldaSembrado, *Row, AtletaCardItem, PlantillaCard, LayoutHelpers).
+- ⏭️ **Próximo:** Fase 7 — componentes medianos (TurnoCard, IntensityPickerModal, SembradoMensual, etc.).
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -157,9 +158,9 @@ app/sistema/
 - [x] **6.6** `CeldaSembrado` → `components/sembrado/CeldaSembrado.jsx`.
 - [x] **6.7** `ComplementarioRow` → `components/planilla/ComplementarioRow.jsx`.
 - [x] **6.8** `EjercicioRow` → `components/planilla/EjercicioRow.jsx`.
-- [ ] **6.9** `AtletaCardItem` → `components/atletas/AtletaCardItem.jsx`.
-- [ ] **6.10** `PlantillaCard` → `components/plantillas/PlantillaCard.jsx`.
-- [ ] **6.11** Layout helpers (`SectionHeader`, `CardGrid`, `NivelSection`, `AlumnoSectionHeader`) → `components/common/`.
+- [x] **6.9** `AtletaCardItem` → `components/atletas/AtletaCardItem.jsx`.
+- [x] **6.10** `PlantillaCard` → `components/plantillas/PlantillaCard.jsx`. *(Movió también `PERIODO_LABEL`, `OBJETIVO_LABEL`, `NIVEL_LABEL`, `*_COLOR`, `ESCUELA_NIVEL_LABEL`, `ESCUELA_NIVEL_COLOR` a `data/plantillas-meta.js` por dependencia.)*
+- [x] **6.11** Layout helpers (`SectionHeader`, `CardGrid`, `NivelSection`, `AlumnoSectionHeader`) → `components/common/LayoutHelpers.jsx`.
 
 ### Fase 7 — Componentes medianos
 - [ ] **7.1** `TurnoCard` → `components/planilla/TurnoCard.jsx`.
