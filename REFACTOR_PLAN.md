@@ -149,7 +149,7 @@ app/sistema/
 - [x] **5.2** `usePlantillas` → `app/sistema/hooks/usePlantillas.js`.
 
 ### Fase 6 — Componentes hoja
-- [ ] **6.1** `Modal` → `app/sistema/components/common/Modal.jsx` + smoke test.
+- [x] **6.1** `Modal` → `app/sistema/components/common/Modal.jsx`.
 - [ ] **6.2** `ExercisePickerOverlay` → `components/common/ExercisePickerOverlay.jsx`.
 - [ ] **6.3** `EjBuscador` → `components/common/EjBuscador.jsx`.
 - [ ] **6.4** `EjBuscadorCompacto` → `components/common/EjBuscadorCompacto.jsx`.
