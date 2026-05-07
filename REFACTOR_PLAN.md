@@ -34,7 +34,8 @@
 - ✅ **Fase 4.1+4.2** — `supabase-client.js` extraído (combina 4.1 y 4.2 porque `_session` es estado mutable compartido). 9 smoke tests. `_session?.access_token` externo reemplazado por `getCurrentSession()`.
 - ✅ **Fase 4.3** — `sync.js` (`_visResume`, `_bc`, `markDbSync`, `broadcastDbWrite`) extraído con 4 tests.
 - ✅ **Fase 3.6** — `coach-settings.js` extraído con 5 smoke tests.
-- ⏭️ **Próximo:** Fase 3.7 — `backup.js`.
+- ✅ **Fase 3.7** — `backup.js` extraído con 8 tests.
+- ⏭️ **Fase 3 + 4 completas.** Próximo: Fase 5 — Hooks (`useHistory`, `usePlantillas`).
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -132,7 +133,7 @@ app/sistema/
 - [x] **3.4** Mapeos APP↔DB (`atletaToDb`, `atletaFromDb`, `mesoToDb`, `mesoFromDb`, `plantillaToDb`, `plantillaFromDb`) → `app/sistema/lib/mappers.js` + tests.
 - [x] **3.5** Override management (`collectAtletaNormOverrides`, `restoreAtletaNormOverrides`, `buildMesoOverridesPayload`, `collectMesoOverrides`, `restoreMesoOverrides`, `collectAtletaPctOverrides`, `restoreAtletaPctOverrides`) → `app/sistema/lib/overrides.js` + tests.
 - [x] **3.6** Coach settings DB (`loadCoachSetting`, `loadCoachSettingRow`, `saveCoachSetting`, `resolveSharedCoachId`, `COACH_SETTING_KEYS`) → `app/sistema/lib/coach-settings.js`. *(`LIFTPLAN_LOCAL_SYNC_EVENT` ya extraído en 3.2.)*
-- [ ] **3.7** Backup & sync (`BACKUP_INTERVAL_MS`, `BACKUP_PROMPTED_KEY`, `getLastDbSync`, `collectLocalData`, `collectBackupData`, `downloadBackup`) → `app/sistema/lib/backup.js`. *(`emitLocalSyncEvent` ya extraído en 3.2.)*
+- [x] **3.7** Backup & sync (`BACKUP_INTERVAL_MS`, `BACKUP_PROMPTED_KEY`, `getLastDbSync`, `collectLocalData`, `collectBackupData`, `downloadBackup`) → `app/sistema/lib/backup.js`. *(`emitLocalSyncEvent` ya extraído en 3.2.)*
 - [x] **3.8** Helpers de cálculo (`calcKg`, `calcVolumenSemana`, `calcRepsPorGrupo`, `remapSemanaIdx`, `remapSemPctKeyForSwap`, `remapTurnoPctKeyForSwap`, `remapOverrideObjectKeys`, `remapOverrideSetKeys`, `getEjercicioById`, `getSembradoStats`, `calcSeriesRepsKg`, `calcKgEj`, `GRUPO_RANGES`, `GRUPOS_KEYS`, `getGrupo`, `calcSembradoSemana`, `calcRepsEjercicio`) → `app/sistema/lib/calc.js` + tests.
 - [x] **3.9** Ciclo menstrual (`parseAppDate`, `getAgeFromBirthDate`, `getFasePorDia`, `getFasesVentanaCiclo`, `getFaseDominante`, `getFaseCiclo`, `getDetalleFaseCiclo`, `getFechaSemana`, `getFechaSemanaEfectiva`, `formatFechaSemana`, `formatDateDisplay`) → `app/sistema/lib/ciclo-menstrual.js` + tests.
 - [x] **3.10** Navegación (`PLANILLA_NAV_SELECTOR`, `buildPlanillaFocusGrid`, `focusPlanillaField`, `handlePlanillaArrowNavigation`, `SEMBRADO_NAV_SELECTOR`, `SEMBRADO_ROLE_ORDER`, `getSembradoTabSequence`, `handleSembradoTabNavigation`) → `app/sistema/lib/navegacion.js` + tests.
