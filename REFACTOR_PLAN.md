@@ -152,9 +152,9 @@ app/sistema/
 - [x] **6.1** `Modal` → `app/sistema/components/common/Modal.jsx`.
 - [x] **6.2** `ExercisePickerOverlay` → `components/common/ExercisePickerOverlay.jsx`.
 - [x] **6.3** `EjBuscador` → `components/common/EjBuscador.jsx`.
-- [ ] **6.4** `EjBuscadorCompacto` → `components/common/EjBuscadorCompacto.jsx`.
-- [ ] **6.5** `EjCelda` → `components/sembrado/EjCelda.jsx`.
-- [ ] **6.6** `CeldaSembrado` → `components/sembrado/CeldaSembrado.jsx`.
+- [x] **6.4** `EjBuscadorCompacto` → `components/common/EjBuscadorCompacto.jsx`.
+- [x] **6.5** `EjCelda` → `components/sembrado/EjCelda.jsx`.
+- [x] **6.6** `CeldaSembrado` → `components/sembrado/CeldaSembrado.jsx`.
 - [x] **6.7** `ComplementarioRow` → `components/planilla/ComplementarioRow.jsx`.
 - [x] **6.8** `EjercicioRow` → `components/planilla/EjercicioRow.jsx`.
 - [ ] **6.9** `AtletaCardItem` → `components/atletas/AtletaCardItem.jsx`.
