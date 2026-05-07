@@ -31,7 +31,8 @@
 - ✅ **Fase 3.8** — `calc.js` extraído con 27 tests (saltado 3.6/3.7 porque dependen del cliente Supabase aún en monolito).
 - ✅ **Fase 3.9** — `ciclo-menstrual.js` extraído con 25 tests.
 - ✅ **Fase 3.10** — `navegacion.js` extraído con 9 smoke tests (handlers DOM-pesados, cobertura completa requeriría Playwright).
-- ⏭️ **Próximo: STOP — Fase 4 (Supabase client) es el siguiente monstruo.** Antes hay que verificar visualmente lo extraído hasta ahora.
+- ✅ **Fase 4.1+4.2** — `supabase-client.js` extraído (combina 4.1 y 4.2 porque `_session` es estado mutable compartido). 9 smoke tests. `_session?.access_token` externo reemplazado por `getCurrentSession()`.
+- ⏭️ **Próximo:** Fase 4.3 — `sync.js` (`_visResume`, `_bc`, `markDbSync`, `broadcastDbWrite`).
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -135,8 +136,7 @@ app/sistema/
 - [x] **3.10** Navegación (`PLANILLA_NAV_SELECTOR`, `buildPlanillaFocusGrid`, `focusPlanillaField`, `handlePlanillaArrowNavigation`, `SEMBRADO_NAV_SELECTOR`, `SEMBRADO_ROLE_ORDER`, `getSembradoTabSequence`, `handleSembradoTabNavigation`) → `app/sistema/lib/navegacion.js` + tests.
 
 ### Fase 4 — Cliente Supabase + auth
-- [ ] **4.1** `_fetchWithTimeout`, `_refreshPromise`, `_refreshCooldownUntil`, `_refreshToken`, `_getValidSession` → `app/sistema/lib/supabase-fetch.js`.
-- [ ] **4.2** Cliente `sb` completo (`auth`, `_handleEmailCallback`, `from`, `rpc`) → `app/sistema/lib/supabase-client.js` + tests con mocks.
+- [x] **4.1+4.2** Cliente Supabase completo (config, `_session`, `_fetchWithTimeout`, `_refreshToken`, `_getValidSession`, `sb` con `auth`/`_handleEmailCallback`/`from`/`rpc`) → `app/sistema/lib/supabase-client.js` + smoke tests. *(combinados porque `_session` es estado mutable compartido)*.
 - [ ] **4.3** `_visResume` (visibility-resume throttle), `BroadcastChannel _bc`, `markDbSync`, `broadcastDbWrite` → `app/sistema/lib/sync.js`.
 
 ### Fase 5 — Hooks
