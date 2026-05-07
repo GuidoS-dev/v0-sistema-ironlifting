@@ -32,7 +32,8 @@
 - ✅ **Fase 3.9** — `ciclo-menstrual.js` extraído con 25 tests.
 - ✅ **Fase 3.10** — `navegacion.js` extraído con 9 smoke tests (handlers DOM-pesados, cobertura completa requeriría Playwright).
 - ✅ **Fase 4.1+4.2** — `supabase-client.js` extraído (combina 4.1 y 4.2 porque `_session` es estado mutable compartido). 9 smoke tests. `_session?.access_token` externo reemplazado por `getCurrentSession()`.
-- ⏭️ **Próximo:** Fase 4.3 — `sync.js` (`_visResume`, `_bc`, `markDbSync`, `broadcastDbWrite`).
+- ✅ **Fase 4.3** — `sync.js` (`_visResume`, `_bc`, `markDbSync`, `broadcastDbWrite`) extraído con 4 tests.
+- ⏭️ **Próximo:** Volver a 3.6 (coach-settings) y 3.7 (backup) — ya tienen disponible `sb`.
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -137,7 +138,7 @@ app/sistema/
 
 ### Fase 4 — Cliente Supabase + auth
 - [x] **4.1+4.2** Cliente Supabase completo (config, `_session`, `_fetchWithTimeout`, `_refreshToken`, `_getValidSession`, `sb` con `auth`/`_handleEmailCallback`/`from`/`rpc`) → `app/sistema/lib/supabase-client.js` + smoke tests. *(combinados porque `_session` es estado mutable compartido)*.
-- [ ] **4.3** `_visResume` (visibility-resume throttle), `BroadcastChannel _bc`, `markDbSync`, `broadcastDbWrite` → `app/sistema/lib/sync.js`.
+- [x] **4.3** `_visResume` (visibility-resume throttle), `BroadcastChannel _bc`, `markDbSync`, `broadcastDbWrite` → `app/sistema/lib/sync.js`.
 
 ### Fase 5 — Hooks
 - [ ] **5.1** `useHistory` → `app/sistema/hooks/useHistory.js` + tests.

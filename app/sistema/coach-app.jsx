@@ -173,6 +173,12 @@ import {
   sb,
   getSupabase,
 } from "./lib/supabase-client";
+import {
+  _visResume,
+  _bc,
+  markDbSync,
+  broadcastDbWrite,
+} from "./lib/sync";
 import "./styles/coach-app.css";
 
 const APP_VERSION = "1.7.12";
@@ -182,66 +188,6 @@ const COACH_SETTING_KEYS = {
   normativos: "normativos_globales",
   tablas: "tablas_calculadora",
 };
-
-// ── Global visibility-resume throttle ────────────────────────────────────────
-// Prevents 5+ data-sync pulls from all firing on every tab switch.
-// Subscribers register callbacks; on resume we fire them staggered, with a
-// minimum 30s gap between resume bursts.
-const _visResume = (() => {
-  if (typeof document === "undefined") return { sub: () => () => {}, _last: 0 };
-  const MIN_GAP_MS = 30_000;
-  const STAGGER_MS = 400;
-  const cbs = new Set();
-  let lastFire = 0;
-  let timer = null;
-
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible") return;
-    const now = Date.now();
-    if (now - lastFire < MIN_GAP_MS) return;
-    lastFire = now;
-    if (timer) clearTimeout(timer);
-    // Small debounce so rapid focus/visibility flickers don't trigger
-    timer = setTimeout(() => {
-      let i = 0;
-      cbs.forEach((fn) => {
-        setTimeout(fn, i * STAGGER_MS);
-        i++;
-      });
-    }, 300);
-  });
-
-  return {
-    sub: (fn) => {
-      cbs.add(fn);
-      return () => cbs.delete(fn);
-    },
-    _last: () => lastFire,
-  };
-})();
-
-// BroadcastChannel — notifica a otras pestañas cuando hay un write a DB
-const _bc = (() => {
-  if (typeof window === "undefined") return null;
-  try {
-    return new BroadcastChannel("liftplan:db-sync");
-  } catch {
-    return null;
-  }
-})();
-
-function markDbSync() {
-  try {
-    localStorage.setItem("liftplan_last_db_sync", Date.now().toString());
-  } catch {}
-}
-
-function broadcastDbWrite(type) {
-  try {
-    _bc?.postMessage({ type });
-    markDbSync();
-  } catch {}
-}
 
 // ── Backup local automático ──────────────────────────────────────────────────
 const BACKUP_INTERVAL_MS = 5 * 60 * 60 * 1000; // 5 horas
