@@ -43,7 +43,11 @@
 - ✅ **Fase 9** — Las bestias (PlanillaTurno ~3950 líneas, PlanillaBasica, PlanillaPretemporada, PageAtleta, AtletaPanel) extraídas.
 - ✅ **Fase 10.3-10.5** — LoginScreen, PanelReferencia, CoachApp extraídos. 10.1/10.2 (Contexts) diferidos a Fase 2 del refactor.
 - 🎉 **`coach-app.jsx` reducido a 296 líneas** (orquestador con `App` default export).
-- ⏭️ **Próximo:** Fase 11 (cleanup, sin merge a main).
+- ✅ **Fase 11.1** — coach-app.jsx ya es entry delgado.
+- ✅ **Fase 11.2** — `ARCHITECTURE.md` reescrito con la estructura final.
+- ✅ **Fase 11.3** — `GLOSARIO_MONOLITO.md` archivado como `GLOSARIO_MONOLITO_LEGACY.md` con banner.
+- ⏸️ **Fase 11.4** — E2E Playwright diferido a Fase 2 (cobertura nueva, no extracción).
+- ⏸️ **Fase 11.5** — Merge a `main` pausado por el usuario hasta verificación visual completa.
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -209,9 +213,9 @@ app/sistema/
 - [x] **10.- [ ] **10.5** `CoachApp` → `components/coach/CoachApp.jsx`.
 
 ### Fase 11 — Limpieza final
-- [ ] **11.1** `coach-app.jsx` queda como entry point delgado (solo imports + `<CoachApp />`).
-- [ ] **11.2** Completar `ARCHITECTURE.md`.
-- [ ] **11.3** Archivar `GLOSARIO_MONOLITO.md` como `GLOSARIO_MONOLITO_LEGACY.md`.
+- [x] **11.1** `coach-app.jsx` queda como entry point delgado (solo imports + `<CoachApp />`).
+- [x] **11.2** Completar `ARCHITECTURE.md`.
+- [x] **11.3** Archivar `GLOSARIO_MONOLITO.md` como `GLOSARIO_MONOLITO_LEGACY.md`.
 - [ ] **11.4** E2E completos en Playwright cubriendo flujos críticos.
 - [ ] **11.5** Merge `refactor/atomize-monolith` → `main`.
 
