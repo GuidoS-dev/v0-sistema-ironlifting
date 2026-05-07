@@ -38,7 +38,8 @@
 - ✅ **Fase 5.1** — `useHistory` hook extraído con 8 tests.
 - ✅ **Fase 5.2** — `usePlantillas` hook extraído (sin tests detallados — requiere mock de sb).
 - ✅ **Fase 6** — Todos los 11 componentes hoja extraídos (Modal, ExercisePicker, EjBuscador*, EjCelda, CeldaSembrado, *Row, AtletaCardItem, PlantillaCard, LayoutHelpers).
-- ⏭️ **Próximo:** Fase 7 — componentes medianos (TurnoCard, IntensityPickerModal, SembradoMensual, etc.).
+- ✅ **Fase 7** — 14 componentes medianos extraídos (TurnoCard, IntensityPickerModal, SembradoMensual, SemanaView, ResumenGrupos, DistribucionTurnos, AtletaForm, MesocicloForm, EditMesoModal, EditVolModal, GuardarPlantillaModal, CrearPlantillaModal, DuplicarPlantillaModal, PlantillaPicker).
+- ⏭️ **Próximo:** Fase 8 — Páginas (PageNormativos, PageNormativosAtleta, PageCalculadora, PagePlantillas, PagePlantilla, PageResumen, PagePDF, PageAtletas).
 
 **Commits hasta ahora:**
 - `680a506` chore(refactor): Phase 0 — testing setup + tracking files
@@ -163,18 +164,18 @@ app/sistema/
 - [x] **6.11** Layout helpers (`SectionHeader`, `CardGrid`, `NivelSection`, `AlumnoSectionHeader`) → `components/common/LayoutHelpers.jsx`.
 
 ### Fase 7 — Componentes medianos
-- [ ] **7.1** `TurnoCard` → `components/planilla/TurnoCard.jsx`.
-- [ ] **7.2** `IntensityPickerModal` → `components/sembrado/IntensityPickerModal.jsx`.
-- [ ] **7.3** `SembradoMensual` → `components/sembrado/SembradoMensual.jsx`.
-- [ ] **7.4** `SemanaView` → `components/sembrado/SemanaView.jsx`.
-- [ ] **7.5** `ResumenGrupos` → `components/resumen/ResumenGrupos.jsx`.
-- [ ] **7.6** `DistribucionTurnos` → `components/resumen/DistribucionTurnos.jsx`.
-- [ ] **7.7** `AtletaForm` → `components/atletas/AtletaForm.jsx`.
-- [ ] **7.8** `MesocicloForm` → `components/atletas/MesocicloForm.jsx`.
-- [ ] **7.9** `EditMesoModal` → `components/atletas/EditMesoModal.jsx`.
-- [ ] **7.10** `EditVolModal` → `components/atletas/EditVolModal.jsx`.
-- [ ] **7.11** `GuardarPlantillaModal`, `CrearPlantillaModal`, `DuplicarPlantillaModal` → `components/plantillas/`.
-- [ ] **7.12** `PlantillaPicker` → `components/plantillas/PlantillaPicker.jsx`.
+- [x] **7.1** `TurnoCard` → `components/planilla/TurnoCard.jsx`.
+- [x] **7.2** `IntensityPickerModal` → `components/sembrado/IntensityPickerModal.jsx`.
+- [x] **7.3** `SembradoMensual` → `components/sembrado/SembradoMensual.jsx`.
+- [x] **7.4** `SemanaView` → `components/sembrado/SemanaView.jsx`.
+- [x] **7.5** `ResumenGrupos` → `components/resumen/ResumenGrupos.jsx`.
+- [x] **7.6** `DistribucionTurnos` → `components/resumen/DistribucionTurnos.jsx`.
+- [x] **7.7** `AtletaForm` → `components/atletas/AtletaForm.jsx`.
+- [x] **7.8** `MesocicloForm` → `components/atletas/MesocicloForm.jsx`.
+- [x] **7.9** `EditMesoModal` → `components/atletas/EditMesoModal.jsx`.
+- [x] **7.10** `EditVolModal` → `components/atletas/EditVolModal.jsx`.
+- [x] **7.11** `GuardarPlantillaModal`, `CrearPlantillaModal`, `DuplicarPlantillaModal` → `components/plantillas/`.
+- [x] **7.12** `PlantillaPicker` → `components/plantillas/PlantillaPicker.jsx`.
 
 ### Fase 8 — Páginas
 - [ ] **8.1** `PageNormativos` → `components/normativos/PageNormativos.jsx`.
