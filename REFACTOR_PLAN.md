@@ -155,8 +155,8 @@ app/sistema/
 - [ ] **6.4** `EjBuscadorCompacto` → `components/common/EjBuscadorCompacto.jsx`.
 - [ ] **6.5** `EjCelda` → `components/sembrado/EjCelda.jsx`.
 - [ ] **6.6** `CeldaSembrado` → `components/sembrado/CeldaSembrado.jsx`.
-- [ ] **6.7** `ComplementarioRow` → `components/planilla/ComplementarioRow.jsx`.
-- [ ] **6.8** `EjercicioRow` → `components/planilla/EjercicioRow.jsx`.
+- [x] **6.7** `ComplementarioRow` → `components/planilla/ComplementarioRow.jsx`.
+- [x] **6.8** `EjercicioRow` → `components/planilla/EjercicioRow.jsx`.
 - [ ] **6.9** `AtletaCardItem` → `components/atletas/AtletaCardItem.jsx`.
 - [ ] **6.10** `PlantillaCard` → `components/plantillas/PlantillaCard.jsx`.
 - [ ] **6.11** Layout helpers (`SectionHeader`, `CardGrid`, `NivelSection`, `AlumnoSectionHeader`) → `components/common/`.
