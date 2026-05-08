@@ -29,6 +29,10 @@ export interface TabataExercise {
   intensityLabel?: string;
   intensityIndex?: number;
   totalIntensities?: number;
+  /** Descripción técnica del ejercicio (global, viene del normativo). */
+  description?: string;
+  /** URL del video en Google Drive (raw share link). */
+  videoUrl?: string;
 }
 
 export type TimerPhase =
