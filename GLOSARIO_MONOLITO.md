@@ -1,5 +1,3 @@
-> **⚠️ LEGACY — Solo referencia histórica.** Este documento describe el monolito `coach-app.jsx` original (~36k líneas) antes de la atomización. Para la arquitectura actual ver [ARCHITECTURE.md](./ARCHITECTURE.md).
-
 # Glosario — coach-app.jsx (~35.383 líneas)
 
 > Se actualiza con cada modificación. Líneas aproximadas; buscar por nombre.

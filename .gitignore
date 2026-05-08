@@ -11,13 +11,3 @@ node_modules
 
 # Mockups / temporary HTML prototypes
 mockups-*.html
-
-# Test artifacts
-test-results/
-playwright-report/
-playwright/.cache/
-coverage/tsconfig.tsbuildinfo
-
-# Build / runtime artifacts
-tsconfig.tsbuildinfo
-dev.log
