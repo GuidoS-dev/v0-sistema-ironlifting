@@ -125,3 +125,54 @@ export function restoreAtletaPctOverrides(atletaId, overrides) {
   set(`liftplan_pct_${atletaId}_turnoOvr`, overrides.turnoOvr);
   set(`liftplan_pct_${atletaId}_turnoMan`, overrides.turnoMan);
 }
+
+// ─── CLEANUP ─────────────────────────────────────────────────────────────────
+// Limpia las claves de overrides de un atleta. Llamar al borrar el atleta
+// para que un eventual nuevo atleta con el mismo app_id no herede overrides
+// del anterior.
+export function clearAtletaOverrideKeys(atletaId) {
+  if (!atletaId || typeof window === "undefined") return;
+  const keys = [
+    `liftplan_pct_${atletaId}_semOvr`,
+    `liftplan_pct_${atletaId}_semMan`,
+    `liftplan_pct_${atletaId}_turnoOvr`,
+    `liftplan_pct_${atletaId}_turnoMan`,
+    `liftplan_normativos_atleta_${atletaId}`,
+  ];
+  for (const k of keys) {
+    try { localStorage.removeItem(k); } catch {}
+  }
+}
+
+// Limpia las claves de overrides + draft + history de un mesociclo.
+export function clearMesoOverrideKeys(mesoId) {
+  if (!mesoId || typeof window === "undefined") return;
+  const keys = [
+    `liftplan_pt_${mesoId}_repsEdit`,
+    `liftplan_pt_${mesoId}_manualEdit`,
+    `liftplan_pt_${mesoId}_cellEdit`,
+    `liftplan_pt_${mesoId}_cellManual`,
+    `liftplan_pt_${mesoId}_nameEdit`,
+    `liftplan_pt_${mesoId}_noteEdit`,
+    `liftplan_pct_${mesoId}_semOvr`,
+    `liftplan_pct_${mesoId}_semMan`,
+    `liftplan_pct_${mesoId}_turnoOvr`,
+    `liftplan_pct_${mesoId}_turnoMan`,
+    `liftplan_hist_meso_${mesoId}`,
+  ];
+  for (const k of keys) {
+    try { localStorage.removeItem(k); } catch {}
+  }
+}
+
+// Limpia draft + history de una plantilla.
+export function clearPlantillaLocalKeys(plantillaId) {
+  if (!plantillaId || typeof window === "undefined") return;
+  const keys = [
+    `liftplan_plt_draft_${plantillaId}`,
+    `liftplan_hist_plt_${plantillaId}`,
+  ];
+  for (const k of keys) {
+    try { localStorage.removeItem(k); } catch {}
+  }
+}

@@ -436,52 +436,61 @@ export const sb = {
       then: function (resolve, reject) {
         return this.exec().then(resolve, reject);
       },
-      insert: async (rows) => {
+      insert: async (rows, { keepalive = false } = {}) => {
         const h = await _headers();
         h["Prefer"] = "return=representation";
-        const r = await _fetchWithTimeout(_url(), {
+        const opts = {
           method: "POST",
           headers: h,
           body: JSON.stringify(rows),
-        });
-        const data = await r.json();
+        };
+        if (keepalive) opts.keepalive = true;
+        const r = await _fetchWithTimeout(_url(), opts);
+        // keepalive path: page may be unloading; tolerate parse failures
+        let data = null;
+        try { data = await r.json(); } catch {}
         return r.ok ? { data, error: null } : { data: null, error: data };
       },
-      upsert: async (rows, { onConflict } = {}) => {
+      upsert: async (rows, { onConflict, keepalive = false } = {}) => {
         const h = await _headers();
         h["Prefer"] = "return=representation,resolution=merge-duplicates";
         const extra = onConflict ? `?on_conflict=${onConflict}` : "";
-        const r = await _fetchWithTimeout(`${_url()}${extra}`, {
+        const opts = {
           method: "POST",
           headers: h,
           body: JSON.stringify(rows),
-        });
-        const data = await r.json();
+        };
+        if (keepalive) opts.keepalive = true;
+        const r = await _fetchWithTimeout(`${_url()}${extra}`, opts);
+        let data = null;
+        try { data = await r.json(); } catch {}
         return r.ok ? { data, error: null } : { data: null, error: data };
       },
-      update: async (vals) => {
+      update: async (vals, { keepalive = false } = {}) => {
         const h = await _headers();
         h["Prefer"] = "return=representation";
         const p = new URLSearchParams();
         _q.filters.forEach((f) => p.append(f.col, f.val));
-        const r = await _fetchWithTimeout(`${_url()}?${p}`, {
+        const opts = {
           method: "PATCH",
           headers: h,
           body: JSON.stringify(vals),
-        });
-        const data = await r.json();
+        };
+        if (keepalive) opts.keepalive = true;
+        const r = await _fetchWithTimeout(`${_url()}?${p}`, opts);
+        let data = null;
+        try { data = await r.json(); } catch {}
         return r.ok ? { data, error: null } : { data: null, error: data };
       },
-      delete: async () => {
+      delete: async ({ keepalive = false } = {}) => {
         const h = await _headers();
         delete h["Content-Type"];
         h["Prefer"] = "return=minimal";
         const p = new URLSearchParams();
         _q.filters.forEach((f) => p.append(f.col, f.val));
-        const r = await _fetchWithTimeout(`${_url()}?${p}`, {
-          method: "DELETE",
-          headers: h,
-        });
+        const opts = { method: "DELETE", headers: h };
+        if (keepalive) opts.keepalive = true;
+        const r = await _fetchWithTimeout(`${_url()}?${p}`, opts);
         if (r.ok) return { data: null, error: null };
         const errBody = await r.json().catch(() => ({}));
         console.warn(`DELETE ${_q.table} failed (${r.status}):`, errBody);

@@ -1,4 +1,14 @@
 export const LIFTPLAN_LOCAL_SYNC_EVENT = "liftplan:local-sync";
+export const LIFTPLAN_QUOTA_EXCEEDED_EVENT = "liftplan:storage-quota-exceeded";
+
+// Keys donde persistimos los IDs pendientes de borrado en DB. Si el coach
+// borra y cierra la pestaña antes de confirmarse el DELETE, sin esta
+// persistencia el siguiente pull restauraría el item desde DB ("zombie").
+export const PENDING_DELETE_KEYS = {
+  atletas: "liftplan_pending_del_atletas",
+  mesociclos: "liftplan_pending_del_mesociclos",
+  plantillas: "liftplan_pending_del_plantillas",
+};
 
 // ── Safe localStorage helper (handles QuotaExceededError) ────────────────────
 export function _freeLocalStorageSpace() {
@@ -39,10 +49,40 @@ export function safeSetItem(key, value) {
         } catch {}
       }
       console.warn("localStorage quota exceeded, data saved to server only");
+      try {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent(LIFTPLAN_QUOTA_EXCEEDED_EVENT, { detail: { key } }),
+          );
+        }
+      } catch {}
       return false;
     }
     return false;
   }
+}
+
+// Carga un Set de IDs persistido en localStorage (para pendingDelete*).
+export function loadPendingDeleteSet(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+// Persiste el Set tal cual está (sin emit — uso interno de housekeeping).
+export function savePendingDeleteSet(key, set) {
+  try {
+    if (!set || set.size === 0) {
+      localStorage.removeItem(key);
+      return;
+    }
+    localStorage.setItem(key, JSON.stringify([...set]));
+  } catch {}
 }
 
 export function emitLocalSyncEvent(key) {

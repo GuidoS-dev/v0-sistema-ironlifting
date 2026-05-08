@@ -1,11 +1,39 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Briefcase, Copy, Library, LogOut, Send, Shield, User, X } from "lucide-react";
+import { Briefcase, Copy, Download, Library, LogOut, Send, Shield, User, X } from "lucide-react";
 import { sb } from "../../lib/supabase-client";
 import { _visResume, _bc, broadcastDbWrite, markDbSync } from "../../lib/sync";
-import { readLocalJson, asPlainObject } from "../../lib/storage";
+import {
+  readLocalJson,
+  asPlainObject,
+  safeSetItem,
+  emitLocalSyncEvent,
+  loadPendingDeleteSet,
+  savePendingDeleteSet,
+  PENDING_DELETE_KEYS,
+  LIFTPLAN_QUOTA_EXCEEDED_EVENT,
+} from "../../lib/storage";
 import { COACH_SETTING_KEYS, saveCoachSetting, resolveSharedCoachId } from "../../lib/coach-settings";
-import { atletaToDb, atletaFromDb, mesoToDb, mesoFromDb, plantillaToDb } from "../../lib/mappers";
-import { buildMesoOverridesPayload, restoreMesoOverrides, restoreAtletaPctOverrides, restoreAtletaNormOverrides } from "../../lib/overrides";
+import { atletaToDb, atletaFromDb, mesoToDb, mesoFromDb } from "../../lib/mappers";
+import {
+  buildMesoOverridesPayload,
+  restoreMesoOverrides,
+  restoreAtletaPctOverrides,
+  restoreAtletaNormOverrides,
+  clearAtletaOverrideKeys,
+  clearMesoOverrideKeys,
+} from "../../lib/overrides";
+
+// Flags por coach para distinguir "DB vacía" real de "pull silencioso vacío"
+// (RLS, coach_id mal resuelto, etc.). Una vez seteado, jamás migramos
+// localStorage → DB sin confirmación.
+const atletasDbInitKey = (coachId) => `liftplan_atletas_db_init_${coachId}`;
+const mesosDbInitKey = (coachId) => `liftplan_mesos_db_init_${coachId}`;
+const isDbInitialized = (key) => {
+  try { return localStorage.getItem(key) === "1"; } catch { return false; }
+};
+const markDbInitialized = (key) => {
+  try { localStorage.setItem(key, "1"); } catch {}
+};
 import { BACKUP_INTERVAL_MS, BACKUP_PROMPTED_KEY, downloadBackup, getLastDbSync } from "../../lib/backup";
 import { usePlantillas } from "../../hooks/usePlantillas";
 import { LogoHorizontal } from "../common/Logos";
@@ -16,6 +44,16 @@ import { PageNormativos } from "../normativos/PageNormativos";
 import { PageCalculadora } from "../calculadora/PageCalculadora";
 import { PagePlantillas } from "../plantillas/PagePlantillas";
 import { PagePlantilla } from "../plantillas/PagePlantilla";
+
+// Helpers locales de persistencia (preservan el comportamiento original
+// del monolito: readLocalJson para load, safeSetItem+emit para save).
+const load = readLocalJson;
+const save = (key, val) => {
+  try {
+    safeSetItem(key, JSON.stringify(val));
+    emitLocalSyncEvent(key);
+  } catch {}
+};
 
 export function CoachApp({ session, profile, onLogout }) {
   // ── Clear dynamic tabs on new browser session (prevents accumulation) ──
@@ -127,9 +165,27 @@ export function CoachApp({ session, profile, onLogout }) {
   const prevMesociclosRef = useRef(null);
   const atletasRef = useRef(atletas);
   const mesociclosRef = useRef(mesociclos);
-  // IDs pendientes de borrado en DB (evita que pull restaure items eliminados)
-  const pendingDeleteAtletaIdsRef = useRef(new Set());
-  const pendingDeleteMesoIdsRef = useRef(new Set());
+  // IDs pendientes de borrado en DB. Persistidos en localStorage para que
+  // un cierre de pestaña antes de confirmar el DELETE no resucite el item
+  // en el siguiente pull.
+  const pendingDeleteAtletaIdsRef = useRef(
+    loadPendingDeleteSet(PENDING_DELETE_KEYS.atletas),
+  );
+  const pendingDeleteMesoIdsRef = useRef(
+    loadPendingDeleteSet(PENDING_DELETE_KEYS.mesociclos),
+  );
+  const persistPendingAtletaDeletes = useCallback(() => {
+    savePendingDeleteSet(
+      PENDING_DELETE_KEYS.atletas,
+      pendingDeleteAtletaIdsRef.current,
+    );
+  }, []);
+  const persistPendingMesoDeletes = useCallback(() => {
+    savePendingDeleteSet(
+      PENDING_DELETE_KEYS.mesociclos,
+      pendingDeleteMesoIdsRef.current,
+    );
+  }, []);
   useEffect(() => {
     atletasRef.current = atletas;
   }, [atletas]);
@@ -243,6 +299,32 @@ export function CoachApp({ session, profile, onLogout }) {
     if (!coachId) return;
     (async () => {
       try {
+        // 1. Reintentar DELETEs pendientes de sesiones previas ANTES del pull
+        //    inicial, para evitar que el SELECT traiga items que el coach
+        //    creía borrados.
+        const pendAtl = pendingDeleteAtletaIdsRef.current;
+        const pendMeso = pendingDeleteMesoIdsRef.current;
+        if (pendAtl.size > 0) {
+          await Promise.all(
+            [...pendAtl].map((id) =>
+              sb.from("atletas").eq("app_id", id).delete()
+                .then((res) => { if (!res?.error) pendAtl.delete(id); })
+                .catch(() => {}),
+            ),
+          );
+          persistPendingAtletaDeletes();
+        }
+        if (pendMeso.size > 0) {
+          await Promise.all(
+            [...pendMeso].map((id) =>
+              sb.from("mesociclos").eq("app_id", id).delete()
+                .then((res) => { if (!res?.error) pendMeso.delete(id); })
+                .catch(() => {}),
+            ),
+          );
+          persistPendingMesoDeletes();
+        }
+
         // Atletas — filtra solo los que tienen app_id (creados por esta app)
         const { data: dbAtletas, error: e1 } = await sb
           .from("atletas")
@@ -260,14 +342,22 @@ export function CoachApp({ session, profile, onLogout }) {
             setAtletasRaw(loaded);
             save("liftplan_atletas", loaded);
             prevAtletasRef.current = loaded;
+            markDbInitialized(atletasDbInitKey(coachId));
           } else {
-            // DB vacía — migrar localStorage → DB
-            const local = load("liftplan_atletas", []);
-            if (local.length > 0) {
-              await sb.from("atletas").upsert(
-                local.map((a) => atletaToDb(a, coachId)),
-                { onConflict: "app_id" },
-              );
+            // DB vacía. Solo migrar localStorage→DB la PRIMERA vez que
+            // vemos este coach. Pulls vacíos posteriores (RLS, coach_id
+            // mal resuelto, etc.) NO sobrescriben la verdad remota.
+            if (!isDbInitialized(atletasDbInitKey(coachId))) {
+              const local = load("liftplan_atletas", []);
+              if (local.length > 0) {
+                const { error: emig } = await sb.from("atletas").upsert(
+                  local.map((a) => atletaToDb(a, coachId)),
+                  { onConflict: "app_id" },
+                );
+                if (!emig) markDbInitialized(atletasDbInitKey(coachId));
+              } else {
+                markDbInitialized(atletasDbInitKey(coachId));
+              }
             }
             prevAtletasRef.current = atletasRef.current;
           }
@@ -313,14 +403,23 @@ export function CoachApp({ session, profile, onLogout }) {
             setMesociclosRaw(cleaned);
             save("liftplan_mesociclos", cleaned);
             prevMesociclosRef.current = cleaned;
+            markDbInitialized(mesosDbInitKey(coachId));
           } else {
-            const local = load("liftplan_mesociclos", []);
-            if (local.length > 0) {
-              const { error: emig } = await sb.from("mesociclos").upsert(
-                local.map((m) => mesoToDb(m, coachId)),
-                { onConflict: "app_id" },
-              );
-              if (emig) console.warn("DB migrate mesociclos failed:", emig);
+            if (!isDbInitialized(mesosDbInitKey(coachId))) {
+              const local = load("liftplan_mesociclos", []);
+              if (local.length > 0) {
+                const { error: emig } = await sb.from("mesociclos").upsert(
+                  local.map((m) => mesoToDb(m, coachId)),
+                  { onConflict: "app_id" },
+                );
+                if (emig) {
+                  console.warn("DB migrate mesociclos failed:", emig);
+                } else {
+                  markDbInitialized(mesosDbInitKey(coachId));
+                }
+              } else {
+                markDbInitialized(mesosDbInitKey(coachId));
+              }
             }
             prevMesociclosRef.current = mesociclosRef.current;
           }
@@ -336,7 +435,7 @@ export function CoachApp({ session, profile, onLogout }) {
         markDbSync();
       }
     })();
-  }, [coachId]);
+  }, [coachId, persistPendingAtletaDeletes, persistPendingMesoDeletes]);
 
   // ── Pull remoto de atletas (incluye overrides normativos) ─────────────────
   const lastPullAtletasRef = useRef(0);
@@ -376,25 +475,42 @@ export function CoachApp({ session, profile, onLogout }) {
       markDbSync();
 
       const loaded = appAtletas.map(atletaFromDb);
+      // Precompute which DB items will override local — restoreAtleta*Overrides
+      // dispatch CustomEvents that PageAtleta listens to with setState, which
+      // would throw "setState in render" if invoked inside the updater below.
+      const pendingDel = pendingDeleteAtletaIdsRef.current;
+      const prevAtletasSnapshot = atletasRef.current;
+      const idsToRestore = [];
+      for (const dbItem of loaded) {
+        if (pendingDel.has(dbItem.id)) continue;
+        const local = prevAtletasSnapshot.find((p) => p.id === dbItem.id);
+        if (!local) {
+          idsToRestore.push(dbItem.id);
+          continue;
+        }
+        const dbTs = dbItem._updated_at
+          ? new Date(dbItem._updated_at).getTime()
+          : 0;
+        const localTs = local._updated_at
+          ? new Date(local._updated_at).getTime()
+          : 0;
+        if (dbTs > localTs) idsToRestore.push(dbItem.id);
+      }
+      for (const id of idsToRestore) {
+        const raw = appAtletas.find((r) => r.app_id === id);
+        if (raw) {
+          restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
+          restoreAtletaNormOverrides(raw.app_id, raw.normativos_overrides);
+        }
+      }
+
       setAtletasRaw((prev) => {
-        const pendingDel = pendingDeleteAtletaIdsRef.current;
         // LWW: solo actualizar items donde DB es más reciente que local
         const merged = loaded
           .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
           .map((dbItem) => {
             const local = prev.find((p) => p.id === dbItem.id);
-            if (!local) {
-              // Nuevo en DB — restaurar overrides
-              const raw = appAtletas.find((r) => r.app_id === dbItem.id);
-              if (raw) {
-                restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
-                restoreAtletaNormOverrides(
-                  raw.app_id,
-                  raw.normativos_overrides,
-                );
-              }
-              return dbItem;
-            }
+            if (!local) return dbItem;
             const dbTs = dbItem._updated_at
               ? new Date(dbItem._updated_at).getTime()
               : 0;
@@ -404,20 +520,7 @@ export function CoachApp({ session, profile, onLogout }) {
             // LWW: empate (dbTs === localTs) gana local — evita que un pull
             // que trae nuestra propia escritura pise overrides editados después
             // del push sin haber bumpeado _updated_at del meso.
-            if (dbTs > localTs) {
-              // DB gana — restaurar overrides de DB
-              const raw = appAtletas.find((r) => r.app_id === dbItem.id);
-              if (raw) {
-                restoreAtletaPctOverrides(raw.app_id, raw.pct_overrides);
-                restoreAtletaNormOverrides(
-                  raw.app_id,
-                  raw.normativos_overrides,
-                );
-              }
-              return dbItem;
-            }
-            // Local gana — mantener overrides locales
-            return local;
+            return dbTs > localTs ? dbItem : local;
           });
         // agregar items locales que aún no están en DB
         prev.forEach((localItem) => {
@@ -480,19 +583,39 @@ export function CoachApp({ session, profile, onLogout }) {
       markDbSync();
 
       const loaded = appMesos.map(mesoFromDb);
+      // Precompute which DB mesos will override local, then run side effects
+      // (restoreMesoOverrides writes localStorage) outside the state updater
+      // to avoid render-phase side effects.
+      const pendingDel = pendingDeleteMesoIdsRef.current;
+      const prevMesosSnapshot = mesociclosRef.current;
+      const mesoIdsToRestore = [];
+      for (const dbItem of loaded) {
+        if (pendingDel.has(dbItem.id)) continue;
+        const local = prevMesosSnapshot.find((p) => p.id === dbItem.id);
+        if (!local) {
+          mesoIdsToRestore.push(dbItem.id);
+          continue;
+        }
+        const dbTs = dbItem._updated_at
+          ? new Date(dbItem._updated_at).getTime()
+          : 0;
+        const localTs = local._updated_at
+          ? new Date(local._updated_at).getTime()
+          : 0;
+        if (dbTs > localTs) mesoIdsToRestore.push(dbItem.id);
+      }
+      for (const id of mesoIdsToRestore) {
+        const raw = appMesos.find((r) => r.app_id === id);
+        if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
+      }
+
       setMesociclosRaw((prev) => {
-        const pendingDel = pendingDeleteMesoIdsRef.current;
         // LWW: solo actualizar items donde DB es más reciente que local
         const merged = loaded
           .filter((dbItem) => !pendingDel.has(dbItem.id)) // skip pending deletes
           .map((dbItem) => {
             const local = prev.find((p) => p.id === dbItem.id);
-            if (!local) {
-              // Nuevo en DB — restaurar overrides
-              const raw = appMesos.find((r) => r.app_id === dbItem.id);
-              if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
-              return dbItem;
-            }
+            if (!local) return dbItem;
             const dbTs = dbItem._updated_at
               ? new Date(dbItem._updated_at).getTime()
               : 0;
@@ -500,14 +623,7 @@ export function CoachApp({ session, profile, onLogout }) {
               ? new Date(local._updated_at).getTime()
               : 0;
             // LWW: empate gana local — ver nota en pullAtletas.
-            if (dbTs > localTs) {
-              // DB gana — restaurar overrides de DB
-              const raw = appMesos.find((r) => r.app_id === dbItem.id);
-              if (raw) restoreMesoOverrides(raw.app_id, raw.overrides);
-              return dbItem;
-            }
-            // Local gana — mantener overrides locales
-            return local;
+            return dbTs > localTs ? dbItem : local;
           });
         prev.forEach((localItem) => {
           if (
@@ -549,7 +665,11 @@ export function CoachApp({ session, profile, onLogout }) {
       .filter((p) => !curr.find((a) => a.id === p.id))
       .map((p) => p.id);
     if (deletedIds.length > 0) {
-      deletedIds.forEach((id) => pendingDeleteAtletaIdsRef.current.add(id));
+      deletedIds.forEach((id) => {
+        pendingDeleteAtletaIdsRef.current.add(id);
+        clearAtletaOverrideKeys(id);
+      });
+      persistPendingAtletaDeletes();
       // Borrar de DB inmediatamente (sin esperar debounce)
       for (const id of deletedIds) {
         sb.from("atletas")
@@ -564,6 +684,7 @@ export function CoachApp({ session, profile, onLogout }) {
               );
             } else {
               pendingDeleteAtletaIdsRef.current.delete(id);
+              persistPendingAtletaDeletes();
             }
           })
           .catch((e) => console.warn("DELETE atleta exception:", id, e));
@@ -608,7 +729,11 @@ export function CoachApp({ session, profile, onLogout }) {
       .filter((p) => !curr.find((m) => m.id === p.id))
       .map((p) => p.id);
     if (deletedIds.length > 0) {
-      deletedIds.forEach((id) => pendingDeleteMesoIdsRef.current.add(id));
+      deletedIds.forEach((id) => {
+        pendingDeleteMesoIdsRef.current.add(id);
+        clearMesoOverrideKeys(id);
+      });
+      persistPendingMesoDeletes();
       for (const id of deletedIds) {
         sb.from("mesociclos")
           .eq("app_id", id)
@@ -622,6 +747,7 @@ export function CoachApp({ session, profile, onLogout }) {
               );
             } else {
               pendingDeleteMesoIdsRef.current.delete(id);
+              persistPendingMesoDeletes();
             }
           })
           .catch((e) => console.warn("DELETE mesociclo exception:", id, e));
@@ -655,23 +781,33 @@ export function CoachApp({ session, profile, onLogout }) {
   // ── Sincronizar overrides al ocultar/cerrar (sin polling periódico) ───────
   useEffect(() => {
     if (!coachId) return;
-    const flushPendingDeletes = () => {
+    const flushPendingDeletes = (useKeepalive = false) => {
       // Ejecutar borrados pendientes que no se enviaron aún a DB
       const prevAtletas = prevAtletasRef.current || [];
       const currAtletas = atletasRef.current;
       const deletedAtletaIds = prevAtletas
         .filter((p) => !currAtletas.find((a) => a.id === p.id))
         .map((p) => p.id);
-      for (const id of deletedAtletaIds) {
-        pendingDeleteAtletaIdsRef.current.add(id);
-        sb.from("atletas")
-          .eq("app_id", id)
-          .delete()
-          .then((res) => {
-            if (res?.error)
-              console.warn("flush DELETE atleta failed:", id, res.error);
-          })
-          .catch((e) => console.warn("flush DELETE atleta exception:", id, e));
+      if (deletedAtletaIds.length > 0) {
+        deletedAtletaIds.forEach((id) => {
+          pendingDeleteAtletaIdsRef.current.add(id);
+          clearAtletaOverrideKeys(id);
+        });
+        persistPendingAtletaDeletes();
+        for (const id of deletedAtletaIds) {
+          sb.from("atletas")
+            .eq("app_id", id)
+            .delete({ keepalive: useKeepalive })
+            .then((res) => {
+              if (res?.error) {
+                console.warn("flush DELETE atleta failed:", id, res.error);
+              } else {
+                pendingDeleteAtletaIdsRef.current.delete(id);
+                persistPendingAtletaDeletes();
+              }
+            })
+            .catch((e) => console.warn("flush DELETE atleta exception:", id, e));
+        }
       }
       prevAtletasRef.current = currAtletas;
 
@@ -680,23 +816,33 @@ export function CoachApp({ session, profile, onLogout }) {
       const deletedMesoIds = prevMesos
         .filter((p) => !currMesos.find((m) => m.id === p.id))
         .map((p) => p.id);
-      for (const id of deletedMesoIds) {
-        pendingDeleteMesoIdsRef.current.add(id);
-        sb.from("mesociclos")
-          .eq("app_id", id)
-          .delete()
-          .then((res) => {
-            if (res?.error)
-              console.warn("flush DELETE meso failed:", id, res.error);
-          })
-          .catch((e) => console.warn("flush DELETE meso exception:", id, e));
+      if (deletedMesoIds.length > 0) {
+        deletedMesoIds.forEach((id) => {
+          pendingDeleteMesoIdsRef.current.add(id);
+          clearMesoOverrideKeys(id);
+        });
+        persistPendingMesoDeletes();
+        for (const id of deletedMesoIds) {
+          sb.from("mesociclos")
+            .eq("app_id", id)
+            .delete({ keepalive: useKeepalive })
+            .then((res) => {
+              if (res?.error) {
+                console.warn("flush DELETE meso failed:", id, res.error);
+              } else {
+                pendingDeleteMesoIdsRef.current.delete(id);
+                persistPendingMesoDeletes();
+              }
+            })
+            .catch((e) => console.warn("flush DELETE meso exception:", id, e));
+        }
       }
       prevMesociclosRef.current = currMesos;
     };
 
     const syncOverrides = (useKeepalive = false) => {
       if (prevMesociclosRef.current === null) return;
-      flushPendingDeletes();
+      flushPendingDeletes(useKeepalive);
       // Solo sincronizar si hay timers pendientes (cambios no guardados)
       const hadPendingMesos = mesoSyncTimerRef.current !== null;
       const hadPendingAtletas = atletaSyncTimerRef.current !== null;
@@ -706,7 +852,7 @@ export function CoachApp({ session, profile, onLogout }) {
           sb.from("mesociclos")
             .upsert(
               curr.map((m) => mesoToDb(m, coachId)),
-              { onConflict: "app_id" },
+              { onConflict: "app_id", keepalive: useKeepalive },
             )
             .catch(() => {});
         }
@@ -717,7 +863,7 @@ export function CoachApp({ session, profile, onLogout }) {
           sb.from("atletas")
             .upsert(
               currAtletas.map((a) => atletaToDb(a, coachId)),
-              { onConflict: "app_id" },
+              { onConflict: "app_id", keepalive: useKeepalive },
             )
             .catch(() => {});
         }
@@ -737,7 +883,7 @@ export function CoachApp({ session, profile, onLogout }) {
           sb.from("mesociclos")
             .upsert(
               mesosToFlush.map((m) => mesoToDb(m, coachId)),
-              { onConflict: "app_id" },
+              { onConflict: "app_id", keepalive: useKeepalive },
             )
             .catch(() => {});
         }
@@ -755,24 +901,24 @@ export function CoachApp({ session, profile, onLogout }) {
           sb.from("atletas")
             .upsert(
               atletasToFlush.map((a) => atletaToDb(a, coachId)),
-              { onConflict: "app_id" },
+              { onConflict: "app_id", keepalive: useKeepalive },
             )
             .catch(() => {});
         }
       }
       // Flush pending plantilla timers
-      flushPlantillaSync();
+      flushPlantillaSync({ keepalive: useKeepalive });
     };
 
+    // visibilitychange:hidden es la señal MÁS confiable de "el coach se va"
+    // (en mobile beforeunload no dispara). Usamos keepalive para que el
+    // navegador no aborte los fetch al descargar la página.
     const onHide = () => {
       if (document.visibilityState === "hidden") {
-        // Cancel debounce timers but keep refs non-null so syncOverrides
-        // knows there were pending changes and flushes them to DB.
         if (atletaSyncTimerRef.current)
           clearTimeout(atletaSyncTimerRef.current);
         if (mesoSyncTimerRef.current) clearTimeout(mesoSyncTimerRef.current);
-        syncOverrides();
-        // Safe to clear refs AFTER syncOverrides has checked them
+        syncOverrides(true);
         atletaSyncTimerRef.current = null;
         mesoSyncTimerRef.current = null;
       }
@@ -907,6 +1053,18 @@ export function CoachApp({ session, profile, onLogout }) {
 
   const [isManualSaving, setIsManualSaving] = useState(false);
   const [showBackupBanner, setShowBackupBanner] = useState(false);
+  const [quotaWarning, setQuotaWarning] = useState(false);
+
+  // ── Listener de quota localStorage ───────────────────────────────────────
+  // Si safeSetItem falla por quota llena, avisamos al coach: los datos en
+  // memoria no se pudieron persistir localmente. El push a DB sigue
+  // funcionando, pero el coach debe descargar un backup y/o liberar espacio.
+  useEffect(() => {
+    const onQuota = () => setQuotaWarning(true);
+    window.addEventListener(LIFTPLAN_QUOTA_EXCEEDED_EVENT, onQuota);
+    return () =>
+      window.removeEventListener(LIFTPLAN_QUOTA_EXCEEDED_EVENT, onQuota);
+  }, []);
 
   // ── Auto-backup: si pasan 5h sin sync a DB, mostrar aviso ─────────────────
   useEffect(() => {
@@ -936,7 +1094,8 @@ export function CoachApp({ session, profile, onLogout }) {
   const forceSaveAllToDb = useCallback(async () => {
     if (!coachId || isManualSaving) return;
 
-    // Cancelar debounce pendientes para evitar doble write
+    // Cancelar TODOS los debounces pendientes para evitar doble write y
+    // garantizar que nada se quede afuera del "Guardar todo".
     if (atletaSyncTimerRef.current) {
       clearTimeout(atletaSyncTimerRef.current);
       atletaSyncTimerRef.current = null;
@@ -944,6 +1103,14 @@ export function CoachApp({ session, profile, onLogout }) {
     if (mesoSyncTimerRef.current) {
       clearTimeout(mesoSyncTimerRef.current);
       mesoSyncTimerRef.current = null;
+    }
+    if (mesoOverrideSyncTimersRef.current.size > 0) {
+      mesoOverrideSyncTimersRef.current.forEach((t) => clearTimeout(t));
+      mesoOverrideSyncTimersRef.current.clear();
+    }
+    if (atletaOverrideSyncTimersRef.current.size > 0) {
+      atletaOverrideSyncTimersRef.current.forEach((t) => clearTimeout(t));
+      atletaOverrideSyncTimersRef.current.clear();
     }
 
     setIsManualSaving(true);
@@ -953,9 +1120,6 @@ export function CoachApp({ session, profile, onLogout }) {
       );
       const mesociclosPayload = mesociclosRef.current.map((m) =>
         mesoToDb(m, coachId),
-      );
-      const plantillasPayload = (plantillas || []).map((p) =>
-        plantillaToDb(p, coachId),
       );
 
       const writes = [];
@@ -972,13 +1136,10 @@ export function CoachApp({ session, profile, onLogout }) {
             .upsert(mesociclosPayload, { onConflict: "app_id" }),
         );
       }
-      if (plantillasPayload.length > 0) {
-        writes.push(
-          sb
-            .from("plantillas")
-            .upsert(plantillasPayload, { onConflict: "app_id" }),
-        );
-      }
+      // flushPlantillaSync cancela los timers internos del hook Y empuja el
+      // estado actual. Lo usamos en lugar de un upsert directo para que no
+      // queden timers pendientes que disparen un segundo write después.
+      writes.push(flushPlantillaSync());
 
       const normativosLocal = readLocalJson("liftplan_normativos", null);
       const tablasLocal = readLocalJson("liftplan_tablas", null);
@@ -1005,7 +1166,7 @@ export function CoachApp({ session, profile, onLogout }) {
     } finally {
       setIsManualSaving(false);
     }
-  }, [coachId, isManualSaving, plantillas]);
+  }, [coachId, isManualSaving, flushPlantillaSync]);
 
   return (
     <>
@@ -1304,6 +1465,65 @@ export function CoachApp({ session, profile, onLogout }) {
             </button>
           </div>
         </nav>
+
+        {/* Banner de quota localStorage llena */}
+        {quotaWarning && (
+          <div
+            style={{
+              background: "rgba(232,80,71,.18)",
+              borderBottom: "1px solid var(--red)",
+              padding: "8px 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              fontSize: 13,
+              color: "var(--text)",
+            }}
+          >
+            <span>
+              ⚠️ Almacenamiento local lleno. Los cambios siguen guardándose en
+              la base, pero descargá un respaldo y reiniciá el navegador para
+              liberar espacio.
+            </span>
+            <button
+              onClick={() => {
+                downloadBackup();
+                setQuotaWarning(false);
+              }}
+              style={{
+                padding: "4px 14px",
+                borderRadius: 6,
+                border: "1px solid var(--gold)",
+                background: "var(--gold)",
+                color: "#0a0c10",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Download
+                size={12}
+                style={{ verticalAlign: -2, marginRight: 4 }}
+              />
+              Descargar respaldo
+            </button>
+            <button
+              onClick={() => setQuotaWarning(false)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--muted)",
+                cursor: "pointer",
+                padding: 4,
+              }}
+              title="Cerrar"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Banner de respaldo automático */}
         {showBackupBanner && (

@@ -1,9 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { sb } from "../lib/supabase-client";
 import { plantillaToDb, plantillaFromDb } from "../lib/mappers";
-import { safeSetItem } from "../lib/storage";
+import {
+  safeSetItem,
+  loadPendingDeleteSet,
+  savePendingDeleteSet,
+  PENDING_DELETE_KEYS,
+} from "../lib/storage";
+import { clearPlantillaLocalKeys } from "../lib/overrides";
 import { mkId } from "../data/constantes";
 import { _visResume } from "../lib/sync";
+
+// Marca de inicialización: una vez la DB devolvió datos para este coach,
+// nunca más migramos localStorage→DB silenciosamente. Evita sobrescribir
+// con datos viejos si un pull devuelve [] por RLS o coachId mal resuelto.
+const dbInitKey = (coachId) => `liftplan_plantillas_db_init_${coachId}`;
 
 export function usePlantillas(coachId) {
   const [plantillas, setPlantillas] = useState(() => {
@@ -28,7 +39,17 @@ export function usePlantillas(coachId) {
     }
   });
   const plantillaSyncTimersRef = useRef(new Map());
-  const pendingDeletePlantillaIdsRef = useRef(new Set());
+  // Cargado desde localStorage para sobrevivir a cierres de pestaña antes de
+  // confirmar el DELETE en DB. Mutaciones se persisten al toque.
+  const pendingDeletePlantillaIdsRef = useRef(
+    loadPendingDeleteSet(PENDING_DELETE_KEYS.plantillas),
+  );
+  const persistPendingDeletes = useCallback(() => {
+    savePendingDeleteSet(
+      PENDING_DELETE_KEYS.plantillas,
+      pendingDeletePlantillaIdsRef.current,
+    );
+  }, []);
 
   const queuePlantillaSync = useCallback(
     (item, delay = 4000) => {
@@ -62,6 +83,28 @@ export function usePlantillas(coachId) {
     if (!coachId) return;
     let cancelled = false;
 
+    // Reintenta los DELETE pendientes que quedaron de sesiones anteriores
+    // ANTES de cualquier pull, para que el pull no traiga el item recién
+    // borrado y lo reviva.
+    const pendingDel = pendingDeletePlantillaIdsRef.current;
+    if (pendingDel.size > 0) {
+      const ids = [...pendingDel];
+      Promise.all(
+        ids.map((id) =>
+          sb
+            .from("plantillas")
+            .eq("app_id", id)
+            .delete()
+            .then((res) => {
+              if (!res?.error) {
+                pendingDel.delete(id);
+              }
+            })
+            .catch(() => {}),
+        ),
+      ).then(() => persistPendingDeletes());
+    }
+
     const pullPlantillas = async () => {
       const now = Date.now();
       if (now - lastPullPlantillasRef.current < 5000) return; // throttle 5s
@@ -83,6 +126,11 @@ export function usePlantillas(coachId) {
         lastSyncTsPlantillasRef.current = new Date().toISOString();
       }
       const appPlantillas = data.filter((r) => r.app_id);
+      // Marcar DB como inicializada en cuanto el primer pull responde sin
+      // error y trae datos. A partir de aquí, jamás migramos local→DB.
+      if (appPlantillas.length > 0) {
+        try { localStorage.setItem(dbInitKey(coachId), "1"); } catch {}
+      }
       if (appPlantillas.length > 0) {
         const loaded = appPlantillas.map(plantillaFromDb);
         setPlantillas((prev) => {
@@ -114,23 +162,38 @@ export function usePlantillas(coachId) {
           return merged;
         });
       } else {
-        // DB vacía — migrar localStorage → DB
-        const local = (() => {
-          try {
-            return JSON.parse(
-              localStorage.getItem("liftplan_plantillas") || "[]",
-            );
-          } catch {
-            return [];
+        // DB devolvió vacío. Solo migrar local→DB la primera vez que vemos
+        // este coachId; después asumimos que la DB es la verdad y no
+        // sobrescribimos por un eventual pull vacío (RLS, coach_id mal, etc.).
+        let dbInitialized = false;
+        try { dbInitialized = localStorage.getItem(dbInitKey(coachId)) === "1"; } catch {}
+        if (!dbInitialized) {
+          const local = (() => {
+            try {
+              return JSON.parse(
+                localStorage.getItem("liftplan_plantillas") || "[]",
+              );
+            } catch {
+              return [];
+            }
+          })();
+          if (local.length > 0) {
+            sb.from("plantillas")
+              .upsert(
+                local.map((p) => plantillaToDb(p, coachId)),
+                { onConflict: "app_id" },
+              )
+              .then(({ error }) => {
+                if (!error) {
+                  try { localStorage.setItem(dbInitKey(coachId), "1"); } catch {}
+                }
+              })
+              .catch(() => {});
+          } else {
+            // No hay nada que migrar. Marcar como inicializada para que el
+            // próximo pull con datos no se trate como "primera vez".
+            try { localStorage.setItem(dbInitKey(coachId), "1"); } catch {}
           }
-        })();
-        if (local.length > 0) {
-          sb.from("plantillas")
-            .upsert(
-              local.map((p) => plantillaToDb(p, coachId)),
-              { onConflict: "app_id" },
-            )
-            .catch(() => {});
         }
       }
     };
@@ -177,14 +240,13 @@ export function usePlantillas(coachId) {
       plantillaSyncTimersRef.current.delete(id);
     }
     pendingDeletePlantillaIdsRef.current.add(id);
+    persistPendingDeletes();
     setPlantillas((prev) => {
       const next = prev.filter((x) => x.id !== id);
       safeSetItem("liftplan_plantillas", JSON.stringify(next));
       return next;
     });
-    try {
-      localStorage.removeItem(`liftplan_plt_draft_${id}`);
-    } catch {}
+    clearPlantillaLocalKeys(id);
     if (coachId) {
       sb.from("plantillas")
         .eq("app_id", id)
@@ -198,25 +260,33 @@ export function usePlantillas(coachId) {
             );
           } else {
             pendingDeletePlantillaIdsRef.current.delete(id);
+            persistPendingDeletes();
           }
         })
         .catch((e) => console.warn("DELETE plantilla exception:", id, e));
     }
   };
-  const flushSync = useCallback(() => {
-    // Flush all pending plantilla sync timers and push current state
-    if (plantillaSyncTimersRef.current.size > 0) {
-      plantillaSyncTimersRef.current.forEach((timer) => clearTimeout(timer));
-      plantillaSyncTimersRef.current.clear();
-    }
-    if (coachId && plantillas.length > 0) {
-      sb.from("plantillas")
-        .upsert(
-          plantillas.map((p) => plantillaToDb(p, coachId)),
-          { onConflict: "app_id" },
-        )
-        .catch(() => {});
-    }
-  }, [coachId, plantillas]);
+  const flushSync = useCallback(
+    ({ keepalive = false } = {}) => {
+      // Flush todos los timers pendientes y empujar el estado actual.
+      // Devuelve la promesa del upsert para que el caller pueda await-ear
+      // ("Guardar todo").
+      if (plantillaSyncTimersRef.current.size > 0) {
+        plantillaSyncTimersRef.current.forEach((timer) => clearTimeout(timer));
+        plantillaSyncTimersRef.current.clear();
+      }
+      if (coachId && plantillas.length > 0) {
+        return sb
+          .from("plantillas")
+          .upsert(
+            plantillas.map((p) => plantillaToDb(p, coachId)),
+            { onConflict: "app_id", keepalive },
+          )
+          .catch(() => {});
+      }
+      return Promise.resolve();
+    },
+    [coachId, plantillas],
+  );
   return { plantillas, add, update, remove, flushSync };
 }
