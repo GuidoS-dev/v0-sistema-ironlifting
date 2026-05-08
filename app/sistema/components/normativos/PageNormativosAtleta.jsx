@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { CATEGORIAS, CAT_COLOR } from "../../data/constantes";
+import { NormativoInfoButton } from "./NormativoInfoButton";
+import { NormativoInfoModal } from "./NormativoInfoModal";
 
 export function PageNormativosAtleta({
   atleta,
@@ -14,6 +16,7 @@ export function PageNormativosAtleta({
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [error, setError] = useState("");
+  const [infoEj, setInfoEj] = useState(null);
 
   const globalById = {};
   globalNormativos.forEach((e) => {
@@ -211,7 +214,19 @@ export function PageNormativosAtleta({
                       </span>
                     </td>
                     <td>
-                      <span style={{ fontWeight: 500 }}>{e.nombre}</span>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <span style={{ fontWeight: 500 }}>{e.nombre}</span>
+                        <NormativoInfoButton
+                          ejercicio={e}
+                          onClick={() => setInfoEj(e)}
+                        />
+                      </div>
                     </td>
                     <td>
                       <span
@@ -328,6 +343,13 @@ export function PageNormativosAtleta({
           </table>
         </div>
       </div>
+
+      {infoEj && (
+        <NormativoInfoModal
+          ejercicio={infoEj}
+          onClose={() => setInfoEj(null)}
+        />
+      )}
     </div>
   );
 }

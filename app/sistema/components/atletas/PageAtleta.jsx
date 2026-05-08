@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, Copy, Library, Minus, Pencil, Plus, Redo2, Trash2, Undo2 } from "lucide-react";
 import { Modal } from "../common/Modal";
+import { PanelTabBoundary } from "../common/PanelTabBoundary";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { CATEGORIAS, CAT_COLOR, mkId } from "../../data/constantes";
 import { FASES_CICLO } from "../../data/ciclo";

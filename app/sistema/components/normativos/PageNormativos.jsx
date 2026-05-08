@@ -5,6 +5,8 @@ import { CATEGORIAS, CAT_COLOR } from "../../data/constantes";
 import { readLocalJson, writeLocalJson } from "../../lib/storage";
 import { COACH_SETTING_KEYS, loadCoachSettingRow, saveCoachSetting } from "../../lib/coach-settings";
 import { _visResume } from "../../lib/sync";
+import { hasNormativoInfo } from "../../lib/normativos-info";
+import { EditNormativoInfoModal } from "./EditNormativoInfoModal";
 
 export function PageNormativos({ coachId, isActive = false }) {
   const isNormativosValid = (value) =>
@@ -25,15 +27,41 @@ export function PageNormativos({ coachId, isActive = false }) {
     categoria: "Arranque",
     pct_base: "",
     base: "arranque",
+    descripcion: "",
+    videoUrl: "",
   });
   const [confirmDel, setConfirmDel] = useState(null);
   const [error, setError] = useState("");
+  const [editInfoId, setEditInfoId] = useState(null);
+  const [syncError, setSyncError] = useState(null);
   const isSyncingRef = useRef(false);
+  // Counter of in-flight saveCoachSetting calls. syncFromDb skips while > 0 so
+  // a slow upsert can never get clobbered by a remote read of the previous value.
+  const pendingSavesRef = useRef(0);
+  // Latest unsaved local list when a save fails — syncFromDb retries with this
+  // instead of pulling stale remote and clobbering the user's changes.
+  const dirtyLocalRef = useRef(null);
 
   const syncFromDb = useCallback(async () => {
     if (!coachId || isSyncingRef.current) return;
+    if (pendingSavesRef.current > 0) return;
     isSyncingRef.current = true;
     try {
+      // If a previous save failed, never pull — instead retry the push with the
+      // last known-good local list, otherwise stale remote would clobber it.
+      if (dirtyLocalRef.current) {
+        const ok = await saveCoachSetting(
+          coachId,
+          COACH_SETTING_KEYS.normativos,
+          dirtyLocalRef.current,
+        );
+        if (ok) {
+          dirtyLocalRef.current = null;
+          setSyncError(null);
+        }
+        return;
+      }
+
       const remoteRow = await loadCoachSettingRow(
         coachId,
         COACH_SETTING_KEYS.normativos,
@@ -77,7 +105,24 @@ export function PageNormativos({ coachId, isActive = false }) {
     setEjercicios(list);
     writeLocalJson("liftplan_normativos", list);
     if (coachId) {
-      saveCoachSetting(coachId, COACH_SETTING_KEYS.normativos, list);
+      pendingSavesRef.current += 1;
+      Promise.resolve(
+        saveCoachSetting(coachId, COACH_SETTING_KEYS.normativos, list),
+      )
+        .then((ok) => {
+          if (ok) {
+            dirtyLocalRef.current = null;
+            setSyncError(null);
+          } else {
+            dirtyLocalRef.current = list;
+            setSyncError(
+              "No se pudo guardar en el servidor. Se reintentará automáticamente.",
+            );
+          }
+        })
+        .finally(() => {
+          pendingSavesRef.current = Math.max(0, pendingSavesRef.current - 1);
+        });
     }
   };
 
@@ -166,8 +211,25 @@ export function PageNormativos({ coachId, isActive = false }) {
       categoria: "Arranque",
       pct_base: "",
       base: "arranque",
+      descripcion: "",
+      videoUrl: "",
     });
     setShowAdd(false);
+  };
+
+  const saveInfoForEj = (id, info) => {
+    save(
+      ejercicios.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              descripcion: info.descripcion || "",
+              videoUrl: info.videoUrl || "",
+            }
+          : e,
+      ),
+    );
+    setEditInfoId(null);
   };
 
   const filtered = ejercicios
@@ -304,6 +366,35 @@ export function PageNormativos({ coachId, isActive = false }) {
               </select>
             </div>
           </div>
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Descripción (opcional)</label>
+              <textarea
+                className="form-input"
+                rows={3}
+                placeholder="Explicación del ejercicio, técnica, puntos clave..."
+                value={newEj.descripcion}
+                onChange={(e) =>
+                  setNewEj((n) => ({ ...n, descripcion: e.target.value }))
+                }
+                style={{ resize: "vertical", fontFamily: "inherit" }}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">
+                Link Google Drive — video (opcional)
+              </label>
+              <input
+                className="form-input"
+                type="url"
+                placeholder="https://drive.google.com/file/d/..."
+                value={newEj.videoUrl}
+                onChange={(e) =>
+                  setNewEj((n) => ({ ...n, videoUrl: e.target.value }))
+                }
+              />
+            </div>
+          </div>
           {error && (
             <div
               style={{
@@ -367,6 +458,23 @@ export function PageNormativos({ coachId, isActive = false }) {
             {filtered.length} ejercicios
           </span>
         </div>
+
+        {syncError && (
+          <div
+            style={{
+              marginBottom: 12,
+              padding: "8px 14px",
+              borderRadius: 8,
+              background: "rgba(232,71,71,.1)",
+              border: "1px solid rgba(232,71,71,.3)",
+              fontSize: 12,
+              color: "var(--red)",
+              fontWeight: 600,
+            }}
+          >
+            ⚠ {syncError}
+          </div>
+        )}
 
         {/* Error en edición */}
         {error && editId && (
@@ -579,12 +687,33 @@ export function PageNormativos({ coachId, isActive = false }) {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          className="btn btn-danger btn-xs"
-                          onClick={() => setConfirmDel(e.id)}
+                        <div
+                          className="flex gap4"
+                          style={{ justifyContent: "flex-end" }}
                         >
-                          ✕
-                        </button>
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            title={
+                              hasNormativoInfo(e)
+                                ? "Editar descripción / video"
+                                : "Agregar descripción / video"
+                            }
+                            onClick={() => setEditInfoId(e.id)}
+                            style={{
+                              color: hasNormativoInfo(e)
+                                ? "var(--gold)"
+                                : "var(--muted)",
+                            }}
+                          >
+                            {hasNormativoInfo(e) ? "📝" : "+ info"}
+                          </button>
+                          <button
+                            className="btn btn-danger btn-xs"
+                            onClick={() => setConfirmDel(e.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -678,6 +807,20 @@ export function PageNormativos({ coachId, isActive = false }) {
                 </button>
               </div>
             </Modal>
+          );
+        })()}
+
+      {/* Edit info modal (descripción + video) */}
+      {editInfoId !== null &&
+        (() => {
+          const ej = ejercicios.find((e) => e.id === editInfoId);
+          if (!ej) return null;
+          return (
+            <EditNormativoInfoModal
+              ejercicio={ej}
+              onSave={(info) => saveInfoForEj(editInfoId, info)}
+              onClose={() => setEditInfoId(null)}
+            />
           );
         })()}
     </div>

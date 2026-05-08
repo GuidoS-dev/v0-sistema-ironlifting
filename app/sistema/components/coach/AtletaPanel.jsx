@@ -14,6 +14,8 @@ import { getEjercicioById } from "../../lib/calc";
 import { LogoHorizontal } from "../common/Logos";
 import { PageResumen } from "../resumen/PageResumen";
 import { PagePDF } from "../pdf/PagePDF";
+import { NormativoInfoButton } from "../normativos/NormativoInfoButton";
+import { NormativoInfoModal } from "../normativos/NormativoInfoModal";
 
 export function AtletaPanel({ session, profile, onLogout }) {
   const [loading, setLoading] = useState(true);
@@ -24,6 +26,7 @@ export function AtletaPanel({ session, profile, onLogout }) {
   const [coachTablas, setCoachTablas] = useState(null);
   const [atletaView, setAtletaView] = useState(null); // "resumen" | "normativos" | "cronometro" | null
   const [normSearch, setNormSearch] = useState("");
+  const [normInfoEj, setNormInfoEj] = useState(null);
   const [atletaNormOvr, setAtletaNormOvr] = useState({});
   const [cronometroExercises, setCronometroExercises] = useState(null);
   const [cronometroTurnoInfo, setCronometroTurnoInfo] = useState(null);
@@ -622,7 +625,15 @@ export function AtletaPanel({ session, profile, onLogout }) {
                         >
                           {ej.id}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
                           <div
                             style={{
                               fontSize: 13,
@@ -630,10 +641,15 @@ export function AtletaPanel({ session, profile, onLogout }) {
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
+                              minWidth: 0,
                             }}
                           >
                             {ej.nombre}
                           </div>
+                          <NormativoInfoButton
+                            ejercicio={ej}
+                            onClick={() => setNormInfoEj(ej)}
+                          />
                         </div>
                         <div
                           style={{
@@ -683,6 +699,12 @@ export function AtletaPanel({ session, profile, onLogout }) {
             </div>
           )}
         </div>
+        {normInfoEj && (
+          <NormativoInfoModal
+            ejercicio={normInfoEj}
+            onClose={() => setNormInfoEj(null)}
+          />
+        )}
       </div>
     );
   }
