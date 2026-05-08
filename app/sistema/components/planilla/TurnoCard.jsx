@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Clipboard, Copy } from "lucide-react";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { CAT_COLOR, DIAS, MOMENTOS, mkId } from "../../data/constantes";
@@ -18,10 +18,14 @@ export function TurnoCard({
   normativos = null,
 }) {
   const [open, setOpen] = useState(semana_idx === 0 && turno.numero <= 2);
-  const stats = getSembradoStats([turno], normativos);
-  const totalReps = turno.ejercicios.reduce(
-    (s, e) => s + Number(e.reps_asignadas),
-    0,
+  const stats = useMemo(
+    () => getSembradoStats([turno], normativos),
+    [turno, normativos],
+  );
+  const totalReps = useMemo(
+    () =>
+      turno.ejercicios.reduce((s, e) => s + Number(e.reps_asignadas), 0),
+    [turno.ejercicios],
   );
 
   // ── Reordenar ejercicios con flechas ──

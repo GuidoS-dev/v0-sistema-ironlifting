@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { CAT_COLOR } from "../../data/constantes";
 import { INTENSIDADES, TABLA_DEFAULT } from "../../data/tablas-default";
@@ -8,7 +8,33 @@ import {
   loadMesoOverridesFromLocal,
 } from "../../lib/calc";
 
-export function PageResumen({
+// Wrapper con render diferido: paint skeleton primero, montar PageResumenContent en next tick.
+// (PageResumenContent corre cómputos pesados al montar; sin diferir, el click "Resumen" se siente colgado)
+export function PageResumen(props) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setReady(true), 0);
+    return () => clearTimeout(id);
+  }, []);
+  if (!ready) {
+    return (
+      <div
+        style={{
+          padding: 24,
+          color: "var(--muted)",
+          fontFamily: "'DM Sans'",
+          fontSize: 13,
+          letterSpacing: ".05em",
+        }}
+      >
+        Calculando métricas…
+      </div>
+    );
+  }
+  return <PageResumenContent {...props} />;
+}
+
+function PageResumenContent({
   meso,
   atleta,
   irm_arr,
@@ -43,19 +69,19 @@ export function PageResumen({
   } = RC;
   const hasRecharts = !!BarChart;
 
-  const normativos =
-    normativosProp ??
-    (() => {
-      try {
-        return (
-          JSON.parse(localStorage.getItem("liftplan_normativos") || "null") ||
-          EJERCICIOS
-        );
-      } catch {
-        return EJERCICIOS;
-      }
-    })();
-  const tablas = (() => {
+  const normativos = useMemo(() => {
+    if (normativosProp) return normativosProp;
+    try {
+      return (
+        JSON.parse(localStorage.getItem("liftplan_normativos") || "null") ||
+        EJERCICIOS
+      );
+    } catch {
+      return EJERCICIOS;
+    }
+  }, [normativosProp]);
+
+  const tablas = useMemo(() => {
     try {
       return (
         JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
@@ -64,11 +90,14 @@ export function PageResumen({
     } catch {
       return TABLA_DEFAULT;
     }
-  })();
+  }, []);
 
   // ── Overrides persistidos del mesociclo (repsEdit, manualEdit, % por bloque/turno) ──
-  const overrides = loadMesoOverridesFromLocal(meso.id);
-  const cellEditSaved = (() => {
+  const overrides = useMemo(
+    () => loadMesoOverridesFromLocal(meso.id),
+    [meso.id],
+  );
+  const cellEditSaved = useMemo(() => {
     try {
       return (
         JSON.parse(
@@ -78,8 +107,8 @@ export function PageResumen({
     } catch {
       return {};
     }
-  })();
-  const cellManualSaved = (() => {
+  }, [meso.id]);
+  const cellManualSaved = useMemo(() => {
     try {
       return new Set(
         JSON.parse(
@@ -89,10 +118,10 @@ export function PageResumen({
     } catch {
       return new Set();
     }
-  })();
+  }, [meso.id]);
 
   // ── Función core: calcular métricas de un array de {ej, semIdx, tIdx} ────
-  const calcMetricas = (pairs) => {
+  const calcMetricas = useCallback((pairs) => {
     let volReps = 0,
       volKg = 0,
       sumIntReps = 0;
@@ -215,52 +244,70 @@ export function PageResumen({
       intMedia,
       grupoData,
     };
-  };
+  }, [meso, normativos, irm_arr, irm_env, tablas, overrides, cellManualSaved, cellEditSaved]);
+
+  const _isEscuelaMeso = meso.escuela === true || meso.escuela === "true";
 
   // ── Métricas por semana ───────────────────────────────────────────────────
-  const _isEscuelaMeso = meso.escuela === true || meso.escuela === "true";
-  const metSemanas = meso.semanas.map((sem, semIdx) => {
-    const pairs = sem.turnos.flatMap((t, tIdx) =>
-      t.ejercicios
-        .filter((e) => e.ejercicio_id)
-        .map((ej) => ({ ej, semIdx, tIdx })),
-    );
-    return {
-      label: `Sem ${sem.numero}`,
-      pct: sem.pct_volumen ?? null,
-      plan:
-        meso.volumen_total && sem.pct_volumen
-          ? Math.round((meso.volumen_total * sem.pct_volumen) / 100)
-          : null,
-      ...calcMetricas(pairs),
-    };
-  });
+  const metSemanas = useMemo(
+    () =>
+      meso.semanas.map((sem, semIdx) => {
+        const pairs = sem.turnos.flatMap((t, tIdx) =>
+          t.ejercicios
+            .filter((e) => e.ejercicio_id)
+            .map((ej) => ({ ej, semIdx, tIdx })),
+        );
+        return {
+          label: `Sem ${sem.numero}`,
+          pct: sem.pct_volumen ?? null,
+          plan:
+            meso.volumen_total && sem.pct_volumen
+              ? Math.round((meso.volumen_total * sem.pct_volumen) / 100)
+              : null,
+          ...calcMetricas(pairs),
+        };
+      }),
+    [meso, calcMetricas],
+  );
 
   // ── Métricas por turno de la semana activa ────────────────────────────────
-  const semVista = semActiva !== null ? meso.semanas[semActiva] : null;
-  const metTurnos = semVista
-    ? semVista.turnos
-        .map((t, tIdx) => {
-          const pairs = t.ejercicios
-            .filter((e) => e.ejercicio_id)
-            .map((ej) => ({ ej, semIdx: semActiva, tIdx }));
-          return {
-            label: t.dia ? `T${tIdx + 1} ${t.dia.slice(0, 3)}` : `T${tIdx + 1}`,
-            ...calcMetricas(pairs),
-          };
-        })
-        .filter((t) => t.volReps > 0)
-    : [];
+  const semVista = useMemo(
+    () => (semActiva !== null ? meso.semanas[semActiva] : null),
+    [semActiva, meso],
+  );
+  const metTurnos = useMemo(
+    () =>
+      semVista
+        ? semVista.turnos
+            .map((t, tIdx) => {
+              const pairs = t.ejercicios
+                .filter((e) => e.ejercicio_id)
+                .map((ej) => ({ ej, semIdx: semActiva, tIdx }));
+              return {
+                label: t.dia
+                  ? `T${tIdx + 1} ${t.dia.slice(0, 3)}`
+                  : `T${tIdx + 1}`,
+                ...calcMetricas(pairs),
+              };
+            })
+            .filter((t) => t.volReps > 0)
+        : [],
+    [semVista, semActiva, calcMetricas],
+  );
 
   // ── Métricas globales del mesociclo ───────────────────────────────────────
-  const totMeso = calcMetricas(
-    meso.semanas.flatMap((sem, semIdx) =>
-      sem.turnos.flatMap((t, tIdx) =>
-        t.ejercicios
-          .filter((e) => e.ejercicio_id)
-          .map((ej) => ({ ej, semIdx, tIdx })),
+  const totMeso = useMemo(
+    () =>
+      calcMetricas(
+        meso.semanas.flatMap((sem, semIdx) =>
+          sem.turnos.flatMap((t, tIdx) =>
+            t.ejercicios
+              .filter((e) => e.ejercicio_id)
+              .map((ej) => ({ ej, semIdx, tIdx })),
+          ),
+        ),
       ),
-    ),
+    [meso, calcMetricas],
   );
 
   // ── UI helpers ────────────────────────────────────────────────────────────
@@ -353,41 +400,56 @@ export function PageResumen({
   );
 
   // Datos activos según navegación
-  const chartDataSem = metSemanas.map((s) => ({
-    name: s.label,
-    "Vol. Real": s.volReps,
-    Planificado: s.plan,
-    Tonelaje: s.volKg,
-    "Int. Media": s.intMedia,
-    "Coef. Int.": s.coefInt,
-    "Peso Medio": s.pesoMedio,
-  }));
+  const chartDataSem = useMemo(
+    () =>
+      metSemanas.map((s) => ({
+        name: s.label,
+        "Vol. Real": s.volReps,
+        Planificado: s.plan,
+        Tonelaje: s.volKg,
+        "Int. Media": s.intMedia,
+        "Coef. Int.": s.coefInt,
+        "Peso Medio": s.pesoMedio,
+      })),
+    [metSemanas],
+  );
 
-  const chartDataTurno = metTurnos.map((t) => ({
-    name: t.label,
-    "Vol. Reps": t.volReps,
-    Tonelaje: t.volKg,
-    "Int. Media": t.intMedia,
-    "Coef. Int.": t.coefInt,
-    "Peso Medio": t.pesoMedio,
-  }));
+  const chartDataTurno = useMemo(
+    () =>
+      metTurnos.map((t) => ({
+        name: t.label,
+        "Vol. Reps": t.volReps,
+        Tonelaje: t.volKg,
+        "Int. Media": t.intMedia,
+        "Coef. Int.": t.coefInt,
+        "Peso Medio": t.pesoMedio,
+      })),
+    [metTurnos],
+  );
 
-  const vistaMetricas =
-    semActiva !== null && turnoActivo !== null
-      ? calcMetricas(
-          semVista.turnos[turnoActivo]?.ejercicios
-            .filter((e) => e.ejercicio_id)
-            .map((ej) => ({ ej, semIdx: semActiva, tIdx: turnoActivo })) || [],
-        )
-      : semActiva !== null
+  const vistaMetricas = useMemo(
+    () =>
+      semActiva !== null && turnoActivo !== null
         ? calcMetricas(
-            semVista.turnos.flatMap((t, tIdx) =>
-              t.ejercicios
-                .filter((e) => e.ejercicio_id)
-                .map((ej) => ({ ej, semIdx: semActiva, tIdx })),
-            ),
+            semVista.turnos[turnoActivo]?.ejercicios
+              .filter((e) => e.ejercicio_id)
+              .map((ej) => ({
+                ej,
+                semIdx: semActiva,
+                tIdx: turnoActivo,
+              })) || [],
           )
-        : totMeso;
+        : semActiva !== null
+          ? calcMetricas(
+              semVista.turnos.flatMap((t, tIdx) =>
+                t.ejercicios
+                  .filter((e) => e.ejercicio_id)
+                  .map((ej) => ({ ej, semIdx: semActiva, tIdx })),
+              ),
+            )
+          : totMeso,
+    [semActiva, turnoActivo, semVista, calcMetricas, totMeso],
+  );
 
   const vistaLabel =
     turnoActivo !== null && semVista

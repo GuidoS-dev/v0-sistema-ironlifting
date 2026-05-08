@@ -14,7 +14,33 @@ import { NormativoInfoButton } from "../normativos/NormativoInfoButton";
 import { NormativoInfoModal } from "../normativos/NormativoInfoModal";
 import { findNormativoById } from "../../lib/normativos-info";
 
-export function PagePDF({
+// ── Wrapper con render diferido: paint skeleton primero, montar PagePDFContent en next tick ──
+// (PagePDFContent corre cómputos pesados al montar; sin diferir, el click "PDF" se siente colgado)
+export function PagePDF(props) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setReady(true), 0);
+    return () => clearTimeout(id);
+  }, []);
+  if (!ready) {
+    return (
+      <div
+        style={{
+          padding: 24,
+          color: "var(--muted)",
+          fontFamily: "'DM Sans'",
+          fontSize: 13,
+          letterSpacing: ".05em",
+        }}
+      >
+        Generando PDF…
+      </div>
+    );
+  }
+  return <PagePDFContent {...props} />;
+}
+
+function PagePDFContent({
   meso,
   atleta,
   irm_arr,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { ChevronLeft, Copy, Library, Minus, Pencil, Plus, Redo2, Trash2, Undo2 } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { PanelTabBoundary } from "../common/PanelTabBoundary";
@@ -40,6 +40,12 @@ export function PageAtleta({
   const [showEditVol, setShowEditVol] = useState(false);
   const [mesoSelId, setMesoSelId] = useState(null);
   const [vistaActual, setVistaActual] = useState("meso");
+  // Mantener montadas las tabs visitadas: la primera visita paga el cómputo,
+  // las siguientes son instantáneas (no se desmonta al cambiar de tab).
+  const [visited, setVisited] = useState(() => ({ meso: true }));
+  useEffect(() => {
+    setVisited((v) => (v[vistaActual] ? v : { ...v, [vistaActual]: true }));
+  }, [vistaActual]);
   const [showFullSembrado, setShowFullSembrado] = useState(false);
   const [filtroGrupos, setFiltroGrupos] = useState([]);
   const [filtroIntensidades, setFiltroIntensidades] = useState([]);
@@ -68,7 +74,10 @@ export function PageAtleta({
     }
   });
 
-  const globalNormativos = (() => {
+  // ── globalNormativos: lee localStorage solo cuando cambia (vía globalNormRev) ──
+  // (evita re-leer y reasignar referencia en cada render → invalidaba todos los memos abajo)
+  const [globalNormRev, setGlobalNormRev] = useState(0);
+  const globalNormativos = useMemo(() => {
     try {
       return (
         JSON.parse(localStorage.getItem("liftplan_normativos") || "null") ||
@@ -77,17 +86,22 @@ export function PageAtleta({
     } catch {
       return EJERCICIOS;
     }
-  })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalNormRev]);
 
-  const atletaNormativos = globalNormativos.map((ej) => {
-    const ovr = atletaNormOverrides[ej.id];
-    if (!ovr) return ej;
-    return {
-      ...ej,
-      ...(ovr.pct_base !== undefined ? { pct_base: ovr.pct_base } : {}),
-      ...(ovr.base !== undefined ? { base: ovr.base } : {}),
-    };
-  });
+  const atletaNormativos = useMemo(
+    () =>
+      globalNormativos.map((ej) => {
+        const ovr = atletaNormOverrides[ej.id];
+        if (!ovr) return ej;
+        return {
+          ...ej,
+          ...(ovr.pct_base !== undefined ? { pct_base: ovr.pct_base } : {}),
+          ...(ovr.base !== undefined ? { base: ovr.base } : {}),
+        };
+      }),
+    [globalNormativos, atletaNormOverrides],
+  );
 
   const getEjAtleta = (id) => getEjercicioById(id, atletaNormativos);
 
@@ -151,7 +165,7 @@ export function PageAtleta({
   }, [atleta.id]);
 
   // ── Re-render cuando cambian normativos globales (ej: edición en PageNormativos) ──
-  const [globalNormRev, setGlobalNormRev] = useState(0);
+  // (globalNormRev declarado arriba, junto al useMemo de globalNormativos)
   useEffect(() => {
     const onSync = (e) => {
       if (e?.detail?.key === "liftplan_normativos") {
@@ -161,7 +175,6 @@ export function PageAtleta({
     window.addEventListener(LIFTPLAN_LOCAL_SYNC_EVENT, onSync);
     return () => window.removeEventListener(LIFTPLAN_LOCAL_SYNC_EVENT, onSync);
   }, []);
-  void globalNormRev;
 
   // ── Overrides de porcentajes — persisten en localStorage por mesociclo ───────
   // Compute initial meso ID so we can initialize pct states from localStorage
@@ -210,21 +223,31 @@ export function PageAtleta({
     setTurnoPctManual(new Set());
   };
 
-  const mesoAtleta = mesociclos
-    .filter((m) => m.atleta_id === atleta.id)
-    .sort(
-      (a, b) =>
-        (parseAppDate(b.fecha_inicio)?.getTime() || 0) -
-        (parseAppDate(a.fecha_inicio)?.getTime() || 0),
-    );
+  const mesoAtleta = useMemo(
+    () =>
+      mesociclos
+        .filter((m) => m.atleta_id === atleta.id)
+        .sort(
+          (a, b) =>
+            (parseAppDate(b.fecha_inicio)?.getTime() || 0) -
+            (parseAppDate(a.fecha_inicio)?.getTime() || 0),
+        ),
+    [mesociclos, atleta.id],
+  );
 
-  const mesoActivoReal = mesoAtleta.find((m) => m.activo);
+  const mesoActivoReal = useMemo(
+    () => mesoAtleta.find((m) => m.activo),
+    [mesoAtleta],
+  );
 
-  const mesoVisto =
-    mesoAtleta.find((m) => m.id === mesoSelId) ||
-    mesoActivoReal ||
-    mesoAtleta[0] ||
-    null;
+  const mesoVisto = useMemo(
+    () =>
+      mesoAtleta.find((m) => m.id === mesoSelId) ||
+      mesoActivoReal ||
+      mesoAtleta[0] ||
+      null,
+    [mesoAtleta, mesoSelId, mesoActivoReal],
+  );
 
   const semanasConDatosBase = (mesoVisto?.semanas || [])
     .map((sem, semIdxOriginal) => ({ sem, semIdxOriginal }))
@@ -1133,10 +1156,7 @@ export function PageAtleta({
             ].map((t) => (
               <button
                 key={t.id}
-                onClick={() => {
-                  console.log("[CLICK TAB]", t.id);
-                  setVistaActual(t.id);
-                }}
+                onClick={() => setVistaActual(t.id)}
                 style={{
                   height: 44,
                   padding: "0 16px",
@@ -1627,67 +1647,79 @@ export function PageAtleta({
       )}
 
       {/* ════════════ NORMATIVOS ════════════ */}
-      {vistaActual === "normativos" && (
-        <PanelTabBoundary tab="Normativos A">
-          <PageNormativosAtleta
-            atleta={atleta}
-            globalNormativos={globalNormativos}
-            atletaNormativos={atletaNormativos}
-            atletaNormOverrides={atletaNormOverrides}
-            saveAtletaOverrides={saveAtletaOverrides}
-            getEjAtleta={getEjAtleta}
-          />
-        </PanelTabBoundary>
+      {visited.normativos && (
+        <div
+          style={{
+            display: vistaActual === "normativos" ? "block" : "none",
+          }}
+        >
+          <PanelTabBoundary tab="Normativos A">
+            <PageNormativosAtleta
+              atleta={atleta}
+              globalNormativos={globalNormativos}
+              atletaNormativos={atletaNormativos}
+              atletaNormOverrides={atletaNormOverrides}
+              saveAtletaOverrides={saveAtletaOverrides}
+              getEjAtleta={getEjAtleta}
+            />
+          </PanelTabBoundary>
+        </div>
       )}
 
       {/* ════════════ PDF ════════════ */}
-      {vistaActual === "pdf" && (
-        <PanelTabBoundary tab="PDF principal">
-          {mesoVisto ? (
-            <PagePDF
-              meso={mesoVisto}
-              atleta={atleta}
-              irm_arr={irm_arr}
-              irm_env={irm_env}
-              normativos={atletaNormativos}
-            />
-          ) : (
-            <div
-              style={{
-                padding: 40,
-                textAlign: "center",
-                color: "var(--muted)",
-              }}
-            >
-              Sin mesociclo seleccionado
-            </div>
-          )}
-        </PanelTabBoundary>
+      {visited.pdf && (
+        <div style={{ display: vistaActual === "pdf" ? "block" : "none" }}>
+          <PanelTabBoundary tab="PDF principal">
+            {mesoVisto ? (
+              <PagePDF
+                meso={mesoVisto}
+                atleta={atleta}
+                irm_arr={irm_arr}
+                irm_env={irm_env}
+                normativos={atletaNormativos}
+              />
+            ) : (
+              <div
+                style={{
+                  padding: 40,
+                  textAlign: "center",
+                  color: "var(--muted)",
+                }}
+              >
+                Sin mesociclo seleccionado
+              </div>
+            )}
+          </PanelTabBoundary>
+        </div>
       )}
 
       {/* ════════════ RESUMEN ════════════ */}
-      {vistaActual === "resumen" && (
-        <PanelTabBoundary tab="Resumen principal">
-          {mesoVisto ? (
-            <PageResumen
-              meso={mesoVisto}
-              atleta={atleta}
-              irm_arr={irm_arr}
-              irm_env={irm_env}
-              normativos={atletaNormativos}
-            />
-          ) : (
-            <div
-              style={{
-                padding: 40,
-                textAlign: "center",
-                color: "var(--muted)",
-              }}
-            >
-              Sin mesociclo seleccionado
-            </div>
-          )}
-        </PanelTabBoundary>
+      {visited.resumen && (
+        <div
+          style={{ display: vistaActual === "resumen" ? "block" : "none" }}
+        >
+          <PanelTabBoundary tab="Resumen principal">
+            {mesoVisto ? (
+              <PageResumen
+                meso={mesoVisto}
+                atleta={atleta}
+                irm_arr={irm_arr}
+                irm_env={irm_env}
+                normativos={atletaNormativos}
+              />
+            ) : (
+              <div
+                style={{
+                  padding: 40,
+                  textAlign: "center",
+                  color: "var(--muted)",
+                }}
+              >
+                Sin mesociclo seleccionado
+              </div>
+            )}
+          </PanelTabBoundary>
+        </div>
       )}
 
       {/* ════════════ PLANILLA ════════════ */}
