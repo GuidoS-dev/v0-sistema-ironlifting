@@ -24,7 +24,7 @@ describe("loadCoachSetting / loadCoachSettingRow", () => {
 
 describe("saveCoachSetting", () => {
   it("no-op silencioso cuando coachId es vacío", async () => {
-    await expect(saveCoachSetting(null as any, "x", {})).resolves.toBeUndefined();
+    await expect(saveCoachSetting(null as any, "x", {})).resolves.toBe(false);
   });
 });
 

@@ -23,22 +23,32 @@ export async function loadCoachSettingRow(coachId, settingKey) {
   return data;
 }
 
+// Returns true on success, false on failure. Existing callers that ignore the
+// return value continue to work — only new callers that need to know whether
+// the upsert actually persisted should check the result.
 export async function saveCoachSetting(coachId, settingKey, settingValue) {
-  if (!coachId) return;
-  await sb
-    .from("coach_settings")
-    .upsert(
-      [
-        {
-          coach_id: coachId,
-          setting_key: settingKey,
-          setting_value: settingValue,
-          updated_at: new Date().toISOString(),
-        },
-      ],
-      { onConflict: "coach_id,setting_key" },
-    )
-    .catch(() => {});
+  if (!coachId) return false;
+  try {
+    const res = await sb
+      .from("coach_settings")
+      .upsert(
+        [
+          {
+            coach_id: coachId,
+            setting_key: settingKey,
+            setting_value: settingValue,
+            updated_at: new Date().toISOString(),
+          },
+        ],
+        { onConflict: "coach_id,setting_key" },
+      );
+    // Supabase resolves with { data, error } — the previous .catch only caught
+    // network/runtime throws, never actual Postgres errors. Inspect explicitly.
+    if (res && res.error) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function resolveSharedCoachId(coachId) {
