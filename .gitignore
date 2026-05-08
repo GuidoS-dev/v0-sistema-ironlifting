@@ -17,3 +17,7 @@ test-results/
 playwright-report/
 playwright/.cache/
 coverage/tsconfig.tsbuildinfo
+
+# Build / runtime artifacts
+tsconfig.tsbuildinfo
+dev.log
