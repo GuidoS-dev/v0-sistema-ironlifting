@@ -5,6 +5,8 @@ import { INTENSIDADES, TABLA_DEFAULT } from "../../data/tablas-default";
 import { LIFTPLAN_LOCAL_SYNC_EVENT } from "../../lib/storage";
 import { calcSembradoSemana, calcSeriesRepsKg, getEjercicioById, getGrupo } from "../../lib/calc";
 import { formatDateDisplay } from "../../lib/ciclo-menstrual";
+import { PageResumen } from "../resumen/PageResumen";
+import { PagePDF } from "../pdf/PagePDF";
 
 export function PanelReferencia({
   atletas,

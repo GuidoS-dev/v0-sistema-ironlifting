@@ -3,6 +3,12 @@ import { ChevronLeft } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { mkSemanas } from "../../data/constantes";
 import { safeSetItem } from "../../lib/storage";
+import {
+  remapSemPctKeyForSwap,
+  remapTurnoPctKeyForSwap,
+  remapOverrideObjectKeys,
+  remapOverrideSetKeys,
+} from "../../lib/calc";
 import { SembradoMensual } from "../sembrado/SembradoMensual";
 import { SemanaView } from "../sembrado/SemanaView";
 import { ResumenGrupos } from "../resumen/ResumenGrupos";
@@ -10,6 +16,7 @@ import { DistribucionTurnos } from "../resumen/DistribucionTurnos";
 import { PlanillaTurno } from "../planilla/PlanillaTurno";
 import { PlanillaBasica } from "../planilla/PlanillaBasica";
 import { PlanillaPretemporada } from "../planilla/PlanillaPretemporada";
+import { PageResumen } from "../resumen/PageResumen";
 
 export function PagePlantilla({ plt, onUpdate, onClose }) {
   const irm_arr = 100;

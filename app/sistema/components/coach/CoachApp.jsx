@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Briefcase, Copy, Library, LogOut, Send, Shield, User, X } from "lucide-react";
-import { TabataTimer } from "../../../../components/cronometro";
 import { sb } from "../../lib/supabase-client";
-import { _visResume, broadcastDbWrite, markDbSync } from "../../lib/sync";
+import { _visResume, _bc, broadcastDbWrite, markDbSync } from "../../lib/sync";
 import { readLocalJson, asPlainObject } from "../../lib/storage";
 import { COACH_SETTING_KEYS, saveCoachSetting, resolveSharedCoachId } from "../../lib/coach-settings";
 import { atletaToDb, atletaFromDb, mesoToDb, mesoFromDb, plantillaToDb } from "../../lib/mappers";

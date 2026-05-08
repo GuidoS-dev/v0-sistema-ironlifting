@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "../common/Modal";
 import { INTENS_COLS, TABLA_DEFAULT } from "../../data/tablas-default";
-import { readLocalJson, writeLocalJson } from "../../lib/storage";
+import { readLocalJson, writeLocalJson, safeSetItem, emitLocalSyncEvent } from "../../lib/storage";
 import { COACH_SETTING_KEYS, loadCoachSetting, saveCoachSetting } from "../../lib/coach-settings";
 import { _visResume } from "../../lib/sync";
 

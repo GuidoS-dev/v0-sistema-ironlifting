@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { DIAS, MOMENTOS, mkId } from "../../data/constantes";
+import { DIAS, MOMENTOS, mkId, mkEj } from "../../data/constantes";
+import { DEFAULT_EJS } from "../../data/tablas-default";
 import { formatFechaSemana, getFechaSemanaEfectiva } from "../../lib/ciclo-menstrual";
 import { handleSembradoTabNavigation } from "../../lib/navegacion";
 import { CeldaSembrado } from "./CeldaSembrado";

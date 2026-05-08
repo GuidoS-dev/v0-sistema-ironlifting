@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { mkEj } from "../../data/constantes";
+import { focusPlanillaField } from "../../lib/navegacion";
 import { EjCelda } from "./EjCelda";
 
 export function CeldaSembrado({

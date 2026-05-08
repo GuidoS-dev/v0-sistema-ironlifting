@@ -94,8 +94,8 @@ describe("remapOverrideObjectKeys", () => {
   });
 
   it("retorna {} si no es objeto", () => {
-    expect(remapOverrideObjectKeys(null, (k) => k)).toEqual({});
-    expect(remapOverrideObjectKeys(123 as any, (k) => k)).toEqual({});
+    expect(remapOverrideObjectKeys(null, (k: string) => k)).toEqual({});
+    expect(remapOverrideObjectKeys(123 as any, (k: string) => k)).toEqual({});
   });
 });
 
@@ -143,7 +143,7 @@ describe("getSembradoStats", () => {
       { ejercicios: [{ ejercicio_id: 1 }, { ejercicio_id: 20 }, { ejercicio_id: 49 }] },
       { ejercicios: [{ ejercicio_id: 69 }, { ejercicio_id: null }] },
     ];
-    const result = getSembradoStats(turnos);
+    const result: any = getSembradoStats(turnos);
     expect(result.total).toBe(4);
     expect(result.counts.Arranque).toBe(1);
     expect(result.counts.Envion).toBe(1);
@@ -202,7 +202,7 @@ describe("calcSembradoSemana", () => {
         { ejercicios: [{ ejercicio_id: 49 }, { ejercicio_id: 69 }] },
       ],
     };
-    const result = calcSembradoSemana(sem);
+    const result: any = calcSembradoSemana(sem);
     expect(result.totalSem).toBe(4);
     expect(result.porGrupo.Arranque.total).toBe(1);
     expect(result.porGrupo.Arranque.porTurno).toEqual([1, 0]);
@@ -220,7 +220,7 @@ describe("calcRepsEjercicio", () => {
       ],
     };
     const meso = { volumen_total: 1000 };
-    const result = calcRepsEjercicio(sem, 0, meso);
+    const result: any = calcRepsEjercicio(sem, 0, meso);
     // reps_sem = 1000 × 0.25 = 250; 4 ejs cada uno cuenta 1, distribución uniforme
     // Arranque pct sem = 1/4 = 0.25; turno = 1/1 = 1; reps = 250 × 0.25 × 1 = 62.5 → 63 (1 ej)
     expect(typeof result["1"]).toBe("number");

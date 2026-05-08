@@ -72,7 +72,7 @@ describe("safeSetItem", () => {
           err.name = "QuotaExceededError";
           throw err;
         }
-        Storage.prototype.setItem.wrappedMethod?.call(this, k, v);
+        (Storage.prototype.setItem as any).wrappedMethod?.call(this, k, v);
       });
     expect(safeSetItem("k", "v")).toBe(true);
     expect(calls).toBeGreaterThanOrEqual(2);

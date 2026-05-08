@@ -3,6 +3,7 @@ import { Copy } from "lucide-react";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { CAT_COLOR, EMPTY_NAME_SENTINEL, mkId, mkBloqueBasica, mkEjBasica, mkTurnosBasica, resolveExerciseName } from "../../data/constantes";
 import { handlePlanillaArrowNavigation } from "../../lib/navegacion";
+import { ExercisePickerOverlay } from "../common/ExercisePickerOverlay";
 
 export function PlanillaBasica({
   semanas,

@@ -4,6 +4,7 @@ import { CAT_COLOR, EMPTY_NAME_SENTINEL, mkId, resolveExerciseName } from "../..
 import { INTENSIDADES, TABLA_DEFAULT } from "../../data/tablas-default";
 import { calcSembradoSemana, calcSeriesRepsKg, getGrupo, GRUPOS_KEYS } from "../../lib/calc";
 import { handlePlanillaArrowNavigation } from "../../lib/navegacion";
+import { ExercisePickerOverlay } from "../common/ExercisePickerOverlay";
 
 export function PlanillaTurno({
   scrollIdPrefix = "planilla",

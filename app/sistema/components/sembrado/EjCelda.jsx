@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { CAT_COLOR } from "../../data/constantes";
+import { IRM_VALUES } from "../../data/tablas-default";
 import { getEjercicioById } from "../../lib/calc";
 import { EjBuscadorCompacto } from "../common/EjBuscadorCompacto";
+import { IntensityPickerModal } from "./IntensityPickerModal";
 
 export function EjCelda({
   ej,

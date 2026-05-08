@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Library } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { mkId, mkSemanas, mkSemanasBasica, mkSemanasPretemp } from "../../data/constantes";
+import { IRM_VALUES } from "../../data/tablas-default";
+import { calcVolumenSemana } from "../../lib/calc";
 import { formatDateDisplay, getFechaSemana } from "../../lib/ciclo-menstrual";
 import { PlantillaPicker } from "../plantillas/PlantillaPicker";
 

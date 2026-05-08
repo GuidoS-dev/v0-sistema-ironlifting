@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { CAT_COLOR } from "../../data/constantes";
 
 export function ExercisePickerOverlay({
   open,

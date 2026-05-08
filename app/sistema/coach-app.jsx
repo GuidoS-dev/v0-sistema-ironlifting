@@ -11,9 +11,8 @@ import { LogoHorizontal } from "./components/common/Logos";
 import { LoginScreen } from "./components/coach/LoginScreen";
 import { CoachApp } from "./components/coach/CoachApp";
 import { AtletaPanel } from "./components/coach/AtletaPanel";
+import { APP_VERSION } from "./data/app-version";
 import "./styles/coach-app.css";
-
-const APP_VERSION = "1.7.12";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -185,12 +184,6 @@ export default function App() {
           gap: 16,
         }}
       >
-        <style>{`
-          :root{--bg:#0a0c10;--surface:#12151c;--surface2:#1a1e27;--surface3:#222732;
-          --border:#2a303c;--text:#e8eaf0;--muted:#6b7280;--gold:#e8c547;
-          --blue:#64b4e8;--green:#47e8a0;--red:#e85047}
-          body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin:0}
-        `}</style>
         <LogoHorizontal height={60} />
         <div
           style={{ fontSize: 12, color: "var(--muted)", letterSpacing: ".1em" }}
@@ -208,20 +201,6 @@ export default function App() {
   if (!session || recoveryMode) {
     return (
       <>
-        <style>{`
-          :root{--bg:#0a0c10;--surface:#12151c;--surface2:#1a1e27;--surface3:#22273c;
-          --border:#2a303c;--text:#e8eaf0;--muted:#6b7280;--gold:#e8c547;
-          --blue:#64b4e8;--green:#47e8a0;--red:#e85047}
-          body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin:0}
-          .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-          .form-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-          .form-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans';font-size:16px;padding:9px 12px;outline:none;transition:border .2s;width:100%;box-sizing:border-box}
-          .form-input:focus{border-color:var(--gold)}
-          .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans';font-size:13px;font-weight:600;transition:all .2s}
-          .btn-gold{background:var(--gold);color:#0a0c10}
-          .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-          @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
-        `}</style>
         <LoginScreen
           onAuth={(s) => {
             setRecoveryMode(false);
@@ -249,12 +228,6 @@ export default function App() {
           gap: 16,
         }}
       >
-        <style>{`
-          :root{--bg:#0a0c10;--surface:#12151c;--surface2:#1a1e27;--surface3:#222732;
-          --border:#2a303c;--text:#e8eaf0;--muted:#6b7280;--gold:#e8c547;
-          --blue:#64b4e8;--green:#47e8a0;--red:#e85047}
-          body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin:0}
-        `}</style>
         <LogoHorizontal height={60} />
         <div
           style={{ fontSize: 12, color: "var(--muted)", letterSpacing: ".1em" }}
@@ -272,15 +245,6 @@ export default function App() {
   if (profile.rol !== "coach") {
     return (
       <>
-        <style>{`
-          :root{--bg:#0a0c10;--surface:#12151c;--surface2:#1a1e27;--surface3:#222732;
-          --border:#2a303c;--text:#e8eaf0;--muted:#6b7280;--gold:#e8c547;
-          --blue:#64b4e8;--green:#47e8a0;--red:#e85047}
-          body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin:0}
-          .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans';font-size:13px;font-weight:600;transition:all .2s}
-          .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-          @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
-        `}</style>
         <AtletaPanel
           session={session}
           profile={profile}

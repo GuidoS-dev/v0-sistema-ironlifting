@@ -24,6 +24,17 @@ export const CAT_COLOR = {
 };
 
 export const mkId = () => Math.random().toString(36).slice(2, 9);
+
+// Factory para una celda de ejercicio dentro del sembrado
+// (recuperado durante la fase de cleanup — se había perdido al extraer SembradoMensual).
+export const mkEj = () => ({
+  id: mkId(),
+  ejercicio_id: null,
+  intensidad: 75,
+  tabla: 1,
+  reps_asignadas: 0,
+});
+
 export const mkTurnos = () =>
   Array.from({ length: 9 }, (_, i) => ({
     id: mkId(),

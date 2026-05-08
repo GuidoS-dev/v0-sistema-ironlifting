@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Library } from "lucide-react";
 import { CATEGORIAS, CAT_COLOR, mkId } from "../../data/constantes";
-import { getSembradoStats } from "../../lib/calc";
+import { calcRepsPorGrupo, calcVolumenSemana, getSembradoStats } from "../../lib/calc";
 import { safeSetItem } from "../../lib/storage";
 import { TurnoCard } from "../planilla/TurnoCard";
 

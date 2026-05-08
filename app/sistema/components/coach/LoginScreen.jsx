@@ -1,9 +1,17 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { sb, getCurrentSession } from "../../lib/supabase-client";
+import {
+  sb,
+  getCurrentSession,
+  SUPA_URL,
+  SUPA_ANON,
+  _fetchWithTimeout,
+  _readResponseSafe,
+} from "../../lib/supabase-client";
 import { _authErrorMessage } from "../../lib/auth-storage";
 import { toTitleCase } from "../../lib/sanitize";
 import { LogoHorizontal } from "../common/Logos";
+import { APP_VERSION } from "../../data/app-version";
 
 export function LoginScreen({
   onAuth,

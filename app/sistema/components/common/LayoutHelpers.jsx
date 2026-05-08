@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { ESCUELA_NIVEL_LABEL, ESCUELA_NIVEL_COLOR } from "../../data/plantillas-meta";
 import { PlantillaCard } from "../plantillas/PlantillaCard";
 
 export function AlumnoSectionHeader({ title, count, color, onAdd }) {

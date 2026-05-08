@@ -1,6 +1,10 @@
 export const INTENSIDADES = [50, 60, 70, 75, 80, 85, 90, 95]; // columnas reales de las tablas IRM
 export const IRM_VALUES = Array.from({ length: 31 }, (_, i) => 65 + i); // 65..95
 
+// Reps de referencia para la preview del IntensityPickerModal
+// (recuperado durante la fase de cleanup — se había perdido al extraer IntensityPickerModal).
+export const PREVIEW_REPS = 14;
+
 // ─── TABLAS DE CALCULADORA ─────────────────────────────────────────────────
 export const INTENS_COLS = [50, 60, 70, 75, 80, 85, 90, 95];
 export const TABLA_DEFAULT = {

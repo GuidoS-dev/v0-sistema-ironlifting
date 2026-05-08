@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Clipboard, Copy } from "lucide-react";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { CAT_COLOR, DIAS, MOMENTOS, mkId } from "../../data/constantes";
+import { getSembradoStats } from "../../lib/calc";
 import { ComplementarioRow } from "./ComplementarioRow";
 import { EjercicioRow } from "./EjercicioRow";
 

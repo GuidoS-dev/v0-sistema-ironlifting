@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "../common/Modal";
-import { INTENSIDADES, IRM_VALUES, TABLA_DEFAULT } from "../../data/tablas-default";
+import { INTENSIDADES, IRM_VALUES, TABLA_DEFAULT, PREVIEW_REPS } from "../../data/tablas-default";
 
 export function IntensityPickerModal({ value, onSelect, onClose, tabla = 1 }) {
   const listRef = useRef(null);

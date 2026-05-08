@@ -3,6 +3,7 @@ import { EJERCICIOS } from "../../data/ejercicios";
 import { resolveExerciseName } from "../../data/constantes";
 import { INTENSIDADES, TABLA_DEFAULT } from "../../data/tablas-default";
 import { calcSembradoSemana, calcSeriesRepsKg, getGrupo } from "../../lib/calc";
+import { formatDateDisplay, formatFechaSemana, getFechaSemanaEfectiva } from "../../lib/ciclo-menstrual";
 
 export function PagePDF({
   meso,
