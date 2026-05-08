@@ -23,6 +23,7 @@ const CSP_DIRECTIVES = [
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://va.vercel-scripts.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
+  "frame-src 'self' https://drive.google.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",

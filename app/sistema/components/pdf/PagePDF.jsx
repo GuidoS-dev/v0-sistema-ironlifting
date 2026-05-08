@@ -1,9 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { ChevronDown, Download, MessageCircle, Send, Timer } from "lucide-react";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { resolveExerciseName } from "../../data/constantes";
 import { INTENSIDADES, TABLA_DEFAULT } from "../../data/tablas-default";
-import { calcSembradoSemana, calcSeriesRepsKg, getGrupo } from "../../lib/calc";
+import {
+  calcSeriesRepsKg,
+  getRepsVal,
+  loadMesoOverridesFromLocal,
+} from "../../lib/calc";
 import { formatDateDisplay, formatFechaSemana, getFechaSemanaEfectiva } from "../../lib/ciclo-menstrual";
+import { LogoHorizontal } from "../common/Logos";
+import { NormativoInfoButton } from "../normativos/NormativoInfoButton";
+import { NormativoInfoModal } from "../normativos/NormativoInfoModal";
+import { findNormativoById } from "../../lib/normativos-info";
 
 export function PagePDF({
   meso,
@@ -40,28 +49,7 @@ export function PagePDF({
         return TABLA_DEFAULT;
       }
     })();
-  const repsEditSaved = (() => {
-    try {
-      return (
-        JSON.parse(
-          localStorage.getItem(`liftplan_pt_${meso.id}_repsEdit`) || "null",
-        ) || {}
-      );
-    } catch {
-      return {};
-    }
-  })();
-  const manualEditSaved = (() => {
-    try {
-      return new Set(
-        JSON.parse(
-          localStorage.getItem(`liftplan_pt_${meso.id}_manualEdit`) || "[]",
-        ),
-      );
-    } catch {
-      return new Set();
-    }
-  })();
+  const overrides = loadMesoOverridesFromLocal(meso.id);
   const cellEditSaved = (() => {
     try {
       return (
@@ -107,30 +95,6 @@ export function PagePDF({
     }
   })();
 
-  const getRepsVal = (ej, semIdx, tIdx) => {
-    const k = `${semIdx}-${tIdx}-${ej.id}`;
-    if (manualEditSaved.has(k)) return Number(repsEditSaved[k]) || 0;
-    if (ej.reps_asignadas > 0) return ej.reps_asignadas;
-    const sem = meso.semanas[semIdx];
-    if (!sem) return 0;
-    const { porGrupo, totalSem } = calcSembradoSemana(sem);
-    const g = getGrupo(ej.ejercicio_id);
-    if (!g || totalSem === 0) return 0;
-    const pctGSem = porGrupo[g].total / totalSem;
-    const pctGTurno = porGrupo[g].porTurno[tIdx] / (porGrupo[g].total || 1);
-    const repsBloque = Math.round(
-      meso.volumen_total * (sem.pct_volumen / 100) * pctGSem * pctGTurno,
-    );
-    const ejsG = sem.turnos[tIdx].ejercicios.filter(
-      (e) => e.ejercicio_id && getGrupo(e.ejercicio_id) === g,
-    );
-    if (!ejsG.length) return 0;
-    const base = Math.floor(repsBloque / ejsG.length);
-    const extra = repsBloque - base * ejsG.length;
-    const idx = ejsG.findIndex((e) => e.id === ej.id);
-    return base + (idx < extra ? 1 : 0);
-  };
-
   const getCell = (k, intens, field, calc) =>
     cellManualSaved.has(`${k}-${intens}-${field}`)
       ? cellEditSaved[`${k}-${intens}-${field}`]
@@ -153,7 +117,7 @@ export function PagePDF({
 
   // Calcular métricas resumen por semana
   const isEscuelaPdf = meso.escuela === true || meso.escuela === "true";
-  const metricas = meso.semanas.map((sem, semIdx) => {
+  const metricas = useMemo(() => meso.semanas.map((sem, semIdx) => {
     let volReps = 0,
       volKg = 0,
       sumIntReps = 0,
@@ -203,7 +167,7 @@ export function PagePDF({
               sumIntReps += (bloque.pct || 0) * rT;
             });
           } else {
-            const repsVal = getRepsVal(ej, semIdx, tIdx);
+            const repsVal = getRepsVal(meso, ej, semIdx, tIdx, overrides);
             const calcs = calcSeriesRepsKg(
               tablas,
               ej,
@@ -252,7 +216,9 @@ export function PagePDF({
       intMedia: repsConIRM > 0 ? Math.round(sumIntMed / repsConIRM) : 0,
       levGrupo,
     };
-  });
+  }),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [meso, normativos, tablas, irm_arr, irm_env, isEscuelaPdf]);
 
   const totalVolReps = metricas.reduce((a, m) => a + m.volReps, 0);
   const totalVolKg = metricas.reduce((a, m) => a + m.volKg, 0);
@@ -550,7 +516,7 @@ export function PagePDF({
     if (!ejData) return null;
     const k = `${semIdx}-${tIdx}-${ej.id}`;
     const nameKey = `${semIdx}-${tIdx}-${ej.ejercicio_id}`;
-    const repsVal = getRepsVal(ej, semIdx, tIdx);
+    const repsVal = getRepsVal(meso, ej, semIdx, tIdx, overrides);
     const calcs = calcSeriesRepsKg(
       tablas,
       ej,
@@ -754,7 +720,20 @@ export function PagePDF({
 
     pushCompRows(turno.complementarios_after, "ca");
 
-    return result;
+    // Enriquecer con descripción + video desde normativos globales (lookup por normativoId)
+    return result.map((ex) => {
+      if (!ex.normativoId) return ex;
+      const ej = findNormativoById(normativos, ex.normativoId);
+      if (!ej) return ex;
+      const description = (ej.descripcion || "").trim();
+      const videoUrl = (ej.videoUrl || "").trim();
+      if (!description && !videoUrl) return ex;
+      return {
+        ...ex,
+        description: description || undefined,
+        videoUrl: videoUrl || undefined,
+      };
+    });
   };
 
   const isPretemp = meso.pretemporada === true || meso.pretemporada === "true";
@@ -796,73 +775,78 @@ export function PagePDF({
     };
   };
 
-  const semTurnos = meso.semanas.map((sem, semIdx) => {
-    const turnos = sem.turnos
-      .map((t, tIdx) => {
-        const rows = [];
+  const semTurnos = useMemo(
+    () =>
+      meso.semanas.map((sem, semIdx) => {
+        const turnos = sem.turnos
+          .map((t, tIdx) => {
+            const rows = [];
 
-        if (isPretemp) {
-          // Pretemporada: ejercicios usan ejercicio_ids + bloques
-          const ejsPretemp = (t.ejercicios || []).filter(
-            (e) =>
-              (e.ejercicio_ids && e.ejercicio_ids.some((sub) => sub.eid)) ||
-              e.nombre_custom ||
-              e.aclaracion,
-          );
-          if (!ejsPretemp.length) return null;
-          ejsPretemp.forEach((ej) => {
-            const row = buildPretemporadaRow(ej);
-            if (row) rows.push(row);
-          });
-        } else if (isEscuelaPdf) {
-          // Escuela: ejercicios usan ejercicio_id + bloques (sin intensidades)
-          const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
-          if (!ejs.length) return null;
-          ejs.forEach((ej) => {
-            const row = buildEscuelaRow(ej);
-            if (row) rows.push(row);
-          });
-        } else {
-          // Regular: ejercicios usan ejercicio_id + intensidades
-          const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
-          const hasEjerciciosPrincipales = ejs.length > 0;
-          if (!hasEjerciciosPrincipales) return null;
+            if (isPretemp) {
+              // Pretemporada: ejercicios usan ejercicio_ids + bloques
+              const ejsPretemp = (t.ejercicios || []).filter(
+                (e) =>
+                  (e.ejercicio_ids && e.ejercicio_ids.some((sub) => sub.eid)) ||
+                  e.nombre_custom ||
+                  e.aclaracion,
+              );
+              if (!ejsPretemp.length) return null;
+              ejsPretemp.forEach((ej) => {
+                const row = buildPretemporadaRow(ej);
+                if (row) rows.push(row);
+              });
+            } else if (isEscuelaPdf) {
+              // Escuela: ejercicios usan ejercicio_id + bloques (sin intensidades)
+              const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
+              if (!ejs.length) return null;
+              ejs.forEach((ej) => {
+                const row = buildEscuelaRow(ej);
+                if (row) rows.push(row);
+              });
+            } else {
+              // Regular: ejercicios usan ejercicio_id + intensidades
+              const ejs = t.ejercicios.filter((e) => e.ejercicio_id);
+              const hasEjerciciosPrincipales = ejs.length > 0;
+              if (!hasEjerciciosPrincipales) return null;
 
-          // Complementarios ANTES
-          if (t.complementarios_before?.length > 0) {
-            const compBefore = t.complementarios_before.filter(
-              (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
-            );
-            compBefore.forEach((comp) => {
-              const row = buildComplementarioRow(comp, semIdx, tIdx);
-              if (row) rows.push({ ...row, isComplementarioBefore: true });
-            });
-          }
+              // Complementarios ANTES
+              if (t.complementarios_before?.length > 0) {
+                const compBefore = t.complementarios_before.filter(
+                  (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
+                );
+                compBefore.forEach((comp) => {
+                  const row = buildComplementarioRow(comp, semIdx, tIdx);
+                  if (row) rows.push({ ...row, isComplementarioBefore: true });
+                });
+              }
 
-          // Ejercicios principales
-          ejs.forEach((ej) => {
-            const row = buildEjercicioRow(ej, semIdx, tIdx, false);
-            if (row) rows.push(row);
-          });
+              // Ejercicios principales
+              ejs.forEach((ej) => {
+                const row = buildEjercicioRow(ej, semIdx, tIdx, false);
+                if (row) rows.push(row);
+              });
 
-          // Complementarios DESPUÉS
-          if (t.complementarios_after?.length > 0) {
-            const compAfter = t.complementarios_after.filter(
-              (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
-            );
-            compAfter.forEach((comp) => {
-              const row = buildComplementarioRow(comp, semIdx, tIdx);
-              if (row) rows.push({ ...row, isComplementarioAfter: true });
-            });
-          }
-        }
+              // Complementarios DESPUÉS
+              if (t.complementarios_after?.length > 0) {
+                const compAfter = t.complementarios_after.filter(
+                  (c) => c.ejercicio_id || c.nombre_custom || c.aclaracion,
+                );
+                compAfter.forEach((comp) => {
+                  const row = buildComplementarioRow(comp, semIdx, tIdx);
+                  if (row) rows.push({ ...row, isComplementarioAfter: true });
+                });
+              }
+            }
 
-        if (!rows.length) return null;
-        return { tIdx, dia: t.dia, momento: t.momento, rows };
-      })
-      .filter(Boolean);
-    return { sem, semIdx, turnos, met: metricas[semIdx] };
-  });
+            if (!rows.length) return null;
+            return { tIdx, dia: t.dia, momento: t.momento, rows };
+          })
+          .filter(Boolean);
+        return { sem, semIdx, turnos, met: metricas[semIdx] };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [meso, normativos, tablas, irm_arr, irm_env, metricas, isPretemp, isEscuelaPdf],
+  );
 
   // Medir sem-header y posicionar turno-headers debajo (solo desktop, mobile no usa sticky)
   React.useLayoutEffect(() => {
@@ -876,7 +860,7 @@ export function PagePDF({
         t.style.top = h + "px";
       });
     });
-  });
+  }, [semTurnos]);
 
   const pdfStyle = `
     @media print {
@@ -1757,6 +1741,7 @@ export function PagePDF({
   const [mobActiveTurno, setMobActiveTurno] = useState(-1);
   const [mobNavHidden, setMobNavHidden] = useState(false);
   const mobNavTimerRef = React.useRef(null);
+  const [infoEj, setInfoEj] = useState(null);
 
   // ── Collapsible turnos + week filter ──
   const [pdfActiveSem, setPdfActiveSem] = useState(() => {
@@ -2191,11 +2176,7 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                 marginBottom: 4,
               }}
             >
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220" width="200" height="73"><defs><linearGradient id="pc-g" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f5d96a"/><stop offset="40%" stop-color="#e8c547"/><stop offset="100%" stop-color="#b8941e"/></linearGradient><linearGradient id="pc-gh" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#604800"/><stop offset="50%" stop-color="#f5d96a"/><stop offset="100%" stop-color="#604800"/></linearGradient><filter id="pc-glow"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#e8c547" flood-opacity="0.4"/></filter></defs><rect x="40" y="20" width="520" height="1.5" rx="1" fill="url(#pc-gh)" opacity="0.7"/><rect x="40" y="200" width="520" height="1.5" rx="1" fill="url(#pc-gh)" opacity="0.7"/><rect x="40" y="20" width="22" height="2" fill="#e8c547"/><rect x="40" y="20" width="2" height="22" fill="#e8c547"/><rect x="538" y="20" width="22" height="2" fill="#e8c547"/><rect x="558" y="20" width="2" height="22" fill="#e8c547"/><rect x="40" y="198" width="22" height="2" fill="#e8c547"/><rect x="40" y="176" width="2" height="24" fill="#e8c547"/><rect x="538" y="198" width="22" height="2" fill="#e8c547"/><rect x="558" y="176" width="2" height="24" fill="#e8c547"/><text x="300" y="78" font-family="Bebas Neue,Impact,Arial Black,sans-serif" font-size="26" letter-spacing="16" fill="url(#pc-g)" text-anchor="middle" filter="url(#pc-glow)">SISTEMA</text><rect x="190" y="88" width="220" height="1" rx="1" fill="#e8c547" opacity="0.4"/><text x="300" y="178" font-family="Bebas Neue,Impact,Arial Black,sans-serif" font-size="100" letter-spacing="2" fill="url(#pc-g)" text-anchor="middle" filter="url(#pc-glow)">IRONLIFTING</text></svg>`,
-                }}
-              />
+              <LogoHorizontal height={73} />
               <div>
                 <div className="pdf-cover-name">
                   {atleta.nombre.toUpperCase()}
@@ -2516,8 +2497,31 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                   const hasEscuelaRows = rows.some(
                                     (r) => r.isEscuelaRow,
                                   );
-                                  const hasPctCol =
-                                    hasPretemporadaRows || hasEscuelaRows;
+                                  const isPctBlockTable =
+                                    (hasEscuelaRows || hasPretemporadaRows) &&
+                                    !hasRegularIntensidades;
+
+                                  if (isPctBlockTable) {
+                                    // Escuela / Pretemporada: columnas por % real utilizado (estilo sembrado)
+                                    const pctList = Array.from(
+                                      new Set(
+                                        rows.flatMap((r) =>
+                                          (r.cols || [])
+                                            .map((c) => c?.pct)
+                                            .filter((p) => p != null),
+                                        ),
+                                      ),
+                                    ).sort((a, b) => Number(a) - Number(b));
+                                    return pctList.map((p) => (
+                                      <th
+                                        key={p}
+                                        className="intens-header"
+                                        style={{ width: 58 }}
+                                      >
+                                        {p}%
+                                      </th>
+                                    ));
+                                  }
 
                                   if (
                                     hasCompBloques &&
@@ -2533,9 +2537,7 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                       <th
                                         key={bIdx}
                                         className="intens-header"
-                                        style={{
-                                          width: hasPctCol ? 72 : 58,
-                                        }}
+                                        style={{ width: 58 }}
                                       >
                                         Bloque{bIdx + 1}
                                       </th>
@@ -2569,8 +2571,38 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                   const hasEscuelaRows2 = rows.some(
                                     (r) => r.isEscuelaRow,
                                   );
-                                  const hasPctCol2 =
-                                    hasPretemporadaRows || hasEscuelaRows2;
+                                  const isPctBlockTable2 =
+                                    (hasEscuelaRows2 || hasPretemporadaRows) &&
+                                    !hasRegularIntensidades;
+
+                                  if (isPctBlockTable2) {
+                                    // Escuela / Pretemporada: una sub-cabecera por cada % usado
+                                    const pctList = Array.from(
+                                      new Set(
+                                        rows.flatMap((r) =>
+                                          (r.cols || [])
+                                            .map((c) => c?.pct)
+                                            .filter((p) => p != null),
+                                        ),
+                                      ),
+                                    ).sort((a, b) => Number(a) - Number(b));
+                                    return pctList.map((p) => (
+                                      <th key={p} className="sub-header">
+                                        <div
+                                          style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "1fr 1fr 1fr",
+                                            gap: 0,
+                                            fontSize: 6.5,
+                                          }}
+                                        >
+                                          <span>Ser</span>
+                                          <span>Rep</span>
+                                          <span>Kg</span>
+                                        </div>
+                                      </th>
+                                    ));
+                                  }
 
                                   if (
                                     hasCompBloques &&
@@ -2587,14 +2619,11 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                         <div
                                           style={{
                                             display: "grid",
-                                            gridTemplateColumns: hasPctCol2
-                                              ? "1fr 1fr 1fr 1fr"
-                                              : "1fr 1fr 1fr",
+                                            gridTemplateColumns: "1fr 1fr 1fr",
                                             gap: 0,
                                             fontSize: 6.5,
                                           }}
                                         >
-                                          {hasPctCol2 && <span>%</span>}
                                           <span>Ser</span>
                                           <span>Rep</span>
                                           <span>Kg</span>
@@ -2634,6 +2663,24 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                 const hasPretemporadaRows = rows.some(
                                   (r) => r.isPretemporadaRow,
                                 );
+                                const hasEscuelaRowsBody = rows.some(
+                                  (r) => r.isEscuelaRow,
+                                );
+                                const isPctBlockTableBody =
+                                  (hasEscuelaRowsBody ||
+                                    hasPretemporadaRows) &&
+                                  !hasRegularIntensidades;
+                                const pctBlockList = isPctBlockTableBody
+                                  ? Array.from(
+                                      new Set(
+                                        rows.flatMap((r) =>
+                                          (r.cols || [])
+                                            .map((c) => c?.pct)
+                                            .filter((p) => p != null),
+                                        ),
+                                      ),
+                                    ).sort((a, b) => Number(a) - Number(b))
+                                  : [];
                                 const maxBloques = hasCompBloques
                                   ? Math.max(
                                       ...rows.map((r) => r.cols?.length || 0),
@@ -2671,10 +2718,12 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                       const colors = sectionColors[newSection];
                                       const colSpan =
                                         2 +
-                                        (hasCompBloques &&
-                                        !hasRegularIntensidades
-                                          ? maxBloques
-                                          : INTENSIDADES.length);
+                                        (isPctBlockTableBody
+                                          ? pctBlockList.length
+                                          : hasCompBloques &&
+                                              !hasRegularIntensidades
+                                            ? maxBloques
+                                            : INTENSIDADES.length);
                                       rowArr.push(
                                         <tr
                                           key={`sep-${rIdx}`}
@@ -2737,6 +2786,15 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                                 >
                                                   {row.nombre}
                                                 </span>
+                                                <NormativoInfoButton
+                                                  ejercicio={findNormativoById(
+                                                    normativos,
+                                                    row.id,
+                                                  )}
+                                                  onClick={(ej) => setInfoEj(ej)}
+                                                  size={16}
+                                                  style={{ marginLeft: 4 }}
+                                                />
                                               </div>
                                             </td>
                                           </>
@@ -2759,20 +2817,91 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                             </td>
                                             <td className="left">
                                               <span
-                                                className="ej-nombre"
                                                 style={{
-                                                  fontStyle:
-                                                    row.isComplementario
-                                                      ? "italic"
-                                                      : "normal",
+                                                  display: "inline-flex",
+                                                  alignItems: "center",
+                                                  gap: 6,
                                                 }}
                                               >
-                                                {row.nombre}
+                                                <span
+                                                  className="ej-nombre"
+                                                  style={{
+                                                    fontStyle:
+                                                      row.isComplementario
+                                                        ? "italic"
+                                                        : "normal",
+                                                  }}
+                                                >
+                                                  {row.nombre}
+                                                </span>
+                                                <NormativoInfoButton
+                                                  ejercicio={findNormativoById(
+                                                    normativos,
+                                                    row.id,
+                                                  )}
+                                                  onClick={(ej) => setInfoEj(ej)}
+                                                  size={16}
+                                                />
                                               </span>
                                             </td>
                                           </>
                                         )}
                                         {(() => {
+                                          // Escuela / Pretemporada: una columna por cada % usado en el turno
+                                          if (
+                                            isPctBlockTableBody &&
+                                            (row.isEscuelaRow ||
+                                              row.isPretemporadaRow)
+                                          ) {
+                                            return pctBlockList.map((p) => {
+                                              const col = (row.cols || []).find(
+                                                (c) =>
+                                                  c != null &&
+                                                  Number(c.pct) === Number(p),
+                                              );
+                                              if (
+                                                !hasComplementarioBlockContent(
+                                                  col,
+                                                )
+                                              ) {
+                                                return (
+                                                  <td
+                                                    key={p}
+                                                    data-label={`${p}%`}
+                                                  >
+                                                    <span className="cell-empty">
+                                                      –
+                                                    </span>
+                                                  </td>
+                                                );
+                                              }
+                                              return (
+                                                <td
+                                                  key={p}
+                                                  data-label={`${p}%`}
+                                                  style={{ background: gb }}
+                                                >
+                                                  <div className="cell-data">
+                                                    <span className="cell-series">
+                                                      {col.s}
+                                                    </span>
+                                                    <span className="cell-reps">
+                                                      {col.r}
+                                                    </span>
+                                                    <span className="cell-kg">
+                                                      {col.kg}
+                                                    </span>
+                                                    {col.note && (
+                                                      <span className="cell-note">
+                                                        {col.note}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                              );
+                                            });
+                                          }
+
                                           // Si es complementario con bloques
                                           if (row.isCompBloques) {
                                             return Array.from({
@@ -2790,10 +2919,7 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                                     data-label={
                                                       col?.pct != null
                                                         ? `${col.pct}%`
-                                                        : row.isPretemporadaRow ||
-                                                            row.isEscuelaRow
-                                                          ? `B${bIdx + 1}`
-                                                          : ""
+                                                        : ""
                                                     }
                                                   >
                                                     <span className="cell-empty">
@@ -2808,21 +2934,11 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                                   data-label={
                                                     col?.pct != null
                                                       ? `${col.pct}%`
-                                                      : row.isPretemporadaRow ||
-                                                          row.isEscuelaRow
-                                                        ? `B${bIdx + 1}`
-                                                        : ""
+                                                      : ""
                                                   }
                                                   style={{ background: gb }}
                                                 >
                                                   <div className="cell-data">
-                                                    {(row.isPretemporadaRow ||
-                                                      row.isEscuelaRow) &&
-                                                      col.pct != null && (
-                                                        <span className="cell-pct-pretemp">
-                                                          {col.pct}%
-                                                        </span>
-                                                      )}
                                                     <span className="cell-series">
                                                       {col.s}
                                                     </span>
@@ -3097,6 +3213,13 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
           </div>
         )}
       </div>
+
+      {infoEj && (
+        <NormativoInfoModal
+          ejercicio={infoEj}
+          onClose={() => setInfoEj(null)}
+        />
+      )}
     </div>
   );
 }
