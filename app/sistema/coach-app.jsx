@@ -41,7 +41,7 @@ import { TabataTimer } from "../../components/cronometro";
 // ═══════════════════════════════════════════════════════════════
 // SUPABASE — Pure fetch client (no CDN needed)
 // ═══════════════════════════════════════════════════════════════
-const APP_VERSION = "1.7.13";
+const APP_VERSION = "1.7.14";
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -37058,13 +37058,14 @@ export default function App() {
   if (profile.rol !== "coach") {
     return (
       <>
+        {/* CSS completa (incluye .modal-overlay, .modal, etc.) — sin esto los modales del atleta */}
+        {/* renderizan sin position:fixed y quedan fuera del viewport. */}
+        <style>{css}</style>
         <style>{`
           :root{--bg:#0a0c10;--surface:#12151c;--surface2:#1a1e27;--surface3:#222732;
           --border:#2a303c;--text:#e8eaf0;--muted:#6b7280;--gold:#e8c547;
           --blue:#64b4e8;--green:#47e8a0;--red:#e85047}
           body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;margin:0}
-          .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans';font-size:13px;font-weight:600;transition:all .2s}
-          .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
         `}</style>
         <AtletaPanel
