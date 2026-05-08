@@ -37,6 +37,19 @@ import TabataDisplay from "./TabataDisplay";
 import TabataExerciseInfo from "./TabataExerciseInfo";
 import type { TabataConfig, TabataExercise } from "./types";
 
+// Convierte una URL de Google Drive a su forma embebible (/preview).
+// Soporta /file/d/FILE_ID y ?id=FILE_ID. Devuelve null si no matchea.
+function parseDriveUrl(url: string | null | undefined): string | null {
+  if (!url || typeof url !== "string") return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  const m1 = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (m1) return `https://drive.google.com/file/d/${m1[1]}/preview`;
+  const m2 = trimmed.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (m2) return `https://drive.google.com/file/d/${m2[1]}/preview`;
+  return null;
+}
+
 interface TurnoInfo {
   semana: number;
   turno: number;
@@ -228,6 +241,7 @@ export function TabataTimer({
   const [config, setConfig] = useState<TabataConfig>(loadConfig);
   const [disabledIds, setDisabledIds] = useState<Set<string>>(new Set());
   const [showListModal, setShowListModal] = useState(false);
+  const [infoFor, setInfoFor] = useState<TabataExercise | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const hasExercises = exercises.length > 0;
@@ -682,6 +696,7 @@ export function TabataTimer({
                 currentExercise.intensityIndex >=
                   currentExercise.totalIntensities - 1)
             }
+            onShowInfo={(ex) => setInfoFor(ex)}
           />
         )}
 
@@ -2100,6 +2115,163 @@ export function TabataTimer({
           </div>
         </div>
       )}
+
+      {/* ── Info modal (descripción + video del ejercicio) ── */}
+      {infoFor &&
+        (() => {
+          const description = (infoFor.description || "").trim();
+          const rawUrl = (infoFor.videoUrl || "").trim();
+          const embedUrl = rawUrl ? parseDriveUrl(rawUrl) : null;
+          const title =
+            infoFor.baseName || infoFor.name || "Información del ejercicio";
+          return (
+            <div
+              onClick={() => setInfoFor(null)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 2000,
+                background: "rgba(0,0,0,.75)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 16,
+              }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: "var(--background)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  padding: 20,
+                  maxWidth: 640,
+                  width: "100%",
+                  maxHeight: "90vh",
+                  overflowY: "auto",
+                  position: "relative",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 14,
+                    borderBottom: "1px solid var(--border)",
+                    paddingBottom: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 18,
+                      color: "var(--gold)",
+                      letterSpacing: ".04em",
+                    }}
+                  >
+                    {title}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInfoFor(null)}
+                    aria-label="Cerrar"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--muted-foreground)",
+                      fontSize: 22,
+                      cursor: "pointer",
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                {description ? (
+                  <div
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      fontSize: 14,
+                      lineHeight: 1.55,
+                      color: "var(--foreground)",
+                      marginBottom: embedUrl || rawUrl ? 16 : 0,
+                    }}
+                  >
+                    {description}
+                  </div>
+                ) : null}
+                {!description && !rawUrl && (
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--muted-foreground)",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    Sin información cargada.
+                  </div>
+                )}
+                {embedUrl && (
+                  <div
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      maxWidth: 320,
+                      margin: "0 auto",
+                      paddingBottom: "min(177.78%, 568px)",
+                      height: 0,
+                      overflow: "hidden",
+                      borderRadius: 8,
+                      background: "#000",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <iframe
+                      src={embedUrl}
+                      allow="autoplay"
+                      allowFullScreen
+                      title={`Video — ${title}`}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        border: 0,
+                      }}
+                    />
+                  </div>
+                )}
+                {!embedUrl && rawUrl && (
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      background: "rgba(232,71,71,.08)",
+                      border: "1px solid rgba(232,71,71,.25)",
+                      fontSize: 12,
+                      color: "var(--destructive)",
+                    }}
+                  >
+                    ⚠ El link del video no es un URL de Google Drive válido.{" "}
+                    <a
+                      href={rawUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: "var(--gold)",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Abrir en pestaña nueva
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }

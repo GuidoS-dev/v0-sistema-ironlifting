@@ -29,6 +29,8 @@ export interface TabataExerciseInfoProps {
    * reduce visual noise.
    */
   hidePrevIntensityCard?: boolean;
+  /** Click "?" → request showing the description/video info (parent owns the modal). */
+  onShowInfo?: (exercise: TabataExercise) => void;
 }
 
 /* ── Mini card for prev/next intensity in the wheel ── */
@@ -233,6 +235,7 @@ export function TabataExerciseInfo({
   phase,
   nextExercise,
   hidePrevIntensityCard = false,
+  onShowInfo,
 }: TabataExerciseInfoProps) {
   const catColor = CAT_COLORS[exercise.category] || "var(--muted-foreground)";
   const isGrouped =
@@ -408,6 +411,40 @@ export function TabataExerciseInfo({
               #{displayExercise.normativoId}
             </div>
           )}
+          {(displayExercise.description || displayExercise.videoUrl) &&
+            onShowInfo && (
+              <button
+                type="button"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onShowInfo(displayExercise);
+                }}
+                title="Ver descripción / video"
+                aria-label="Ver descripción / video del ejercicio"
+                style={{
+                  flexShrink: 0,
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background:
+                    "color-mix(in srgb, var(--gold-dark) 22%, var(--background))",
+                  color: "var(--gold)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--gold-dark) 50%, var(--border))",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  padding: 0,
+                  lineHeight: 1,
+                }}
+              >
+                ?
+              </button>
+            )}
         </div>
 
         {/* ── HUD Stat Pods: SERIES / REPS / CARGA ── */}

@@ -2879,6 +2879,292 @@ function Modal({
   );
 }
 
+// ─── INFO POR NORMATIVO (descripción + video Google Drive) ──────────────────
+
+// Acepta cualquier formato común de URL de Google Drive y devuelve la URL
+// embebible (/preview). Devuelve null si no se pudo extraer un fileId.
+function parseDriveUrl(url) {
+  if (!url || typeof url !== "string") return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  const m1 = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (m1) return `https://drive.google.com/file/d/${m1[1]}/preview`;
+  const m2 = trimmed.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (m2) return `https://drive.google.com/file/d/${m2[1]}/preview`;
+  return null;
+}
+
+function hasNormativoInfo(ej) {
+  if (!ej) return false;
+  const desc = (ej.descripcion || "").trim();
+  const url = (ej.videoUrl || "").trim();
+  return Boolean(desc || url);
+}
+
+function findNormativoById(normativos, id) {
+  if (!normativos || id == null) return null;
+  const target = Number(id);
+  if (Number.isNaN(target)) return null;
+  return normativos.find((e) => Number(e.id) === target) || null;
+}
+
+// Botón "?" inline. Renderiza null si el ejercicio no tiene descripción ni video.
+function NormativoInfoButton({
+  ejercicio,
+  onClick,
+  size = 18,
+  title = "Ver descripción / video",
+  style = null,
+  stopPropagation = true,
+}) {
+  if (!hasNormativoInfo(ejercicio)) return null;
+  const handle = (ev) => {
+    if (stopPropagation) ev.stopPropagation();
+    onClick?.(ejercicio);
+  };
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      title={title}
+      aria-label={title}
+      style={{
+        flexShrink: 0,
+        width: size,
+        height: size,
+        minWidth: size,
+        borderRadius: "50%",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(232,197,71,.15)",
+        color: "var(--gold)",
+        border: "1px solid rgba(232,197,71,.4)",
+        fontSize: Math.max(10, Math.round(size * 0.6)),
+        fontWeight: 800,
+        cursor: "pointer",
+        padding: 0,
+        lineHeight: 1,
+        ...(style || {}),
+      }}
+    >
+      ?
+    </button>
+  );
+}
+
+// Modal de SOLO LECTURA — para atleta. Muestra descripción + iframe del video.
+function NormativoInfoModal({ ejercicio, onClose }) {
+  if (!ejercicio) return null;
+  const descripcion = (ejercicio.descripcion || "").trim();
+  const rawUrl = (ejercicio.videoUrl || "").trim();
+  const embedUrl = rawUrl ? parseDriveUrl(rawUrl) : null;
+  const title = ejercicio.nombre || `Ejercicio #${ejercicio.id}`;
+  return (
+    <Modal title={title} onClose={onClose} maxWidth="640px">
+      {descripcion && (
+        <div
+          style={{
+            whiteSpace: "pre-wrap",
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: "var(--text)",
+            marginBottom: embedUrl || rawUrl ? 16 : 0,
+          }}
+        >
+          {descripcion}
+        </div>
+      )}
+      {!descripcion && !rawUrl && (
+        <div
+          style={{
+            fontSize: 13,
+            color: "var(--muted)",
+            fontStyle: "italic",
+          }}
+        >
+          Sin información cargada.
+        </div>
+      )}
+      {embedUrl && (
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: 320,
+            margin: "0 auto",
+            paddingBottom: "min(177.78%, 568px)",
+            height: 0,
+            overflow: "hidden",
+            borderRadius: 8,
+            background: "#000",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <iframe
+            src={embedUrl}
+            allow="autoplay"
+            allowFullScreen
+            title={`Video — ${title}`}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              border: 0,
+            }}
+          />
+        </div>
+      )}
+      {!embedUrl && rawUrl && (
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 8,
+            background: "rgba(232,71,71,.08)",
+            border: "1px solid rgba(232,71,71,.25)",
+            fontSize: 12,
+            color: "var(--red)",
+          }}
+        >
+          ⚠ El link del video no es un URL de Google Drive válido.{" "}
+          <a
+            href={rawUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "var(--gold)", textDecoration: "underline" }}
+          >
+            Abrir en pestaña nueva
+          </a>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// Modal de EDICIÓN — para coach en normativos G. Permite cargar/editar info.
+function EditNormativoInfoModal({ ejercicio, onSave, onClose }) {
+  const [descripcion, setDescripcion] = useState(ejercicio?.descripcion || "");
+  const [videoUrl, setVideoUrl] = useState(ejercicio?.videoUrl || "");
+  const [error, setError] = useState("");
+  const trimmedUrl = videoUrl.trim();
+  const previewUrl = trimmedUrl ? parseDriveUrl(trimmedUrl) : null;
+  const urlInvalid = trimmedUrl && !previewUrl;
+
+  const handleSave = () => {
+    if (urlInvalid) {
+      setError(
+        "El link no es un URL de Google Drive válido. Pegá el link de compartir.",
+      );
+      return;
+    }
+    onSave({
+      descripcion: descripcion.trim(),
+      videoUrl: trimmedUrl,
+    });
+  };
+
+  return (
+    <Modal
+      title={`Info — ${ejercicio?.nombre || "Ejercicio"}`}
+      onClose={onClose}
+      maxWidth="600px"
+    >
+      <div className="form-group">
+        <label className="form-label">Descripción</label>
+        <textarea
+          className="form-input"
+          rows={5}
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+          placeholder="Explicación del ejercicio, técnica, puntos clave..."
+          style={{ resize: "vertical", fontFamily: "inherit" }}
+        />
+      </div>
+      <div className="form-group">
+        <label className="form-label">Link de Google Drive (video)</label>
+        <input
+          className="form-input"
+          type="url"
+          value={videoUrl}
+          onChange={(e) => {
+            setVideoUrl(e.target.value);
+            setError("");
+          }}
+          placeholder="https://drive.google.com/file/d/..."
+        />
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--muted)",
+            marginTop: 4,
+          }}
+        >
+          Pegá el link de "compartir". El archivo debe tener permiso "cualquiera
+          con el link puede ver".
+        </div>
+      </div>
+      {previewUrl && (
+        <div
+          style={{
+            marginTop: 8,
+            position: "relative",
+            width: "100%",
+            maxWidth: 320,
+            margin: "8px auto 0",
+            paddingBottom: "min(177.78%, 568px)",
+            height: 0,
+            overflow: "hidden",
+            borderRadius: 8,
+            background: "#000",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <iframe
+            src={previewUrl}
+            title="Vista previa del video"
+            allow="autoplay"
+            allowFullScreen
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              border: 0,
+            }}
+          />
+        </div>
+      )}
+      {error && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "8px 12px",
+            borderRadius: 8,
+            background: "rgba(232,71,71,.1)",
+            border: "1px solid rgba(232,71,71,.3)",
+            fontSize: 12,
+            color: "var(--red)",
+            fontWeight: 600,
+          }}
+        >
+          ⚠ {error}
+        </div>
+      )}
+      <div className="modal-footer" style={{ marginTop: 16 }}>
+        <button className="btn btn-ghost" onClick={onClose}>
+          Cancelar
+        </button>
+        <button className="btn btn-gold" onClick={handleSave}>
+          Guardar
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 function ExercisePickerOverlay({
   open,
   normativos,
@@ -22771,8 +23057,10 @@ function PagePDF({
   tablas: tablasProp = null,
   hideActions = false,
   onStartTimer = null,
+  showInfoButton = false,
 }) {
   const previewRef = React.useRef(null);
+  const [infoEj, setInfoEj] = useState(null);
   const normativos =
     normativosProp ??
     (() => {
@@ -23511,7 +23799,19 @@ function PagePDF({
 
     pushCompRows(turno.complementarios_after, "ca");
 
-    return result;
+    // Enriquecer con descripción + video desde normativos globales (lookup por normativoId)
+    return result.map((ex) => {
+      const ej = findNormativoById(normativos, ex.normativoId);
+      if (!ej) return ex;
+      const description = (ej.descripcion || "").trim();
+      const videoUrl = (ej.videoUrl || "").trim();
+      if (!description && !videoUrl) return ex;
+      return {
+        ...ex,
+        description: description || undefined,
+        videoUrl: videoUrl || undefined,
+      };
+    });
   };
 
   const isPretemp = meso.pretemporada === true || meso.pretemporada === "true";
@@ -25494,6 +25794,19 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                                 >
                                                   {row.nombre}
                                                 </span>
+                                                {showInfoButton && (
+                                                  <NormativoInfoButton
+                                                    ejercicio={findNormativoById(
+                                                      normativos,
+                                                      row.id,
+                                                    )}
+                                                    onClick={(ej) =>
+                                                      setInfoEj(ej)
+                                                    }
+                                                    size={16}
+                                                    style={{ marginLeft: 6 }}
+                                                  />
+                                                )}
                                               </div>
                                             </td>
                                           </>
@@ -25526,6 +25839,19 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
                                               >
                                                 {row.nombre}
                                               </span>
+                                              {showInfoButton && (
+                                                <NormativoInfoButton
+                                                  ejercicio={findNormativoById(
+                                                    normativos,
+                                                    row.id,
+                                                  )}
+                                                  onClick={(ej) =>
+                                                    setInfoEj(ej)
+                                                  }
+                                                  size={14}
+                                                  style={{ marginLeft: 6 }}
+                                                />
+                                              )}
                                             </td>
                                           </>
                                         )}
@@ -25854,6 +26180,12 @@ document.querySelectorAll('.pdf-turno-header').forEach(function(header){
           </div>
         )}
       </div>
+      {infoEj && (
+        <NormativoInfoModal
+          ejercicio={infoEj}
+          onClose={() => setInfoEj(null)}
+        />
+      )}
     </div>
   );
 }
@@ -29958,9 +30290,12 @@ function PageNormativos({ coachId, isActive = false }) {
     categoria: "Arranque",
     pct_base: "",
     base: "arranque",
+    descripcion: "",
+    videoUrl: "",
   });
   const [confirmDel, setConfirmDel] = useState(null);
   const [error, setError] = useState("");
+  const [editInfoId, setEditInfoId] = useState(null);
   const isSyncingRef = useRef(false);
 
   const syncFromDb = useCallback(async () => {
@@ -30099,8 +30434,25 @@ function PageNormativos({ coachId, isActive = false }) {
       categoria: "Arranque",
       pct_base: "",
       base: "arranque",
+      descripcion: "",
+      videoUrl: "",
     });
     setShowAdd(false);
+  };
+
+  const saveInfoForEj = (id, info) => {
+    save(
+      ejercicios.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              descripcion: info.descripcion || "",
+              videoUrl: info.videoUrl || "",
+            }
+          : e,
+      ),
+    );
+    setEditInfoId(null);
   };
 
   const filtered = ejercicios
@@ -30235,6 +30587,35 @@ function PageNormativos({ coachId, isActive = false }) {
                 <option value="envion">Envión</option>
                 <option value="">Ninguna</option>
               </select>
+            </div>
+          </div>
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Descripción (opcional)</label>
+              <textarea
+                className="form-input"
+                rows={3}
+                placeholder="Explicación del ejercicio, técnica, puntos clave..."
+                value={newEj.descripcion}
+                onChange={(e) =>
+                  setNewEj((n) => ({ ...n, descripcion: e.target.value }))
+                }
+                style={{ resize: "vertical", fontFamily: "inherit" }}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">
+                Link Google Drive — video (opcional)
+              </label>
+              <input
+                className="form-input"
+                type="url"
+                placeholder="https://drive.google.com/file/d/..."
+                value={newEj.videoUrl}
+                onChange={(e) =>
+                  setNewEj((n) => ({ ...n, videoUrl: e.target.value }))
+                }
+              />
             </div>
           </div>
           {error && (
@@ -30512,12 +30893,33 @@ function PageNormativos({ coachId, isActive = false }) {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          className="btn btn-danger btn-xs"
-                          onClick={() => setConfirmDel(e.id)}
+                        <div
+                          className="flex gap4"
+                          style={{ justifyContent: "flex-end" }}
                         >
-                          ✕
-                        </button>
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            title={
+                              hasNormativoInfo(e)
+                                ? "Editar descripción / video"
+                                : "Agregar descripción / video"
+                            }
+                            onClick={() => setEditInfoId(e.id)}
+                            style={{
+                              color: hasNormativoInfo(e)
+                                ? "var(--gold)"
+                                : "var(--muted)",
+                            }}
+                          >
+                            {hasNormativoInfo(e) ? "📝" : "+ info"}
+                          </button>
+                          <button
+                            className="btn btn-danger btn-xs"
+                            onClick={() => setConfirmDel(e.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -30527,6 +30929,20 @@ function PageNormativos({ coachId, isActive = false }) {
           </table>
         </div>
       </div>
+
+      {/* Edit info modal (descripción + video) */}
+      {editInfoId !== null &&
+        (() => {
+          const ej = ejercicios.find((e) => e.id === editInfoId);
+          if (!ej) return null;
+          return (
+            <EditNormativoInfoModal
+              ejercicio={ej}
+              onSave={(info) => saveInfoForEj(editInfoId, info)}
+              onClose={() => setEditInfoId(null)}
+            />
+          );
+        })()}
 
       {/* Confirm delete modal */}
       {confirmDel !== null &&
@@ -35159,6 +35575,7 @@ function AtletaPanel({ session, profile, onLogout }) {
   const [coachTablas, setCoachTablas] = useState(null);
   const [atletaView, setAtletaView] = useState(null); // "resumen" | "normativos" | "cronometro" | null
   const [normSearch, setNormSearch] = useState("");
+  const [normInfoEj, setNormInfoEj] = useState(null);
   const [atletaNormOvr, setAtletaNormOvr] = useState({});
   const [cronometroExercises, setCronometroExercises] = useState(null);
   const [cronometroTurnoInfo, setCronometroTurnoInfo] = useState(null);
@@ -35447,6 +35864,7 @@ function AtletaPanel({ session, profile, onLogout }) {
             normativos={atletaNormativos}
             tablas={coachTablas || TABLA_DEFAULT}
             hideActions
+            showInfoButton
             onStartTimer={(exercises, turnoInfo) => {
               setCronometroExercises(exercises);
               setCronometroTurnoInfo(turnoInfo || null);
@@ -35757,7 +36175,15 @@ function AtletaPanel({ session, profile, onLogout }) {
                         >
                           {ej.id}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
                           <div
                             style={{
                               fontSize: 13,
@@ -35765,10 +36191,15 @@ function AtletaPanel({ session, profile, onLogout }) {
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
+                              minWidth: 0,
                             }}
                           >
                             {ej.nombre}
                           </div>
+                          <NormativoInfoButton
+                            ejercicio={ej}
+                            onClick={() => setNormInfoEj(ej)}
+                          />
                         </div>
                         <div
                           style={{
@@ -35818,6 +36249,12 @@ function AtletaPanel({ session, profile, onLogout }) {
             </div>
           )}
         </div>
+        {normInfoEj && (
+          <NormativoInfoModal
+            ejercicio={normInfoEj}
+            onClose={() => setNormInfoEj(null)}
+          />
+        )}
       </div>
     );
   }
