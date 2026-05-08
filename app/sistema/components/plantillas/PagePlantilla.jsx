@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Redo2, Undo2 } from "lucide-react";
 import { Modal } from "../common/Modal";
-import { mkSemanas } from "../../data/constantes";
+import { mkSemanas, mkId } from "../../data/constantes";
 import { safeSetItem } from "../../lib/storage";
 import {
   remapSemPctKeyForSwap,
@@ -50,9 +50,25 @@ export function PagePlantilla({ plt, onUpdate, onClose }) {
   const [nameEdit, setNameEditRaw] = useState(() => _lpg("nameEdit", {}));
   const [noteEdit, setNoteEditRaw] = useState(() => _lpg("noteEdit", {}));
 
+  // Plantillas guardadas como "regular" pierden los `id` de semanas/turnos/ejercicios
+  // (ver GuardarPlantillaModal). Los rehidratamos acá para que keys de React y los
+  // overrides indexados por id de hijos (PlanillaTurno, etc.) funcionen.
+  const ensureIds = (semanas) =>
+    semanas.map((s) => ({
+      ...s,
+      id: s.id || mkId(),
+      turnos: (s.turnos || []).map((t) => ({
+        ...t,
+        id: t.id || mkId(),
+        ejercicios: (t.ejercicios || []).map((e) => ({
+          ...e,
+          id: e.id || mkId(),
+        })),
+      })),
+    }));
   const initialForm = {
     ...plt,
-    semanas: plt.semanas || mkSemanas(),
+    semanas: ensureIds(plt.semanas || mkSemanas()),
     volumen_total: plt.volumen_total || 600,
   };
 

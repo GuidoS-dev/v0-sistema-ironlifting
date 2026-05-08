@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Files } from "lucide-react";
 import { Modal } from "../common/Modal";
 
 export function DuplicarPlantillaModal({ plantillas, base, onSave, onClose }) {

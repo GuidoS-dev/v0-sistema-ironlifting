@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { CAT_COLOR } from "../../data/constantes";
 import { INTENSIDADES, TABLA_DEFAULT } from "../../data/tablas-default";
-import { calcSembradoSemana, calcSeriesRepsKg, getGrupo } from "../../lib/calc";
+import {
+  calcSeriesRepsKg,
+  getRepsVal,
+  loadMesoOverridesFromLocal,
+} from "../../lib/calc";
 
 export function PageResumen({
   meso,
@@ -62,29 +66,8 @@ export function PageResumen({
     }
   })();
 
-  // ── Leer repsEdit y cellEdit del localStorage del mesociclo ─────────────────
-  const repsEditSaved = (() => {
-    try {
-      return (
-        JSON.parse(
-          localStorage.getItem(`liftplan_pt_${meso.id}_repsEdit`) || "null",
-        ) || {}
-      );
-    } catch {
-      return {};
-    }
-  })();
-  const manualEditSaved = (() => {
-    try {
-      return new Set(
-        JSON.parse(
-          localStorage.getItem(`liftplan_pt_${meso.id}_manualEdit`) || "[]",
-        ),
-      );
-    } catch {
-      return new Set();
-    }
-  })();
+  // ── Overrides persistidos del mesociclo (repsEdit, manualEdit, % por bloque/turno) ──
+  const overrides = loadMesoOverridesFromLocal(meso.id);
   const cellEditSaved = (() => {
     try {
       return (
@@ -107,35 +90,6 @@ export function PageResumen({
       return new Set();
     }
   })();
-
-  // Obtener reps efectivas para un ejercicio (con overrides de repsEdit)
-  const getRepsVal = (ej, semIdx, tIdx) => {
-    const k = `${semIdx}-${tIdx}-${ej.id}`;
-    if (manualEditSaved.has(k) && repsEditSaved[k] !== undefined)
-      return Number(repsEditSaved[k]);
-    if (ej.reps_asignadas > 0) return ej.reps_asignadas;
-    // Calcular tentativa igual que PlanillaTurno
-    const sem = meso.semanas[semIdx];
-    if (!sem) return 0;
-    const reps_sem = meso.volumen_total * (sem.pct_volumen / 100);
-    const { porGrupo, totalSem } = calcSembradoSemana(sem);
-    const ejData2 = normativos.find((e) => e.id === Number(ej.ejercicio_id));
-    if (!ejData2) return 0;
-    const g = getGrupo(ej.ejercicio_id);
-    if (!g || totalSem === 0) return 0;
-    const pctGSem = porGrupo[g].total / totalSem;
-    const pctGTurno = porGrupo[g].porTurno[tIdx] / (porGrupo[g].total || 1);
-    const repsBloque = Math.round(reps_sem * pctGSem * pctGTurno);
-    // Distribuir entre ejercicios del grupo en el turno
-    const ejsG = sem.turnos[tIdx].ejercicios.filter(
-      (e) => e.ejercicio_id && getGrupo(e.ejercicio_id) === g,
-    );
-    if (ejsG.length === 0) return 0;
-    const base = Math.floor(repsBloque / ejsG.length);
-    const extra = repsBloque - base * ejsG.length;
-    const idx = ejsG.findIndex((e) => e.id === ej.id);
-    return base + (idx < extra ? 1 : 0);
-  };
 
   // ── Función core: calcular métricas de un array de {ej, semIdx, tIdx} ────
   const calcMetricas = (pairs) => {
@@ -190,7 +144,7 @@ export function PageResumen({
           sumIntReps += (bloque.pct || 0) * rT;
         });
       } else {
-        const repsVal = getRepsVal(ej, semIdx, tIdx);
+        const repsVal = getRepsVal(meso, ej, semIdx, tIdx, overrides);
         const calcs = calcSeriesRepsKg(
           tablas,
           ej,

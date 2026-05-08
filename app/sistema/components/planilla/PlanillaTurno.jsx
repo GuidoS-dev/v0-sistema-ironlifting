@@ -2,7 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { CAT_COLOR, EMPTY_NAME_SENTINEL, mkId, resolveExerciseName } from "../../data/constantes";
 import { INTENSIDADES, TABLA_DEFAULT } from "../../data/tablas-default";
-import { calcSembradoSemana, calcSeriesRepsKg, getGrupo, GRUPOS_KEYS } from "../../lib/calc";
+import {
+  calcSeriesRepsKg,
+  calcTentativaTurno,
+  getGrupo,
+  getSemPct as getSemPctCalc,
+  getTurnoPct as getTurnoPctCalc,
+  GRUPOS_KEYS,
+} from "../../lib/calc";
 import { handlePlanillaArrowNavigation } from "../../lib/navegacion";
 import { ExercisePickerOverlay } from "../common/ExercisePickerOverlay";
 
@@ -246,69 +253,23 @@ export function PlanillaTurno({
       return next;
     });
 
-  // Helper: get effective % of a group in a semana (respects ResumenGrupos override)
-  const getSemPct = (g, semIdx) => {
-    const k = `${g}-${semIdx}`;
-    if (semPctManual?.has(k)) return Number(semPctOverrides?.[k]) || 0;
-    // fallback: calculated from sembrado
-    const { porGrupo, totalSem } = calcSembradoSemana(semanas[semIdx]);
-    return totalSem > 0 ? (porGrupo[g].total / totalSem) * 100 : 0;
+  // Bundle de overrides para los helpers centralizados (lib/calc).
+  // `semanas` viene como prop separada, así que sintetizamos un meso-like.
+  const _mesoForCalc = { ...meso, semanas, volumen_total: meso?.volumen_total };
+  const _overrides = {
+    repsEdit,
+    manualEdit,
+    semPctOverrides,
+    semPctManual,
+    turnoPctOverrides,
+    turnoPctManual,
   };
-
-  // Helper: get effective % of a group in a turno (respects DistribucionTurnos override)
-  const getTurnoPct = (g, semIdx, tIdx) => {
-    const k = `${g}-${semIdx}-${tIdx}`;
-    if (turnoPctManual?.has(k)) return Number(turnoPctOverrides?.[k]) || 0;
-    // fallback: calculated from sembrado
-    const { porGrupo } = calcSembradoSemana(semanas[semIdx]);
-    const total = porGrupo[g].total;
-    return total > 0 ? (porGrupo[g].porTurno[tIdx] / total) * 100 : 0;
-  };
-
-  // Calcular tentativa usando los % efectivos (con overrides)
-  const calcTentativa = (semIdx, tIdx) => {
-    const s = semanas[semIdx];
-    const t = s?.turnos[tIdx];
-    if (!s || !t) return {};
-
-    const reps_sem = meso.volumen_total * (s.pct_volumen / 100);
-    const result = {};
-
-    GRUPOS_KEYS.forEach((g) => {
-      const pctGSem = getSemPct(g, semIdx) / 100;
-      const pctGTurno = getTurnoPct(g, semIdx, tIdx) / 100;
-      if (pctGSem === 0 || pctGTurno === 0) return;
-
-      const repsBloque = Math.round(reps_sem * pctGSem * pctGTurno);
-
-      const ejsG = t.ejercicios.filter(
-        (e) => e.ejercicio_id && getGrupo(e.ejercicio_id) === g,
-      );
-      if (ejsG.length === 0) return;
-
-      const editados = ejsG.filter((e) =>
-        manualEdit.has(`${semIdx}-${tIdx}-${e.id}`),
-      );
-      const libres = ejsG.filter(
-        (e) => !manualEdit.has(`${semIdx}-${tIdx}-${e.id}`),
-      );
-
-      const repsReservadas = editados.reduce((s, e) => {
-        const v = repsEdit[`${semIdx}-${tIdx}-${e.id}`];
-        return s + (v !== undefined ? Number(v) : 0);
-      }, 0);
-
-      const repsLibres = Math.max(0, repsBloque - repsReservadas);
-      if (libres.length === 0) return;
-
-      const base = Math.floor(repsLibres / libres.length);
-      const extra = repsLibres - base * libres.length;
-      libres.forEach((e, i) => {
-        result[`${semIdx}-${tIdx}-${e.id}`] = base + (i < extra ? 1 : 0);
-      });
-    });
-    return result;
-  };
+  const getSemPct = (g, semIdx) =>
+    getSemPctCalc(_mesoForCalc, g, semIdx, _overrides);
+  const getTurnoPct = (g, semIdx, tIdx) =>
+    getTurnoPctCalc(_mesoForCalc, g, semIdx, tIdx, _overrides);
+  const calcTentativa = (semIdx, tIdx) =>
+    calcTentativaTurno(_mesoForCalc, semIdx, tIdx, _overrides);
 
   // Tentativa calculada inline para el turno activo actual
   const tentativaActual = calcTentativa(semActiva, turnoActivo);

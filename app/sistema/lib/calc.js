@@ -221,9 +221,123 @@ export function calcSembradoSemana(sem) {
   return { porGrupo, totalSem };
 }
 
+// ─── % efectivos y reps tentativas (con overrides manuales) ─────────────────
+// Estas funciones son la fuente única para PlanillaTurno, PanelReferencia,
+// PagePDF y PageResumen. `overrides` contiene los edits manuales del coach:
+//   { repsEdit, manualEdit, semPctOverrides, semPctManual,
+//     turnoPctOverrides, turnoPctManual }
+// repsEdit / pctOverrides son objetos {key: value}; manualEdit / pctManual son
+// Sets que marcan qué keys son override manual (vs valor calculado).
+
+// % efectivo de un grupo en una semana (0-100). Respeta override manual.
+export function getSemPct(meso, g, sIdx, overrides = {}) {
+  const { semPctOverrides = {}, semPctManual = new Set() } = overrides;
+  const k = `${g}-${sIdx}`;
+  if (semPctManual.has(k)) return Number(semPctOverrides[k]) || 0;
+  const sem = meso?.semanas?.[sIdx];
+  if (!sem) return 0;
+  const { porGrupo, totalSem } = calcSembradoSemana(sem);
+  return totalSem > 0 ? ((porGrupo[g]?.total || 0) / totalSem) * 100 : 0;
+}
+
+// % efectivo de un grupo en un turno (0-100). Respeta override manual.
+export function getTurnoPct(meso, g, sIdx, tIdx, overrides = {}) {
+  const { turnoPctOverrides = {}, turnoPctManual = new Set() } = overrides;
+  const k = `${g}-${sIdx}-${tIdx}`;
+  if (turnoPctManual.has(k)) return Number(turnoPctOverrides[k]) || 0;
+  const sem = meso?.semanas?.[sIdx];
+  if (!sem) return 0;
+  const { porGrupo } = calcSembradoSemana(sem);
+  const total = porGrupo[g]?.total || 0;
+  return total > 0 ? ((porGrupo[g]?.porTurno?.[tIdx] || 0) / total) * 100 : 0;
+}
+
+// Map { `${sIdx}-${tIdx}-${ej.id}`: reps } para todos los ejercicios libres
+// (no editados manualmente) de un turno. Reserva primero las reps de los
+// editados para que la suma del bloque sea consistente con el % esperado.
+export function calcTentativaTurno(meso, sIdx, tIdx, overrides = {}) {
+  const sem = meso?.semanas?.[sIdx];
+  const turno = sem?.turnos?.[tIdx];
+  if (!sem || !turno || !meso?.volumen_total) return {};
+  const { repsEdit = {}, manualEdit = new Set() } = overrides;
+  const reps_sem = meso.volumen_total * (sem.pct_volumen / 100);
+  const result = {};
+  GRUPOS_KEYS.forEach((g) => {
+    const pctGSem = getSemPct(meso, g, sIdx, overrides) / 100;
+    const pctGTurno = getTurnoPct(meso, g, sIdx, tIdx, overrides) / 100;
+    if (!pctGSem || !pctGTurno) return;
+    const repsBloque = Math.round(reps_sem * pctGSem * pctGTurno);
+    const ejsG = turno.ejercicios.filter(
+      (e) => e.ejercicio_id && getGrupo(e.ejercicio_id) === g,
+    );
+    if (!ejsG.length) return;
+    const editados = ejsG.filter((e) =>
+      manualEdit.has(`${sIdx}-${tIdx}-${e.id}`),
+    );
+    const libres = ejsG.filter(
+      (e) => !manualEdit.has(`${sIdx}-${tIdx}-${e.id}`),
+    );
+    const repsReservadas = editados.reduce(
+      (s, e) => s + (Number(repsEdit[`${sIdx}-${tIdx}-${e.id}`]) || 0),
+      0,
+    );
+    const repsLibres = Math.max(0, repsBloque - repsReservadas);
+    if (!libres.length) return;
+    const base = Math.floor(repsLibres / libres.length);
+    const extra = repsLibres - base * libres.length;
+    libres.forEach((e, i) => {
+      result[`${sIdx}-${tIdx}-${e.id}`] = base + (i < extra ? 1 : 0);
+    });
+  });
+  return result;
+}
+
+// Reps efectivas para UN ejercicio. Prioridad: edit manual > reps_asignadas
+// (sembrado) > tentativa calculada con overrides.
+export function getRepsVal(meso, ej, sIdx, tIdx, overrides = {}) {
+  const k = `${sIdx}-${tIdx}-${ej.id}`;
+  const { repsEdit = {}, manualEdit = new Set() } = overrides;
+  if (manualEdit.has(k)) return Number(repsEdit[k]) || 0;
+  if (ej.reps_asignadas > 0) return ej.reps_asignadas;
+  const tent = calcTentativaTurno(meso, sIdx, tIdx, overrides);
+  return tent[k] ?? 0;
+}
+
+// Lee del localStorage los overrides persistidos por PageAtleta para un meso.
+// Útil para consumidores que no reciben los overrides como prop (PagePDF,
+// PageResumen, PanelReferencia cuando no hay live data).
+export function loadMesoOverridesFromLocal(mesoId) {
+  const empty = {
+    repsEdit: {},
+    manualEdit: new Set(),
+    semPctOverrides: {},
+    semPctManual: new Set(),
+    turnoPctOverrides: {},
+    turnoPctManual: new Set(),
+  };
+  if (!mesoId || typeof localStorage === "undefined") return empty;
+  const ls = (key, dflt) => {
+    try {
+      return JSON.parse(localStorage.getItem(key) || "null") ?? dflt;
+    } catch {
+      return dflt;
+    }
+  };
+  return {
+    repsEdit: ls(`liftplan_pt_${mesoId}_repsEdit`, {}),
+    manualEdit: new Set(ls(`liftplan_pt_${mesoId}_manualEdit`, [])),
+    semPctOverrides: ls(`liftplan_pct_${mesoId}_semOvr`, {}),
+    semPctManual: new Set(ls(`liftplan_pct_${mesoId}_semMan`, [])),
+    turnoPctOverrides: ls(`liftplan_pct_${mesoId}_turnoOvr`, {}),
+    turnoPctManual: new Set(ls(`liftplan_pct_${mesoId}_turnoMan`, [])),
+  };
+}
+
 // Calcula reps tentativas por ejercicio en un turno dado
 // Fórmula: vol_total × pct_semana × pct_grupo_en_semana × pct_grupo_en_turno / n_ejs_grupo_en_turno
 // Returns: { [ej.id]: reps }
+// NOTE: legado, no aplica overrides manuales — usado solo en tests.
+// Para producción usar calcTentativaTurno / getRepsVal.
 export function calcRepsEjercicio(sem, turnoIdx, meso) {
   const reps_sem = meso.volumen_total * (sem.pct_volumen / 100);
   const { porGrupo, totalSem } = calcSembradoSemana(sem);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FileText } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { PERIODOS, OBJETIVOS, NIVELES, PERIODO_LABEL, OBJETIVO_LABEL, NIVEL_LABEL } from "../../data/plantillas-meta";
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { X } from "lucide-react";
 import { EJERCICIOS } from "../../data/ejercicios";
 import { CAT_COLOR, EMPTY_NAME_SENTINEL, mkId, mkBloqueBasica, mkEjPretemp, resolveExerciseName } from "../../data/constantes";

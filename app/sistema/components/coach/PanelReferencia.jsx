@@ -3,10 +3,17 @@ import { EJERCICIOS } from "../../data/ejercicios";
 import { CAT_COLOR } from "../../data/constantes";
 import { INTENSIDADES, TABLA_DEFAULT } from "../../data/tablas-default";
 import { LIFTPLAN_LOCAL_SYNC_EVENT } from "../../lib/storage";
-import { calcSembradoSemana, calcSeriesRepsKg, getEjercicioById, getGrupo } from "../../lib/calc";
+import {
+  calcSeriesRepsKg,
+  getEjercicioById,
+  getRepsVal,
+  getSemPct,
+  getTurnoPct,
+} from "../../lib/calc";
 import { formatDateDisplay } from "../../lib/ciclo-menstrual";
 import { PageResumen } from "../resumen/PageResumen";
 import { PagePDF } from "../pdf/PagePDF";
+import { PanelTabBoundary } from "../common/PanelTabBoundary";
 
 export function PanelReferencia({
   atletas,
@@ -119,6 +126,7 @@ export function PanelReferencia({
     const shouldRefreshForKey = (key) => {
       if (!key) return false;
       if (key === "liftplan_normativos") return true;
+      if (key === "liftplan_tablas") return true;
       if (key === `liftplan_normativos_atleta_${atletaId}`) return true;
       if (!mid) return false;
       if (key.startsWith(`liftplan_pt_${mid}_`)) return true;
@@ -148,61 +156,18 @@ export function PanelReferencia({
 
   void localRevision;
 
-  // Mirrors PlanillaTurno getSemPct/getTurnoPct/calcTentativa exactly
-  const _getSemPct = (g, sIdx) => {
-    const k = `${g}-${sIdx}`;
-    if (liveSemPctMan.has(k)) return Number(liveSemPctOvr[k]) || 0;
-    if (!meso?.semanas?.[sIdx]) return 0;
-    const { porGrupo, totalSem } = calcSembradoSemana(meso.semanas[sIdx]);
-    return totalSem > 0 ? ((porGrupo[g]?.total || 0) / totalSem) * 100 : 0;
+  // Override bundle: live data from PageAtleta if mounted, fallback a localStorage
+  const overrides = {
+    repsEdit: liveRepsEdit,
+    manualEdit: liveManualEdit,
+    semPctOverrides: liveSemPctOvr,
+    semPctManual: liveSemPctMan,
+    turnoPctOverrides: liveTurnoPctOvr,
+    turnoPctManual: liveTurnoPctMan,
   };
-  const _getTurnoPct = (g, sIdx, tIdx) => {
-    const k = `${g}-${sIdx}-${tIdx}`;
-    if (liveTurnoPctMan.has(k)) return Number(liveTurnoPctOvr[k]) || 0;
-    if (!meso?.semanas?.[sIdx]) return 0;
-    const { porGrupo } = calcSembradoSemana(meso.semanas[sIdx]);
-    const total = porGrupo[g]?.total || 0;
-    return total > 0 ? ((porGrupo[g]?.porTurno?.[tIdx] || 0) / total) * 100 : 0;
-  };
-
-  const getRepsVal = (ej, sIdx, tIdx) => {
-    const k = `${sIdx}-${tIdx}-${ej.id}`;
-    // Manual override wins
-    if (liveManualEdit.has(k)) return Number(liveRepsEdit[k]) || 0;
-    // Direct assignment
-    if (ej.reps_asignadas > 0) return ej.reps_asignadas;
-    // Calculate tentativa with overrides — same as PlanillaTurno
-    const sem = meso?.semanas?.[sIdx];
-    if (!sem || !meso?.volumen_total) return 0;
-    const reps_sem = meso.volumen_total * (sem.pct_volumen / 100);
-    const g = getGrupo(ej.ejercicio_id);
-    if (!g) return 0;
-    const pctGSem = _getSemPct(g, sIdx) / 100;
-    const pctGTurno = _getTurnoPct(g, sIdx, tIdx) / 100;
-    if (!pctGSem || !pctGTurno) return 0;
-    const repsBloque = Math.round(reps_sem * pctGSem * pctGTurno);
-    const turno = sem.turnos[tIdx];
-    if (!turno) return 0;
-    const ejsG = turno.ejercicios.filter(
-      (e) => e.ejercicio_id && getGrupo(e.ejercicio_id) === g,
-    );
-    const editados = ejsG.filter((e) =>
-      liveManualEdit.has(`${sIdx}-${tIdx}-${e.id}`),
-    );
-    const libres = ejsG.filter(
-      (e) => !liveManualEdit.has(`${sIdx}-${tIdx}-${e.id}`),
-    );
-    const repsReservadas = editados.reduce(
-      (s, e) => s + (Number(liveRepsEdit[`${sIdx}-${tIdx}-${e.id}`]) || 0),
-      0,
-    );
-    const repsLibres = Math.max(0, repsBloque - repsReservadas);
-    if (!libres.length) return 0;
-    const base = Math.floor(repsLibres / libres.length);
-    const extra = repsLibres - base * libres.length;
-    const idx = libres.findIndex((e) => e.id === ej.id);
-    return idx >= 0 ? base + (idx < extra ? 1 : 0) : 0;
-  };
+  const _getSemPct = (g, sIdx) => getSemPct(meso, g, sIdx, overrides);
+  const _getTurnoPct = (g, sIdx, tIdx) =>
+    getTurnoPct(meso, g, sIdx, tIdx, overrides);
 
   const plt = plantillas.find((p) => p.id === pltId) || null;
   const fuente = modo === "atleta" ? meso : plt?.semanas ? plt : null;
@@ -304,7 +269,16 @@ export function PanelReferencia({
         </div>
       );
     const volTotal = fuente.volumen_total || 0;
-    const tablas = TABLA_DEFAULT;
+    const tablas = (() => {
+      try {
+        return (
+          JSON.parse(localStorage.getItem("liftplan_tablas") || "null") ||
+          TABLA_DEFAULT
+        );
+      } catch {
+        return TABLA_DEFAULT;
+      }
+    })();
     const modo_ = fuente.modo || "Preparatorio";
 
     // % bloques y turnos — usar _getSemPct/_getTurnoPct (respetan overrides en tiempo real)
@@ -700,7 +674,7 @@ export function PanelReferencia({
                   );
                   const col = CAT_COLOR[data?.categoria] || "var(--muted)";
                   const k = `${semIdx}-${turnoIdx}-${ej.id}`;
-                  const repsVal = getRepsVal(ej, semIdx, turnoIdx);
+                  const repsVal = getRepsVal(meso, ej, semIdx, turnoIdx, overrides);
                   const liveCellEdit = live?.cellEdit || {};
                   const liveCellManual = live?.cellManual || new Set();
                   const getC = (intens, field, def) => {
