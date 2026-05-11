@@ -1,27 +1,12 @@
-import { Navbar } from "@/components/navbar"
-import { Hero } from "@/components/hero"
-import { Coach } from "@/components/coach"
-import { Methodology } from "@/components/methodology"
-import { Timeline } from "@/components/timeline"
-import { Testimonials } from "@/components/testimonials"
-import { HowItWorks } from "@/components/how-it-works"
-import { Pricing } from "@/components/pricing"
-import { FAQ } from "@/components/faq"
-import { Footer } from "@/components/footer"
-
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <Navbar />
-      <Hero />
-      <Coach />
-      <Methodology />
-      <Timeline />
-      <Testimonials />
-      <HowItWorks />
-      <Pricing />
-      <FAQ />
-      <Footer />
+    <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-6">
+      <div className="text-center">
+        <h1 className="text-3xl md:text-5xl font-bold mb-4">No disponible</h1>
+        <p className="text-muted-foreground text-base md:text-lg">
+          Esta página no está disponible en este momento.
+        </p>
+      </div>
     </main>
   )
 }
